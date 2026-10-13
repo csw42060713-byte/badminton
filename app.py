@@ -59,6 +59,28 @@ level_default_schedules = {
 if "training_history" not in st.session_state:
     st.session_state.training_history = []
 
+# 레벨 변경 시 목표 수치 자동 업데이트 함수
+def update_level_goals(new_level):
+    st.session_state.user_level = new_level
+    if "초보용" in new_level:
+        st.session_state.weekly_goal_core = 1
+        st.session_state.weekly_goal_strength = 1
+        st.session_state.weekly_goal_interval = 0
+        st.session_state.weekly_goal_wall = 1
+        st.session_state.weekly_goal_stroke = 2
+    elif "일반부" in new_level:
+        st.session_state.weekly_goal_core = 2
+        st.session_state.weekly_goal_strength = 2
+        st.session_state.weekly_goal_interval = 1
+        st.session_state.weekly_goal_wall = 2
+        st.session_state.weekly_goal_stroke = 3
+    else:
+        st.session_state.weekly_goal_core = 3
+        st.session_state.weekly_goal_strength = 2
+        st.session_state.weekly_goal_interval = 3
+        st.session_state.weekly_goal_wall = 3
+        st.session_state.weekly_goal_stroke = 6
+
 # ==========================================
 # 🏠 시작 화면 (Landing / Home Screen)
 # ==========================================
@@ -83,14 +105,37 @@ if not st.session_state.started:
 # 🏆 메인 훈련 시스템 화면
 # ==========================================
 else:
+    # 👈 [왼쪽 창] 사이드바 설정 영역
     with st.sidebar:
         st.markdown("### 🧭 네비게이션")
         if st.button("🏠 처음 시작 화면으로", use_container_width=True):
             st.session_state.started = False
             st.rerun()
         st.markdown("---")
-        st.markdown(f"👤 **현재 레벨**\n`{st.session_state.user_level}`")
-        st.markdown(f"🎯 **주력 종목**\n`{st.session_state.match_type}`")
+        
+        st.markdown("⚙️ **퀵 훈련 설정**")
+        
+        # 1. 레벨 변경 선택창
+        level_list = ["선수용 (고강도 전문 훈련)", "일반부 (동호인/취미 운동)", "초보용 (입문 및 기초 체력)"]
+        sb_level_idx = level_list.index(st.session_state.user_level) if st.session_state.user_level in level_list else 0
+        sb_selected_level = st.selectbox("👤 훈련자 레벨 변경", level_list, index=sb_level_idx, key="sb_level_select")
+        
+        if sb_selected_level != st.session_state.user_level:
+            update_level_goals(sb_selected_level)
+            st.rerun()
+            
+        # 2. 주력 종목 변경 선택창
+        match_list = ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"]
+        sb_match_idx = match_list.index(st.session_state.match_type) if st.session_state.match_type in match_list else 0
+        sb_selected_match = st.selectbox("🎯 주력 종목 변경", match_list, index=sb_match_idx, key="sb_match_select")
+        
+        if sb_selected_match != st.session_state.match_type:
+            st.session_state.match_type = sb_selected_match
+            st.rerun()
+
+        st.markdown("---")
+        st.markdown("**현재 설정 풀네임:**")
+        st.info(f"👤 {st.session_state.user_level}\n\n🎯 {st.session_state.match_type}")
 
     st.title("🏋️ 배드민턴 정밀 훈련 & 생리 부하 관리 센터")
     st.markdown("---")
@@ -108,36 +153,24 @@ else:
         with col_s1:
             selected_level = st.selectbox(
                 "훈련자 레벨 선택",
-                ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"],
-                index=["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"].index(st.session_state.user_level) if st.session_state.user_level in ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"] else 0
+                ["선수용 (고강도 전문 훈련)", "일반부 (동호인/취미 운동)", "초보용 (입문 및 기초 체력)"],
+                index=["선수용 (고강도 전문 훈련)", "일반부 (동호인/취미 운동)", "초보용 (입문 및 기초 체력)"].index(st.session_state.user_level),
+                key="main_level_select"
             )
             if selected_level != st.session_state.user_level:
-                st.session_state.user_level = selected_level
-                if "초보용" in selected_level:
-                    st.session_state.weekly_goal_core = 1
-                    st.session_state.weekly_goal_strength = 1
-                    st.session_state.weekly_goal_interval = 0
-                    st.session_state.weekly_goal_wall = 1
-                    st.session_state.weekly_goal_stroke = 2
-                elif "일반부" in selected_level:
-                    st.session_state.weekly_goal_core = 2
-                    st.session_state.weekly_goal_strength = 2
-                    st.session_state.weekly_goal_interval = 1
-                    st.session_state.weekly_goal_wall = 2
-                    st.session_state.weekly_goal_stroke = 3
-                else:
-                    st.session_state.weekly_goal_core = 3
-                    st.session_state.weekly_goal_strength = 2
-                    st.session_state.weekly_goal_interval = 3
-                    st.session_state.weekly_goal_wall = 3
-                    st.session_state.weekly_goal_stroke = 6
+                update_level_goals(selected_level)
                 st.rerun()
 
         with col_s2:
-            st.session_state.match_type = st.selectbox(
+            selected_match = st.selectbox(
                 "주력 종목 선택",
-                ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"]
+                ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"],
+                index=0 if "복식" in st.session_state.match_type else 1,
+                key="main_match_select"
             )
+            if selected_match != st.session_state.match_type:
+                st.session_state.match_type = selected_match
+                st.rerun()
 
         st.markdown("---")
         col_g1, col_g2 = st.columns(2)
