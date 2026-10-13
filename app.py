@@ -359,7 +359,7 @@ else:
                         set_scores_str.append(f"{i}세트({my_score}:{opp_score}-{is_win})")
                     game_details.append(f"[경기{g_idx}] 상대: {opponent_name} / " + ", ".join(set_scores_str))
 
-        overall_memo = st.text_area("💬 오늘 훈련 생체역학적 및 심리적 소감")
+        overall_memo = st.text_area("💬 오늘 훈련 생체역학적 및 심리적 소감 (부상이나 통증이 있었다면 여기에 적어주세요!)", placeholder="예: 어깨 통증이 살짝 있음, 스매시 타점 교정 필요 등")
 
         if st.button("논문 기반 정밀 생리·심리 부하 분석 및 저장"):
             total_training_minutes = real_stroke_min + real_wall_min + real_interval_min + real_core_min + real_strength_min + (hunbol_time * 60)
@@ -413,11 +413,20 @@ else:
             active_weaknesses = [w for w in my_weaknesses if w]
             if extra_weakness and extra_weakness.strip():
                 active_weaknesses.append(extra_weakness.strip())
+            
+            # 💡 소감(overall_memo)에 적힌 내용도 분석 대상에 통합!
+            if overall_memo and overall_memo.strip():
+                active_weaknesses.append(f"소감/특이사항: {overall_memo.strip()}")
 
             if len(active_weaknesses) > 0:
-                st.markdown("🎯 **[자가진단 취약점 맞춤 보강 솔루션]**")
+                st.markdown("🎯 **[자가진단 취약점 및 통증·부상 맞춤 보강 솔루션]**")
                 for w in active_weaknesses:
-                    if "타점" in w or "회전" in w or "스매시" in w or "클리어" in w or "라켓 면" in w:
+                    # 🚨 부상 및 통증 키워드 감지 (최우선 순위)
+                    if any(kw in w for kw in ["부상", "통증", "아프", "아픔", "염좌", "붓기", "부었", "시림", "엘보", "담", "담결"]):
+                        st.error(f"🚨 **[긴급 부상/통증 경고 피드백]** `{w}`\n\n"
+                                 f"  * **🏥 RICE 응급 처치:** 즉시 고강도 훈련(점프 스매시, 풋워크, 인터벌 등)을 중단하고 **휴식, 냉찜질(15~20분), 압박 및 거상**을 시행하세요.\n"
+                                 f"  * **🔬 생체역학 및 의학적 가이드:** 해당 관절의 과부하 원인을 분석하고 경증 스트레칭 외의 무리한 부하를 금지하세요. 통증이 3일 이상 지속되면 반드시 스포츠 전문의 진료를 받으시기 바랍니다.")
+                    elif "타점" in w or "회전" in w or "스매시" in w or "클리어" in w or "라켓 면" in w:
                         st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 논문 기반 생체역학 처방:** 상완 회전근개 안정화 및 **메디신볼 오버헤드 스로우**, **헤비 라켓 스윙**을 통해 임팩트 시 회전 토크를 극대화하고 라켓 면 정렬을 교정하세요.")
                     elif "손목" in w or "악력" in w or "헤어핀" in w or "리시브" in w or "팔꿈치" in w:
                         st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 논문 기반 생체역학 처방:** 전완근 피로 완화를 위해 **추 감기(Heavy Roller)**와 **팻그립 바벨 홀드**를 처방합니다. 임팩트 순간 불필요한 긴장을 풀어줍니다.")
