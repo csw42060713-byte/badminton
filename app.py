@@ -66,7 +66,7 @@ if not st.session_state.started:
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.title("🏸 스포츠 과학 & 심리학 기반 배드민턴 정밀 훈련 시스템")
     st.markdown("### 🚀 완벽한 코트 제압을 위한 나만의 맞춤형 훈련 파트너")
-    st.write("레벨별 맞춤 스케줄 관리, 생체역학 기반 s-RPE 부하 분석, 그리고 스포츠 심리 처방까지 한 번에 관리하세요.")
+    st.write("레벨별 맞춤 스케줄 관리, 100점 만점 직관적 훈련 분석, 그리고 스포츠 심리 처방까지 한 번에 관리하세요.")
     
     st.markdown("---")
     
@@ -84,62 +84,66 @@ if not st.session_state.started:
 # ==========================================
 else:
     with st.sidebar:
-        st.markdown("### 🧭 네비게이션")
+        st.markdown("### 🧭 네비게이션 & 기본 설정")
         if st.button("🏠 처음 시작 화면으로", use_container_width=True):
             st.session_state.started = False
             st.rerun()
         st.markdown("---")
-        st.markdown(f"👤 **현재 레벨**\n`{st.session_state.user_level}`")
-        st.markdown(f"🎯 **주력 종목**\n`{st.session_state.match_type}`")
+        
+        st.markdown("⚙️ **현재 레벨 & 주력 종목 설정**")
+        
+        # 좌측 창으로 이동한 레벨 선택
+        selected_level = st.selectbox(
+            "훈련자 레벨 선택",
+            ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"],
+            index=["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"].index(st.session_state.user_level) if st.session_state.user_level in ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"] else 0,
+            key="sb_level_select"
+        )
+        if selected_level != st.session_state.user_level:
+            st.session_state.user_level = selected_level
+            if "초보용" in selected_level:
+                st.session_state.weekly_goal_core = 1
+                st.session_state.weekly_goal_strength = 1
+                st.session_state.weekly_goal_interval = 0
+                st.session_state.weekly_goal_wall = 1
+                st.session_state.weekly_goal_stroke = 2
+            elif "일반부" in selected_level:
+                st.session_state.weekly_goal_core = 2
+                st.session_state.weekly_goal_strength = 2
+                st.session_state.weekly_goal_interval = 1
+                st.session_state.weekly_goal_wall = 2
+                st.session_state.weekly_goal_stroke = 3
+            else:
+                st.session_state.weekly_goal_core = 3
+                st.session_state.weekly_goal_strength = 2
+                st.session_state.weekly_goal_interval = 3
+                st.session_state.weekly_goal_wall = 3
+                st.session_state.weekly_goal_stroke = 6
+            st.session_state.schedule_mapping = level_default_schedules[selected_level]
+            st.rerun()
 
-    st.title("🏋️ 배드민턴 정밀 훈련 & 생리 부하 관리 센터")
+        # 좌측 창으로 이동한 주력 종목 선택
+        selected_match_type = st.selectbox(
+            "주력 종목 선택",
+            ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"],
+            index=0 if "복식" in st.session_state.match_type else 1,
+            key="sb_match_select"
+        )
+        if selected_match_type != st.session_state.match_type:
+            st.session_state.match_type = selected_match_type
+            st.rerun()
+
+    st.title("🏋️ 배드민턴 정밀 훈련 & 컨디션 관리 센터")
     st.markdown("---")
 
     tab1, tab2, tab3 = st.tabs([
-        "⚙️ 1. 주간 목표 및 레벨별 스케줄 설정", 
-        "📝 2. 레벨별 기술·심리 진단 및 s-RPE 입력", 
-        "📊 3. 주간 시각화, 과학적 지표 및 히스토리"
+        "⚙️ 1. 주간 목표 및 요일별 스케줄 설정", 
+        "📝 2. 레벨별 기술·심리 진단 및 오늘의 훈련 기록", 
+        "📊 3. 100점 만점 훈련 리포트 & 히스토리"
     ])
 
     with tab1:
-        st.subheader("🎯 레벨 및 종목(단식/복식) 생체역학 설정")
-        
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            selected_level = st.selectbox(
-                "훈련자 레벨 선택",
-                ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"],
-                index=["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"].index(st.session_state.user_level) if st.session_state.user_level in ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"] else 0
-            )
-            if selected_level != st.session_state.user_level:
-                st.session_state.user_level = selected_level
-                if "초보용" in selected_level:
-                    st.session_state.weekly_goal_core = 1
-                    st.session_state.weekly_goal_strength = 1
-                    st.session_state.weekly_goal_interval = 0
-                    st.session_state.weekly_goal_wall = 1
-                    st.session_state.weekly_goal_stroke = 2
-                elif "일반부" in selected_level:
-                    st.session_state.weekly_goal_core = 2
-                    st.session_state.weekly_goal_strength = 2
-                    st.session_state.weekly_goal_interval = 1
-                    st.session_state.weekly_goal_wall = 2
-                    st.session_state.weekly_goal_stroke = 3
-                else:
-                    st.session_state.weekly_goal_core = 3
-                    st.session_state.weekly_goal_strength = 2
-                    st.session_state.weekly_goal_interval = 3
-                    st.session_state.weekly_goal_wall = 3
-                    st.session_state.weekly_goal_stroke = 6
-                st.rerun()
-
-        with col_s2:
-            st.session_state.match_type = st.selectbox(
-                "주력 종목 선택",
-                ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"]
-            )
-
-        st.markdown("---")
+        st.subheader("🎯 주간 목표 횟수 설정")
         col_g1, col_g2 = st.columns(2)
         with col_g1:
             st.markdown("🏸 **배드민턴 주간 총 목표 (횟수 기준)**")
@@ -171,7 +175,7 @@ else:
                 st.session_state.schedule_mapping[day] = new_assigned
 
     with tab2:
-        st.subheader("📅 오늘의 훈련 수행, 레벨별 기술·심리 진단 및 s-RPE 입력")
+        st.subheader("📅 오늘의 훈련 수행, 레벨별 기술·심리 진단 및 훈련량 입력")
         
         col_d, col_date, col_weight = st.columns(3)
         with col_d:
@@ -185,11 +189,11 @@ else:
         with col_c1:
             condition = st.slider("오늘의 컨디션 점수 (1~10)", 1, 10, 5)
         with col_c2:
-            rpe_score = st.slider("운동 자각도 (CR10 RPE 스케일)", 1, 10, 7, help="총 시간 × RPE로 s-RPE 생리 부하 산출")
+            rpe_score = st.slider("오늘 훈련의 힘듦 정도 (1: 아주 쉬움 ~ 10: 한계 수치)", 1, 10, 7, help="수행 시간과 난이도를 종합하여 100점 만점 완성도 점수를 계산합니다.")
 
         st.markdown("---")
         current_level = st.session_state.user_level
-        st.subheader(f"🧠 [레벨 맞춤: {current_level}] 기술·심리 자가진단 및 기타 학습")
+        st.subheader(f"🧠 [레벨 맞춤: {current_level}] 기술·심리 자가진단")
 
         if "초보용" in current_level:
             strength_options = [
@@ -287,7 +291,7 @@ else:
                             footwork_details.append(f"풋워크-{fw}: {fw_sets}세트")
 
         st.markdown("---")
-        st.subheader("🛠️ 논문 기반 부위별 & 기능별 전문 보강 운동 기록")
+        st.subheader("🛠️ 부위별 & 기능별 전문 보강 운동 기록")
 
         grip_exercises = []
         with st.expander("① 악력 운동 (스냅, 라켓 컨트롤, 리시브 안정성)"):
@@ -338,7 +342,7 @@ else:
                     lower_exercises.append(f"{l} {sets}세트")
 
         st.markdown("---")
-        st.markdown("⚔️ **실전 경기(Game) 복수 기록 (랠리 분석)**")
+        st.markdown("⚔️ **실전 경기(Game) 기록 (랠리 분석)**")
         game_details = []
         has_games = st.checkbox("오늘 실전 경기(Game)를 진행함", key="chk_games_sci")
         if has_games:
@@ -359,20 +363,30 @@ else:
                         set_scores_str.append(f"{i}세트({my_score}:{opp_score}-{is_win})")
                     game_details.append(f"[경기{g_idx}] 상대: {opponent_name} / " + ", ".join(set_scores_str))
 
-        overall_memo = st.text_area("💬 오늘 훈련 생체역학적 및 심리적 소감 (부상이나 통증이 있었다면 여기에 적어주세요!)", placeholder="예: 어깨 통증이 살짝 있음, 스매시 타점 교정 필요 등")
+        overall_memo = st.text_area("💬 오늘 훈련 생체역학적 및 심리적 소감 (부상이나 통증이 있다면 여기에 적어주세요!)", placeholder="예: 어깨 통증이 살짝 있음, 스매시 타점 교정 필요 등")
 
-        if st.button("논문 기반 정밀 생리·심리 부하 분석 및 저장"):
+        if st.button("💯 100점 만점 훈련 점수 산출 및 분석 저장"):
             total_training_minutes = real_stroke_min + real_wall_min + real_interval_min + real_core_min + real_strength_min + (hunbol_time * 60)
-            s_rpe_load = total_training_minutes * rpe_score
             
-            is_doubles = "복식" in st.session_state.match_type
-            match_coefficient = 1.15 if is_doubles else 1.25
+            # 💯 100점 만점 훈련 완성도 점수 계산 알고리즘
+            time_score = min(40, (total_training_minutes / 120.0) * 40)  # 총 시간 (최대 40점)
+            intensity_score = min(30, (rpe_score / 10.0) * 30)          # 운동 강도 (최대 30점)
+            condition_score = min(15, (condition / 10.0) * 15)          # 컨디션 (최대 15점)
             
             total_aux_count = len(grip_exercises) + len(core_exercises) + len(stroke_aux_exercises) + \
                               len(jump_exercises) + len(upper_exercises) + len(lower_exercises)
+            aux_score = min(15, total_aux_count * 3 + len(game_details) * 5)  # 보강 및 경기 수행 (최대 15점)
             
-            biomechanical_index = (s_rpe_load * 0.05) + (total_aux_count * 12) + (len(game_details) * 30) + (hunbol_time * 25)
-            final_biological_score = biomechanical_index * match_coefficient * (user_weight / 65.0)
+            total_100_score = min(100, round(time_score + intensity_score + condition_score + aux_score, 1))
+
+            if total_100_score >= 85:
+                grade = "🏆 최상급 (완벽한 훈련 소화)"
+            elif total_100_score >= 70:
+                grade = "🔥 우수함 (열정적인 훈련)"
+            elif total_100_score >= 50:
+                grade = "⚖️ 적절함 (밸런스 유지)"
+            else:
+                grade = "🍀 가벼운 회복 (휴식 필요)"
 
             log_entry = {
                 "날짜": str(train_date),
@@ -380,58 +394,58 @@ else:
                 "레벨": st.session_state.user_level,
                 "종목": st.session_state.match_type,
                 "컨디션": condition,
-                "RPE": rpe_score,
-                "s-RPE부하(AU)": round(s_rpe_load, 1),
-                "생체부하지수": round(final_biological_score, 1),
+                "훈련강도(1-10)": rpe_score,
+                "총훈련시간(분)": total_training_minutes,
+                "훈련완성도점수": total_100_score,
+                "훈련등급": grade,
                 "기타취약점": extra_weakness,
                 "소감": overall_memo
             }
             st.session_state.training_history.append(log_entry)
 
-            st.success(f"[{today_selection} / {train_date}] 논문 기반 정밀 분석 완료 및 저장됨! (3번 탭에서 확인)")
+            st.success(f"[{today_selection} / {train_date}] 100점 만점 훈련 분석 완료 및 저장되었습니다! (3번 탭에서 확인)")
             
             st.markdown("---")
-            if s_rpe_load >= 500 or rpe_score >= 8:
-                st.info("🔥 **오늘 진짜 엄청나게 불태우셨네요!** 온몸에 힘이 꽉 들어가서 피곤하실 텐데, 오늘은 따뜻한 물로 샤워하고 꿀잠 주무세요! 고생 정말 많았어요 토닥토닥 🥹")
-            elif condition <= 4:
-                st.info("🥺 **오늘은 컨디션이 조금 힘들었나 봐요...** 몸이 무거워도 끝까지 버텨낸 당신이 챔피언입니다! 오늘은 무리하지 말고 푹 쉬어요 힘내세요! 💪")
-            elif s_rpe_load <= 200:
-                st.info("🍀 **오늘은 평범하고 차분한 하루였어요!** 때로는 이런 루틴한 하루가 쌓여서 엄청난 실력이 된답니다. 오늘도 묵묵히 해내느라 수고 많았어요 😊")
-            else:
-                st.info("✨ **컨디션 최고! 오늘 코트를 아주 멋지게 씹어드셨군요?** 이 기세 그대로 내일도 멋지게 날아봅시다 화이팅 😆🏸")
-
-            st.markdown(f"### 📈 [{today_selection}] 스포츠 과학 및 심리 진단 결과")
+            st.markdown(f"### 💯 [{today_selection}] 오늘의 훈련 완성도 리포트")
             col_res1, col_res2 = st.columns(2)
             with col_res1:
-                st.metric("훈련 부하 (s-RPE)", f"{s_rpe_load:.1f} AU")
+                st.metric("오늘의 종합 훈련 점수", f"{total_100_score}점 / 100점")
             with col_res2:
-                st.metric("종합 생체 부하 지수", f"{final_biological_score:.1f}점")
-            
+                st.metric("훈련 성취 등급", grade)
+
             st.markdown("---")
-            st.subheader("💡 논문 기반 기술 생체역학 & 스포츠 심리 맞춤 처방전")
+            if total_100_score >= 85:
+                st.info("🔥 **오늘 정말 완벽하게 훈련을 완성하셨네요!** 엄청난 몰입도와 집중력이었습니다. 따뜻한 물로 샤워하고 오늘은 푹 쉬어주세요! 고생 많으셨습니다 🥹")
+            elif total_100_score >= 70:
+                st.info("✨ **멋집니다! 오늘 할당량을 훌륭하게 해내셨군요!** 꾸준함이 실력을 만듭니다. 내일도 화이팅입니다 😆🏸")
+            elif condition <= 4:
+                st.info("🥺 **오늘 컨디션이 저조했음에도 불구하고 최선을 다하셨습니다!** 몸이 무거울 때 무리하지 않은 완급 조절이 아주 양호했습니다 💪")
+            else:
+                st.info("🍀 **차분하게 회복과 기초를 다진 하루였습니다!** 이런 가벼운 훈련도 차곡차곡 쌓여 단단한 내공이 됩니다 😊")
+
+            st.markdown("---")
+            st.subheader("💡 맞춤 기술 생체역학 & 스포츠 심리/부하 처방전")
             
             active_weaknesses = [w for w in my_weaknesses if w]
             if extra_weakness and extra_weakness.strip():
                 active_weaknesses.append(extra_weakness.strip())
             
-            # 💡 소감(overall_memo)에 적힌 내용도 분석 대상에 통합!
             if overall_memo and overall_memo.strip():
                 active_weaknesses.append(f"소감/특이사항: {overall_memo.strip()}")
 
             if len(active_weaknesses) > 0:
                 st.markdown("🎯 **[자가진단 취약점 및 통증·부상 맞춤 보강 솔루션]**")
                 for w in active_weaknesses:
-                    # 🚨 부상 및 통증 키워드 감지 (최우선 순위)
                     if any(kw in w for kw in ["부상", "통증", "아프", "아픔", "염좌", "붓기", "부었", "시림", "엘보", "담", "담결"]):
                         st.error(f"🚨 **[긴급 부상/통증 경고 피드백]** `{w}`\n\n"
                                  f"  * **🏥 RICE 응급 처치:** 즉시 고강도 훈련(점프 스매시, 풋워크, 인터벌 등)을 중단하고 **휴식, 냉찜질(15~20분), 압박 및 거상**을 시행하세요.\n"
                                  f"  * **🔬 생체역학 및 의학적 가이드:** 해당 관절의 과부하 원인을 분석하고 경증 스트레칭 외의 무리한 부하를 금지하세요. 통증이 3일 이상 지속되면 반드시 스포츠 전문의 진료를 받으시기 바랍니다.")
                     elif "타점" in w or "회전" in w or "스매시" in w or "클리어" in w or "라켓 면" in w:
-                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 논문 기반 생체역학 처방:** 상완 회전근개 안정화 및 **메디신볼 오버헤드 스로우**, **헤비 라켓 스윙**을 통해 임팩트 시 회전 토크를 극대화하고 라켓 면 정렬을 교정하세요.")
+                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 생체역학 처방:** 상완 회전근개 안정화 및 **메디신볼 오버헤드 스로우**, **헤비 라켓 스윙**을 통해 임팩트 시 회전 토크를 극대화하고 라켓 면 정렬을 교정하세요.")
                     elif "손목" in w or "악력" in w or "헤어핀" in w or "리시브" in w or "팔꿈치" in w:
-                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 논문 기반 생체역학 처방:** 전완근 피로 완화를 위해 **추 감기(Heavy Roller)**와 **팻그립 바벨 홀드**를 처방합니다. 임팩트 순간 불필요한 긴장을 풀어줍니다.")
+                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 생체역학 처방:** 전완근 피로 완화를 위해 **추 감기(Heavy Roller)**와 **팻그립 바벨 홀드**를 처방합니다. 임팩트 순간 불필요한 긴장을 풀어줍니다.")
                     elif "런지" in w or "중심" in w or "하체" in w or "밸런스" in w or "스텝" in w or "체력" in w:
-                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 논문 기반 생체역학 처방:** 하체 밸런스 및 지구력 강화를 위해 **불리언 스쿼트(Bulgarian Split Squat)**와 코어 안티로테이션인 **케이블 팔로 오프 프레스**, **인터벌 젖산 내성 훈련**을 집중 수행하세요.")
+                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 생체역학 처방:** 하체 밸런스 및 지구력 강화를 위해 **불리언 스쿼트(Bulgarian Split Squat)**와 코어 안티로테이션인 **케이블 팔로 오프 프레스**, **인터벌 젖산 내성 훈련**을 집중 수행하세요.")
                     elif "멘탈" in w or "생각" in w or "범실" in w or "긴장" in w or "힘" in w or "당황" in w:
                         st.warning(f"👉 **취약점:** `{w}`\n\n  * **🧠 스포츠 심리학 처방 (Arousal & Anxiety Control):** 인지적 불안 완화를 위해 **4-7-8 호흡 루틴(Box Breathing)**과 '과거 실점에 얽매이지 않는 주의 집중 전환(Attentional Control)' 훈련을 적용하세요.")
                     else:
@@ -447,35 +461,35 @@ else:
                 st.markdown("🔹 **[단식 생체역학 진단]** 단식은 **유산소/무산소 복합 대사(V̇O2max 및 젖산 역치)**와 장시간 코트 커버리지가 핵심입니다.")
 
     with tab3:
-        st.subheader("📊 주간 누적 통계, s-RPE 그래프 및 논문 히스토리")
+        st.subheader("📊 주간 누적 통계 & 100점 만점 훈련 점수 트렌드")
         
         if len(st.session_state.training_history) == 0:
             st.info("📌 저장된 훈련 일지가 없습니다. 2번 탭에서 훈련을 기록해 주세요!")
         else:
             df_history = pd.DataFrame(st.session_state.training_history)
             
-            st.markdown("### 📋 전체 정밀 훈련 로그 목록")
+            st.markdown("### 📋 전체 훈련 일지 목록")
             st.dataframe(df_history, use_container_width=True)
             
             st.markdown("---")
-            st.subheader("📈 s-RPE 및 생체 부하 지수 트렌드 그래프")
+            st.subheader("📈 날짜별 100점 만점 훈련 완성도 그래프")
             if len(df_history) > 0:
-                chart_data = df_history.set_index("날짜")[["s-RPE부하(AU)", "생체부하지수"]]
+                chart_data = df_history.set_index("날짜")[["훈련완성도점수"]]
                 st.line_chart(chart_data)
             
             st.markdown("---")
-            st.subheader("⏱️ 주간 누적 생리 데이터 요약")
+            st.subheader("⏱️ 주간 누적 요약 지표")
             col_m1, col_m2, col_m3 = st.columns(3)
             col_m1.metric("총 훈련 세션 수", f"{len(df_history)}회")
-            col_m2.metric("평균 s-RPE 부하", f"{df_history['s-RPE부하(AU)'].mean():.1f} AU")
-            col_m3.metric("평균 생체 부하 지수", f"{df_history['생체부하지수'].mean():.1f}점")
+            col_m2.metric("평균 훈련 점수", f"{df_history['훈련완성도점수'].mean():.1f}점 / 100점")
+            col_m3.metric("평균 컨디션 점수", f"{df_history['컨디션'].mean():.1f}점 / 10점")
 
             st.markdown("---")
-            st.subheader("💾 논문 기반 훈련 데이터 파일 다운로드 (CSV)")
+            st.subheader("💾 훈련 데이터 파일 다운로드 (CSV)")
             csv_data = df_history.to_csv(index=False).encode('utf-8-sig')
             st.download_button(
-                label="📥 정밀 훈련 일지 CSV 다운로드",
+                label="📥 훈련 일지 CSV 다운로드",
                 data=csv_data,
-                file_name=f"badminton_scientific_training_log_{datetime.date.today()}.csv",
+                file_name=f"badminton_training_log_{datetime.date.today()}.csv",
                 mime="text/csv"
             )
