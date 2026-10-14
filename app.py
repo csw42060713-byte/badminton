@@ -24,12 +24,12 @@ hide_streamlit_style = """
     /* 하단에 뜨는 Deploy 버튼 숨기기 */
     .stDeployButton {display: none;}
     
-    /* 모바일 여백 최적화 */
+    /* 모바일 여백 최적화 및 캘린더 그리드 스타일 */
     .block-container {
         padding-top: 1rem;
         padding-bottom: 3rem;
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
     }
     </style>
 """
@@ -90,7 +90,6 @@ level_default_schedules = {
 if "schedule_mapping" not in st.session_state:
     st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
 
-# 날짜별 커스텀 훈련 계획 저장 딕셔너리 (예: {"2026-10-14": ["스트록", "코어"]})
 if "monthly_calendar_plans" not in st.session_state:
     st.session_state.monthly_calendar_plans = {}
 
@@ -227,19 +226,18 @@ else:
 
     with tab1:
         st.subheader(f"🗓️ 월간 훈련 캘린더 (현재 레벨: {st.session_state.user_level})")
-        st.write("스마트폰 캘린더처럼 날짜별로 훈련 계획을 추가하고, 일주일 기준 밸런스를 이모티콘으로 확인하세요!")
-
+        
         # 📅 연도 및 월 선택 컨트롤
         now = datetime.datetime.now()
         col_y, col_m = st.columns(2)
         with col_y:
-            cal_year = st.number_input("연도 선택", min_value=2025, max_value=2030, value=now.year)
+            cal_year = st.number_input("연도", min_value=2025, max_value=2030, value=now.year)
         with col_m:
-            cal_month = st.selectbox("월 선택", list(range(1, 13)), index=now.month - 1, format_func=lambda x: f"{x}월")
+            cal_month = st.selectbox("월", list(range(1, 13)), index=now.month - 1, format_func=lambda x: f"{x}월")
 
         st.markdown("---")
         
-        # 📅 실제 달력 그리드 생성 (일요일 시작 기준)
+        # 📅 실제 캘린더 그리드 (일요일 ~ 토요일 고정 7열 구조)
         cal = calendar.Calendar(firstweekday=6) 
         month_days = list(cal.itermonthdates(cal_year, cal_month))
 
@@ -247,9 +245,10 @@ else:
         header_cols = st.columns(7)
         for i, day_name in enumerate(weekdays_kr):
             with header_cols[i]:
-                st.markdown(f"<p align='center' style='font-weight:bold; color:gray;'>{day_name}</p>", unsafe_allow_html=True)
+                color = "red" if i == 0 else ("blue" if i == 6 else "black")
+                st.markdown(f"<p align='center' style='font-weight:bold; color:{color}; margin-bottom: 5px;'>{day_name}</p>", unsafe_allow_html=True)
 
-        # 주 단위로 끊어서 달력 렌더링
+        # 주 단위로 꽉 찬 달력 표 레이아웃 렌더링
         for week_idx in range(0, len(month_days), 7):
             week_slice = month_days[week_idx:week_idx+7]
             week_cols = st.columns(7)
@@ -260,40 +259,40 @@ else:
                     is_current_month = (d.month == cal_month)
                     
                     if not is_current_month:
-                        st.markdown(f"<p style='color:#d3d3d3; text-align:center;'>{d.day}</p>", unsafe_allow_html=True)
+                        st.markdown(f"<p style='color:#cccccc; text-align:center; font-size:13px; margin:0;'>{d.day}</p>", unsafe_allow_html=True)
                         continue
 
                     # 해당 날짜에 저장된 훈련 계획 확인
                     day_plan = st.session_state.monthly_calendar_plans.get(date_str, [])
                     
-                    # 날짜 버튼 표시 (선택하면 아래에 상세 편집창이 열리도록 상태 관리)
-                    btn_label = f"{d.day}"
+                    # 달력 날짜 버튼 (클릭하면 아래 편집창에 해당 날짜가 선택됨)
+                    btn_text = f"{d.day}"
                     if day_plan:
-                        btn_label += " 🔥" # 계획이 있으면 불꽃 아이콘 표시
+                        btn_text += " 🔥" # 계획이 있으면 불꽃 아이콘
                         
-                    if st.button(btn_label, key=f"cal_btn_{date_str}", use_container_width=True):
+                    if st.button(btn_text, key=f"cal_grid_{date_str}", use_container_width=True):
                         st.session_state.selected_date = date_str
                         st.rerun()
                         
                     if day_plan:
-                        st.caption(f"{', '.join(day_plan[:2])}{' 외' if len(day_plan)>2 else ''}")
+                        st.caption(f"{', '.join(day_plan[:1])}{' 외' if len(day_plan)>1 else ''}")
                     else:
-                        st.caption("-")
+                        st.caption("")
 
         st.markdown("---")
 
-        # 📝 선택한 날짜의 훈련 계획 상세 편집 영역
+        # 📌 선택한 날짜의 훈련 계획 상세 편집 영역 (스마트폰 하단 추가 버튼 느낌)
         if "selected_date" not in st.session_state:
             st.session_state.selected_date = str(datetime.date.today())
 
         selected_d = st.session_state.selected_date
-        st.subheader(f"📌 선택한 날짜 [{selected_d}] 훈련 계획 설정")
+        st.subheader(f"📌 선택한 날짜 [{selected_d}] 훈련 계획 추가/수정")
         
         current_date_plans = st.session_state.monthly_calendar_plans.get(selected_d, [])
         exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
         
         updated_plans = st.multiselect(
-            "이 날 수행할 훈련을 선택하세요 (선택 안 하면 빈 상태로 유지됩니다)",
+            "이 날 수행할 훈련을 선택하세요 (선택하지 않으면 빈 상태로 유지됩니다)",
             exercise_categories,
             default=current_date_plans,
             key=f"edit_plan_{selected_d}"
@@ -310,10 +309,8 @@ else:
         # 🌟 일주일 기준 종합 훈련 계획 진단 장치 (이모티콘 피드백)
         st.subheader("🔍 일주일 기준 훈련 밸런스 실시간 진단")
         
-        # 최근 7일간 등록된 훈련 총 세션 및 종목 카운트 계산
         today_obj = datetime.date.today()
         week_sessions = 0
-        week_intervals = 0
         week_strengths = 0
         week_rest_days = 0
         
@@ -322,14 +319,12 @@ else:
             p_list = st.session_state.monthly_calendar_plans.get(check_date_str, [])
             if len(p_list) > 0:
                 week_sessions += len(p_list)
-                if "인터벌" in p_list: week_intervals += 1
                 if "근력" in p_list: week_strengths += 1
             else:
                 week_rest_days += 1
 
         lvl = st.session_state.user_level
         
-        # 이모티콘 및 진단 메시지 출력 로직
         if "초보용" in lvl:
             if week_sessions > 15:
                 emoji = "🥵"
@@ -351,7 +346,7 @@ else:
             elif week_sessions == 0:
                 emoji = "💤"
                 status_title = "훈련 계획 미입력 상태"
-                advice = "아직 일주일 캘린더에 계획이 없습니다. 달력에서 날짜를 눌러 훈련을 추가해 보세요!"
+                advice = "아직 캘린더에 계획이 없습니다. 위 달력에서 날짜를 누르고 훈련을 추가해 보세요!"
             else:
                 emoji = "🧐"
                 status_title = "보강 운동 조화 필요"
@@ -456,7 +451,6 @@ else:
             my_weaknesses = st.multiselect("보완이 필요한 기술 및 요인 선택", weakness_options, key="weak_sel_lvl")
             extra_weakness = st.text_input("⚠️ [기타 취약점 직접 입력 (선택사항)]", placeholder="예: 특정 코스로 오는 공 대처가 어려움 등", key="extra_weak_lvl")
 
-        # 캘린더에 등록된 오늘의 계획 불러오기
         today_calendar_plan = st.session_state.monthly_calendar_plans.get(str(train_date), [])
         st.info(f"💡 **[{train_date} 캘린더 스케줄]** 계획된 훈련: **{', '.join(today_calendar_plan) if today_calendar_plan else '등록된 일정 없음 (자율 훈련)'}**")
 
@@ -699,4 +693,4 @@ else:
                 data=csv_data,
                 file_name=f"badminton_training_log_{datetime.date.today()}.csv",
                 mime="text/csv"
-)
+            )
