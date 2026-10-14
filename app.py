@@ -20,8 +20,8 @@ hide_streamlit_style = """
     .block-container {
         padding-top: 1rem;
         padding-bottom: 3rem;
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
     }
     
     .mini-card {
@@ -33,7 +33,6 @@ hide_streamlit_style = """
         margin-bottom: 15px;
     }
     
-    /* 캘린더 날짜 박스 내 메모 텍스트 스타일 */
     .cal-memo-text {
         font-size: 11px;
         color: #1e3c72;
@@ -60,6 +59,9 @@ if "match_type" not in st.session_state:
 
 if "cal_view_mode" not in st.session_state:
     st.session_state.cal_view_mode = "widget"
+
+if "selected_date" not in st.session_state:
+    st.session_state.selected_date = str(datetime.date.today())
 
 level_default_schedules = {
     "선수용 (고강도 전문 훈련)": {
@@ -102,51 +104,6 @@ if "monthly_calendar_memos" not in st.session_state:
 
 if "training_history" not in st.session_state:
     st.session_state.training_history = []
-
-
-# ------------------------------------------
-# 📱 캘린더 날짜 팝업 입력 창 함수 (@st.dialog)
-# ------------------------------------------
-@st.dialog("📝 훈련 계획 작성 & 확인")
-def open_day_editor(date_str):
-    st.markdown(f"### 📅 **{date_str}** 훈련 일지")
-    
-    # 기존 데이터 불러오기
-    saved_plans = st.session_state.monthly_calendar_plans.get(date_str, [])
-    saved_memo = st.session_state.monthly_calendar_memos.get(date_str, "")
-    
-    exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
-    
-    new_plans = st.multiselect(
-        "🏋️ 수행할 훈련 종류",
-        exercise_categories,
-        default=saved_plans,
-        key=f"modal_plans_{date_str}"
-    )
-    
-    new_memo = st.text_area(
-        "💬 훈련 메모 / 상세 내용 (달력 칸 안에 작성됨)",
-        value=saved_memo,
-        placeholder="예: 스매시 타점 잡기, 런지 5세트 수행 등",
-        key=f"modal_memo_{date_str}"
-    )
-    
-    col_save, col_del = st.columns(2)
-    with col_save:
-        if st.button("💾 저장하기", type="primary", use_container_width=True):
-            if new_plans or new_memo.strip():
-                st.session_state.monthly_calendar_plans[date_str] = new_plans
-                st.session_state.monthly_calendar_memos[date_str] = new_memo.strip()
-            else:
-                st.session_state.monthly_calendar_plans.pop(date_str, None)
-                st.session_state.monthly_calendar_memos.pop(date_str, None)
-            st.rerun()
-            
-    with col_del:
-        if st.button("🗑️ 지우기", use_container_width=True):
-            st.session_state.monthly_calendar_plans.pop(date_str, None)
-            st.session_state.monthly_calendar_memos.pop(date_str, None)
-            st.rerun()
 
 
 # ==========================================
@@ -244,9 +201,7 @@ else:
     ])
 
     with tab1:
-        # ──────────────────────────────────────────
-        # 📱 모드 A: 미니 스마트 위젯 화면
-        # ──────────────────────────────────────────
+        # 모드 A: 스마트 위젯 화면
         if st.session_state.cal_view_mode == "widget":
             today_str = str(datetime.date.today())
             today_plans = st.session_state.monthly_calendar_plans.get(today_str, [])
@@ -270,9 +225,7 @@ else:
                 st.session_state.cal_view_mode = "full_calendar"
                 st.rerun()
 
-        # ──────────────────────────────────────────
-        # 🗓️ 모드 B: 스마트폰 캘린더 화면 (버튼 누를 때만 동작)
-        # ──────────────────────────────────────────
+        # 모드 B: 스마트폰 캘린더 및 직접 입력 화면
         else:
             if st.button("⬅️ 미니 요약 위젯으로 돌아가기", use_container_width=True):
                 st.session_state.cal_view_mode = "widget"
@@ -289,7 +242,7 @@ else:
             with col_ctrl2:
                 cal_month = st.selectbox("월", list(range(1, 13)), index=now.month - 1, format_func=lambda x: f"{x}월", label_visibility="collapsed")
 
-            st.caption("💡 **날짜를 클릭하면 해당 날짜에 글을 쓰거나 메모 내용을 열람할 수 있습니다.**")
+            st.caption("💡 **달력 날짜 버튼을 누르면 아래 입력창에 해당 날짜가 선택되어 바로 적고 볼 수 있습니다!**")
             st.markdown("---")
             
             cal = calendar.Calendar(firstweekday=6) 
@@ -322,20 +275,63 @@ else:
                         if day_plan or day_memo:
                             btn_text += " ✏️"
                             
-                        # 날짜 버튼을 누르면 팝업창(open_day_editor) 실행!
+                        # 날짜를 누르면 선택됨
                         if st.button(btn_text, key=f"cal_grid_{date_str}", use_container_width=True):
-                            open_day_editor(date_str)
+                            st.session_state.selected_date = date_str
+                            st.rerun()
                             
-                        # 달력 칸 안에 입력한 항목과 메모 표시
+                        # 칸 안에 내용 표시
                         if day_plan:
                             st.caption(f"🏋️ {', '.join(day_plan[:1])}")
                         if day_memo:
-                            display_memo = day_memo[:6] + ".." if len(day_memo) > 6 else day_memo
+                            display_memo = day_memo[:5] + ".." if len(day_memo) > 5 else day_memo
                             st.markdown(f"<div class='cal-memo-text'>📌 {display_memo}</div>", unsafe_allow_html=True)
 
             st.markdown("---")
 
-            # 🌟 일주일 훈련 계획 실시간 진단
+            # 선택한 날짜 작성/수정 영역
+            sel_date = st.session_state.selected_date
+            st.markdown(f"✍️ **선택된 날짜 [{sel_date}] 훈련 및 메모 작성/수정**")
+            
+            cur_plans = st.session_state.monthly_calendar_plans.get(sel_date, [])
+            cur_memo = st.session_state.monthly_calendar_memos.get(sel_date, "")
+            
+            exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
+            
+            updated_plans = st.multiselect(
+                "수행할 훈련 종류 선택",
+                exercise_categories,
+                default=cur_plans,
+                key=f"m_plans_{sel_date}"
+            )
+            
+            updated_memo = st.text_input(
+                "메모 내용 (달력 칸에 바로 반영됩니다)",
+                value=cur_memo,
+                placeholder="예: 스매시 타점 교정",
+                key=f"m_memo_{sel_date}"
+            )
+            
+            col_s1, col_s2 = st.columns(2)
+            with col_s1:
+                if st.button("💾 저장하기", use_container_width=True, type="primary"):
+                    if updated_plans or updated_memo.strip():
+                        st.session_state.monthly_calendar_plans[sel_date] = updated_plans
+                        st.session_state.monthly_calendar_memos[sel_date] = updated_memo.strip()
+                    else:
+                        st.session_state.monthly_calendar_plans.pop(sel_date, None)
+                        st.session_state.monthly_calendar_memos.pop(sel_date, None)
+                    st.success(f"[{sel_date}] 저장되었습니다!")
+                    st.rerun()
+            with col_s2:
+                if st.button("🗑️ 삭제하기", use_container_width=True):
+                    st.session_state.monthly_calendar_plans.pop(sel_date, None)
+                    st.session_state.monthly_calendar_memos.pop(sel_date, None)
+                    st.rerun()
+
+            st.markdown("---")
+
+            # 일주일 훈련 계획 실시간 진단
             st.subheader("🔍 일주일 기준 훈련 밸런스 실시간 진단")
             
             today_obj = datetime.date.today()
@@ -717,5 +713,5 @@ else:
                 label="📥 훈련 일지 CSV 다운로드",
                 data=csv_data,
                 file_name=f"badminton_training_log_{datetime.date.today()}.csv",
-                mime="text/css"
-            ) "
+                mime="text/csv"
+            )
