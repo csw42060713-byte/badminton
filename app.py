@@ -190,9 +190,17 @@ else:
     st.markdown("---")
 
     # ------------------------------------------
+    # [탭 0] 소셜 화면
+    # ------------------------------------------
+    if st.session_state.active_tab == "소셜":
+        st.markdown("### 👥 배드민턴 소셜 커뮤니티")
+        st.write("다른 선수들과 훈련 노하우를 공유하고 소통해보세요!")
+        st.info("💬 추후 업데이트를 통해 팀원 간 소통 및 랭킹 기능이 제공될 예정입니다.")
+
+    # ------------------------------------------
     # [탭 1] 달력 화면
     # ------------------------------------------
-    if st.session_state.active_tab == "달력":
+    elif st.session_state.active_tab == "달력":
         st.markdown("### 🗓️ 월간 훈련 캘린더")
         
         now = datetime.datetime.now()
@@ -496,20 +504,24 @@ else:
     st.markdown("<br><br>", unsafe_allow_html=True)
     
     st.markdown('<div class="fixed-nav-bar">', unsafe_allow_html=True)
-    n1, n2, n3, n4 = st.columns(4)
+    n1, n2, n3, n4, n5 = st.columns(5)
     with n1:
+        if st.button("👥 소셜", key="nav_social", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "소셜"
+            st.rerun()
+    with n2:
         if st.button("📅 달력", key="nav_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
             st.session_state.active_tab = "달력"
             st.rerun()
-    with n2:
+    with n3:
         if st.button("➕ 기록", key="nav_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
             st.session_state.active_tab = "기록작성"
             st.rerun()
-    with n3:
+    with n4:
         if st.button("💡 약점", key="nav_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
             st.session_state.active_tab = "약점처방"
             st.rerun()
-    with n4:
+    with n5:
         if st.button("📈 통계", key="nav_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
             st.session_state.active_tab = "통계"
             st.rerun()
