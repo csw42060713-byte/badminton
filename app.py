@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import calendar
 
-# 1. 모바일 최적화 디자인 설정
+# 1. 모바일 최적화 및 카드 선택형 디자인 CSS
 st.set_page_config(
     page_title="내 손안의 배드민턴 훈련장", 
     page_icon="🏸", 
@@ -110,6 +110,13 @@ if "training_history" not in st.session_state:
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "달력"
 
+# 기록 작성용 임시 선택 상태 값 초기화
+if "cond_score" not in st.session_state:
+    st.session_state.cond_score = 7  # 기본 무난한 컨디션 (7점 대)
+
+if "hard_score" not in st.session_state:
+    st.session_state.hard_score = 6
+
 
 # ==========================================
 # 🏠 1. 첫 시작 화면 (실력 및 종목 선택)
@@ -153,7 +160,7 @@ if not st.session_state.started:
 
 
 # ==========================================
-# 🏆 2. 메인 앱 화면 (튕김 없는 네이티브 버튼 탭 구조)
+# 🏆 2. 메인 앱 화면
 # ==========================================
 else:
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
@@ -252,17 +259,54 @@ else:
                 st.rerun()
 
     # ------------------------------------------
-    # [탭 2] 오늘 기록 화면
+    # [탭 2] 오늘 기록 화면 (2점 단위 컨디션 카드 선택형 적용)
     # ------------------------------------------
     elif st.session_state.active_tab == "기록작성":
-        st.markdown("### 📝 오늘 훈련 완료 및 피드백")
+        st.markdown("### 📝 오늘의 컨디션은 어때요?")
+        st.write("지금 나의 몸 상태와 에너지를 선택해보세요[span_1](start_span)[span_1](end_span)!")
         rec_date = st.selectbox("기록할 날짜 선택", [st.session_state.selected_date], key="rec_date_box")
         
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            condition = st.slider("오늘 내 몸 컨디션 (1~10점)", 1, 10, 7)
-        with col_c2:
-            hard_score = st.slider("운동 강도 (1~10점)", 1, 10, 6)
+        st.markdown("#### 🔋 컨디션 상태 선택 (1~10점)")
+        c1, c2, c3, c4, c5 = st.columns(5)
+        
+        with c1:
+            if st.button("1~2점\n[회복먼저]", use_container_width=True, type="primary" if st.session_state.cond_score==2 else "secondary"):
+                st.session_state.cond_score = 2
+        with c2:
+            if st.button("3~4점\n[가볍게]", use_container_width=True, type="primary" if st.session_state.cond_score==4 else "secondary"):
+                st.session_state.cond_score = 4
+        with c3:
+            if st.button("5~6점\n[무난함]", use_container_width=True, type="primary" if st.session_state.cond_score==6 else "secondary"):
+                st.session_state.cond_score = 6
+        with c4:
+            if st.button("7~8점\n[제대로달리기]", use_container_width=True, type="primary" if st.session_state.cond_score==8 else "secondary"):
+                st.session_state.cond_score = 8
+        with c5:
+            if st.button("9~10점\n[최고조!]", use_container_width=True, type="primary" if st.session_state.cond_score==10 else "secondary"):
+                st.session_state.cond_score = 10
+
+        st.info(f"현재 선택된 컨디션 점수: **{st.session_state.cond_score}점** 레벨[span_2](start_span)[span_2](end_span)")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("#### 🔥 오늘 훈련 강도 선택 (1~10점)")
+        h1, h2, h3, h4, h5 = st.columns(5)
+        with h1:
+            if st.button("1~2점\n[가벼움]", use_container_width=True, type="primary" if st.session_state.hard_score==2 else "secondary"):
+                st.session_state.hard_score = 2
+        with h2:
+            if st.button("3~4점\n[보통]", use_container_width=True, type="primary" if st.session_state.hard_score==4 else "secondary"):
+                st.session_state.hard_score = 4
+        with h3:
+            if st.button("5~6점\n[적당함]", use_container_width=True, type="primary" if st.session_state.hard_score==6 else "secondary"):
+                st.session_state.hard_score = 6
+        with h4:
+            if st.button("7~8점\n[고강도]", use_container_width=True, type="primary" if st.session_state.hard_score==8 else "secondary"):
+                st.session_state.hard_score = 8
+        with h5:
+            if st.button("9~10점\n[극한]", use_container_width=True, type="primary" if st.session_state.hard_score==10 else "secondary"):
+                st.session_state.hard_score = 10
+
+        st.info(f"현재 선택된 훈련 강도: **{st.session_state.hard_score}점**")
 
         total_time = st.slider("총 운동 시간 (분)", 30, 240, 90, 10)
 
@@ -296,6 +340,9 @@ else:
         )
 
         if st.button("🔥 오늘 기록 저장하고 맞춤 처방 받기", type="primary", use_container_width=True):
+            condition = st.session_state.cond_score
+            hard_score = st.session_state.hard_score
+            
             score = int((condition * 5) + ( (11 - hard_score) * 5 ))
             if score > 80:
                 feedback = "오늘 컨디션도 좋고 훈련 소화도 완벽했어요! 꿀잠 자고 내일도 화이팅! 🏆"
@@ -425,7 +472,6 @@ else:
     
     st.markdown('<div class="fixed-nav-container">', unsafe_allow_html=True)
     
-    # CSS로 하단 버튼들을 가로 한 줄로 강제 배치
     st.markdown("""
         <style>
         .row-widget.stHorizontal {
