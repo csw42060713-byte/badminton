@@ -211,7 +211,7 @@ else:
     st.markdown(f"**📌 [{sel_date}] 훈련 일정 짜기**")
     
     cur_plans = st.session_state.monthly_calendar_plans.get(sel_date, [])
-    exercise_list = ["스트록", "벽치기", "런닝(인터벌)", "코어(복근/허리)", "근력(웨이트)"]
+    exercise_list = ["스트록", "벽치기", "런닝(인터벌)", "코어(복근/허리)", "근력(웨이트)", "실전 경기(게임)"]
     
     updated_plans = st.multiselect(
         "오늘 할 운동 선택",
@@ -249,7 +249,32 @@ else:
         hard_score = st.slider("운동 얼마나 힘들었나? (1점 ~ 10점)", 1, 10, 6)
 
     total_time = st.slider("총 운동 시간 (분)", 30, 240, 90, 10)
-    
+
+    # 🏸 오늘 실제 수행한 운동 체크 및 게임 기록 칸
+    st.markdown("#### 🏸 오늘 실제로 끝낸 운동 체크")
+    done_exercises = st.multiselect(
+        "오늘 완료한 세부 훈련 종류",
+        ["스트록", "벽치기", "런닝(인터벌)", "코어(복근/허리)", "근력(웨이트)", "헌볼 훈련", "풋워크 훈련"],
+        default=["스트록", "코어(복근/허리)"]
+    )
+
+    # 실전 경기(게임) 기록 칸
+    has_game = st.checkbox("오늘 실전 경기(게임)를 진행했나요?")
+    game_summary_text = ""
+    if has_game:
+        num_games = st.number_input("오늘 치른 총 경기 수", 1, 5, 1)
+        game_results = []
+        for g_i in range(1, num_games + 1):
+            gc1, gc2, gc3 = st.columns(3)
+            with gc1:
+                my_sc = st.number_input(f"내 점수 (경기{g_i})", 0, 30, 21, key=f"my_sc_{g_i}")
+            with gc2:
+                opp_sc = st.number_input(f"상대 점수 (경기{g_i})", 0, 30, 15, key=f"opp_sc_{g_i}")
+            with gc3:
+                win_lose = st.radio(f"결과 (경기{g_i})", ["승리", "패배"], key=f"win_{g_i}")
+            game_results.append(f"경기{g_i}({my_sc}:{opp_sc}-{win_lose})")
+        game_summary_text = ", ".join(game_results)
+
     user_review = st.text_area(
         "💬 오늘 운동 소감 및 아픈 부위 적기 (예: 목이 뻐근해, 어깨 아픔, 발목 삐끗 등)", 
         placeholder="아프거나 고민인 부위를 적어주시면 스포츠 의학 지식 기반 맞춤 처방을 바로 알려드려요!"
@@ -313,6 +338,8 @@ else:
             "컨디션": condition,
             "운동강도": hard_score,
             "시간(분)": total_time,
+            "완료운동": ", ".join(done_exercises),
+            "게임기록": game_summary_text if has_game else "없음",
             "점수": score,
             "소감": user_review
         })
