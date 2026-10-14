@@ -2,7 +2,7 @@ import streamlit as st
 import datetime
 import pandas as pd
 
-# 1. 페이지 설정 및 모바일 앱처럼 보이는 CSS 최적화
+# 1. 페이지 설정 및 모바일 앱처럼 보이는 CSS 최적화 (광고 및 워터마크 제거 포함)
 st.set_page_config(
     page_title="배드민턴 정밀 훈련 시스템", 
     page_icon="🏸", 
@@ -11,9 +11,19 @@ st.set_page_config(
 
 hide_streamlit_style = """
     <style>
+    /* 상단 메뉴 숨기기 */
     #MainMenu {visibility: hidden;}
+    
+    /* 하단 Streamlit 워터마크 및 푸시 광고 문구 숨기기 */
     footer {visibility: hidden;}
+    
+    /* 헤더 숨기기 */
     header {visibility: hidden;}
+    
+    /* 하단에 뜨는 Deploy 버튼 숨기기 */
+    .stDeployButton {display: none;}
+    
+    /* 모바일 여백 최적화 */
     .block-container {
         padding-top: 1rem;
         padding-bottom: 3rem;
@@ -112,6 +122,7 @@ else:
         
         st.markdown("⚙️ **현재 레벨 & 주력 종목 설정**")
         
+        # 🔍 선수용 / 일반부 / 초보용 레벨 선택 칸
         selected_level = st.selectbox(
             "훈련자 레벨 선택",
             ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"],
