@@ -147,51 +147,64 @@ if not st.session_state.started:
             st.rerun()
 
     st.markdown("---")
-    st.info("💡 **안내:** 입장 후에도 언제든지 좌측 사이드바에서 레벨과 주력 종목을 변경하실 수 있습니다.")
+    st.info("💡 **안내:** 입장 후에도 언제든지 상단이나 좌측 사이드바에서 레벨과 주력 종목을 변경하실 수 있습니다.")
 
 # ==========================================
 # 🏆 메인 훈련 시스템 화면
 # ==========================================
 else:
-    with st.sidebar:
-        st.markdown("### 🧭 네비게이션 & 기본 설정")
-        if st.button("🏠 처음 시작 화면으로", use_container_width=True):
-            st.session_state.started = False
-            st.rerun()
-        st.markdown("---")
-        
-        st.markdown("⚙️ **현재 레벨 & 주력 종목 설정**")
+    # 📱 모바일 편의를 위해 상단에서도 레벨과 종목을 바로 바꿀 수 있도록 배치
+    st.title("🏸 배드민턴 정밀 훈련 & 컨디션 관리 센터")
+    
+    with st.container():
+        st.markdown("### ⚙️ 빠른 설정 (레벨 및 종목 변경)")
+        top_col1, top_col2, top_col3 = st.columns([2, 2, 1])
         
         levels = ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"]
         current_level_idx = levels.index(st.session_state.user_level) if st.session_state.user_level in levels else 2
 
-        selected_level = st.selectbox(
-            "훈련자 레벨 선택",
-            levels,
-            index=current_level_idx,
-            key="sb_level_select"
-        )
-        
-        if selected_level != st.session_state.user_level:
-            st.session_state.user_level = selected_level
-            st.session_state.schedule_mapping = level_default_schedules[selected_level]
-            st.rerun()
+        with top_col1:
+            selected_level_top = st.selectbox(
+                "훈련자 레벨",
+                levels,
+                index=current_level_idx,
+                key="top_level_select"
+            )
+            if selected_level_top != st.session_state.user_level:
+                st.session_state.user_level = selected_level_top
+                st.session_state.schedule_mapping = level_default_schedules[selected_level_top]
+                st.rerun()
 
         match_types = ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"]
         current_match_idx = match_types.index(st.session_state.match_type) if st.session_state.match_type in match_types else 0
 
-        selected_match_type = st.selectbox(
-            "주력 종목 선택",
-            match_types,
-            index=current_match_idx,
-            key="sb_match_select"
-        )
-        if selected_match_type != st.session_state.match_type:
-            st.session_state.match_type = selected_match_type
-            st.rerun()
+        with top_col2:
+            selected_match_top = st.selectbox(
+                "주력 종목",
+                match_types,
+                index=current_match_idx,
+                key="top_match_select"
+            )
+            if selected_match_top != st.session_state.match_type:
+                st.session_state.match_type = selected_match_top
+                st.rerun()
+                
+        with top_col3:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🏠 처음 화면으로", use_container_width=True):
+                st.session_state.started = False
+                st.rerun()
 
-    st.title("🏸 배드민턴 정밀 훈련 & 컨디션 관리 센터")
     st.markdown("---")
+
+    # 사이드바 설정
+    with st.sidebar:
+        st.markdown("### 🧭 네비게이션")
+        if st.button("🏠 처음 시작 화면으로 이동", use_container_width=True):
+            st.session_state.started = False
+            st.rerun()
+        st.markdown("---")
+        st.info("💡 모바일 화면 상단에서도 레벨과 종목을 간편하게 바꿀 수 있습니다!")
 
     tab1, tab2, tab3 = st.tabs([
         "📅 1. 캘린더 & 일주일 훈련 진단", 
@@ -211,7 +224,7 @@ else:
                 <div class="mini-card">
                     <h3 style="margin:0;">🏸 오늘의 스마트 배드민턴 위젯</h3>
                     <p style="margin-top:8px; font-size:15px;">🗓️ 오늘 날짜: <b>{today_str}</b></p>
-                    <p style="font-size:14px; margin-bottom:0;">현재 설정된 레벨: <b>{st.session_state.user_level}</b></p>
+                    <p style="font-size:14px; margin-bottom:0;">현재 설정된 레벨: <b>{st.session_state.user_level}</b> / 종목: <b>{st.session_state.match_type.split()[0]}</b></p>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -274,7 +287,6 @@ else:
                         if day_plan or day_memo:
                             btn_label += " 🏸"
                             
-                        # 모바일 호환성을 높인 명확한 버튼 텍스트
                         if st.button(btn_label, key=f"grid_btn_{date_str}", use_container_width=True):
                             st.session_state.selected_date = date_str
                             st.rerun()
@@ -712,4 +724,4 @@ else:
                 data=csv_data,
                 file_name=f"badminton_training_log_{datetime.date.today()}.csv",
                 mime="text/css"
-            ) 
+            )
