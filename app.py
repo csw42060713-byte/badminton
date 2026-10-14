@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import calendar
 
-# 1. 페이지 설정 및 모바일 앱처럼 보이는 CSS 최적화 (광고 및 워터마크 제거 포함)
+# 1. 페이지 설정 및 모바일 달력 앱 스타일 최적화
 st.set_page_config(
     page_title="배드민턴 정밀 훈련 시스템", 
     page_icon="🏸", 
@@ -12,19 +12,13 @@ st.set_page_config(
 
 hide_streamlit_style = """
     <style>
-    /* 상단 메뉴 숨기기 */
+    /* 상단 메뉴 및 워터마크 숨기기 */
     #MainMenu {visibility: hidden;}
-    
-    /* 하단 Streamlit 워터마크 및 푸시 광고 문구 숨기기 */
     footer {visibility: hidden;}
-    
-    /* 헤더 숨기기 */
     header {visibility: hidden;}
-    
-    /* 하단에 뜨는 Deploy 버튼 숨기기 */
     .stDeployButton {display: none;}
     
-    /* 모바일 여백 최적화 및 캘린더 그리드 스타일 */
+    /* 모바일 달력 앱처럼 여백 최소화 및 깔끔한 정렬 */
     .block-container {
         padding-top: 1rem;
         padding-bottom: 3rem;
@@ -219,25 +213,23 @@ else:
     st.markdown("---")
 
     tab1, tab2, tab3 = st.tabs([
-        "📅 1. 월간 캘린더 & 일주일 훈련 진단", 
+        "📅 1. 스마트폰 캘린더 & 일주일 훈련 진단", 
         "📝 2. 레벨별 기술·심리 진단 및 오늘의 훈련 기록", 
         "📊 3. 100점 만점 훈련 리포트 & 히스토리"
     ])
 
     with tab1:
-        st.subheader(f"🗓️ 월간 훈련 캘린더 (현재 레벨: {st.session_state.user_level})")
-        
-        # 📅 연도 및 월 선택 컨트롤
         now = datetime.datetime.now()
-        col_y, col_m = st.columns(2)
-        with col_y:
-            cal_year = st.number_input("연도", min_value=2025, max_value=2030, value=now.year)
-        with col_m:
-            cal_month = st.selectbox("월", list(range(1, 13)), index=now.month - 1, format_func=lambda x: f"{x}월")
+        col_title, col_ctrl1, col_ctrl2 = st.columns([2, 1, 1])
+        with col_title:
+            st.markdown(f"## 🗓️ {now.month}월 배드민턴 캘린더")
+        with col_ctrl1:
+            cal_year = st.selectbox("연도", [2025, 2026, 2027], index=1, label_visibility="collapsed")
+        with col_ctrl2:
+            cal_month = st.selectbox("월", list(range(1, 13)), index=now.month - 1, format_func=lambda x: f"{x}월", label_visibility="collapsed")
 
         st.markdown("---")
         
-        # 📅 실제 캘린더 그리드 (일요일 ~ 토요일 고정 7열 구조)
         cal = calendar.Calendar(firstweekday=6) 
         month_days = list(cal.itermonthdates(cal_year, cal_month))
 
@@ -246,9 +238,8 @@ else:
         for i, day_name in enumerate(weekdays_kr):
             with header_cols[i]:
                 color = "red" if i == 0 else ("blue" if i == 6 else "black")
-                st.markdown(f"<p align='center' style='font-weight:bold; color:{color}; margin-bottom: 5px;'>{day_name}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p align='center' style='font-weight:bold; color:{color}; margin-bottom: 2px;'>{day_name}</p>", unsafe_allow_html=True)
 
-        # 주 단위로 꽉 찬 달력 표 레이아웃 렌더링
         for week_idx in range(0, len(month_days), 7):
             week_slice = month_days[week_idx:week_idx+7]
             week_cols = st.columns(7)
@@ -259,34 +250,31 @@ else:
                     is_current_month = (d.month == cal_month)
                     
                     if not is_current_month:
-                        st.markdown(f"<p style='color:#cccccc; text-align:center; font-size:13px; margin:0;'>{d.day}</p>", unsafe_allow_html=True)
+                        st.markdown(f"<p style='color:#d3d3d3; text-align:center; font-size:12px; margin:0;'>{d.day}</p>", unsafe_allow_html=True)
                         continue
 
-                    # 해당 날짜에 저장된 훈련 계획 확인
                     day_plan = st.session_state.monthly_calendar_plans.get(date_str, [])
                     
-                    # 달력 날짜 버튼 (클릭하면 아래 편집창에 해당 날짜가 선택됨)
                     btn_text = f"{d.day}"
                     if day_plan:
-                        btn_text += " 🔥" # 계획이 있으면 불꽃 아이콘
+                        btn_text += " 🔥"
                         
                     if st.button(btn_text, key=f"cal_grid_{date_str}", use_container_width=True):
                         st.session_state.selected_date = date_str
                         st.rerun()
                         
                     if day_plan:
-                        st.caption(f"{', '.join(day_plan[:1])}{' 외' if len(day_plan)>1 else ''}")
+                        st.caption(f"{', '.join(day_plan[:1])}")
                     else:
                         st.caption("")
 
         st.markdown("---")
 
-        # 📌 선택한 날짜의 훈련 계획 상세 편집 영역 (스마트폰 하단 추가 버튼 느낌)
         if "selected_date" not in st.session_state:
             st.session_state.selected_date = str(datetime.date.today())
 
         selected_d = st.session_state.selected_date
-        st.subheader(f"📌 선택한 날짜 [{selected_d}] 훈련 계획 추가/수정")
+        st.markdown(f"➕ **[{selected_d}] 날짜에 훈련 추가 및 수정**")
         
         current_date_plans = st.session_state.monthly_calendar_plans.get(selected_d, [])
         exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
@@ -306,7 +294,6 @@ else:
 
         st.markdown("---")
 
-        # 🌟 일주일 기준 종합 훈련 계획 진단 장치 (이모티콘 피드백)
         st.subheader("🔍 일주일 기준 훈련 밸런스 실시간 진단")
         
         today_obj = datetime.date.today()
@@ -351,7 +338,7 @@ else:
                 emoji = "🧐"
                 status_title = "보강 운동 조화 필요"
                 advice = "스트록과 근력 보강 운동의 비율을 골고루 분산시키면 코트 위 스텝이 훨씬 가벼워집니다."
-        else: # 선수용
+        else:
             if week_sessions >= 14 and week_strengths >= 2:
                 emoji = "🏆"
                 status_title = "엘리트 선수부 완벽한 훈련 루틴!"
@@ -359,13 +346,12 @@ else:
             elif week_sessions < 8:
                 emoji = "⚠️"
                 status_title = "선수부 기준 훈련량 부족"
-                advice = "전국체전 및 시합을 준비하기엔 현재 캘린더 등록량이 다소 적습니다. 인터벌과 헌볼/근력을 더 추가하세요!"
+                advice = "시합을 준비하기엔 현재 캘린더 등록량이 다소 적습니다. 인터벌과 헌볼/근력을 더 추가하세요!"
             else:
                 emoji = "🔥"
                 status_title = "열정적인 고강도 훈련 주간"
                 advice = "강도 높은 훈련이 잘 배치되어 있습니다. 훈련 후 영양 섭취와 쿨다운 스트레칭을 잊지 마세요!"
 
-        # 이모티콘 대시보드 카드 출력
         st.markdown(
             f"""
             <div style="padding: 20px; border-radius: 10px; background-color: #f0f2f6; text-align: center;">
@@ -568,20 +554,18 @@ else:
 
         overall_memo = st.text_area("💬 오늘 훈련 생체역학적 및 심리적 소감 (부상이나 통증이 있다면 여기에 적어주세요!)", placeholder="예: 어깨 통증이 살짝 있음, 스매시 타점 교정 필요 등")
 
-        # 📱 키보드 가림 방지 여백 추가
         st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
 
         if st.button("💯 100점 만점 훈련 점수 산출 및 분석 저장", use_container_width=True):
             total_training_minutes = real_stroke_min + real_wall_min + real_interval_min + real_core_min + real_strength_min + (hunbol_time * 60)
             
-            # 💯 100점 만점 훈련 완성도 점수 계산 알고리즘
-            time_score = min(40, (total_training_minutes / 120.0) * 40)  # 총 시간 (최대 40점)
-            intensity_score = min(30, (rpe_score / 10.0) * 30)          # 운동 강도 (최대 30점)
-            condition_score = min(15, (condition / 10.0) * 15)          # 컨디션 (최대 15점)
+            time_score = min(40, (total_training_minutes / 120.0) * 40)
+            intensity_score = min(30, (rpe_score / 10.0) * 30)
+            condition_score = min(15, (condition / 10.0) * 15)
             
             total_aux_count = len(grip_exercises) + len(core_exercises) + len(stroke_aux_exercises) + \
                               len(jump_exercises) + len(upper_exercises) + len(lower_exercises)
-            aux_score = min(15, total_aux_count * 3 + len(game_details) * 5)  # 보강 및 경기 수행 (최대 15점)
+            aux_score = min(15, total_aux_count * 3 + len(game_details) * 5)
             
             total_100_score = min(100, round(time_score + intensity_score + condition_score + aux_score, 1))
 
@@ -614,7 +598,6 @@ else:
             st.markdown("---")
             st.markdown(f"### 💯 [{train_date}] 오늘의 훈련 완성도 리포트")
             
-            # 🎨 시각적 대시보드 강화: 등급별 컬러 카드 UI 적용
             if total_100_score >= 85:
                 st.success(f"### 🟢 훈련 점수: {total_100_score}점 / 100점\n**등급:** {grade}\n\n🔥 **오늘 정말 완벽하게 훈련을 완성하셨네요!** 엄청난 몰입도와 집중력이었습니다. 따뜻한 물로 샤워하고 오늘은 푹 쉬어주세요! 고생 많으셨습니다 🥹")
             elif total_100_score >= 70:
