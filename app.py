@@ -19,7 +19,7 @@ hide_streamlit_style = """
     
     .block-container {
         padding-top: 0.5rem;
-        padding-bottom: 3rem;
+        padding-bottom: 7.5rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
@@ -71,12 +71,50 @@ hide_streamlit_style = """
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+
+    /* 📱 하단 고정 네비게이션바 (무조건 가로 한 줄 고정 강제 스타일) */
+    .fixed-bottom-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 65px;
+        background-color: #ffffff;
+        border-top: 1px solid #e0e0e0;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        z-index: 999999;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        padding: 0 4px;
+        box-sizing: border-box;
+    }
+    
+    /* 하단 내부 Streamlit 컬럼 및 버튼들을 가로로 강제 정렬 */
+    .fixed-bottom-bar [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        width: 100% !important;
+    }
+    .fixed-bottom-bar [data-testid="column"] {
+        flex: 1 !important;
+        width: auto !important;
+        min-width: 0 !important;
+        padding: 0 2px !important;
+    }
+    .fixed-bottom-bar button {
+        width: 100% !important;
+        font-size: 11px !important;
+        padding: 6px 0px !important;
+        font-weight: bold !important;
+    }
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # ==========================================
-# 세션 상태 안전 초기화
+# 세션 상태 안전 초기화 (튕김 방어)
 # ==========================================
 if "started" not in st.session_state:
     st.session_state.started = False
@@ -148,7 +186,7 @@ if not st.session_state.started:
 
 
 # ==========================================
-# 🏆 2. 메인 앱 화면 (상단 가로형 네비게이션 탭)
+# 🏆 2. 메인 앱 화면
 # ==========================================
 else:
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
@@ -159,31 +197,6 @@ else:
     with top_c3:
         if st.button("처음으로", use_container_width=True, key="reset_btn"):
             st.session_state.started = False
-            st.rerun()
-
-    st.markdown("---")
-
-    # 📱 상단 가로 한 줄 탭 메뉴 (절대 세로로 꺾이지 않고 튕김 없음)
-    t1, t2, t3, t4, t5 = st.columns(5)
-    with t1:
-        if st.button("👥소셜", key="t_soc", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "소셜"
-            st.rerun()
-    with t2:
-        if st.button("📅달력", key="t_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "달력"
-            st.rerun()
-    with t3:
-        if st.button("➕기록", key="t_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "기록작성"
-            st.rerun()
-    with t4:
-        if st.button("💡약점", key="t_wea", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "약점처방"
-            st.rerun()
-    with t5:
-        if st.button("📈통계", key="t_sta", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "통계"
             st.rerun()
 
     st.markdown("---")
@@ -471,7 +484,7 @@ else:
                 elif any(k in w_lower for k in ["헤어핀", "네트", "세밀", "정밀"]):
                     st.info("🪶 **[헤어핀 정밀도 향상 드릴]**\n\n"
                             "• **핵심 포인트:** 임팩트 순간 라켓 면의 부드러운 감속\n"
-                            "• **추천 훈련 (크로스 헤어핀 랠리):** 네트 앞 전역에서 상대방 서비스 라인 안쪽으로 콕을 살짝 감아 넘기는 세밀한 터치 훈련. 손목에 힘을 빼고 그립을 가볍게 잡는 것이 핵심입니다!")
+                            "• **추천 훈련 (크로스 헤어핀 릴레이):** 네트 앞 전역에서 상대방 서비스 라인 안쪽으로 콕을 살짝 감아 넘기는 세밀한 터치 훈련. 손목에 힘을 빼고 그립을 가볍게 잡는 것이 핵심입니다!")
                 elif any(k in w_lower for k in ["스매시", "스매권", "각도", "파워", "내리꽂기"]):
                     st.info("💥 **[스매시 각도 및 파워 강화 드릴]**\n\n"
                             "• **핵심 포인트:** 점프 타점과 상체 회전 타이밍\n"
@@ -496,3 +509,30 @@ else:
             st.dataframe(df_log, use_container_width=True)
         else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
+
+    # ------------------------------------------
+    # 📱 튕김 없는 순수 st.button 기반 하단 고정 네비게이션 바 (가로 한 줄 강제 고정)
+    # ------------------------------------------
+    st.markdown('<div class="fixed-bottom-bar">', unsafe_allow_html=True)
+    nb1, nb2, nb3, nb4, nb5 = st.columns(5)
+    with nb1:
+        if st.button("👥소셜", key="btn_soc", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "소셜"
+            st.rerun()
+    with nb2:
+        if st.button("📅달력", key="btn_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "달력"
+            st.rerun()
+    with nb3:
+        if st.button("➕기록", key="btn_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "기록작성"
+            st.rerun()
+    with nb4:
+        if st.button("💡약점", key="btn_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "약점처방"
+            st.rerun()
+    with nb5:
+        if st.button("📈통계", key="btn_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "통계"
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
