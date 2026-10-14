@@ -3,9 +3,9 @@ import datetime
 import pandas as pd
 import calendar
 
-# 1. 페이지 설정 및 모바일 달력 CSS 최적화
+# 1. 모바일 최적화 디자인 설정
 st.set_page_config(
-    page_title="배드민턴 정밀 훈련 시스템", 
+    page_title="내 손안의 배드민턴 훈련장", 
     page_icon="🏸", 
     layout="wide"
 )
@@ -24,16 +24,15 @@ hide_streamlit_style = """
         padding-right: 0.5rem;
     }
     
-    .mini-card {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-        padding: 15px;
-        border-radius: 15px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        margin-bottom: 15px;
+    .main-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #1e3c72;
+        text-align: center;
+        margin-bottom: 10px;
     }
 
-    /* 핸드폰 전용 진짜 캘린더 그리드 스타일 */
+    /* 캘린더 표 스타일 */
     .cal-table {
         width: 100%;
         border-collapse: collapse;
@@ -51,11 +50,10 @@ hide_streamlit_style = """
         background-color: #f8f9fa;
     }
     .cal-td {
-        height: 65px;
+        height: 60px;
         vertical-align: top;
         border: 1px solid #f0f0f0;
         padding: 4px;
-        position: relative;
     }
     .cal-day-num {
         font-size: 12px;
@@ -63,10 +61,10 @@ hide_streamlit_style = """
         color: #333;
     }
     .cal-plan-badge {
-        font-size: 9px;
+        font-size: 8px;
         background-color: #e3f2fd;
         color: #1e3c72;
-        padding: 1px 3px;
+        padding: 1px 2px;
         border-radius: 3px;
         margin-top: 2px;
         overflow: hidden;
@@ -82,681 +80,247 @@ if "started" not in st.session_state:
     st.session_state.started = False
 
 if "user_level" not in st.session_state:
-    st.session_state.user_level = "선수용 (고강도 전문 훈련)"
+    st.session_state.user_level = "선수부"
 
 if "match_type" not in st.session_state:
-    st.session_state.match_type = "복식 (Double - 순발력/전위 반응/스매시 파워)"
-
-if "cal_view_mode" not in st.session_state:
-    st.session_state.cal_view_mode = "widget"
+    st.session_state.match_type = "복식"
 
 if "selected_date" not in st.session_state:
     st.session_state.selected_date = str(datetime.date.today())
 
-level_default_schedules = {
-    "선수용 (고강도 전문 훈련)": {
-        "월요일": ["스트록", "벽치기", "코어", "근력"],
-        "화요일": ["스트록", "인터벌", "근력"],
-        "수요일": ["스트록", "벽치기", "코어"],
-        "목요일": ["스트록", "인터벌", "근력"],
-        "금요일": ["스트록", "벽치기", "코어"],
-        "토요일": ["스트록", "인터벌"],
-        "일요일": []
-    },
-    "일반부 (동호인/취미 운동)": {
-        "월요일": ["스트록", "코어"],
-        "화요일": ["스트록", "근력"],
-        "수요일": ["벽치기", "코어"],
-        "목요일": ["스트록", "인터벌"],
-        "금요일": ["스트록"],
-        "토요일": ["스트록", "벽치기"],
-        "일요일": []
-    },
-    "초보용 (입문 및 기초 체력)": {
-        "월요일": ["벽치기", "코어"],
-        "화요일": ["스트록"],
-        "수요일": ["벽치기", "코어"],
-        "목요일": ["스트록"],
-        "금요일": ["벽치기"],
-        "토요일": ["스트록"],
-        "일요일": []
-    }
-}
-
-if "schedule_mapping" not in st.session_state:
-    st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
-
 if "monthly_calendar_plans" not in st.session_state:
     st.session_state.monthly_calendar_plans = {}
-
-if "monthly_calendar_memos" not in st.session_state:
-    st.session_state.monthly_calendar_memos = {}
 
 if "training_history" not in st.session_state:
     st.session_state.training_history = []
 
 
 # ==========================================
-# 🏠 시작 화면 (Landing Screen)
+# 🏠 1. 첫 시작 화면 (레벨 & 종목 고르기)
 # ==========================================
 if not st.session_state.started:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.title("🏸 스포츠 과학 & 심리학 기반 배드민턴 정밀 훈련 시스템")
-    st.markdown("### 🚀 완벽한 코트 제압을 위한 나만의 맞춤형 훈련 파트너")
-    st.write("먼저 본인의 **훈련 레벨**을 선택하고 시스템에 입장하세요!")
+    st.markdown("<div class='main-title'>🏸 배드민턴 훈련 & 컨디션 관리</div>", unsafe_allow_html=True)
+    st.write("내 실력과 주력 종목을 선택하고 바로 시작하세요!")
     
     st.markdown("---")
-    st.markdown("#### 👤 훈련자 레벨 선택")
-    
-    col_l1, col_l2, col_l3 = st.columns(3)
-    
-    with col_l1:
-        st.markdown("🌱 **초보용**")
-        st.caption("입문 및 기초 체력 향상 코스")
-        if st.button("초보용으로 시작", use_container_width=True, key="btn_beginner"):
-            st.session_state.user_level = "초보용 (입문 및 기초 체력)"
-            st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
+    st.markdown("**1. 내 실력 선택**")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("초보용", use_container_width=True):
+            st.session_state.user_level = "초보용"
             st.session_state.started = True
             st.rerun()
-            
-    with col_l2:
-        st.markdown("🔥 **일반부**")
-        st.caption("동호인 및 취미 실전 강화 코스")
-        if st.button("일반부로 시작", use_container_width=True, key="btn_normal"):
-            st.session_state.user_level = "일반부 (동호인/취미 운동)"
-            st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
+    with col2:
+        if st.button("일반부", use_container_width=True):
+            st.session_state.user_level = "일반부"
             st.session_state.started = True
             st.rerun()
-            
-    with col_l3:
-        st.markdown("🏆 **선수용**")
-        st.caption("고강도 전문 훈련 및 시합 준비반")
-        if st.button("선수용으로 시작", type="primary", use_container_width=True, key="btn_pro"):
-            st.session_state.user_level = "선수용 (고강도 전문 훈련)"
-            st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
+    with col3:
+        if st.button("선수부", type="primary", use_container_width=True):
+            st.session_state.user_level = "선수부"
             st.session_state.started = True
             st.rerun()
 
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("**2. 주력 종목 선택**")
+    col4, col5 = st.columns(2)
+    with col4:
+        if st.button("복식", use_container_width=True):
+            st.session_state.match_type = "복식"
+    with col5:
+        if st.button("단식", use_container_width=True):
+            st.session_state.match_type = "단식"
+            
     st.markdown("---")
-    st.info("💡 **안내:** 입장 후 상단에서 레벨과 주력 종목을 언제든 변경할 수 있습니다.")
+    if st.button("🚀 이대로 시작하기", type="primary", use_container_width=True):
+        st.session_state.started = True
+        st.rerun()
+
 
 # ==========================================
-# 🏆 메인 훈련 시스템 화면
+# 🏆 2. 메인 앱 화면
 # ==========================================
 else:
-    st.title("🏸 배드민턴 정밀 훈련 & 컨디션 관리 센터")
-    
-    with st.container():
-        st.markdown("### ⚙️ 빠른 설정 (레벨 및 종목 변경)")
-        top_col1, top_col2, top_col3 = st.columns([2, 2, 1])
-        
-        levels = ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"]
-        current_level_idx = levels.index(st.session_state.user_level) if st.session_state.user_level in levels else 2
-
-        with top_col1:
-            selected_level_top = st.selectbox(
-                "훈련자 레벨",
-                levels,
-                index=current_level_idx,
-                key="top_level_select"
-            )
-            if selected_level_top != st.session_state.user_level:
-                st.session_state.user_level = selected_level_top
-                st.session_state.schedule_mapping = level_default_schedules[selected_level_top]
-                st.rerun()
-
-        match_types = ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"]
-        current_match_idx = match_types.index(st.session_state.match_type) if st.session_state.match_type in match_types else 0
-
-        with top_col2:
-            selected_match_top = st.selectbox(
-                "주력 종목",
-                match_types,
-                index=current_match_idx,
-                key="top_match_select"
-            )
-            if selected_match_top != st.session_state.match_type:
-                st.session_state.match_type = selected_match_top
-                st.rerun()
-                
-        with top_col3:
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🏠 처음 화면", use_container_width=True):
-                st.session_state.started = False
-                st.rerun()
+    # 상단 빠른 설정 바
+    top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
+    with top_c1:
+        st.session_state.user_level = st.selectbox("실력", ["초보용", "일반부", "선수부"], index=["초보용", "일반부", "선수부"].index(st.session_state.user_level))
+    with top_c2:
+        st.session_state.match_type = st.selectbox("종목", ["복식", "단식"], index=["복식", "단식"].index(st.session_state.match_type))
+    with top_c3:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("처음으로"):
+            st.session_state.started = False
+            st.rerun()
 
     st.markdown("---")
 
-    with st.sidebar:
-        st.markdown("### 🧭 네비게이션")
-        if st.button("🏠 처음 시작 화면으로 이동", use_container_width=True):
-            st.session_state.started = False
+    st.markdown("### 🗓️ 1. 이번 달 훈련 달력")
+    st.write("날짜를 고르고 아래에서 오늘 할 운동을 체크하세요.")
+
+    now = datetime.datetime.now()
+    
+    cal_temp = calendar.Calendar(firstweekday=6)
+    cal_dates_list = []
+    for d in cal_temp.itermonthdates(now.year, now.month):
+        if d.month == now.month:
+            cal_dates_list.append(str(d))
+
+    selected_date_box = st.selectbox(
+        "📅 날짜 선택하기", 
+        cal_dates_list, 
+        index=cal_dates_list.index(st.session_state.selected_date) if st.session_state.selected_date in cal_dates_list else 0
+    )
+    if selected_date_box != st.session_state.selected_date:
+        st.session_state.selected_date = selected_date_box
+        st.rerun()
+
+    # 달력 표 그리기
+    cal_html = "<table class='cal-table'><thead><tr>"
+    weekdays_kr = ["일", "월", "화", "수", "목", "금", "토"]
+    for i, w_name in enumerate(weekdays_kr):
+        color = "red" if i == 0 else ("blue" if i == 6 else "black")
+        cal_html += f"<th class='cal-th' style='color:{color};'>{w_name}</th>"
+    cal_html += "</tr></thead><tbody>"
+
+    month_weeks = cal_temp.monthdayscalendar(now.year, now.month)
+    for week in month_weeks:
+        cal_html += "<tr>"
+        for day in week:
+            if day == 0:
+                cal_html += "<td class='cal-td' style='background-color:#fafafa;'></td>"
+            else:
+                d_str = f"{now.year}-{now.month:02d}-{day:02d}"
+                is_selected = (d_str == st.session_state.selected_date)
+                bg_style = "background-color: #e8f4fd; border: 2px solid #1e3c72;" if is_selected else ""
+                
+                day_plans = st.session_state.monthly_calendar_plans.get(d_str, [])
+                plan_txt = f"🏸 {day_plans[0]}" if day_plans else ""
+                
+                cal_html += f"<td class='cal-td' style='{bg_style}'>"
+                cal_html += f"<div class='cal-day-num'>{day}</div>"
+                if plan_txt:
+                    cal_html += f"<div class='cal-plan-badge'>{plan_txt}</div>"
+                cal_html += "</td>"
+        cal_html += "</tr>"
+    cal_html += "</tbody></table>"
+
+    st.markdown(cal_html, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 선택된 날짜 일정 입력 칸
+    sel_date = st.session_state.selected_date
+    st.markdown(f"**📌 [{sel_date}] 훈련 일정 짜기**")
+    
+    cur_plans = st.session_state.monthly_calendar_plans.get(sel_date, [])
+    exercise_list = ["스트록", "벽치기", "런닝(인터벌)", "코어(복근/허리)", "근력(웨이트)"]
+    
+    updated_plans = st.multiselect(
+        "오늘 할 운동 선택",
+        exercise_list,
+        default=cur_plans,
+        key=f"m_plans_{sel_date}"
+    )
+    
+    memo_key = f"memo_{sel_date}"
+    if memo_key not in st.session_state:
+        st.session_state[memo_key] = ""
+        
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        if st.button("💾 일정 저장", use_container_width=True, type="primary"):
+            if updated_plans:
+                st.session_state.monthly_calendar_plans[sel_date] = updated_plans
+                st.success("저장 완료!")
+                st.rerun()
+            else:
+                st.warning("운동을 최소 한 개 이상 선택해주세요.")
+    with col_btn2:
+        if st.button("🗑️ 일정 지우기", use_container_width=True):
+            st.session_state.monthly_calendar_plans.pop(sel_date, None)
+            st.success("삭제 완료!")
             st.rerun()
-        st.markdown("---")
-        st.info("💡 모바일 화면 상단에서 레벨과 종목을 간편하게 바꿀 수 있습니다!")
 
-    tab1, tab2, tab3 = st.tabs([
-        "📅 1. 캘린더 & 일주일 훈련 진단", 
-        "📝 2. 레벨별 기술·심리 진단 및 오늘의 훈련 기록", 
-        "📊 3. 100점 만점 훈련 리포트 & 히스토리"
-    ])
+    st.markdown("---")
 
-    with tab1:
-        # 위젯 모드
-        if st.session_state.cal_view_mode == "widget":
-            today_str = str(datetime.date.today())
-            today_plans = st.session_state.monthly_calendar_plans.get(today_str, [])
-            today_memo = st.session_state.monthly_calendar_memos.get(today_str, "")
-            
-            st.markdown(
-                f"""
-                <div class="mini-card">
-                    <h3 style="margin:0;">🏸 오늘의 스마트 배드민턴 위젯</h3>
-                    <p style="margin-top:8px; font-size:15px;">🗓️ 오늘 날짜: <b>{today_str}</b></p>
-                    <p style="font-size:14px; margin-bottom:0;">현재 설정된 레벨: <b>{st.session_state.user_level}</b> / 종목: <b>{st.session_state.match_type.split()[0]}</b></p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            
-            st.info(f"📋 **오늘의 훈련:** {', '.join(today_plans) if today_plans else '등록된 일정 없음'}\n\n📝 **오늘의 메모:** {today_memo if today_memo else '작성된 메모가 없습니다.'}")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("📅 핸드폰 캘린더 형식으로 전체 보기", type="primary", use_container_width=True):
-                st.session_state.cal_view_mode = "full_calendar"
-                st.rerun()
+    # ==========================================
+    # 📝 2. 오늘 운동 완료 및 논문 기반 맞춤 처방
+    # ==========================================
+    st.markdown("### 📝 2. 오늘 운동 완료 및 기록")
+    
+    col_c1, col_c2 = st.columns(2)
+    with col_c1:
+        condition = st.slider("오늘 내 몸 컨디션 (1점 ~ 10점)", 1, 10, 7)
+    with col_c2:
+        hard_score = st.slider("운동 얼마나 힘들었나? (1점 ~ 10점)", 1, 10, 6)
 
-        # 진짜 캘린더 형태 전체 화면 모드
+    total_time = st.slider("총 운동 시간 (분)", 30, 240, 90, 10)
+    
+    # 💡 사용자가 자유롭게 적는 소감 및 아픈 부위 칸
+    user_review = st.text_area(
+        "💬 오늘 운동 소감 및 아픈 부위 적기 (예: 어깨가 뻐근해, 스매시 타점이 밀림, 발목 삐끗 등)", 
+        placeholder="여기에 적어주시면 스포츠 의학 논문 기반 맞춤 스트레칭과 처방을 바로 알려드려요!"
+    )
+
+    if st.button("🔥 오늘 운동 저장하고 맞춤 처방 받기", type="primary", use_container_width=True):
+        score = int((condition * 5) + ( (11 - hard_score) * 5 ))
+        if score > 80:
+            feedback = "오늘 컨디션도 좋고 훈련 소화도 완벽했어요! 꿀잠 자고 내일도 화이팅! 🏆"
+        elif score > 60:
+            feedback = "꾸준히 아주 잘하고 있습니다! 이 페이스 그대로 유지해봐요 🏸"
         else:
-            if st.button("⬅️ 미니 요약 위젯으로 돌아가기", use_container_width=True):
-                st.session_state.cal_view_mode = "widget"
-                st.rerun()
+            feedback = "오늘은 몸이 좀 뻐근했겠네요. 무리하지 말고 따뜻한 물로 샤워 후 푹 쉬세요! 🛌"
 
-            st.markdown("---")
-            
-            now = datetime.datetime.now()
-            col_title, col_ctrl1, col_ctrl2 = st.columns([2, 1, 1])
-            with col_title:
-                st.markdown(f"## 🗓️ {now.month}월 배드민턴 캘린더")
-            with col_ctrl1:
-                cal_year = st.selectbox("연도", [2025, 2026, 2027], index=1, label_visibility="collapsed")
-            with col_ctrl2:
-                cal_month = st.selectbox("월", list(range(1, 13)), index=now.month - 1, format_func=lambda x: f"{x}월", label_visibility="collapsed")
-
-            st.info("💡 **아래 달력에서 날짜를 선택(클릭)한 뒤, 하단에서 일정을 작성·수정하세요!**")
-            
-            # 날짜 선택 버튼 (셀렉트박스로 깔끔하게 연동)
-            cal_dates_list = []
-            cal_temp = calendar.Calendar(firstweekday=6)
-            for d in cal_temp.itermonthdates(cal_year, cal_month):
-                if d.month == cal_month:
-                    cal_dates_list.append(str(d))
-
-            selected_date_box = st.selectbox(
-                "🎯 편집할 날짜 선택", 
-                cal_dates_list, 
-                index=cal_dates_list.index(st.session_state.selected_date) if st.session_state.selected_date in cal_dates_list else 0
-            )
-            if selected_date_box != st.session_state.selected_date:
-                st.session_state.selected_date = selected_date_box
-                st.rerun()
-
-            # HTML 표 기반 스마트폰 전용 캘린더 렌더링
-            cal_html = "<table class='cal-table'><thead><tr>"
-            weekdays_kr = ["일", "월", "화", "수", "목", "금", "토"]
-            for i, w_name in enumerate(weekdays_kr):
-                color = "red" if i == 0 else ("blue" if i == 6 else "black")
-                cal_html += f"<th class='cal-th' style='color:{color};'>{w_name}</th>"
-            cal_html += "</tr></thead><tbody>"
-
-            month_weeks = cal_temp.monthdayscalendar(cal_year, cal_month)
-            for week in month_weeks:
-                cal_html += "<tr>"
-                for day in week:
-                    if day == 0:
-                        cal_html += "<td class='cal-td' style='background-color:#fafafa;'></td>"
-                    else:
-                        d_str = f"{cal_year}-{cal_month:02d}-{day:02d}"
-                        is_selected = (d_str == st.session_state.selected_date)
-                        bg_style = "background-color: #e8f4fd; border: 2px solid #1e3c72;" if is_selected else ""
-                        
-                        day_plans = st.session_state.monthly_calendar_plans.get(d_str, [])
-                        plan_txt = f"🏸 {day_plans[0]}" if day_plans else ""
-                        
-                        cal_html += f"<td class='cal-td' style='{bg_style}'>"
-                        cal_html += f"<div class='cal-day-num'>{day}</div>"
-                        if plan_txt:
-                            cal_html += f"<div class='cal-plan-badge'>{plan_txt}</div>"
-                        cal_html += "</td>"
-                cal_html += "</tr>"
-            cal_html += "</tbody></table>"
-
-            st.markdown(cal_html, unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
-
-            # 선택된 날짜 편집 영역
-            sel_date = st.session_state.selected_date
-            st.markdown(f"✍️ **선택된 날짜 [{sel_date}] 훈련 및 메모 편집**")
-            
-            cur_plans = st.session_state.monthly_calendar_plans.get(sel_date, [])
-            cur_memo = st.session_state.monthly_calendar_memos.get(sel_date, "")
-            
-            exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
-            
-            updated_plans = st.multiselect(
-                "수행할 훈련 종류 선택",
-                exercise_categories,
-                default=cur_plans,
-                key=f"m_plans_{sel_date}"
-            )
-            
-            updated_memo = st.text_input(
-                "메모 내용 입력",
-                value=cur_memo,
-                placeholder="예: 스매시 타점 교정",
-                key=f"m_memo_{sel_date}"
-            )
-            
-            col_s1, col_s2 = st.columns(2)
-            with col_s1:
-                if st.button("💾 저장하기", use_container_width=True, type="primary"):
-                    if updated_plans or updated_memo.strip():
-                        st.session_state.monthly_calendar_plans[sel_date] = updated_plans
-                        st.session_state.monthly_calendar_memos[sel_date] = updated_memo.strip()
-                    else:
-                        st.session_state.monthly_calendar_plans.pop(sel_date, None)
-                        st.session_state.monthly_calendar_memos.pop(sel_date, None)
-                    st.success(f"[{sel_date}] 저장 완료!")
-                    st.rerun()
-            with col_s2:
-                if st.button("🗑️ 내용 지우기", use_container_width=True):
-                    st.session_state.monthly_calendar_plans.pop(sel_date, None)
-                    st.session_state.monthly_calendar_memos.pop(sel_date, None)
-                    st.rerun()
-
-            st.markdown("---")
-
-            # 일주일 밸런스 진단
-            st.subheader("🔍 일주일 기준 훈련 밸런스 실시간 진단")
-            
-            today_obj = datetime.date.today()
-            week_sessions = 0
-            week_strengths = 0
-            week_rest_days = 0
-            
-            for d_offset in range(7):
-                check_date_str = str(today_obj + datetime.timedelta(days=d_offset))
-                p_list = st.session_state.monthly_calendar_plans.get(check_date_str, [])
-                if len(p_list) > 0:
-                    week_sessions += len(p_list)
-                    if "근력" in p_list: week_strengths += 1
-                else:
-                    week_rest_days += 1
-
-            lvl = st.session_state.user_level
-            
-            if "초보용" in lvl:
-                if week_sessions > 15:
-                    emoji = "🥵"
-                    status_title = "오버트레이닝 위험 (과부하)"
-                    advice = "초보 단계에서는 주간 훈련량이 너무 많습니다! 관절 부상 방지를 위해 일정을 조금 비워두세요."
-                elif week_sessions >= 5:
-                    emoji = "😊"
-                    status_title = "기초 체력 안정권 (아주 좋음)"
-                    advice = "기초 테크닉과 스트록 위주로 알차게 잘 짜여 있습니다. 지금 밸런스가 최고예요!"
-                else:
-                    emoji = "😐"
-                    status_title = "훈련량 여유 있음"
-                    advice = "훈련 일정이 아직 여유롭습니다. 주간 목표에 맞춰 기초 벽치기나 코어를 조금 더 채워보세요."
-            elif "일반부" in lvl:
-                if week_sessions >= 10 and week_rest_days >= 1:
-                    emoji = "🤩"
-                    status_title = "동호인 최적의 황금 밸런스!"
-                    advice = "실전 경기력 향상과 휴식의 조화가 환상적입니다. 이대로만 유지하시면 실력이 급상승합니다!"
-                elif week_sessions == 0:
-                    emoji = "💤"
-                    status_title = "훈련 계획 미입력 상태"
-                    advice = "아직 캘린더에 계획이 없습니다. 위 달력에서 날짜를 누르고 훈련을 추가해 보세요!"
-                else:
-                    emoji = "🧐"
-                    status_title = "보강 운동 조화 필요"
-                    advice = "스트록과 근력 보강 운동의 비율을 골고루 분산시키면 코트 위 스텝이 훨씬 가벼워집니다."
-            else:
-                if week_sessions >= 14 and week_strengths >= 2:
-                    emoji = "🏆"
-                    status_title = "엘리트 선수부 완벽한 훈련 루틴!"
-                    advice = "시합 대비 무산소 및 근력 밸런스가 매우 훌륭합니다. 완벽한 컨디션으로 코트를 제압하세요!"
-                elif week_sessions < 8:
-                    emoji = "⚠️"
-                    status_title = "선수부 기준 훈련량 부족"
-                    advice = "시합을 준비하기엔 현재 캘린더 등록량이 다소 적습니다. 인터벌과 헌볼/근력을 더 추가하세요!"
-                else:
-                    emoji = "🔥"
-                    status_title = "열정적인 고강도 훈련 주간"
-                    advice = "강도 높은 훈련이 잘 배치되어 있습니다. 훈련 후 영양 섭취와 쿨다운 스트레칭을 잊지 마세요!"
-
-            st.markdown(
-                f"""
-                <div style="padding: 20px; border-radius: 12px; background-color: #f0f2f6; text-align: center;">
-                    <h2>일주일 종합 진단: {emoji} <b>{status_title}</b></h2>
-                    <p style="font-size: 16px; margin-top: 10px;">{advice}</p>
-                    <p style="font-size: 13px; color: gray; margin-top: 5px;">(등록된 주간 총 훈련 항목: {week_sessions}개 / 휴식일: {week_rest_days}일)</p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-    with tab2:
-        st.subheader("🏸 오늘의 훈련 수행, 레벨별 기술·심리 진단 및 훈련량 입력")
+        st.success(f"저장 완료! (오늘의 점수: {score}점)")
+        st.info(f"💡 **종합 평가:** {feedback}")
         
-        col_d, col_date, col_weight = st.columns(3)
-        with col_d:
-            today_selection = st.selectbox("오늘 요일 선택", ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"], key="today_sel_tab2")
-        with col_date:
-            train_date = st.date_input("수행 날짜", datetime.date.today())
-        with col_weight:
-            user_weight = st.number_input("본인 체중 (kg)", min_value=30.0, max_value=150.0, value=65.0, step=0.5)
-
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            condition = st.slider("오늘의 컨디션 점수 (1~10)", 1, 10, 5)
-        with col_c2:
-            rpe_score = st.slider("오늘 훈련의 힘듦 정도 (1: 아주 쉬움 ~ 10: 한계 수치)", 1, 10, 7)
-
-        st.markdown("---")
-        current_level = st.session_state.user_level
-        st.subheader(f"🧠 [레벨 맞춤: {current_level}] 기술·심리 자가진단")
-
-        if "초보용" in current_level:
-            strength_options = [
-                "기본 그립 잡기 및 정면 언더클리어 안정적 구사",
-                "짧은 거리 하이클리어 타점 포착 양호",
-                "기본 스텝(사이드 스텝) 리듬 유지 양호"
-            ]
-            weakness_options = [
-                "라켓 면이 틀어져 셔틀콕이 엉뚱한 방향으로 날아감",
-                "스윙할 때 팔꿈치가 내려가고 손목 스냅이 안 잡힘",
-                "스텝이 엉겨서 셔틀콕 낙이지점을 따라가지 못함",
-                "랠리가 조금만 길어져도 체력이 급격히 방전됨",
-                "게임 중 긴장해서 실수가 반복되고 당황함"
-            ]
-        elif "일반부" in current_level:
-            strength_options = [
-                "클리어와 드롭 샷의 구종 전환 타이밍 우수",
-                "후위 언더핸드 수비 및 푸시 리시브 안정적",
-                "기본적인 복식 로테이션 및 코트 커버리지 원활",
-                "랠리 중 페이스 조절 및 집중력 유지 양호"
-            ]
-            weakness_options = [
-                "스매시 타점이 자꾸 뒤로 밀려 파워가 실리지 않음",
-                "전위 헤어핀 시 라켓 헤드가 너무 깊숙이 들어가 밀림",
-                "푸시 동작에서 과도한 힘이 들어가 아웃 범실 발생",
-                "경기 후반 하체 피로로 인해 스텝 속도가 느려짐",
-                "접전 상황이나 스코어 역전 시 멘탈이 흔들림"
-            ]
-        else: 
-            strength_options = [
-                "고강도 점프 스매시 회전 토크 및 타점 높이 극대화",
-                "전위 드라이브 싸움에서 빠른 라켓 반응속도 유지",
-                "올코트 커버리지 중 딥 런지 밸런스 완벽 유지",
-                "클러치 상황(듀스/매치포인트) 심박수 통제 및 멘탈 루틴 유지"
-            ]
-            weakness_options = [
-                "오버헤드 스트록 시 상완 회전근개 협응 저하로 파워 저하",
-                "고강도 랠리 중 전완근 억제(경직)로 인한 손목 스냅 타이밍 상실",
-                "후위 딥 런지 시 코어 안티로테이션 및 코골반 안정성 무너짐",
-                "연속 실책 후 반추 사고(Rumination)로 인한 집중력 교란",
-                "최종 3세트 후반 무산소성 한계 상황에서의 신체 경직"
-            ]
-
-        col_str, col_weak = st.columns(2)
-        with col_str:
-            st.markdown(f"✨ **오늘 나의 주요 강점 ({current_level.split()[0]})**")
-            my_strengths = st.multiselect("잘 풀렸던 기술 및 요인 선택", strength_options, key="str_sel_lvl")
-            extra_strength = st.text_input("✨ [기타 강점 직접 입력 (선택사항)]", placeholder="예: 백핸드 클리어 성공 등", key="extra_str_lvl")
-
-        with col_weak:
-            st.markdown(f"⚠️ **오늘 보완이 필요한 취약점 ({current_level.split()[0]})**")
-            my_weaknesses = st.multiselect("보완이 필요한 기술 및 요인 선택", weakness_options, key="weak_sel_lvl")
-            extra_weakness = st.text_input("⚠️ [기타 취약점 직접 입력 (선택사항)]", placeholder="예: 특정 코스로 오는 공 대처가 어려움 등", key="extra_weak_lvl")
-
-        today_calendar_plan = st.session_state.monthly_calendar_plans.get(str(train_date), [])
-        st.info(f"💡 **[{train_date} 캘린더 스케줄]** 계획된 훈련: **{', '.join(today_calendar_plan) if today_calendar_plan else '등록된 일정 없음 (자율 훈련)'}**")
-
-        st.markdown("---")
-        st.subheader("⏱️ 기본 훈련량 수행 시간 입력 (분 단위)")
-        
-        col_r1, col_r2 = st.columns(2)
-        with col_r1:
-            real_stroke_min = st.slider("오늘 스트록 수행 시간 (분)", 0, 180, 30 if "스트록" in today_calendar_plan else 0, step=10, key="r_stroke")
-            real_wall_min = st.slider("오늘 벽치기 수행 시간 (분)", 0, 120, 20 if "벽치기" in today_calendar_plan else 0, step=5, key="r_wall")
-            real_interval_min = st.slider("오늘 인터벌 수행 시간 (분)", 0, 120, 20 if "인터벌" in today_calendar_plan else 0, step=5, key="r_inter")
-        with col_r2:
-            real_core_min = st.slider("오늘 코어 운동 수행 시간 (분)", 0, 120, 20 if "코어" in today_calendar_plan else 0, step=5, key="r_core")
-            real_strength_min = st.slider("오늘 근력 운동 수행 시간 (분)", 0, 180, 40 if "근력" in today_calendar_plan else 0, step=10, key="r_str")
-
-        hunbol_time = 0.0
-        footwork_details = []
-        if "선수용" in st.session_state.user_level:
+        # 🔬 논문 기반 맞춤 처방 실시간 분석 출력
+        if user_review.strip():
             st.markdown("---")
-            st.markdown("🏸 **[선수용 특화] 헌볼 및 풋워크 정밀 지표**")
-            train_hunbol = st.checkbox("오늘 헌볼(Multi-shuttle) 훈련 수행함", key="chk_hunbol")
-            if train_hunbol:
-                hunbol_time = st.slider("헌볼 훈련 시간 (시간 단위)", 0.5, 3.0, 1.0, 0.5, format="%.1f시간", key="hunbol_slider")
-
-            train_footwork = st.checkbox("오늘 풋워크(Footwork) 훈련 수행함", key="chk_footwork")
-            if train_footwork:
-                fw_types = st.multiselect(
-                    "수행한 풋워크 코스 선택",
-                    ["직선", "대각", "사이드", "앞사각", "뒷사각", "올코트 (All-court)"],
-                    key="fw_types_sci"
-                )
-                for fw in fw_types:
-                    fc1, fc2 = st.columns(2)
-                    with fc1:
-                        fw_sets = st.number_input(f"[{fw}] 세트 수", 1, 5, 3, key=f"fw_s_{fw}")
-                    with fc2:
-                        if fw == "올코트 (All-court)":
-                            fw_count = st.number_input(f"[{fw}] 반복 횟수", 20, 50, 30, 1, key=f"fw_c_{fw}")
-                            footwork_details.append(f"풋워크-{fw}: {fw_sets}세트(반복{fw_count}개)")
-                        else:
-                            footwork_details.append(f"풋워크-{fw}: {fw_sets}세트")
-
-        st.markdown("---")
-        st.subheader("🛠️ 부위별 & 기능별 전문 보강 운동 기록")
-
-        grip_exercises = []
-        with st.expander("① 악력 운동 (스냅, 라켓 컨트롤, 리시브 안정성)"):
-            if st.checkbox("악력 운동 수행함", key="chk_g"):
-                g_sel = st.multiselect("종목", ["추 감기(Heavy Roller)", "팻그립 바벨 홀드", "리버스 리스트 컬", "핑거 팁 푸시업"], key="g_sel_sci")
-                for g in g_sel:
-                    sets = st.number_input(f"[{g}] 세트 수", 1, 10, 3, key=f"gs_{g}")
-                    grip_exercises.append(f"{g} {sets}세트")
-
-        core_exercises = []
-        with st.expander("② 코어 운동 (스윙 회전력, 안티로테이션, 허리 안정화)"):
-            if st.checkbox("코어 운동 수행함", key="chk_c"):
-                c_sel = st.multiselect("종목", ["케이블 팔로 오프 프레스", "행잉 레그 레이즈", "랜드마인 트위스트", "짐볼 플랭크"], key="c_sel_sci")
-                for c in c_sel:
-                    sets = st.number_input(f"[{c}] 세트 수", 1, 10, 3, key=f"cs_{c}")
-                    core_exercises.append(f"{c} {sets}세트")
-
-        stroke_aux_exercises = []
-        with st.expander("③ 스트록 보조 운동 (타구 파워 및 회전 토크)"):
-            if st.checkbox("스트록 보조 운동 수행함", key="chk_st"):
-                st_sel = st.multiselect("종목", ["헤비 라켓 스윙", "메디신볼 오버헤드 스로우", "케이블 하이 풀리 스윙"], key="st_sel_sci")
-                for st_item in st_sel:
-                    sets = st.number_input(f"[{st_item}] 세트 수", 1, 10, 3, key=f"sts_{st_item}")
-                    stroke_aux_exercises.append(f"{st_item} {sets}세트")
-
-        jump_exercises = []
-        with st.expander("④ 점프 운동 (신장-단축 주기, 탄성 에너지 극대화)"):
-            if st.checkbox("점프 운동 수행함", key="chk_j"):
-                j_sel = st.multiselect("종목", ["데프스 점프 (Depth Jump)", "박스 점프", "턱걸이 점프 (Tuck Jump)"], key="j_sel_sci")
-                for j in j_sel:
-                    sets = st.number_input(f"[{j}] 세트 수", 1, 10, 3, key=f"js_{j}")
-                    jump_exercises.append(f"{j} {sets}세트")
-
-        upper_exercises = []
-        with st.expander("⑤ 상체 근력 (폭발적 파워 및 견관절 안정성)"):
-            if st.checkbox("상체 근력 운동 수행함", key="chk_up"):
-                u_sel = st.multiselect("종목", ["푸시 프레스 (Push Press)", "웨이트 풀업", "벤치프레스"], key="us_sel_sci")
-                for u in u_sel:
-                    sets = st.number_input(f"[{u}] 세트 수", 1, 10, 3, key=f"us_{u}")
-                    upper_exercises.append(f"{u} {sets}세트")
-
-        lower_exercises = []
-        with st.expander("⑥ 하체 근력 (불균형 방지 및 런지 파워)"):
-            if st.checkbox("하체 근력 운동 수행함", key="chk_low"):
-                l_sel = st.multiselect("종목", ["불리언 스쿼트 (Bulgarian Split Squat)", "파워 클린", "바벨 힙스러스트"], key="ls_sel_sci")
-                for l in l_sel:
-                    sets = st.number_input(f"[{l}] 세트 수", 1, 10, 3, key=f"ls_{l}")
-                    lower_exercises.append(f"{l} {sets}세트")
-
-        st.markdown("---")
-        st.markdown("⚔️ **실전 경기(Game) 기록 (랠리 분석)**")
-        game_details = []
-        has_games = st.checkbox("오늘 실전 경기(Game)를 진행함", key="chk_games_sci")
-        if has_games:
-            num_games = st.number_input("오늘 치른 총 경기 수", 1, 10, 1, key="num_games_sci")
-            for g_idx in range(1, num_games + 1):
-                with st.expander(f"경기 #{g_idx} 상세 기록"):
-                    opponent_name = st.text_input(f"상대 선수 / 팀 이름", f"상대 {g_idx}", key=f"opp_sci_{g_idx}")
-                    game_sets = st.number_input(f"세트 수 (최대 3세트)", 1, 3, 3, key=f"sets_sci_{g_idx}")
-                    set_scores_str = []
-                    for i in range(1, game_sets + 1):
-                        gc1, gc2, gc3 = st.columns(3)
-                        with gc1:
-                            my_score = st.number_input(f"내 점수 ({i}세트)", 0, 30, 21, key=f"my_sc_{g_idx}_{i}")
-                        with gc2:
-                            opp_score = st.number_input(f"상대 점수 ({i}세트)", 0, 30, 15, key=f"opp_sc_{g_idx}_{i}")
-                        with gc3:
-                            is_win = st.radio(f"결과 ({i}세트)", ["승리", "패배"], key=f"win_sc_{g_idx}_{i}")
-                        set_scores_str.append(f"{i}세트({my_score}:{opp_score}-{is_win})")
-                    game_details.append(f"[경기{g_idx}] 상대: {opponent_name} / " + ", ".join(set_scores_str))
-
-        overall_memo = st.text_area("💬 오늘 훈련 생체역학적 및 심리적 소감 (부상이나 통증이 있다면 여기에 적어주세요!)", placeholder="예: 어깨 통증이 살짝 있음, 스매시 타점 교정 필요 등")
-
-        st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
-
-        if st.button("🏸 100점 만점 훈련 점수 산출 및 분석 저장", use_container_width=True):
-            total_training_minutes = real_stroke_min + real_wall_min + real_interval_min + real_core_min + real_strength_min + (hunbol_time * 60)
+            st.markdown("### 🩺 [논문 기반 실전 맞춤 처방전]")
             
-            time_score = min(40, (total_training_minutes / 120.0) * 40)
-            intensity_score = min(30, (rpe_score / 10.0) * 30)
-            condition_score = min(15, (condition / 10.0) * 15)
+            review_lower = user_review.lower()
             
-            total_aux_count = len(grip_exercises) + len(core_exercises) + len(stroke_aux_exercises) + \
-                              len(jump_exercises) + len(upper_exercises) + len(lower_exercises)
-            aux_score = min(15, total_aux_count * 3 + len(game_details) * 5)
-            
-            total_100_score = min(100, round(time_score + intensity_score + condition_score + aux_score, 1))
-
-            if total_100_score >= 85:
-                grade = "🏆 최상급 (완벽한 훈련 소화)"
-            elif total_100_score >= 70:
-                grade = "🔥 우수함 (열정적인 훈련)"
-            elif total_100_score >= 50:
-                grade = "⚖️ 적절함 (밸런스 유지)"
+            if any(k in review_lower for k in ["어깨", "팔 위", "스매시", "클리어", "회전"]):
+                st.warning("⚠️ **[어깨/회전근개 보호 처방]**\n\n"
+                           "• **왜 아플까?:** 오버헤드 스트록 시 상완 회전근개가 과도하게 늘어나거나 충돌이 발생해 염증이 생기기 쉽습니다.\n"
+                           "• **추천 스트레칭 (슬리퍼 스트레칭):** 옆으로 누워 아래쪽 팔을 앞으로 뻗은 뒤, 다른 손으로 손목을 바닥 쪽으로 지긋이 눌러 어깨 뒤쪽 관절낭을 풀어주세요.\n"
+                           "• **보강 운동:** 가벼운 고무 밴드를 이용한 **'밴드 외회전 운동'**으로 어깨 안정성을 높여주세요.")
+            elif any(k in review_lower for k in ["팔꿈치", "엘보", "팔뚝", "손목", "스냅"]):
+                st.warning("⚠️ **[팔꿈치/전완근 보호 처방]**\n\n"
+                           "• **왜 아플까?:** 셔틀콕 타구 시 과도한 손목 스냅이나 라켓 무게로 인해 팔꿈치 관절 주변 힘줄에 미세 부하가 누적되었습니다.\n"
+                           "• **추천 스트레칭:** 팔을 앞으로 쭉 펴고 손바닥이 앞을 보게 한 뒤 손가락을 몸 쪽으로 당겨 전완근을 이완시켜 주세요.\n"
+                           "• **보강 운동:** 가벼운 물병이나 아령을 들고 손목을 위아래로 움직이는 **'리스트 컬'**을 가볍게 수행하세요.")
+            elif any(k in review_lower for k in ["발목", "무릎", "착지", "점프", "스텝", "하체", "런지"]):
+                st.warning("⚠️ **[하지 관절/급정거 보호 처방]**\n\n"
+                           "• **왜 아플까?:** 코트 위 급격한 방향 전환과 점프 착지 시 하체 관절에 체중의 수 배에 달하는 충격이 가해졌습니다.\n"
+                           "• **추천 스트레칭:** 벽을 짚고 한 발을 뒤로 빼 뒤꿈치를 바닥에 완전히 붙인 채 종아리와 아킬레스건을 15초간 늘려주세요.\n"
+                           "• **보강 운동:** 가동성과 안정성을 높이는 **'스쿼트 및 런지'**로 하체 근육을 단단하게 잡아주세요.")
+            elif any(k in review_lower for k in ["멘탈", "생각", "긴장", "범실", "실수", "당황", "불안"]):
+                st.info("🧠 **[스포츠 심리학 멘탈 케어 처방]**\n\n"
+                        "• **원인 분석:** 경기 중 연속 실책이나 압박감으로 인해 자율신경계가 과도하게 각성되어 신체가 경직되었습니다.\n"
+                        "• **처방 (4-7-8 호흡법):** 코로 4초간 숨을 깊이 들이마시고, 7초간 멈춘 뒤, 입으로 8초간 천천히 내쉬며 심박수를 낮추세요. '지난 실점에 얽매이지 않는 주의 집중 전환' 루틴을 적용해보세요!")
             else:
-                grade = "🍀 가벼운 회복 (휴식 필요)"
+                st.success("✨ **[일반 스포츠 과학 맞춤 조언]**\n\n"
+                           "• 남겨주신 소감을 보니 오늘 훈련에 대한 몰입도가 훌륭합니다!\n"
+                           "• 훈련 후에는 반드시 10분간 전신 쿨다운 스트레칭을 병행하여 젖산을 분해하고 다음 날 피로를 예방하세요.")
 
-            log_entry = {
-                "날짜": str(train_date),
-                "요일": today_selection,
-                "레벨": st.session_state.user_level,
-                "종목": st.session_state.match_type,
-                "컨디션": condition,
-                "훈련강도(1-10)": rpe_score,
-                "총훈련시간(분)": total_training_minutes,
-                "훈련완성도점수": total_100_score,
-                "훈련등급": grade,
-                "기타취약점": extra_weakness,
-                "소감": overall_memo
-            }
-            st.session_state.training_history.append(log_entry)
+        # 기록 저장
+        st.session_state.training_history.append({
+            "날짜": sel_date,
+            "컨디션": condition,
+            "운동강도": hard_score,
+            "시간(분)": total_time,
+            "점수": score,
+            "소감": user_review
+        })
 
-            st.success(f"[{train_date}] 100점 만점 훈련 분석 완료 및 저장되었습니다! (3번 탭에서 확인)")
-            
-            st.markdown("---")
-            st.markdown(f"### 🏸 [{train_date}] 오늘의 훈련 완성도 리포트")
-            
-            if total_100_score >= 85:
-                st.success(f"### 🟢 훈련 점수: {total_100_score}점 / 100점\n**등급:** {grade}\n\n🔥 **오늘 정말 완벽하게 훈련을 완성하셨네요!** 엄청난 몰입도와 집중력이었습니다. 따뜻한 물로 샤워하고 오늘은 푹 쉬어주세요! 고생 많으셨습니다 🥹")
-            elif total_100_score >= 70:
-                st.info(f"### 🔵 훈련 점수: {total_100_score}점 / 100점\n**등급:** {grade}\n\n✨ **멋집니다! 오늘 할당량을 훌륭하게 해내셨군요!** 꾸준함이 실력을 만듭니다. 내일도 화이팅입니다 😆🏸")
-            elif total_100_score >= 50:
-                st.warning(f"### 🟠 훈련 점수: {total_100_score}점 / 100점\n**등급:** {grade}\n\n⚖️ **차분하게 밸런스를 유지한 하루였습니다!** 무리하지 않고 컨디션을 조절한 점이 아주 좋습니다 😊")
-            else:
-                st.error(f"### 🔴 훈련 점수: {total_100_score}점 / 100점\n**등급:** {grade}\n\n🍀 **가벼운 회복과 휴식이 필요한 상태입니다.** 오늘은 무리한 고강도 훈련을 피하고 충분한 영양 섭취와 수면을 취하세요!")
-
-            st.markdown("---")
-            st.subheader("💡 맞춤 기술 생체역학 & 스포츠 심리/부하 처방전")
-            
-            active_weaknesses = [w for w in my_weaknesses if w]
-            if extra_weakness and extra_weakness.strip():
-                active_weaknesses.append(extra_weakness.strip())
-            
-            if overall_memo and overall_memo.strip():
-                active_weaknesses.append(f"소감/특이사항: {overall_memo.strip()}")
-
-            if len(active_weaknesses) > 0:
-                st.markdown("🎯 **[자가진단 취약점 및 통증·부상 맞춤 보강 솔루션]**")
-                for w in active_weaknesses:
-                    if any(kw in w for kw in ["부상", "통증", "아프", "아픔", "염좌", "붓기", "부었", "시림", "엘보", "담", "담결"]):
-                        st.error(f"🚨 **[긴급 부상/통증 경고 피드백]** `{w}`\n\n"
-                                 f"  * **🏥 RICE 응급 처치:** 즉시 고강도 훈련(점프 스매시, 풋워크, 인터벌 등)을 중단하고 **휴식, 냉찜질(15~20분), 압박 및 거상**을 시행하세요.\n"
-                                 f"  * **🔬 생체역학 및 의학적 가이드:** 해당 관절의 과부하 원인을 분석하고 경증 스트레칭 외의 무리한 부하를 금지하세요. 통증이 3일 이상 지속되면 반드시 스포츠 전문의 진료를 받으시기 바랍니다.")
-                    elif "타점" in w or "회전" in w or "스매시" in w or "클리어" in w or "라켓 면" in w:
-                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 생체역학 처방:** 상완 회전근개 안정화 및 **메디신볼 오버헤드 스로우**, **헤비 라켓 스윙**을 통해 임팩트 시 회전 토크를 극대화하고 라켓 면 정렬을 교정하세요.")
-                    elif "손목" in w or "악력" in w or "헤어핀" in w or "리시브" in w or "팔꿈치" in w:
-                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 생체역학 처방:** 전완근 피로 완화를 위해 **추 감기(Heavy Roller)**와 **팻그립 바벨 홀드**를 처방합니다. 임팩트 순간 불필요한 긴장을 풀어줍니다.")
-                    elif "런지" in w or "중심" in w or "하체" in w or "밸런스" in w or "스텝" in w or "체력" in w:
-                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 생체역학 처방:** 하체 밸런스 및 지구력 강화를 위해 **불리언 스쿼트(Bulgarian Split Squat)**와 코어 안티로테이션인 **케이블 팔로 오프 프레스**, **인터벌 젖산 내성 훈련**을 집중 수행하세요.")
-                    elif "멘탈" in w or "생각" in w or "범실" in w or "긴장" in w or "힘" in w or "당황" in w:
-                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🧠 스포츠 심리학 처방 (Arousal & Anxiety Control):** 인지적 불안 완화를 위해 **4-7-8 호흡 루틴(Box Breathing)**과 '과거 실점에 얽매이지 않는 주의 집중 전환(Attentional Control)' 훈련을 적용하세요.")
-                    else:
-                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 스포츠 과학 맞춤 분석 처방:** 입력하신 특이사항에 맞춰 해당 부위의 **관절 가동범위(ROM) 스트레칭**과 **종목별 반복 스냅 훈련**을 병행하여 전신 협응력을 높여주세요!")
-            else:
-                st.success("✨ 오늘 특별히 체크하신 취약점이 없습니다! 훌륭한 밸런스를 유지하고 계시네요.")
-
-            st.markdown("---")
-            is_doubles = "복식" in st.session_state.match_type
-            if is_doubles:
-                st.markdown("🔹 **[복식 생체역학 진단]** 복식은 **무산소성 포스파겐 시스템(ATP-PC)**과 **복합 스프린트(RSA)**가 지배적입니다.")
-            else:
-                st.markdown("🔹 **[단식 생체역학 진단]** 단식은 **유산소/무산소 복합 대사(V̇O2max 및 젖산 역치)**와 장시간 코트 커버리지가 핵심입니다.")
-
-    with tab3:
-        st.subheader("📊 주간 누적 통계 & 100점 만점 훈련 점수 트렌드")
-        
-        if len(st.session_state.training_history) == 0:
-            st.info("📌 저장된 훈련 일지가 없습니다. 2번 탭에서 훈련을 기록해 주세요!")
-        else:
-            df_history = pd.DataFrame(st.session_state.training_history)
-            
-            st.markdown("### 📋 전체 훈련 일지 목록")
-            st.dataframe(df_history, use_container_width=True)
-            
-            st.markdown("---")
-            st.subheader("📈 날짜별 100점 만점 훈련 완성도 그래프")
-            if len(df_history) > 0:
-                chart_data = df_history.set_index("날짜")[["훈련완성도점수"]]
-                st.line_chart(chart_data)
-            
-            st.markdown("---")
-            st.subheader("⏱️ 주간 누적 요약 지표")
-            col_m1, col_m2, col_m3 = st.columns(3)
-            col_m1.metric("총 훈련 세션 수", f"{len(df_history)}회")
-            col_m2.metric("평균 훈련 점수", f"{df_history['훈련완성도점수'].mean():.1f}점 / 100점")
-            col_m3.metric("평균 컨디션 점수", f"{df_history['컨디션'].mean():.1f}점 / 10점")
-
-            st.markdown("---")
-            st.subheader("💾 훈련 데이터 파일 다운로드 (CSV)")
-            csv_data = df_history.to_csv(index=False).encode('utf-8-sig')
-            st.download_button(
-                label="📥 훈련 일지 CSV 다운로드",
-                data=csv_data,
-                file_name=f"badminton_training_log_{datetime.date.today()}.csv",
-                mime="text/css"
-            )
+    # ==========================================
+    # 📊 3. 내 운동 기록 모아보기
+    # ==========================================
+    if len(st.session_state.training_history) > 0:
+        st.markdown("---")
+        st.markdown("### 📊 3. 내 지난 기록 모아보기")
+        df_log = pd.DataFrame(st.session_state.training_history)
+        st.dataframe(df_log, use_container_width=True)
