@@ -19,7 +19,7 @@ hide_streamlit_style = """
     
     .block-container {
         padding-top: 0.5rem;
-        padding-bottom: 7rem; /* 하단 메뉴바에 가리지 않도록 넉넉한 여백 */
+        padding-bottom: 7rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
@@ -138,13 +138,23 @@ if "training_history" not in st.session_state:
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "달력"
 
+# URL 쿼리 파라미터를 세션 상태로 즉시 반영 (첫 화면으로 튕김 방지)
+query_params = st.query_params
+if "tab" in query_params:
+    t = query_params["tab"]
+    if t in ["소셜", "달력", "기록작성", "약점처방", "통계"]:
+        if t == "소셜":
+            st.session_state.active_tab = "소셜"
+        else:
+            st.session_state.active_tab = t
+
 
 # ==========================================
 # 🏠 1. 첫 시작 화면
 # ==========================================
 if not st.session_state.started:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<div class='main-title'>🏸 배드민턴 훈련 & 컨디션 관리</div>", unsafe_allow_html=True)
+    st.markdown("<div class='main-title'>🏸 배드민턴 선수부 훈련장</div>", unsafe_allow_html=True)
     st.write("내 실력과 주력 종목을 선택하고 바로 시작하세요!")
     
     st.markdown("---")
@@ -198,20 +208,17 @@ else:
 
     st.markdown("---")
 
-    # URL 쿼리 파라미터로 탭 전환 처리 (터치 시 즉시 반응)
-    query_params = st.query_params
-    if "tab" in query_params:
-        t = query_params["tab"]
-        if t in ["소셜", "달력", "기록작성", "약점처방", "통계"]:
-            if t == "소셜":
-                st.info("팀원 공유 기능은 준비 중입니다!")
-            else:
-                st.session_state.active_tab = t
+    # ------------------------------------------
+    # [탭 0] 소셜 화면 (준비중)
+    # ------------------------------------------
+    if st.session_state.active_tab == "소셜":
+        st.markdown("### 👥 팀원 소셜 공유")
+        st.info("팀원 공유 기능은 준비 중입니다!")
 
     # ------------------------------------------
     # [탭 1] 달력 화면
     # ------------------------------------------
-    if st.session_state.active_tab == "달력":
+    elif st.session_state.active_tab == "달력":
         st.markdown("### 🗓️ 월간 훈련 캘린더")
         
         now = datetime.datetime.now()
@@ -459,7 +466,7 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 순수 HTML/CSS Flexbox 하단 고정 바 (가로 한 줄 강제 정렬 + 터치 최적화)
+    # 📱 순수 HTML/CSS Flexbox 하단 고정 바 (가로 한 줄 강제 정렬 + 세션 유지)
     # ------------------------------------------
     st.markdown("<br><br>", unsafe_allow_html=True)
     
@@ -471,11 +478,11 @@ else:
 
     nav_html = f"""
         <div class="mobile-bottom-nav">
-            <a class="nav-tab-btn {act_s}" href="?tab=소셜">👥 소셜</a>
-            <a class="nav-tab-btn {act_c}" href="?tab=달력">📅 달력</a>
-            <a class="nav-tab-btn {act_r}" href="?tab=기록작성">➕ 기록</a>
-            <a class="nav-tab-btn {act_w}" href="?tab=약점처방">💡 약점</a>
-            <a class="nav-tab-btn {act_t}" href="?tab=통계">📈 통계</a>
+            <a class="nav-tab-btn {act_s}" href="?tab=소셜" target="_self">👥 소셜</a>
+            <a class="nav-tab-btn {act_c}" href="?tab=달력" target="_self">📅 달력</a>
+            <a class="nav-tab-btn {act_r}" href="?tab=기록작성" target="_self">➕ 기록</a>
+            <a class="nav-tab-btn {act_w}" href="?tab=약점처방" target="_self">💡 약점</a>
+            <a class="nav-tab-btn {act_t}" href="?tab=통계" target="_self">📈 통계</a>
         </div>
     """
     st.markdown(nav_html, unsafe_allow_html=True)
