@@ -145,7 +145,6 @@ if not st.session_state.started:
 # 🏆 2. 메인 앱 화면 (하단 탭 메뉴 분리형)
 # ==========================================
 else:
-    # 상단 간이 정보 바
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
     with top_c1:
         st.session_state.user_level = st.selectbox("실력", ["초보용", "일반부", "선수부"], index=["초보용", "일반부", "선수부"].index(st.session_state.user_level), label_visibility="collapsed")
@@ -159,7 +158,7 @@ else:
     st.markdown("---")
 
     # ------------------------------------------
-    # [탭 1] 달력 화면 (스마트폰 캘린더 뷰)[span_1](start_span)[span_1](end_span)
+    # [탭 1] 달력 화면
     # ------------------------------------------
     if st.session_state.active_tab == "달력":
         st.markdown("### 🗓️ 월간 훈련 캘린더")
@@ -213,7 +212,6 @@ else:
         st.markdown(cal_html, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # 선택된 날짜 일정 계획 세우기
         sel_date = st.session_state.selected_date
         st.markdown(f"**📌 [{sel_date}] 훈련 일정 계획**")
         
@@ -243,7 +241,7 @@ else:
                 st.rerun()
 
     # ------------------------------------------
-    # [탭 2] 오늘 기록 화면 (중앙 + 버튼 역할)[span_2](start_span)[span_2](end_span)
+    # [탭 2] 오늘 기록 화면
     # ------------------------------------------
     elif st.session_state.active_tab == "기록작성":
         st.markdown("### 📝 오늘 훈련 완료 및 피드백")
@@ -355,7 +353,51 @@ else:
             })
 
     # ------------------------------------------
-    # [탭 3] 통계 및 모아보기 화면[span_3](start_span)[span_3](end_span)
+    # [탭 3] 약점 처방 (새롭게 추가된 맞춤형 훈련 추천 탭)
+    # ------------------------------------------
+    elif st.session_state.active_tab == "약점처방":
+        st.markdown("### 💡 약점 맞춤 훈련 처방전")
+        st.write("부족한 기술이나 집중하고 싶은 부분을 적어주시면, 딱 맞는 훈련 드릴(Drill)을 추천해 드립니다!")
+
+        weakness_input = st.text_input(
+            "🔍 보완하고 싶은 약점 입력",
+            placeholder="예: 드라이브 싸움, 후위 클리어 깊이, 헤어핀 정밀도, 스매시 각도 등"
+        )
+
+        if st.button("🎯 맞춤 훈련 추천받기", type="primary", use_container_width=True):
+            if weakness_input.strip():
+                w_lower = weakness_input.lower()
+                st.markdown("---")
+                st.markdown(f"### 📋 [{weakness_input}] 집중 강화 프로그램")
+
+                if any(k in w_lower for k in ["드라이브", "속도", "반응"]):
+                    st.info("⚡ **[드라이브 싸움 극복 드릴]**\n\n"
+                            "• **핵심 포인트:** 빠른 라켓 세팅과 손목 고정\n"
+                            "• **추천 훈련 (숏 드라이브 랠리):** 네트 바짝 붙어서 파트너와 번갈아 가며 끊어 치는 속공 드라이브 50개 3세트 수행. 라켓 헤드가 아래로 떨어지지 않게 가슴 앞에서 처리하기!")
+                elif any(k in w_lower for k in ["클리어", "후위", "클리어 깊이", "하이클리어"]):
+                    st.info("🚀 **[후위 클리어 깊이 확보 드릴]**\n\n"
+                            "• **핵심 포인트:** 타점의 높이와 하체 회전력(토크)\n"
+                            "• **추천 훈련 (멀티콕 후위 하이클리어):** 코트 뒤쪽 구석으로 계속 올라오는 콕을 코치나 파트너가 띄워주면, 라켓 타점을 머리 위 가장 높은 곳에 두고 끝까지 엔드라인 깊숙이 밀어 보내는 훈련 20개씩 3세트!")
+                elif any(k in w_lower for k in ["헤어핀", "네트", "세밀", "정밀"]):
+                    st.info("🪶 **[헤어핀 정밀도 향상 드릴]**\n\n"
+                            "• **핵심 포인트:** 임팩트 순간 라켓 면의 부드러운 감속\n"
+                            "• **추천 훈련 (크로스 헤어핀 릴레이):** 네트 앞 전역에서 상대방 서비스 라인 안쪽으로 콕을 살짝 감아 넘기는 세밀한 터치 훈련. 손목에 힘을 빼고 그립을 가볍게 잡는 것이 핵심입니다!")
+                elif any(k in w_lower for k in ["스매시", "스매권", "각도", "파워", "내리꽂기"]):
+                    st.info("💥 **[스매시 각도 및 파워 강화 드릴]**\n\n"
+                            "• **핵심 포인트:** 점프 타점과 상체 회전 타이밍\n"
+                            "• **추천 훈련 (연속 스매시 & 푸시 콤비네이션):** 후위에서 강력한 스매시로 상대를 흔든 뒤 곧바로 네트로 전진하여 마무리를 짓는 2인 1조 연계 훈련!")
+                elif any(k in w_lower for k in ["푸시", "네트 앞", "마무리"]):
+                    st.info("🔥 **[네트 앞 푸시 결정력 강화 드릴]**\n\n"
+                            "• **핵심 포인트:** 빠른 풋워크와 간결한 푸시 스냅\n"
+                            "• **추천 훈련 (네트 툭툭 푸시):** 상대가 띄운 콕을 망설이지 않고 팔꿈치를 가볍게 뻗어 코트 빈 곳으로 빠르게 찍어 누르는 반응 속도 훈련.")
+                else:
+                    st.info("🌟 **[종합 기술 및 풋워크 강화 프로그램]**\n\n"
+                            "• **추천 훈련 (6점 풋워크 + 헌볼 콤보):** 코트 중앙을 기준으로 전후좌우 빠르게 이동하며 코칭 스태프가 던져주는 콕을 정확한 타점으로 받아내는 고강도 심폐/민첩성 훈련!")
+            else:
+                st.warning("보완하고 싶은 약점이나 기술을 입력해주세요!")
+
+    # ------------------------------------------
+    # [탭 4] 통계 화면
     # ------------------------------------------
     elif st.session_state.active_tab == "통계":
         st.markdown("### 📊 내 훈련 기록 모아보기")
@@ -366,11 +408,10 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 하단 고정 네비게이션 바 (제공해주신 스크린샷 디자인 반영)[span_4](start_span)[span_4](end_span)
+    # 📱 하단 고정 네비게이션 바 (약점처방 탭 포함 총 5개 메뉴)
     # ------------------------------------------
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    # 하단 바를 고정하기 위한 컨테이너 스타일 주입
     st.markdown("""
         <style>
         .fixed-nav {
@@ -389,9 +430,8 @@ else:
         </style>
     """, unsafe_allow_html=True)
 
-    # Streamlit 컬럼으로 하단 메뉴 버튼 구현
     st.markdown('<div class="fixed-nav">', unsafe_allow_html=True)
-    b_col1, b_col2, b_col3, b_col4 = st.columns(4)
+    b_col1, b_col2, b_col3, b_col4, b_col5 = st.columns(5)
     
     with b_col1:
         if st.button("👥 소셜", use_container_width=True):
@@ -407,6 +447,11 @@ else:
             st.session_state.active_tab = "기록작성"
             st.rerun()
     with b_col4:
+        btn_type_weak = "primary" if st.session_state.active_tab == "약점처방" else "secondary"
+        if st.button("💡 약점", use_container_width=True, type=btn_type_weak):
+            st.session_state.active_tab = "약점처방"
+            st.rerun()
+    with b_col5:
         btn_type_stat = "primary" if st.session_state.active_tab == "통계" else "secondary"
         if st.button("📈 통계", use_container_width=True, type=btn_type_stat):
             st.session_state.active_tab = "통계"
