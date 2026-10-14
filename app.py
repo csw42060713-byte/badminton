@@ -23,6 +23,14 @@ hide_streamlit_style = """
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
+    
+    .main-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #1e3c72;
+        text-align: center;
+        margin-bottom: 5px;
+    }
 
     /* 캘린더 표 스타일 */
     .cal-table {
@@ -138,8 +146,10 @@ if "tab" in query_params:
             st.session_state.active_tab = t
 
 # ==========================================
-# 🏆 메인 앱 화면 (시작화면 없이 바로 진입)
+# 🏆 메인 앱 화면
 # ==========================================
+st.markdown("<div class='main-title'>🏸 배드민턴 선수부 훈련 및 컨디션 관리</div>", unsafe_allow_html=True)
+
 top_c1, top_c2 = st.columns(2)
 with top_c1:
     st.session_state.user_level = st.selectbox("내 실력", ["선수부", "일반부", "초보용"], index=0, label_visibility="collapsed")
@@ -149,7 +159,7 @@ with top_c2:
 st.markdown("---")
 
 # ------------------------------------------
-# [탭 0] 소셜 화면 (준비중)
+# [탭 0] 소셜 화면
 # ------------------------------------------
 if st.session_state.active_tab == "소셜":
     st.markdown("### 👥 팀원 소셜 공유")
