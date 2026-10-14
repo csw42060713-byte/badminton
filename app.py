@@ -250,13 +250,16 @@ else:
 
     total_time = st.slider("총 운동 시간 (분)", 30, 240, 90, 10)
 
-    # 🏸 오늘 실제 수행한 운동 체크 및 게임 기록 칸
+    # 🏸 오늘 실제 수행한 운동 체크 및 기타 직접 입력 칸
     st.markdown("#### 🏸 오늘 실제로 끝낸 운동 체크")
     done_exercises = st.multiselect(
         "오늘 완료한 세부 훈련 종류",
         ["스트록", "벽치기", "런닝(인터벌)", "코어(복근/허리)", "근력(웨이트)", "헌볼 훈련", "풋워크 훈련"],
         default=["스트록", "코어(복근/허리)"]
     )
+    
+    # ✏️ 기타 직접 입력 칸
+    extra_exercise_input = st.text_input("✏️ 기타 운동 직접 입력 (선택사항)", placeholder="예: 전술 훈련, 개인 레슨, 전력 분석 등")
 
     # 실전 경기(게임) 기록 칸
     has_game = st.checkbox("오늘 실전 경기(게임)를 진행했나요?")
@@ -292,6 +295,12 @@ else:
         st.success(f"저장 완료! (오늘의 점수: {score}점)")
         st.info(f"💡 **종합 평가:** {feedback}")
         
+        # 완료 운동 목록 정리 (기타 입력 포함)
+        final_exercises_list = done_exercises.copy()
+        if extra_exercise_input.strip():
+            final_exercises_list.append(extra_exercise_input.strip())
+        final_exercises_str = ", ".join(final_exercises_list)
+
         # 🔬 배드민턴 전용 논문/스포츠의학 기반 맞춤 처방 분석
         if user_review.strip():
             st.markdown("---")
@@ -338,7 +347,7 @@ else:
             "컨디션": condition,
             "운동강도": hard_score,
             "시간(분)": total_time,
-            "완료운동": ", ".join(done_exercises),
+            "완료운동": final_exercises_str,
             "게임기록": game_summary_text if has_game else "없음",
             "점수": score,
             "소감": user_review
