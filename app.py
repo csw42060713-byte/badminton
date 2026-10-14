@@ -19,7 +19,7 @@ hide_streamlit_style = """
     
     .block-container {
         padding-top: 0.5rem;
-        padding-bottom: 7rem;
+        padding-bottom: 3rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
@@ -71,45 +71,6 @@ hide_streamlit_style = """
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-
-    /* 📱 모바일 하단 가로 한 줄 고정 네비게이션바 (절대 세로로 안 깨짐) */
-    .html-nav-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100vw;
-        height: 60px;
-        background-color: #ffffff;
-        border-top: 1px solid #e0e0e0;
-        display: flex;
-        flex-direction: row !important;
-        justify-content: space-around;
-        align-items: center;
-        z-index: 999999;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        padding: 0 4px;
-        box-sizing: border-box;
-    }
-    
-    .html-nav-item {
-        flex: 1;
-        text-align: center;
-        background-color: #f8f9fa;
-        border: 1px solid #dcdcdc;
-        border-radius: 6px;
-        padding: 9px 0;
-        margin: 0 2px;
-        font-size: 11px;
-        font-weight: bold;
-        color: #333333;
-        text-decoration: none !important;
-    }
-    
-    .html-nav-item.active {
-        background-color: #1e3c72 !important;
-        color: #ffffff !important;
-        border-color: #1e3c72 !important;
-    }
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -143,13 +104,6 @@ if "cond_score" not in st.session_state:
 
 if "hard_score" not in st.session_state:
     st.session_state.hard_score = 6
-
-# URL 쿼리 파라미터로 탭 상태 동기화
-query_params = st.query_params
-if "tab" in query_params:
-    t_val = query_params["tab"]
-    if t_val in ["소셜", "달력", "기록작성", "약점처방", "통계"]:
-        st.session_state.active_tab = t_val
 
 
 # ==========================================
@@ -194,7 +148,7 @@ if not st.session_state.started:
 
 
 # ==========================================
-# 🏆 2. 메인 앱 화면
+# 🏆 2. 메인 앱 화면 (상단 가로형 네비게이션 탭)
 # ==========================================
 else:
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
@@ -205,6 +159,31 @@ else:
     with top_c3:
         if st.button("처음으로", use_container_width=True, key="reset_btn"):
             st.session_state.started = False
+            st.rerun()
+
+    st.markdown("---")
+
+    # 📱 상단 가로 한 줄 탭 메뉴 (절대 세로로 꺾이지 않고 튕김 없음)
+    t1, t2, t3, t4, t5 = st.columns(5)
+    with t1:
+        if st.button("👥소셜", key="t_soc", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "소셜"
+            st.rerun()
+    with t2:
+        if st.button("📅달력", key="t_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "달력"
+            st.rerun()
+    with t3:
+        if st.button("➕기록", key="t_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "기록작성"
+            st.rerun()
+    with t4:
+        if st.button("💡약점", key="t_wea", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "약점처방"
+            st.rerun()
+    with t5:
+        if st.button("📈통계", key="t_sta", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "통계"
             st.rerun()
 
     st.markdown("---")
@@ -492,7 +471,7 @@ else:
                 elif any(k in w_lower for k in ["헤어핀", "네트", "세밀", "정밀"]):
                     st.info("🪶 **[헤어핀 정밀도 향상 드릴]**\n\n"
                             "• **핵심 포인트:** 임팩트 순간 라켓 면의 부드러운 감속\n"
-                            "• **추천 훈련 (크로스 헤어핀 릴레이):** 네트 앞 전역에서 상대방 서비스 라인 안쪽으로 콕을 살짝 감아 넘기는 세밀한 터치 훈련. 손목에 힘을 빼고 그립을 가볍게 잡는 것이 핵심입니다!")
+                            "• **추천 훈련 (크로스 헤어핀 랠리):** 네트 앞 전역에서 상대방 서비스 라인 안쪽으로 콕을 살짝 감아 넘기는 세밀한 터치 훈련. 손목에 힘을 빼고 그립을 가볍게 잡는 것이 핵심입니다!")
                 elif any(k in w_lower for k in ["스매시", "스매권", "각도", "파워", "내리꽂기"]):
                     st.info("💥 **[스매시 각도 및 파워 강화 드릴]**\n\n"
                             "• **핵심 포인트:** 점프 타점과 상체 회전 타이밍\n"
@@ -517,25 +496,3 @@ else:
             st.dataframe(df_log, use_container_width=True)
         else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
-
-    # ------------------------------------------
-    # 📱 모바일 하단 가로 고정 네비게이션 바 (순수 HTML 방식 적용으로 세로 깨짐 원천 차단)
-    # ------------------------------------------
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    act_s = "active" if st.session_state.active_tab == "소셜" else ""
-    act_c = "active" if st.session_state.active_tab == "달력" else ""
-    act_r = "active" if st.session_state.active_tab == "기록작성" else ""
-    act_w = "active" if st.session_state.active_tab == "약점처방" else ""
-    act_t = "active" if st.session_state.active_tab == "통계" else ""
-
-    html_navigation_code = f"""
-        <div class="html-nav-bar">
-            <a href="?tab=소셜" target="_self" class="html-nav-item {act_s}">👥 소셜</a>
-            <a href="?tab=달력" target="_self" class="html-nav-item {act_c}">📅 달력</a>
-            <a href="?tab=기록작성" target="_self" class="html-nav-item {act_r}">➕ 기록</a>
-            <a href="?tab=약점처방" target="_self" class="html-nav-item {act_w}">💡 약점</a>
-            <a href="?tab=통계" target="_self" class="html-nav-item {act_t}">📈 통계</a>
-        </div>
-    """
-    st.markdown(html_navigation_code, unsafe_allow_html=True)
