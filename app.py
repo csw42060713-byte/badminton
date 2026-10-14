@@ -365,6 +365,9 @@ else:
 
         overall_memo = st.text_area("💬 오늘 훈련 생체역학적 및 심리적 소감 (부상이나 통증이 있다면 여기에 적어주세요!)", placeholder="예: 어깨 통증이 살짝 있음, 스매시 타점 교정 필요 등")
 
+        # 📱 핸드폰/패드 키보드 가림 방지를 위한 넉넉한 하단 여백 추가
+        st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
+
         if st.button("💯 100점 만점 훈련 점수 산출 및 분석 저장"):
             total_training_minutes = real_stroke_min + real_wall_min + real_interval_min + real_core_min + real_strength_min + (hunbol_time * 60)
             
