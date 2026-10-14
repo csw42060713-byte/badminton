@@ -20,8 +20,8 @@ hide_streamlit_style = """
     .block-container {
         padding-top: 0.5rem;
         padding-bottom: 3rem;
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
     }
     
     .main-title {
@@ -30,6 +30,20 @@ hide_streamlit_style = """
         color: #1e3c72;
         text-align: center;
         margin-bottom: 5px;
+    }
+
+    /* 📱 상단 탭을 화면 전체 너비로 꽉 채우고 균등하게 늘려주는 CSS */
+    .stTabs [data-baseweb="tab-list"] {
+        display: flex !important;
+        width: 100% !important;
+        gap: 2px !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        flex: 1 !important;
+        justify-content: center !important;
+        padding: 10px 0px !important;
+        font-size: 13px !important;
+        font-weight: bold !important;
     }
 
     /* 캘린더 표 스타일 */
@@ -145,7 +159,7 @@ if not st.session_state.started:
 
 
 # ==========================================
-# 🏆 2. 메인 앱 화면 (옆으로 넘기는 가로 탭 방식)
+# 🏆 2. 메인 앱 화면 (화면 꽉 차는 가로 탭 방식)
 # ==========================================
 else:
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
@@ -160,9 +174,9 @@ else:
 
     st.markdown("---")
 
-    # 📱 옆으로 슥슥 넘기거나 터치해서 전환하는 가로 탭 네비게이션
+    # 📱 화면 너비를 꽉 채우는 균등 가로 탭 네비게이션
     tab_social, tab_cal, tab_rec, tab_weak, tab_stat = st.tabs([
-        "👥 소셜", "📅 달력", "➕ 기록", "💡 약점", "📈 통계"
+        "👥소셜", "📅달력", "➕기록", "💡약점", "📈통계"
     ])
 
     # ------------------------------------------
