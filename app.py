@@ -72,15 +72,8 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 모바일에서 컬럼 버튼들이 가로 한 줄을 유지하도록 강제 설정 */
-    [data-testid="column"] {
-        width: fit-content !important;
-        flex: 1 !important;
-        min-width: 0 !important;
-    }
-
-    /* 하단 고정 네비게이션바 스타일 */
-    .fixed-nav-bar {
+    /* 📱 하단 고정 네비게이션바: 무조건 가로 한 줄 강제 정렬 (세로 꺾임 방지) */
+    .fixed-nav-container {
         position: fixed;
         bottom: 0;
         left: 0;
@@ -94,15 +87,36 @@ hide_streamlit_style = """
         align-items: center;
         z-index: 999999;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        padding: 0 5px;
+        padding: 0 4px;
         box-sizing: border-box;
+    }
+    
+    .nav-item {
+        flex: 1;
+        text-align: center;
+        padding: 8px 2px;
+        margin: 0 2px;
+        background-color: #f1f3f5;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: bold;
+        color: #333333;
+        text-decoration: none;
+        cursor: pointer;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .nav-item.active {
+        background-color: #1e3c72;
+        color: #ffffff;
+        border-color: #1e3c72;
     }
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # ==========================================
-# 세션 상태 안전 초기화 (튕김 및 에러 방어)
+# 세션 상태 안전 초기화 (첫 화면 튕김 방어)
 # ==========================================
 if "started" not in st.session_state:
     st.session_state.started = False
@@ -130,6 +144,13 @@ if "cond_score" not in st.session_state:
 
 if "hard_score" not in st.session_state:
     st.session_state.hard_score = 6
+
+# 쿼리 파라미터로 하단 메뉴 탭 클릭을 새로고침 없이 안전하게 처리
+query_params = st.query_params
+if "nav_tab" in query_params:
+    t = query_params["nav_tab"]
+    if t in ["소셜", "달력", "기록작성", "약점처방", "통계"]:
+        st.session_state.active_tab = t
 
 
 # ==========================================
@@ -174,7 +195,7 @@ if not st.session_state.started:
 
 
 # ==========================================
-# 🏆 2. 메인 앱 화면 (세션 기반 탭 관리)
+# 🏆 2. 메인 앱 화면
 # ==========================================
 else:
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
@@ -281,7 +302,7 @@ else:
                 st.rerun()
 
     # ------------------------------------------
-    # [탭 2] 오늘 기록 화면 (가로 정렬된 5단계 이모지 버튼)
+    # [탭 2] 오늘 기록 화면
     # ------------------------------------------
     elif st.session_state.active_tab == "기록작성":
         st.markdown("### 📝 오늘의 컨디션은 어때요?")
@@ -499,30 +520,23 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 하단 고정 네비게이션 바 (세션 기반 탭 전환, 튕김 없음)
+    # 📱 모바일에서도 절대 세로로 깨지지 않는 순수 HTML 가로 한 줄 고정 네비게이션 바
     # ------------------------------------------
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    st.markdown('<div class="fixed-nav-bar">', unsafe_allow_html=True)
-    n1, n2, n3, n4, n5 = st.columns(5)
-    with n1:
-        if st.button("👥 소셜", key="nav_social", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "소셜"
-            st.rerun()
-    with n2:
-        if st.button("📅 달력", key="nav_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "달력"
-            st.rerun()
-    with n3:
-        if st.button("➕ 기록", key="nav_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "기록작성"
-            st.rerun()
-    with n4:
-        if st.button("💡 약점", key="nav_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "약점처방"
-            st.rerun()
-    with n5:
-        if st.button("📈 통계", key="nav_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "통계"
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    t_social = "active" if st.session_state.active_tab == "소셜" else ""
+    t_cal = "active" if st.session_state.active_tab == "달력" else ""
+    t_rec = "active" if st.session_state.active_tab == "기록작성" else ""
+    t_weak = "active" if st.session_state.active_tab == "약점처방" else ""
+    t_stat = "active" if st.session_state.active_tab == "통계" else ""
+
+    nav_html = f"""
+        <div class="fixed-nav-container">
+            <a class="nav-item {t_social}" href="?nav_tab=소셜" target="_self">👥 소셜</a>
+            <a class="nav-item {t_cal}" href="?nav_tab=달력" target="_self">📅 달력</a>
+            <a class="nav-item {t_rec}" href="?nav_tab=기록작성" target="_self">➕ 기록</a>
+            <a class="nav-item {t_weak}" href="?nav_tab=약점처방" target="_self">💡 약점</a>
+            <a class="nav-item {t_stat}" href="?nav_tab=통계" target="_self">📈 통계</a>
+        </div>
+    """
+    st.markdown(nav_html, unsafe_allow_html=True)
