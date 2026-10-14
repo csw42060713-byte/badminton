@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import calendar
 
-# 1. 모바일 최적화 및 구간별 맞춤 컬러 스타일 설정
+# 1. 모바일 최적화 및 큼직한 표정 카드 스타일 설정
 st.set_page_config(
     page_title="내 손안의 배드민턴 훈련장", 
     page_icon="🏸", 
@@ -72,12 +72,17 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 🎨 구간별 색상을 살린 커스텀 카드 컨테이너 스타일 */
-    .card-box-1 { background-color: #f3e5f5; border-left: 5px solid #ab47bc; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
-    .card-box-2 { background-color: #e3f2fd; border-left: 5px solid #42a5f5; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
-    .card-box-3 { background-color: #e8f5e9; border-left: 5px solid #66bb6a; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
-    .card-box-4 { background-color: #fff3e0; border-left: 5px solid #ffa726; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
-    .card-box-5 { background-color: #ffebee; border-left: 5px solid #ef5350; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+    /* 🎨 큼직한 얼굴 이모지와 색감이 들어간 감성 카드 디자인 */
+    .face-card-1 { background-color: #f3e5f5; border: 2px solid #ab47bc; padding: 12px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
+    .face-card-2 { background-color: #e3f2fd; border: 2px solid #42a5f5; padding: 12px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
+    .face-card-3 { background-color: #e8f5e9; border: 2px solid #66bb6a; padding: 12px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
+    .face-card-4 { background-color: #fff3e0; border: 2px solid #ffa726; padding: 12px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
+    .face-card-5 { background-color: #ffebee; border: 2px solid #ef5350; padding: 12px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
+
+    .big-emoji {
+        font-size: 40px;
+        margin-bottom: 5px;
+    }
 
     /* 📱 하단 고정 네비게이션바 컨테이너 스타일 */
     .fixed-nav-container {
@@ -118,7 +123,7 @@ if "active_tab" not in st.session_state:
     st.session_state.active_tab = "달력"
 
 if "cond_score" not in st.session_state:
-    st.session_state.cond_score = 7
+    st.session_state.cond_score = 6
 
 if "hard_score" not in st.session_state:
     st.session_state.hard_score = 6
@@ -265,66 +270,56 @@ else:
                 st.rerun()
 
     # ------------------------------------------
-    # [탭 2] 오늘 기록 화면 (컬러 카드 디자인 적용)
+    # [탭 2] 오늘 기록 화면 (큼직한 표정과 컬러 카드 디자인)
     # ------------------------------------------
     elif st.session_state.active_tab == "기록작성":
         st.markdown("### 📝 오늘의 컨디션은 어때요?")
-        st.write("지금 나의 몸 상태와 에너지를 선택해보세요[span_2](start_span)[span_2](end_span)!")
+        st.write("지금 나의 몸 상태와 에너지를 선택해보세요!")
         rec_date = st.selectbox("기록할 날짜 선택", [st.session_state.selected_date], key="rec_date_box")
         
         st.markdown("#### 🔋 컨디션 상태 선택 (1~10점)")
         
-        # 1~2점 카드 (보라색 계열 - 회복 우선)
-        st.markdown('<div class="card-box-1">', unsafe_allow_html=True)
-        col_a, col_b = st.columns([3, 1])
-        with col_a:
-            st.markdown("🟣 **😢 1~2점 : 오늘은 회복이 먼저**\n\n* 피로가 쌓여 몸이 무거운 상태예요. 무리하지 말고 충분히 쉬어주세요[span_3](start_span)[span_3](end_span).")
-        with col_b:
-            if st.button("선택", key="c_12", type="primary" if st.session_state.cond_score==2 else "secondary", use_container_width=True):
-                st.session_state.cond_score = 2
+        # 1~2점 (슬픈 표정)
+        st.markdown('<div class="face-card-1">', unsafe_allow_html=True)
+        st.markdown('<div class="big-emoji">😢</div>', unsafe_allow_html=True)
+        st.markdown("**1~2점 : 오늘은 회복이 먼저**\n\n피로가 쌓여 몸이 무거운 상태예요. 무리하지 말고 충분히 쉬어주세요.")
+        if st.button("이 컨디션으로 선택", key="c_12", type="primary" if st.session_state.cond_score==2 else "secondary", use_container_width=True):
+            st.session_state.cond_score = 2
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # 3~4점 카드 (파란색 계열 - 가볍게 몸 풀기)
-        st.markdown('<div class="card-box-2">', unsafe_allow_html=True)
-        col_a, col_b = st.columns([3, 1])
-        with col_a:
-            st.markdown("🔵 **🙁 3~4점 : 가볍게 몸 풀기**\n\n* 컨디션이 좋지 않아 무리하기 어려운 상태예요. 가벼운 운동으로 몸을 풀어보세요[span_4](start_span)[span_4](end_span).")
-        with col_b:
-            if st.button("선택", key="c_34", type="primary" if st.session_state.cond_score==4 else "secondary", use_container_width=True):
-                st.session_state.cond_score = 4
+        # 3~4점 (조금 슬픈 표정)
+        st.markdown('<div class="face-card-2">', unsafe_allow_html=True)
+        st.markdown('<div class="big-emoji">🙁</div>', unsafe_allow_html=True)
+        st.markdown("**3~4점 : 가볍게 몸 풀기**\n\n컨디션이 좋지 않아 무리하기 어려운 상태예요. 가벼운 운동으로 몸을 풀어보세요.")
+        if st.button("이 컨디션으로 선택", key="c_34", type="primary" if st.session_state.cond_score==4 else "secondary", use_container_width=True):
+            st.session_state.cond_score = 4
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # 5~6점 카드 (초록색 계열 - 무난한 컨디션)
-        st.markdown('<div class="card-box-3">', unsafe_allow_html=True)
-        col_a, col_b = st.columns([3, 1])
-        with col_a:
-            st.markdown("🟢 **😐 5~6점 : 무난한 컨디션**\n\n* 평소처럼 훈련할 수 있는 상태예요. 적당한 강도로 운동해보세요[span_5](start_span)[span_5](end_span).")
-        with col_b:
-            if st.button("선택", key="c_56", type="primary" if st.session_state.cond_score==6 else "secondary", use_container_width=True):
-                st.session_state.cond_score = 6
+        # 5~6점 (무표정)
+        st.markdown('<div class="face-card-3">', unsafe_allow_html=True)
+        st.markdown('<div class="big-emoji">😐</div>', unsafe_allow_html=True)
+        st.markdown("**5~6점 : 무난한 컨디션**\n\n평소처럼 훈련할 수 있는 상태예요. 적당한 강도로 운동해보세요.")
+        if st.button("이 컨디션으로 선택", key="c_56", type="primary" if st.session_state.cond_score==6 else "secondary", use_container_width=True):
+            st.session_state.cond_score = 6
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # 7~8점 카드 (주황색 계열 - 제대로 달리기)
-        st.markdown('<div class="card-box-4">', unsafe_allow_html=True)
-        col_a, col_b = st.columns([3, 1])
-        with col_a:
-            st.markdown("🟠 **🙂 7~8점 : 오늘은 제대로 달리기**\n\n* 몸이 가볍고 에너지가 충분한 상태예요. 고강도 훈련으로 실력을 끌어올려보세요[span_6](start_span)[span_6](end_span).")
-        with col_b:
-            if st.button("선택", key="c_78", type="primary" if st.session_state.cond_score==8 else "secondary", use_container_width=True):
-                st.session_state.cond_score = 8
+        # 7~8점 (조금 웃는 표정)
+        st.markdown('<div class="face-card-4">', unsafe_allow_html=True)
+        st.markdown('<div class="big-emoji">🙂</div>', unsafe_allow_html=True)
+        st.markdown("**7~8점 : 오늘은 제대로 달리기**\n\n몸이 가볍고 에너지가 충분한 상태예요. 고강도 훈련으로 실력을 끌어올려보세요.")
+        if st.button("이 컨디션으로 선택", key="c_78", type="primary" if st.session_state.cond_score==8 else "secondary", use_container_width=True):
+            st.session_state.cond_score = 8
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # 9~10점 카드 (빨간색 계열 - 컨디션 최고)
-        st.markdown('<div class="card-box-5">', unsafe_allow_html=True)
-        col_a, col_b = st.columns([3, 1])
-        with col_a:
-            st.markdown("🔴 **😄 9~10점 : 컨디션 최고!**\n\n* 몸 상태가 매우 좋고 움직임에 자신이 있어요. 지금이 바로 최고의 타이밍이에요[span_7](start_span)[span_7](end_span)!")
-        with col_b:
-            if st.button("선택", key="c_910", type="primary" if st.session_state.cond_score==10 else "secondary", use_container_width=True):
-                st.session_state.cond_score = 10
+        # 9~10점 (웃는 표정)
+        st.markdown('<div class="face-card-5">', unsafe_allow_html=True)
+        st.markdown('<div class="big-emoji">😄</div>', unsafe_allow_html=True)
+        st.markdown("**9~10점 : 컨디션 최고!**\n\n몸 상태가 매우 좋고 움직임에 자신이 있어요. 지금이 바로 최고의 타이밍이에요!")
+        if st.button("이 컨디션으로 선택", key="c_910", type="primary" if st.session_state.cond_score==10 else "secondary", use_container_width=True):
+            st.session_state.cond_score = 10
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.info(f"현재 선택된 컨디션 점수: **{st.session_state.cond_score}점** 레벨")
+        st.info(f"현재 선택된 컨디션 점수: **{st.session_state.cond_score}점**")
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("#### 🔥 오늘 훈련 강도 선택 (1~10점)")
