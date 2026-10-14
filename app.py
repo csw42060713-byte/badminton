@@ -19,7 +19,7 @@ hide_streamlit_style = """
     
     .block-container {
         padding-top: 0.5rem;
-        padding-bottom: 7.5rem;
+        padding-bottom: 6rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
@@ -72,13 +72,13 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 📱 하단 고정 네비게이션바 (무조건 가로 한 줄 고정 강제 스타일) */
-    .fixed-bottom-bar {
+    /* 📱 하단 고정 네비게이션바 (HTML 플렉스박스로 가로 한 줄 강제 고정) */
+    .bottom-nav-bar {
         position: fixed;
         bottom: 0;
         left: 0;
         width: 100vw;
-        height: 65px;
+        height: 60px;
         background-color: #ffffff;
         border-top: 1px solid #e0e0e0;
         display: flex !important;
@@ -87,27 +87,8 @@ hide_streamlit_style = """
         align-items: center !important;
         z-index: 999999;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        padding: 0 4px;
+        padding: 0 5px;
         box-sizing: border-box;
-    }
-    
-    /* 하단 내부 Streamlit 컬럼 및 버튼들을 가로로 강제 정렬 */
-    .fixed-bottom-bar [data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        width: 100% !important;
-    }
-    .fixed-bottom-bar [data-testid="column"] {
-        flex: 1 !important;
-        width: auto !important;
-        min-width: 0 !important;
-        padding: 0 2px !important;
-    }
-    .fixed-bottom-bar button {
-        width: 100% !important;
-        font-size: 11px !important;
-        padding: 6px 0px !important;
-        font-weight: bold !important;
     }
     </style>
 """
@@ -304,23 +285,23 @@ else:
         
         c1, c2, c3, c4, c5 = st.columns(5)
         with c1:
-            if st.button("😢\n1~2점", key="cond_1", type="primary" if st.session_state.cond_score==2 else "secondary", use_container_width=True):
+            if st.button("😢\n1~2", key="cond_1", type="primary" if st.session_state.cond_score==2 else "secondary", use_container_width=True):
                 st.session_state.cond_score = 2
                 st.rerun()
         with c2:
-            if st.button("🙁\n3~4점", key="cond_2", type="primary" if st.session_state.cond_score==4 else "secondary", use_container_width=True):
+            if st.button("🙁\n3~4", key="cond_2", type="primary" if st.session_state.cond_score==4 else "secondary", use_container_width=True):
                 st.session_state.cond_score = 4
                 st.rerun()
         with c3:
-            if st.button("😐\n5~6점", key="cond_3", type="primary" if st.session_state.cond_score==6 else "secondary", use_container_width=True):
+            if st.button("😐\n5~6", key="cond_3", type="primary" if st.session_state.cond_score==6 else "secondary", use_container_width=True):
                 st.session_state.cond_score = 6
                 st.rerun()
         with c4:
-            if st.button("🙂\n7~8점", key="cond_4", type="primary" if st.session_state.cond_score==8 else "secondary", use_container_width=True):
+            if st.button("🙂\n7~8", key="cond_4", type="primary" if st.session_state.cond_score==8 else "secondary", use_container_width=True):
                 st.session_state.cond_score = 8
                 st.rerun()
         with c5:
-            if st.button("😄\n9~10점", key="cond_5", type="primary" if st.session_state.cond_score==10 else "secondary", use_container_width=True):
+            if st.button("😄\n9~10", key="cond_5", type="primary" if st.session_state.cond_score==10 else "secondary", use_container_width=True):
                 st.session_state.cond_score = 10
                 st.rerun()
 
@@ -331,23 +312,23 @@ else:
         
         h1, h2, h3, h4, h5 = st.columns(5)
         with h1:
-            if st.button("😢\n1~2점", key="hard_1", type="primary" if st.session_state.hard_score==2 else "secondary", use_container_width=True):
+            if st.button("😢\n1~2", key="hard_1", type="primary" if st.session_state.hard_score==2 else "secondary", use_container_width=True):
                 st.session_state.hard_score = 2
                 st.rerun()
         with h2:
-            if st.button("🙁\n3~4점", key="hard_2", type="primary" if st.session_state.hard_score==4 else "secondary", use_container_width=True):
+            if st.button("🙁\n3~4", key="hard_2", type="primary" if st.session_state.hard_score==4 else "secondary", use_container_width=True):
                 st.session_state.hard_score = 4
                 st.rerun()
         with h3:
-            if st.button("😐\n5~6점", key="hard_3", type="primary" if st.session_state.hard_score==6 else "secondary", use_container_width=True):
+            if st.button("😐\n5~6", key="hard_3", type="primary" if st.session_state.hard_score==6 else "secondary", use_container_width=True):
                 st.session_state.hard_score = 6
                 st.rerun()
         with h4:
-            if st.button("🙂\n7~8점", key="hard_4", type="primary" if st.session_state.hard_score==8 else "secondary", use_container_width=True):
+            if st.button("🙂\n7~8", key="hard_4", type="primary" if st.session_state.hard_score==8 else "secondary", use_container_width=True):
                 st.session_state.hard_score = 8
                 st.rerun()
         with h5:
-            if st.button("😄\n9~10점", key="hard_5", type="primary" if st.session_state.hard_score==10 else "secondary", use_container_width=True):
+            if st.button("😄\n9~10", key="hard_5", type="primary" if st.session_state.hard_score==10 else "secondary", use_container_width=True):
                 st.session_state.hard_score = 10
                 st.rerun()
 
@@ -484,7 +465,7 @@ else:
                 elif any(k in w_lower for k in ["헤어핀", "네트", "세밀", "정밀"]):
                     st.info("🪶 **[헤어핀 정밀도 향상 드릴]**\n\n"
                             "• **핵심 포인트:** 임팩트 순간 라켓 면의 부드러운 감속\n"
-                            "• **추천 훈련 (크로스 헤어핀 릴레이):** 네트 앞 전역에서 상대방 서비스 라인 안쪽으로 콕을 살짝 감아 넘기는 세밀한 터치 훈련. 손목에 힘을 빼고 그립을 가볍게 잡는 것이 핵심입니다!")
+                            "• **추천 훈련 (크로스 헤어핀 랠리):** 네트 앞 전역에서 상대방 서비스 라인 안쪽으로 콕을 살짝 감아 넘기는 세밀한 터치 훈련. 손목에 힘을 빼고 그립을 가볍게 잡는 것이 핵심입니다!")
                 elif any(k in w_lower for k in ["스매시", "스매권", "각도", "파워", "내리꽂기"]):
                     st.info("💥 **[스매시 각도 및 파워 강화 드릴]**\n\n"
                             "• **핵심 포인트:** 점프 타점과 상체 회전 타이밍\n"
@@ -511,28 +492,28 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 튕김 없는 순수 st.button 기반 하단 고정 네비게이션 바 (가로 한 줄 강제 고정)
+    # 📱 [최종] 아래쪽 가로 한 줄 고정 네비게이션 바 (튕김 없음)
     # ------------------------------------------
-    st.markdown('<div class="fixed-bottom-bar">', unsafe_allow_html=True)
-    nb1, nb2, nb3, nb4, nb5 = st.columns(5)
-    with nb1:
-        if st.button("👥소셜", key="btn_soc", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
+    st.markdown('<div class="bottom-nav-bar">', unsafe_allow_html=True)
+    b_col1, b_col2, b_col3, b_col4, b_col5 = st.columns(5)
+    with b_col1:
+        if st.button("👥소셜", key="tab_soc", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
             st.session_state.active_tab = "소셜"
             st.rerun()
-    with nb2:
-        if st.button("📅달력", key="btn_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
+    with b_col2:
+        if st.button("📅달력", key="tab_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
             st.session_state.active_tab = "달력"
             st.rerun()
-    with nb3:
-        if st.button("➕기록", key="btn_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
+    with b_col3:
+        if st.button("➕기록", key="tab_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
             st.session_state.active_tab = "기록작성"
             st.rerun()
-    with nb4:
-        if st.button("💡약점", key="btn_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
+    with b_col4:
+        if st.button("💡약점", key="tab_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
             st.session_state.active_tab = "약점처방"
             st.rerun()
-    with nb5:
-        if st.button("📈통계", key="btn_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
+    with b_col5:
+        if st.button("📈통계", key="tab_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
             st.session_state.active_tab = "통계"
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
