@@ -18,18 +18,18 @@ hide_streamlit_style = """
     .stDeployButton {display: none;}
     
     .block-container {
-        padding-top: 0.5rem;
-        padding-bottom: 7rem;
+        padding-top: 0.3rem;
+        padding-bottom: 3rem;
         padding-left: 0.4rem;
         padding-right: 0.4rem;
     }
     
     .main-title {
-        font-size: 18px;
+        font-size: 16px;
         font-weight: bold;
         color: #1e3c72;
         text-align: center;
-        margin-bottom: 5px;
+        margin-bottom: 2px;
     }
 
     /* 캘린더 표 스타일 */
@@ -70,43 +70,6 @@ hide_streamlit_style = """
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-    }
-
-    /* 📱 5개 버튼 크기를 쏙 줄여서 가로 한 줄에 완벽 고정하는 하단바 스타일 */
-    .fixed-bottom-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100vw;
-        height: 58px;
-        background-color: #ffffff;
-        border-top: 1px solid #e0e0e0;
-        display: flex !important;
-        flex-direction: row !important;
-        justify-content: space-around !important;
-        align-items: center !important;
-        z-index: 999999;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        padding: 0 2px;
-        box-sizing: border-box;
-    }
-    
-    .fixed-bottom-bar [data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        width: 100% !important;
-    }
-    .fixed-bottom-bar [data-testid="column"] {
-        flex: 1 !important;
-        width: auto !important;
-        min-width: 0 !important;
-        padding: 0 1px !important;
-    }
-    .fixed-bottom-bar button {
-        width: 100% !important;
-        font-size: 10px !important;       /* 폰트 크기를 줄여서 5개 모두 안착 */
-        padding: 6px 0px !important;      /* 상하 여백 축소 */
-        font-weight: bold !important;
     }
     </style>
 """
@@ -185,7 +148,7 @@ if not st.session_state.started:
 
 
 # ==========================================
-# 🏆 2. 메인 앱 화면 (5개 탭 전부 포함)
+# 🏆 2. 메인 앱 화면 (상단 가로 고정 5개 탭 메뉴)
 # ==========================================
 else:
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
@@ -196,6 +159,31 @@ else:
     with top_c3:
         if st.button("처음으로", use_container_width=True, key="reset_btn"):
             st.session_state.started = False
+            st.rerun()
+
+    st.markdown("---")
+
+    # 📱 모바일 화면 최상단에서 5개 메뉴가 절대 세로로 꺾이지 않고 가로 한 줄로 나란히 정렬되는 탭 메뉴
+    t1, t2, t3, t4, t5 = st.columns(5)
+    with t1:
+        if st.button("👥소셜", key="top_soc", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "소셜"
+            st.rerun()
+    with t2:
+        if st.button("📅달력", key="top_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "달력"
+            st.rerun()
+    with t3:
+        if st.button("➕기록", key="top_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "기록작성"
+            st.rerun()
+    with t4:
+        if st.button("💡약점", key="top_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "약점처방"
+            st.rerun()
+    with t5:
+        if st.button("📈통계", key="top_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
+            st.session_state.active_tab = "통계"
             st.rerun()
 
     st.markdown("---")
@@ -508,30 +496,3 @@ else:
             st.dataframe(df_log, use_container_width=True)
         else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
-
-    # ------------------------------------------
-    # 📱 [5개 탭 전부 포함] 아래쪽 가로 한 줄 고정 네비게이션 바 (크기 축소 및 튕김 없음)
-    # ------------------------------------------
-    st.markdown('<div class="fixed-bottom-bar">', unsafe_allow_html=True)
-    b1, b2, b3, b4, b5 = st.columns(5)
-    with b1:
-        if st.button("👥소셜", key="b_soc", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "소셜"
-            st.rerun()
-    with b2:
-        if st.button("📅달력", key="b_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "달력"
-            st.rerun()
-    with b3:
-        if st.button("➕기록", key="b_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "기록작성"
-            st.rerun()
-    with b4:
-        if st.button("💡약점", key="b_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "약점처방"
-            st.rerun()
-    with b5:
-        if st.button("📈통계", key="b_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "통계"
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
