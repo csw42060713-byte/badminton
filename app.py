@@ -20,18 +20,29 @@ hide_streamlit_style = """
     .block-container {
         padding-top: 1rem;
         padding-bottom: 3rem;
-        padding-left: 0.8rem;
-        padding-right: 0.8rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
     }
     
-    /* 위젯 및 스마트폰 카드 스타일 */
     .mini-card {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #2b5876 0%, #4e4376 100%);
         color: white;
         padding: 15px;
         border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         margin-bottom: 15px;
+    }
+    
+    /* 캘린더 날짜 박스 내 메모 텍스트 스타일 */
+    .cal-memo-text {
+        font-size: 11px;
+        color: #1e3c72;
+        background-color: #eef2f5;
+        border-radius: 4px;
+        padding: 2px 4px;
+        margin-top: 2px;
+        word-break: break-all;
+        line-height: 1.2;
     }
     </style>
 """
@@ -47,20 +58,8 @@ if "user_level" not in st.session_state:
 if "match_type" not in st.session_state:
     st.session_state.match_type = "복식 (Double - 순발력/전위 반응/스매시 파워)"
 
-if "weekly_goal_stroke" not in st.session_state:
-    st.session_state.weekly_goal_stroke = 6
-if "weekly_goal_wall" not in st.session_state:
-    st.session_state.weekly_goal_wall = 3
-if "weekly_goal_interval" not in st.session_state:
-    st.session_state.weekly_goal_interval = 3
-if "weekly_goal_core" not in st.session_state:
-    st.session_state.weekly_goal_core = 3
-if "weekly_goal_strength" not in st.session_state:
-    st.session_state.weekly_goal_strength = 2
-
-# 서브 페이지 모드 (위젯/미니화면 vs 캘린더 상세보기)
 if "cal_view_mode" not in st.session_state:
-    st.session_state.cal_view_mode = "widget" # 'widget' 또는 'full_calendar'
+    st.session_state.cal_view_mode = "widget"
 
 level_default_schedules = {
     "선수용 (고강도 전문 훈련)": {
@@ -98,8 +97,57 @@ if "schedule_mapping" not in st.session_state:
 if "monthly_calendar_plans" not in st.session_state:
     st.session_state.monthly_calendar_plans = {}
 
+if "monthly_calendar_memos" not in st.session_state:
+    st.session_state.monthly_calendar_memos = {}
+
 if "training_history" not in st.session_state:
     st.session_state.training_history = []
+
+
+# ------------------------------------------
+# 📱 캘린더 날짜 팝업 입력 창 함수 (@st.dialog)
+# ------------------------------------------
+@st.dialog("📝 훈련 계획 작성 & 확인")
+def open_day_editor(date_str):
+    st.markdown(f"### 📅 **{date_str}** 훈련 일지")
+    
+    # 기존 데이터 불러오기
+    saved_plans = st.session_state.monthly_calendar_plans.get(date_str, [])
+    saved_memo = st.session_state.monthly_calendar_memos.get(date_str, "")
+    
+    exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
+    
+    new_plans = st.multiselect(
+        "🏋️ 수행할 훈련 종류",
+        exercise_categories,
+        default=saved_plans,
+        key=f"modal_plans_{date_str}"
+    )
+    
+    new_memo = st.text_area(
+        "💬 훈련 메모 / 상세 내용 (달력 칸 안에 작성됨)",
+        value=saved_memo,
+        placeholder="예: 스매시 타점 잡기, 런지 5세트 수행 등",
+        key=f"modal_memo_{date_str}"
+    )
+    
+    col_save, col_del = st.columns(2)
+    with col_save:
+        if st.button("💾 저장하기", type="primary", use_container_width=True):
+            if new_plans or new_memo.strip():
+                st.session_state.monthly_calendar_plans[date_str] = new_plans
+                st.session_state.monthly_calendar_memos[date_str] = new_memo.strip()
+            else:
+                st.session_state.monthly_calendar_plans.pop(date_str, None)
+                st.session_state.monthly_calendar_memos.pop(date_str, None)
+            st.rerun()
+            
+    with col_del:
+        if st.button("🗑️ 지우기", use_container_width=True):
+            st.session_state.monthly_calendar_plans.pop(date_str, None)
+            st.session_state.monthly_calendar_memos.pop(date_str, None)
+            st.rerun()
+
 
 # ==========================================
 # 🏠 시작 화면 (Landing Screen)
@@ -120,11 +168,6 @@ if not st.session_state.started:
         st.caption("입문 및 기초 체력 향상 코스")
         if st.button("초보용으로 시작", use_container_width=True, key="btn_beginner"):
             st.session_state.user_level = "초보용 (입문 및 기초 체력)"
-            st.session_state.weekly_goal_core = 1
-            st.session_state.weekly_goal_strength = 1
-            st.session_state.weekly_goal_interval = 0
-            st.session_state.weekly_goal_wall = 1
-            st.session_state.weekly_goal_stroke = 2
             st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
             st.session_state.started = True
             st.rerun()
@@ -134,11 +177,6 @@ if not st.session_state.started:
         st.caption("동호인 및 취미 실전 강화 코스")
         if st.button("일반부로 시작", use_container_width=True, key="btn_normal"):
             st.session_state.user_level = "일반부 (동호인/취미 운동)"
-            st.session_state.weekly_goal_core = 2
-            st.session_state.weekly_goal_strength = 2
-            st.session_state.weekly_goal_interval = 1
-            st.session_state.weekly_goal_wall = 2
-            st.session_state.weekly_goal_stroke = 3
             st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
             st.session_state.started = True
             st.rerun()
@@ -148,11 +186,6 @@ if not st.session_state.started:
         st.caption("고강도 전문 훈련 및 시합 준비반")
         if st.button("선수용으로 시작", type="primary", use_container_width=True, key="btn_pro"):
             st.session_state.user_level = "선수용 (고강도 전문 훈련)"
-            st.session_state.weekly_goal_core = 3
-            st.session_state.weekly_goal_strength = 2
-            st.session_state.weekly_goal_interval = 3
-            st.session_state.weekly_goal_wall = 3
-            st.session_state.weekly_goal_stroke = 6
             st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
             st.session_state.started = True
             st.rerun()
@@ -185,24 +218,6 @@ else:
         
         if selected_level != st.session_state.user_level:
             st.session_state.user_level = selected_level
-            if "초보용" in selected_level:
-                st.session_state.weekly_goal_core = 1
-                st.session_state.weekly_goal_strength = 1
-                st.session_state.weekly_goal_interval = 0
-                st.session_state.weekly_goal_wall = 1
-                st.session_state.weekly_goal_stroke = 2
-            elif "일반부" in selected_level:
-                st.session_state.weekly_goal_core = 2
-                st.session_state.weekly_goal_strength = 2
-                st.session_state.weekly_goal_interval = 1
-                st.session_state.weekly_goal_wall = 2
-                st.session_state.weekly_goal_stroke = 3
-            else:
-                st.session_state.weekly_goal_core = 3
-                st.session_state.weekly_goal_strength = 2
-                st.session_state.weekly_goal_interval = 3
-                st.session_state.weekly_goal_wall = 3
-                st.session_state.weekly_goal_stroke = 6
             st.session_state.schedule_mapping = level_default_schedules[selected_level]
             st.rerun()
 
@@ -223,189 +238,172 @@ else:
     st.markdown("---")
 
     tab1, tab2, tab3 = st.tabs([
-        "📅 1. 스마트폰 캘린더 & 일주일 훈련 진단", 
+        "📅 1. 캘린더 & 일주일 훈련 진단", 
         "📝 2. 레벨별 기술·심리 진단 및 오늘의 훈련 기록", 
         "📊 3. 100점 만점 훈련 리포트 & 히스토리"
     ])
 
     with tab1:
-        # 📱 [기능 1] 작은 미니 위젯 화면 vs 캘린더 전체 화면 전환
+        # ──────────────────────────────────────────
+        # 📱 모드 A: 미니 스마트 위젯 화면
+        # ──────────────────────────────────────────
         if st.session_state.cal_view_mode == "widget":
+            today_str = str(datetime.date.today())
+            today_plans = st.session_state.monthly_calendar_plans.get(today_str, [])
+            today_memo = st.session_state.monthly_calendar_memos.get(today_str, "")
+            
             st.markdown(
                 f"""
                 <div class="mini-card">
-                    <h3 style="margin:0;">📱 오늘의 훈련 한눈에 보기 (스마트 위젯)</h3>
-                    <p style="margin-top:5px; font-size:14px;">현재 레벨: <b>{st.session_state.user_level}</b></p>
+                    <h3 style="margin:0;">📱 오늘의 스마트 훈련 위젯</h3>
+                    <p style="margin-top:8px; font-size:15px;">🗓️ 오늘 날짜: <b>{today_str}</b></p>
+                    <p style="font-size:14px; margin-bottom:0;">현재 설정된 레벨: <b>{st.session_state.user_level}</b></p>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
             
-            today_str = str(datetime.date.today())
-            today_plans = st.session_state.monthly_calendar_plans.get(today_str, [])
+            st.info(f"📋 **오늘의 훈련:** {', '.join(today_plans) if today_plans else '등록된 일정 없음'}\n\n📝 **오늘의 메모:** {today_memo if today_memo else '작성된 메모가 없습니다.'}")
             
-            col_w1, col_w2 = st.columns([2, 1])
-            with col_w1:
-                st.info(f"📆 **오늘({today_str}) 예정된 훈련:** {', '.join(today_plans) if today_plans else '등록된 일정 없음 (자율 휴식)'}")
-            with col_w2:
-                if st.button("📱 캘린더 전체 화면으로 이동 ➡️", type="primary", use_container_width=True):
-                    st.session_state.cal_view_mode = "full_calendar"
-                    st.rerun()
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("📅 캘린더 전체 화면 열기 (눌러서 작성/보기) ➡️", type="primary", use_container_width=True):
+                st.session_state.cal_view_mode = "full_calendar"
+                st.rerun()
 
-            st.markdown("---")
-
+        # ──────────────────────────────────────────
+        # 🗓️ 모드 B: 스마트폰 캘린더 화면 (버튼 누를 때만 동작)
+        # ──────────────────────────────────────────
         else:
-            # 캘린더 전체 화면에서 위젯으로 돌아가기 버튼
-            if st.button("⬅️ 미니 위젯 요약 화면으로 돌아가기", use_container_width=True):
+            if st.button("⬅️ 미니 요약 위젯으로 돌아가기", use_container_width=True):
                 st.session_state.cal_view_mode = "widget"
                 st.rerun()
+
+            st.markdown("---")
+            
+            now = datetime.datetime.now()
+            col_title, col_ctrl1, col_ctrl2 = st.columns([2, 1, 1])
+            with col_title:
+                st.markdown(f"## 🗓️ {now.month}월 배드민턴 캘린더")
+            with col_ctrl1:
+                cal_year = st.selectbox("연도", [2025, 2026, 2027], index=1, label_visibility="collapsed")
+            with col_ctrl2:
+                cal_month = st.selectbox("월", list(range(1, 13)), index=now.month - 1, format_func=lambda x: f"{x}월", label_visibility="collapsed")
+
+            st.caption("💡 **날짜를 클릭하면 해당 날짜에 글을 쓰거나 메모 내용을 열람할 수 있습니다.**")
+            st.markdown("---")
+            
+            cal = calendar.Calendar(firstweekday=6) 
+            month_days = list(cal.itermonthdates(cal_year, cal_month))
+
+            weekdays_kr = ["일", "월", "화", "수", "목", "금", "토"]
+            header_cols = st.columns(7)
+            for i, day_name in enumerate(weekdays_kr):
+                with header_cols[i]:
+                    color = "red" if i == 0 else ("blue" if i == 6 else "black")
+                    st.markdown(f"<p align='center' style='font-weight:bold; color:{color}; margin-bottom: 2px;'>{day_name}</p>", unsafe_allow_html=True)
+
+            for week_idx in range(0, len(month_days), 7):
+                week_slice = month_days[week_idx:week_idx+7]
+                week_cols = st.columns(7)
+                
+                for i, d in enumerate(week_slice):
+                    with week_cols[i]:
+                        date_str = str(d)
+                        is_current_month = (d.month == cal_month)
+                        
+                        if not is_current_month:
+                            st.markdown(f"<p style='color:#d3d3d3; text-align:center; font-size:12px; margin:0;'>{d.day}</p>", unsafe_allow_html=True)
+                            continue
+
+                        day_plan = st.session_state.monthly_calendar_plans.get(date_str, [])
+                        day_memo = st.session_state.monthly_calendar_memos.get(date_str, "")
+                        
+                        btn_text = f"{d.day}"
+                        if day_plan or day_memo:
+                            btn_text += " ✏️"
+                            
+                        # 날짜 버튼을 누르면 팝업창(open_day_editor) 실행!
+                        if st.button(btn_text, key=f"cal_grid_{date_str}", use_container_width=True):
+                            open_day_editor(date_str)
+                            
+                        # 달력 칸 안에 입력한 항목과 메모 표시
+                        if day_plan:
+                            st.caption(f"🏋️ {', '.join(day_plan[:1])}")
+                        if day_memo:
+                            display_memo = day_memo[:6] + ".." if len(day_memo) > 6 else day_memo
+                            st.markdown(f"<div class='cal-memo-text'>📌 {display_memo}</div>", unsafe_allow_html=True)
+
             st.markdown("---")
 
-        # 📅 [기능 2] 스마트폰 그리드 달력 화면 (사진 스타일)
-        now = datetime.datetime.now()
-        col_title, col_ctrl1, col_ctrl2 = st.columns([2, 1, 1])
-        with col_title:
-            st.markdown(f"## 🗓️ {now.month}월 배드민턴 캘린더")
-        with col_ctrl1:
-            cal_year = st.selectbox("연도", [2025, 2026, 2027], index=1, label_visibility="collapsed")
-        with col_ctrl2:
-            cal_month = st.selectbox("월", list(range(1, 13)), index=now.month - 1, format_func=lambda x: f"{x}월", label_visibility="collapsed")
-
-        st.markdown("---")
-        
-        cal = calendar.Calendar(firstweekday=6) 
-        month_days = list(cal.itermonthdates(cal_year, cal_month))
-
-        weekdays_kr = ["일", "월", "화", "수", "목", "금", "토"]
-        header_cols = st.columns(7)
-        for i, day_name in enumerate(weekdays_kr):
-            with header_cols[i]:
-                color = "red" if i == 0 else ("blue" if i == 6 else "black")
-                st.markdown(f"<p align='center' style='font-weight:bold; color:{color}; margin-bottom: 2px;'>{day_name}</p>", unsafe_allow_html=True)
-
-        for week_idx in range(0, len(month_days), 7):
-            week_slice = month_days[week_idx:week_idx+7]
-            week_cols = st.columns(7)
+            # 🌟 일주일 훈련 계획 실시간 진단
+            st.subheader("🔍 일주일 기준 훈련 밸런스 실시간 진단")
             
-            for i, d in enumerate(week_slice):
-                with week_cols[i]:
-                    date_str = str(d)
-                    is_current_month = (d.month == cal_month)
-                    
-                    if not is_current_month:
-                        st.markdown(f"<p style='color:#d3d3d3; text-align:center; font-size:12px; margin:0;'>{d.day}</p>", unsafe_allow_html=True)
-                        continue
+            today_obj = datetime.date.today()
+            week_sessions = 0
+            week_strengths = 0
+            week_rest_days = 0
+            
+            for d_offset in range(7):
+                check_date_str = str(today_obj + datetime.timedelta(days=d_offset))
+                p_list = st.session_state.monthly_calendar_plans.get(check_date_str, [])
+                if len(p_list) > 0:
+                    week_sessions += len(p_list)
+                    if "근력" in p_list: week_strengths += 1
+                else:
+                    week_rest_days += 1
 
-                    day_plan = st.session_state.monthly_calendar_plans.get(date_str, [])
-                    btn_text = f"{d.day}"
-                    if day_plan:
-                        btn_text += " 🔥"
-                        
-                    if st.button(btn_text, key=f"cal_grid_{date_str}", use_container_width=True):
-                        st.session_state.selected_date = date_str
-                        st.rerun()
-                        
-                    if day_plan:
-                        st.caption(f"{', '.join(day_plan[:1])}")
-                    else:
-                        st.caption("")
-
-        st.markdown("---")
-
-        # 📌 [기능 3] 달력 칸 안에서 직접 훈련 쓰기/수정하기
-        if "selected_date" not in st.session_state:
-            st.session_state.selected_date = str(datetime.date.today())
-
-        selected_d = st.session_state.selected_date
-        st.markdown(f"✍️ **[{selected_d}] 캘린더 안 훈련 계획 직접 입력**")
-        
-        current_date_plans = st.session_state.monthly_calendar_plans.get(selected_d, [])
-        exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
-        
-        updated_plans = st.multiselect(
-            "이 날 수행할 훈련을 선택하세요 (선택 안 하면 빈 상태로 남겨집니다)",
-            exercise_categories,
-            default=current_date_plans,
-            key=f"edit_plan_{selected_d}"
-        )
-        
-        if updated_plans:
-            st.session_state.monthly_calendar_plans[selected_d] = updated_plans
-        else:
-            if selected_d in st.session_state.monthly_calendar_plans:
-                del st.session_state.monthly_calendar_plans[selected_d]
-
-        st.markdown("---")
-
-        # 🌟 [기능 4] 일주일 훈련 계획 이모티콘 자동 진단 평가
-        st.subheader("🔍 일주일 기준 훈련 밸런스 실시간 진단")
-        
-        today_obj = datetime.date.today()
-        week_sessions = 0
-        week_strengths = 0
-        week_rest_days = 0
-        
-        for d_offset in range(7):
-            check_date_str = str(today_obj + datetime.timedelta(days=d_offset))
-            p_list = st.session_state.monthly_calendar_plans.get(check_date_str, [])
-            if len(p_list) > 0:
-                week_sessions += len(p_list)
-                if "근력" in p_list: week_strengths += 1
+            lvl = st.session_state.user_level
+            
+            if "초보용" in lvl:
+                if week_sessions > 15:
+                    emoji = "🥵"
+                    status_title = "오버트레이닝 위험 (과부하)"
+                    advice = "초보 단계에서는 주간 훈련량이 너무 많습니다! 관절 부상 방지를 위해 일정을 조금 비워두세요."
+                elif week_sessions >= 5:
+                    emoji = "😊"
+                    status_title = "기초 체력 안정권 (아주 좋음)"
+                    advice = "기초 테크닉과 스트록 위주로 알차게 잘 짜여 있습니다. 지금 밸런스가 최고예요!"
+                else:
+                    emoji = "😐"
+                    status_title = "훈련량 여유 있음"
+                    advice = "훈련 일정이 아직 여유롭습니다. 주간 목표에 맞춰 기초 벽치기나 코어를 조금 더 채워보세요."
+            elif "일반부" in lvl:
+                if week_sessions >= 10 and week_rest_days >= 1:
+                    emoji = "🤩"
+                    status_title = "동호인 최적의 황금 밸런스!"
+                    advice = "실전 경기력 향상과 휴식의 조화가 환상적입니다. 이대로만 유지하시면 실력이 급상승합니다!"
+                elif week_sessions == 0:
+                    emoji = "💤"
+                    status_title = "훈련 계획 미입력 상태"
+                    advice = "아직 캘린더에 계획이 없습니다. 위 달력에서 날짜를 누르고 훈련을 추가해 보세요!"
+                else:
+                    emoji = "🧐"
+                    status_title = "보강 운동 조화 필요"
+                    advice = "스트록과 근력 보강 운동의 비율을 골고루 분산시키면 코트 위 스텝이 훨씬 가벼워집니다."
             else:
-                week_rest_days += 1
+                if week_sessions >= 14 and week_strengths >= 2:
+                    emoji = "🏆"
+                    status_title = "엘리트 선수부 완벽한 훈련 루틴!"
+                    advice = "시합 대비 무산소 및 근력 밸런스가 매우 훌륭합니다. 완벽한 컨디션으로 코트를 제압하세요!"
+                elif week_sessions < 8:
+                    emoji = "⚠️"
+                    status_title = "선수부 기준 훈련량 부족"
+                    advice = "시합을 준비하기엔 현재 캘린더 등록량이 다소 적습니다. 인터벌과 헌볼/근력을 더 추가하세요!"
+                else:
+                    emoji = "🔥"
+                    status_title = "열정적인 고강도 훈련 주간"
+                    advice = "강도 높은 훈련이 잘 배치되어 있습니다. 훈련 후 영양 섭취와 쿨다운 스트레칭을 잊지 마세요!"
 
-        lvl = st.session_state.user_level
-        
-        if "초보용" in lvl:
-            if week_sessions > 15:
-                emoji = "🥵"
-                status_title = "오버트레이닝 위험 (과부하)"
-                advice = "초보 단계에서는 주간 훈련량이 너무 많습니다! 관절 부상 방지를 위해 일정을 조금 비워두세요."
-            elif week_sessions >= 5:
-                emoji = "😊"
-                status_title = "기초 체력 안정권 (아주 좋음)"
-                advice = "기초 테크닉과 스트록 위주로 알차게 잘 짜여 있습니다. 지금 밸런스가 최고예요!"
-            else:
-                emoji = "😐"
-                status_title = "훈련량 여유 있음"
-                advice = "훈련 일정이 아직 여유롭습니다. 주간 목표에 맞춰 기초 벽치기나 코어를 조금 더 채워보세요."
-        elif "일반부" in lvl:
-            if week_sessions >= 10 and week_rest_days >= 1:
-                emoji = "🤩"
-                status_title = "동호인 최적의 황금 밸런스!"
-                advice = "실전 경기력 향상과 휴식의 조화가 환상적입니다. 이대로만 유지하시면 실력이 급상승합니다!"
-            elif week_sessions == 0:
-                emoji = "💤"
-                status_title = "훈련 계획 미입력 상태"
-                advice = "아직 캘린더에 계획이 없습니다. 위 달력에서 날짜를 누르고 훈련을 추가해 보세요!"
-            else:
-                emoji = "🧐"
-                status_title = "보강 운동 조화 필요"
-                advice = "스트록과 근력 보강 운동의 비율을 골고루 분산시키면 코트 위 스텝이 훨씬 가벼워집니다."
-        else:
-            if week_sessions >= 14 and week_strengths >= 2:
-                emoji = "🏆"
-                status_title = "엘리트 선수부 완벽한 훈련 루틴!"
-                advice = "시합 대비 무산소 및 근력 밸런스가 매우 훌륭합니다. 완벽한 컨디션으로 코트를 제압하세요!"
-            elif week_sessions < 8:
-                emoji = "⚠️"
-                status_title = "선수부 기준 훈련량 부족"
-                advice = "시합을 준비하기엔 현재 캘린더 등록량이 다소 적습니다. 인터벌과 헌볼/근력을 더 추가하세요!"
-            else:
-                emoji = "🔥"
-                status_title = "열정적인 고강도 훈련 주간"
-                advice = "강도 높은 훈련이 잘 배치되어 있습니다. 훈련 후 영양 섭취와 쿨다운 스트레칭을 잊지 마세요!"
-
-        st.markdown(
-            f"""
-            <div style="padding: 20px; border-radius: 10px; background-color: #f0f2f6; text-align: center;">
-                <h2>일주일 종합 진단: {emoji} <b>{status_title}</b></h2>
-                <p style="font-size: 16px; margin-top: 10px;">{advice}</p>
-                <p style="font-size: 13px; color: gray; margin-top: 5px;">(등록된 주간 총 훈련 항목: {week_sessions}개 / 휴식일: {week_rest_days}일)</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+            st.markdown(
+                f"""
+                <div style="padding: 20px; border-radius: 12px; background-color: #f0f2f6; text-align: center;">
+                    <h2>일주일 종합 진단: {emoji} <b>{status_title}</b></h2>
+                    <p style="font-size: 16px; margin-top: 10px;">{advice}</p>
+                    <p style="font-size: 13px; color: gray; margin-top: 5px;">(등록된 주간 총 훈련 항목: {week_sessions}개 / 휴식일: {week_rest_days}일)</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
     with tab2:
         st.subheader("📅 오늘의 훈련 수행, 레벨별 기술·심리 진단 및 훈련량 입력")
@@ -422,7 +420,7 @@ else:
         with col_c1:
             condition = st.slider("오늘의 컨디션 점수 (1~10)", 1, 10, 5)
         with col_c2:
-            rpe_score = st.slider("오늘 훈련의 힘듦 정도 (1: 아주 쉬움 ~ 10: 한계 수치)", 1, 10, 7, help="수행 시간과 난이도를 종합하여 100점 만점 완성도 점수를 계산합니다.")
+            rpe_score = st.slider("오늘 훈련의 힘듦 정도 (1: 아주 쉬움 ~ 10: 한계 수치)", 1, 10, 7)
 
         st.markdown("---")
         current_level = st.session_state.user_level
@@ -720,4 +718,4 @@ else:
                 data=csv_data,
                 file_name=f"badminton_training_log_{datetime.date.today()}.csv",
                 mime="text/css"
-            )
+            ) "
