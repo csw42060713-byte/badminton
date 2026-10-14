@@ -1,6 +1,7 @@
 import streamlit as st
 import datetime
 import pandas as pd
+import calendar
 
 # 1. 페이지 설정 및 모바일 앱처럼 보이는 CSS 최적화 (광고 및 워터마크 제거 포함)
 st.set_page_config(
@@ -55,7 +56,7 @@ if "weekly_goal_core" not in st.session_state:
 if "weekly_goal_strength" not in st.session_state:
     st.session_state.weekly_goal_strength = 2
 
-# 레벨별 기본 요일 스케줄 정의
+# 레벨별 기본 스케줄(요일별 매핑) 초기화
 level_default_schedules = {
     "선수용 (고강도 전문 훈련)": {
         "월요일": ["스트록", "벽치기", "코어", "근력"],
@@ -88,6 +89,10 @@ level_default_schedules = {
 
 if "schedule_mapping" not in st.session_state:
     st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
+
+# 날짜별 커스텀 훈련 계획 저장 딕셔너리 (예: {"2026-10-14": ["스트록", "코어"]})
+if "monthly_calendar_plans" not in st.session_state:
+    st.session_state.monthly_calendar_plans = {}
 
 if "training_history" not in st.session_state:
     st.session_state.training_history = []
@@ -215,81 +220,167 @@ else:
     st.markdown("---")
 
     tab1, tab2, tab3 = st.tabs([
-        "📅 1. 주간 훈련 캘린더 & 레벨별 적정성 진단", 
+        "📅 1. 월간 캘린더 & 일주일 훈련 진단", 
         "📝 2. 레벨별 기술·심리 진단 및 오늘의 훈련 기록", 
         "📊 3. 100점 만점 훈련 리포트 & 히스토리"
     ])
 
     with tab1:
-        st.subheader(f"🗓️ 주간 훈련 캘린더 (현재 레벨: {st.session_state.user_level})")
-        st.write("요일별로 어떤 훈련을 수행할지 캘린더에서 체크하고, 하단에서 **스포츠 과학 기반 적정성 진단**을 확인하세요!")
+        st.subheader(f"🗓️ 월간 훈련 캘린더 (현재 레벨: {st.session_state.user_level})")
+        st.write("스마트폰 캘린더처럼 날짜별로 훈련 계획을 추가하고, 일주일 기준 밸런스를 이모티콘으로 확인하세요!")
 
-        days_of_week = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
-        exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
-
-        if "schedule_mapping" not in st.session_state:
-            st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
-
-        # 📅 주간 캘린더 카드 형식 그리드 배치
-        cal_cols = st.columns(7)
-        for idx, day in enumerate(days_of_week):
-            with cal_cols[idx]:
-                st.markdown(f"### **{day[:1]}**")
-                current_assigned = st.session_state.schedule_mapping.get(day, [])
-                
-                # 각 요일별 훈련 항목 선택
-                new_assigned = st.multiselect(
-                    f"{day}",
-                    exercise_categories,
-                    default=current_assigned,
-                    key=f"cal_schedule_{day}",
-                    label_visibility="collapsed"
-                )
-                st.session_state.schedule_mapping[day] = new_assigned
-                
-                # 요일별 요약 표시
-                if len(new_assigned) == 0:
-                    st.caption("🛌 휴식")
-                else:
-                    st.caption(f"🔥 {len(new_assigned)}개 훈련")
+        # 📅 연도 및 월 선택 컨트롤
+        now = datetime.datetime.now()
+        col_y, col_m = st.columns(2)
+        with col_y:
+            cal_year = st.number_input("연도 선택", min_value=2025, max_value=2030, value=now.year)
+        with col_m:
+            cal_month = st.selectbox("월 선택", list(range(1, 13)), index=now.month - 1, format_func=lambda x: f"{x}월")
 
         st.markdown("---")
         
-        # 🔬 스포츠 과학 기반 주간 훈련 적정성 진단 장치
-        st.subheader("🔍 스포츠 과학 기반 주간 캘린더 적정성 자동 진단")
-        
-        # 전체 주간 총 훈련 세션 수 및 종목별 카운트 계산
-        total_sessions = sum(len(items) for items in st.session_state.schedule_mapping.values())
-        total_intervals = sum(1 for items in st.session_state.schedule_mapping.values() if "인터벌" in items)
-        total_strengths = sum(1 for items in st.session_state.schedule_mapping.values() if "근력" in items)
-        rest_days = sum(1 for items in st.session_state.schedule_mapping.values() if len(items) == 0)
+        # 📅 실제 달력 그리드 생성 (일요일 시작 기준)
+        cal = calendar.Calendar(firstweekday=6) 
+        month_days = list(cal.itermonthdates(cal_year, cal_month))
 
-        # 레벨별 진단 로직
-        current_lvl = st.session_state.user_level
+        weekdays_kr = ["일", "월", "화", "수", "목", "금", "토"]
+        header_cols = st.columns(7)
+        for i, day_name in enumerate(weekdays_kr):
+            with header_cols[i]:
+                st.markdown(f"<p align='center' style='font-weight:bold; color:gray;'>{day_name}</p>", unsafe_allow_html=True)
+
+        # 주 단위로 끊어서 달력 렌더링
+        for week_idx in range(0, len(month_days), 7):
+            week_slice = month_days[week_idx:week_idx+7]
+            week_cols = st.columns(7)
+            
+            for i, d in enumerate(week_slice):
+                with week_cols[i]:
+                    date_str = str(d)
+                    is_current_month = (d.month == cal_month)
+                    
+                    if not is_current_month:
+                        st.markdown(f"<p style='color:#d3d3d3; text-align:center;'>{d.day}</p>", unsafe_allow_html=True)
+                        continue
+
+                    # 해당 날짜에 저장된 훈련 계획 확인
+                    day_plan = st.session_state.monthly_calendar_plans.get(date_str, [])
+                    
+                    # 날짜 버튼 표시 (선택하면 아래에 상세 편집창이 열리도록 상태 관리)
+                    btn_label = f"{d.day}"
+                    if day_plan:
+                        btn_label += " 🔥" # 계획이 있으면 불꽃 아이콘 표시
+                        
+                    if st.button(btn_label, key=f"cal_btn_{date_str}", use_container_width=True):
+                        st.session_state.selected_date = date_str
+                        st.rerun()
+                        
+                    if day_plan:
+                        st.caption(f"{', '.join(day_plan[:2])}{' 외' if len(day_plan)>2 else ''}")
+                    else:
+                        st.caption("-")
+
+        st.markdown("---")
+
+        # 📝 선택한 날짜의 훈련 계획 상세 편집 영역
+        if "selected_date" not in st.session_state:
+            st.session_state.selected_date = str(datetime.date.today())
+
+        selected_d = st.session_state.selected_date
+        st.subheader(f"📌 선택한 날짜 [{selected_d}] 훈련 계획 설정")
         
-        if "초보용" in current_lvl:
-            if total_sessions > 15:
-                st.error("🚨 **[오버트레이닝 경고]** 초보 단계에서 주간 훈련량이 너무 과도합니다! 기초 체력과 관절 부상 방지를 위해 훈련량을 줄이고 휴식을 늘려주세요.")
-            elif total_intervals >= 3:
-                st.warning("⚠️ **[페이스 조절 권장]** 초보 단계에서는 고강도 인터벌보다는 기본 스트록과 벽치기 위주로 밸런스를 맞추는 것이 좋습니다.")
+        current_date_plans = st.session_state.monthly_calendar_plans.get(selected_d, [])
+        exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
+        
+        updated_plans = st.multiselect(
+            "이 날 수행할 훈련을 선택하세요 (선택 안 하면 빈 상태로 유지됩니다)",
+            exercise_categories,
+            default=current_date_plans,
+            key=f"edit_plan_{selected_d}"
+        )
+        
+        if updated_plans:
+            st.session_state.monthly_calendar_plans[selected_d] = updated_plans
+        else:
+            if selected_d in st.session_state.monthly_calendar_plans:
+                del st.session_state.monthly_calendar_plans[selected_d]
+
+        st.markdown("---")
+
+        # 🌟 일주일 기준 종합 훈련 계획 진단 장치 (이모티콘 피드백)
+        st.subheader("🔍 일주일 기준 훈련 밸런스 실시간 진단")
+        
+        # 최근 7일간 등록된 훈련 총 세션 및 종목 카운트 계산
+        today_obj = datetime.date.today()
+        week_sessions = 0
+        week_intervals = 0
+        week_strengths = 0
+        week_rest_days = 0
+        
+        for d_offset in range(7):
+            check_date_str = str(today_obj + datetime.timedelta(days=d_offset))
+            p_list = st.session_state.monthly_calendar_plans.get(check_date_str, [])
+            if len(p_list) > 0:
+                week_sessions += len(p_list)
+                if "인터벌" in p_list: week_intervals += 1
+                if "근력" in p_list: week_strengths += 1
             else:
-                st.success("✨ **[초보자 맞춤형 최적 진단]** 기초 체력과 기술 습득에 아주 알맞게 캘린더가 구성되어 있습니다! 이대로 꾸준히 진행하세요 👍")
-                
-        elif "일반부" in current_lvl:
-            if rest_days == 0:
-                st.warning("⚠️ **[휴식 부족 경고]** 일주일 내내 쉬는 날이 없습니다. 동호인(일반부)은 주 1~2회 완전 휴식이나 가벼운 회복이 필수적입니다.")
-            elif 8 <= total_sessions <= 14 and rest_days >= 1:
-                st.success("🏆 **[동호인 최적 밸런스 진단]** 실전 경기력 향상과 부상 방지 휴식이 아주 조화롭게 잘 잡힌 훌륭한 주간 캘린더입니다 😆🏸")
+                week_rest_days += 1
+
+        lvl = st.session_state.user_level
+        
+        # 이모티콘 및 진단 메시지 출력 로직
+        if "초보용" in lvl:
+            if week_sessions > 15:
+                emoji = "🥵"
+                status_title = "오버트레이닝 위험 (과부하)"
+                advice = "초보 단계에서는 주간 훈련량이 너무 많습니다! 관절 부상 방지를 위해 일정을 조금 비워두세요."
+            elif week_sessions >= 5:
+                emoji = "😊"
+                status_title = "기초 체력 안정권 (아주 좋음)"
+                advice = "기초 테크닉과 스트록 위주로 알차게 잘 짜여 있습니다. 지금 밸런스가 최고예요!"
             else:
-                st.info("💡 **[조언]** 스트록과 보강 운동(코어/근력)의 비율을 골고루 분산시키면 코트 위에서 스텝이 훨씬 가벼워집니다.")
-                
+                emoji = "😐"
+                status_title = "훈련량 여유 있음"
+                advice = "훈련 일정이 아직 여유롭습니다. 주간 목표에 맞춰 기초 벽치기나 코어를 조금 더 채워보세요."
+        elif "일반부" in lvl:
+            if week_sessions >= 10 and week_rest_days >= 1:
+                emoji = "🤩"
+                status_title = "동호인 최적의 황금 밸런스!"
+                advice = "실전 경기력 향상과 휴식의 조화가 환상적입니다. 이대로만 유지하시면 실력이 급상승합니다!"
+            elif week_sessions == 0:
+                emoji = "💤"
+                status_title = "훈련 계획 미입력 상태"
+                advice = "아직 일주일 캘린더에 계획이 없습니다. 달력에서 날짜를 눌러 훈련을 추가해 보세요!"
+            else:
+                emoji = "🧐"
+                status_title = "보강 운동 조화 필요"
+                advice = "스트록과 근력 보강 운동의 비율을 골고루 분산시키면 코트 위 스텝이 훨씬 가벼워집니다."
         else: # 선수용
-            if total_sessions < 10:
-                st.warning("⚠️ **[훈련량 부족 경고]** 선수부 기준으로는 주간 총 훈련 세션과 보강 운동(근력/인터벌) 비중이 다소 부족합니다. 훈련 강도를 더 높여보세요!")
-            elif total_strengths < 2 or total_intervals < 2:
-                st.warning("⚠️ **[기능 보강 필요]** 선수용 퍼포먼스를 위해 무산소성 인터벌과 전문 근력 보강 운동(근력/코어)을 더 추가하는 것을 권장합니다.")
+            if week_sessions >= 14 and week_strengths >= 2:
+                emoji = "🏆"
+                status_title = "엘리트 선수부 완벽한 훈련 루틴!"
+                advice = "시합 대비 무산소 및 근력 밸런스가 매우 훌륭합니다. 완벽한 컨디션으로 코트를 제압하세요!"
+            elif week_sessions < 8:
+                emoji = "⚠️"
+                status_title = "선수부 기준 훈련량 부족"
+                advice = "전국체전 및 시합을 준비하기엔 현재 캘린더 등록량이 다소 적습니다. 인터벌과 헌볼/근력을 더 추가하세요!"
             else:
-                st.success("🔥 **[엘리트 선수부 완벽한 고강도 진단]** 전국체전 및 시합 대비를 위한 무산소-유산소 밸런스가 매우 훌륭합니다. 이대로 정진하세요 🏆")
+                emoji = "🔥"
+                status_title = "열정적인 고강도 훈련 주간"
+                advice = "강도 높은 훈련이 잘 배치되어 있습니다. 훈련 후 영양 섭취와 쿨다운 스트레칭을 잊지 마세요!"
+
+        # 이모티콘 대시보드 카드 출력
+        st.markdown(
+            f"""
+            <div style="padding: 20px; border-radius: 10px; background-color: #f0f2f6; text-align: center;">
+                <h2>일주일 종합 진단: {emoji} <b>{status_title}</b></h2>
+                <p style="font-size: 16px; margin-top: 10px;">{advice}</p>
+                <p style="font-size: 13px; color: gray; margin-top: 5px;">(등록된 주간 총 훈련 항목: {week_sessions}개 / 휴식일: {week_rest_days}일)</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     with tab2:
         st.subheader("📅 오늘의 훈련 수행, 레벨별 기술·심리 진단 및 훈련량 입력")
@@ -365,20 +456,21 @@ else:
             my_weaknesses = st.multiselect("보완이 필요한 기술 및 요인 선택", weakness_options, key="weak_sel_lvl")
             extra_weakness = st.text_input("⚠️ [기타 취약점 직접 입력 (선택사항)]", placeholder="예: 특정 코스로 오는 공 대처가 어려움 등", key="extra_weak_lvl")
 
-        today_plan = st.session_state.schedule_mapping.get(today_selection, level_default_schedules[current_level].get(today_selection, []))
-        st.info(f"💡 **[{today_selection} 캘린더 스케줄]** 선택된 훈련: **{', '.join(today_plan) if today_plan else '휴식'}**")
+        # 캘린더에 등록된 오늘의 계획 불러오기
+        today_calendar_plan = st.session_state.monthly_calendar_plans.get(str(train_date), [])
+        st.info(f"💡 **[{train_date} 캘린더 스케줄]** 계획된 훈련: **{', '.join(today_calendar_plan) if today_calendar_plan else '등록된 일정 없음 (자율 훈련)'}**")
 
         st.markdown("---")
         st.subheader("⏱️ 기본 훈련량 수행 시간 입력 (분 단위)")
         
         col_r1, col_r2 = st.columns(2)
         with col_r1:
-            real_stroke_min = st.slider("오늘 스트록 수행 시간 (분)", 0, 180, 30 if "스트록" in today_plan else 0, step=10, key="r_stroke")
-            real_wall_min = st.slider("오늘 벽치기 수행 시간 (분)", 0, 120, 20 if "벽치기" in today_plan else 0, step=5, key="r_wall")
-            real_interval_min = st.slider("오늘 인터벌 수행 시간 (분)", 0, 120, 20 if "인터벌" in today_plan else 0, step=5, key="r_inter")
+            real_stroke_min = st.slider("오늘 스트록 수행 시간 (분)", 0, 180, 30 if "스트록" in today_calendar_plan else 0, step=10, key="r_stroke")
+            real_wall_min = st.slider("오늘 벽치기 수행 시간 (분)", 0, 120, 20 if "벽치기" in today_calendar_plan else 0, step=5, key="r_wall")
+            real_interval_min = st.slider("오늘 인터벌 수행 시간 (분)", 0, 120, 20 if "인터벌" in today_calendar_plan else 0, step=5, key="r_inter")
         with col_r2:
-            real_core_min = st.slider("오늘 코어 운동 수행 시간 (분)", 0, 120, 20 if "코어" in today_plan else 0, step=5, key="r_core")
-            real_strength_min = st.slider("오늘 근력 운동 수행 시간 (분)", 0, 180, 40 if "근력" in today_plan else 0, step=10, key="r_str")
+            real_core_min = st.slider("오늘 코어 운동 수행 시간 (분)", 0, 120, 20 if "코어" in today_calendar_plan else 0, step=5, key="r_core")
+            real_strength_min = st.slider("오늘 근력 운동 수행 시간 (분)", 0, 180, 40 if "근력" in today_calendar_plan else 0, step=10, key="r_str")
 
         hunbol_time = 0.0
         footwork_details = []
@@ -523,10 +615,10 @@ else:
             }
             st.session_state.training_history.append(log_entry)
 
-            st.success(f"[{today_selection} / {train_date}] 100점 만점 훈련 분석 완료 및 저장되었습니다! (3번 탭에서 확인)")
+            st.success(f"[{train_date}] 100점 만점 훈련 분석 완료 및 저장되었습니다! (3번 탭에서 확인)")
             
             st.markdown("---")
-            st.markdown(f"### 💯 [{today_selection}] 오늘의 훈련 완성도 리포트")
+            st.markdown(f"### 💯 [{train_date}] 오늘의 훈련 완성도 리포트")
             
             # 🎨 시각적 대시보드 강화: 등급별 컬러 카드 UI 적용
             if total_100_score >= 85:
@@ -607,4 +699,4 @@ else:
                 data=csv_data,
                 file_name=f"badminton_training_log_{datetime.date.today()}.csv",
                 mime="text/csv"
-        )
+)
