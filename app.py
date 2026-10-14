@@ -103,7 +103,6 @@ if not st.session_state.started:
     
     st.markdown("---")
     
-    # 🎯 첫 화면 카드형 레벨 선택 UI
     st.markdown("#### 👤 훈련자 레벨 선택")
     
     col_l1, col_l2, col_l3 = st.columns(3)
@@ -216,39 +215,81 @@ else:
     st.markdown("---")
 
     tab1, tab2, tab3 = st.tabs([
-        "⚙️ 1. 주간 목표 및 요일별 스케줄 설정", 
+        "📅 1. 주간 훈련 캘린더 & 레벨별 적정성 진단", 
         "📝 2. 레벨별 기술·심리 진단 및 오늘의 훈련 기록", 
         "📊 3. 100점 만점 훈련 리포트 & 히스토리"
     ])
 
     with tab1:
-        st.subheader("🎯 주간 목표 횟수 설정")
-        col_g1, col_g2 = st.columns(2)
-        with col_g1:
-            st.markdown("🏸 **배드민턴 주간 총 목표 (횟수 기준)**")
-            st.session_state.weekly_goal_stroke = st.slider("주간 총 스트록 목표 횟수", 0, 7, st.session_state.weekly_goal_stroke)
-            st.session_state.weekly_goal_wall = st.slider("주간 총 벽치기 목표 횟수", 0, 7, st.session_state.weekly_goal_wall)
-            st.session_state.weekly_goal_interval = st.slider("주간 총 인터벌 목표 횟수", 0, 7, st.session_state.weekly_goal_interval)
-        with col_g2:
-            st.markdown("💪 **체력 및 보강 주간 총 목표 (횟수 기준)**")
-            st.session_state.weekly_goal_core = st.slider("주간 총 코어 운동 목표 횟수", 0, 7, st.session_state.weekly_goal_core)
-            st.session_state.weekly_goal_strength = st.slider("주간 총 근력 운동 목표 횟수", 0, 7, st.session_state.weekly_goal_strength)
+        st.subheader(f"🗓️ 주간 훈련 캘린더 (현재 레벨: {st.session_state.user_level})")
+        st.write("요일별로 어떤 훈련을 수행할지 캘린더에서 체크하고, 하단에서 **스포츠 과학 기반 적정성 진단**을 확인하세요!")
 
-        st.markdown("---")
-        st.subheader(f"🗓️ 요일별 훈련 배정 설정 (현재 레벨: {st.session_state.user_level})")
         days_of_week = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
         exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
 
-        for day in days_of_week:
-            with st.expander(f"📌 {day} 훈련 배정 관리"):
-                current_assigned = st.session_state.schedule_mapping.get(day, level_default_schedules[st.session_state.user_level].get(day, []))
+        if "schedule_mapping" not in st.session_state:
+            st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
+
+        # 📅 주간 캘린더 카드 형식 그리드 배치
+        cal_cols = st.columns(7)
+        for idx, day in enumerate(days_of_week):
+            with cal_cols[idx]:
+                st.markdown(f"### **{day[:1]}**")
+                current_assigned = st.session_state.schedule_mapping.get(day, [])
+                
+                # 각 요일별 훈련 항목 선택
                 new_assigned = st.multiselect(
-                    f"{day}에 수행할 훈련 선택",
+                    f"{day}",
                     exercise_categories,
                     default=current_assigned,
-                    key=f"schedule_{day}"
+                    key=f"cal_schedule_{day}",
+                    label_visibility="collapsed"
                 )
                 st.session_state.schedule_mapping[day] = new_assigned
+                
+                # 요일별 요약 표시
+                if len(new_assigned) == 0:
+                    st.caption("🛌 휴식")
+                else:
+                    st.caption(f"🔥 {len(new_assigned)}개 훈련")
+
+        st.markdown("---")
+        
+        # 🔬 스포츠 과학 기반 주간 훈련 적정성 진단 장치
+        st.subheader("🔍 스포츠 과학 기반 주간 캘린더 적정성 자동 진단")
+        
+        # 전체 주간 총 훈련 세션 수 및 종목별 카운트 계산
+        total_sessions = sum(len(items) for items in st.session_state.schedule_mapping.values())
+        total_intervals = sum(1 for items in st.session_state.schedule_mapping.values() if "인터벌" in items)
+        total_strengths = sum(1 for items in st.session_state.schedule_mapping.values() if "근력" in items)
+        rest_days = sum(1 for items in st.session_state.schedule_mapping.values() if len(items) == 0)
+
+        # 레벨별 진단 로직
+        current_lvl = st.session_state.user_level
+        
+        if "초보용" in current_lvl:
+            if total_sessions > 15:
+                st.error("🚨 **[오버트레이닝 경고]** 초보 단계에서 주간 훈련량이 너무 과도합니다! 기초 체력과 관절 부상 방지를 위해 훈련량을 줄이고 휴식을 늘려주세요.")
+            elif total_intervals >= 3:
+                st.warning("⚠️ **[페이스 조절 권장]** 초보 단계에서는 고강도 인터벌보다는 기본 스트록과 벽치기 위주로 밸런스를 맞추는 것이 좋습니다.")
+            else:
+                st.success("✨ **[초보자 맞춤형 최적 진단]** 기초 체력과 기술 습득에 아주 알맞게 캘린더가 구성되어 있습니다! 이대로 꾸준히 진행하세요 👍")
+                
+        elif "일반부" in current_lvl:
+            if rest_days == 0:
+                st.warning("⚠️ **[휴식 부족 경고]** 일주일 내내 쉬는 날이 없습니다. 동호인(일반부)은 주 1~2회 완전 휴식이나 가벼운 회복이 필수적입니다.")
+            elif 8 <= total_sessions <= 14 and rest_days >= 1:
+                st.success("🏆 **[동호인 최적 밸런스 진단]** 실전 경기력 향상과 부상 방지 휴식이 아주 조화롭게 잘 잡힌 훌륭한 주간 캘린더입니다 😆🏸")
+            else:
+                st.info("💡 **[조언]** 스트록과 보강 운동(코어/근력)의 비율을 골고루 분산시키면 코트 위에서 스텝이 훨씬 가벼워집니다.")
+                
+        else: # 선수용
+            if total_sessions < 10:
+                st.warning("⚠️ **[훈련량 부족 경고]** 선수부 기준으로는 주간 총 훈련 세션과 보강 운동(근력/인터벌) 비중이 다소 부족합니다. 훈련 강도를 더 높여보세요!")
+            elif total_strengths < 2 or total_intervals < 2:
+                st.warning("⚠️ **[기능 보강 필요]** 선수용 퍼포먼스를 위해 무산소성 인터벌과 전문 근력 보강 운동(근력/코어)을 더 추가하는 것을 권장합니다.")
+            else:
+                st.success("🔥 **[엘리트 선수부 완벽한 고강도 진단]** 전국체전 및 시합 대비를 위한 무산소-유산소 밸런스가 매우 훌륭합니다. 이대로 정진하세요 🏆")
 
     with tab2:
         st.subheader("📅 오늘의 훈련 수행, 레벨별 기술·심리 진단 및 훈련량 입력")
@@ -325,7 +366,7 @@ else:
             extra_weakness = st.text_input("⚠️ [기타 취약점 직접 입력 (선택사항)]", placeholder="예: 특정 코스로 오는 공 대처가 어려움 등", key="extra_weak_lvl")
 
         today_plan = st.session_state.schedule_mapping.get(today_selection, level_default_schedules[current_level].get(today_selection, []))
-        st.info(f"💡 **[{today_selection} 스케줄 안내]** 레벨: **{st.session_state.user_level}** | 주력 종목: **{st.session_state.match_type}**")
+        st.info(f"💡 **[{today_selection} 캘린더 스케줄]** 선택된 훈련: **{', '.join(today_plan) if today_plan else '휴식'}**")
 
         st.markdown("---")
         st.subheader("⏱️ 기본 훈련량 수행 시간 입력 (분 단위)")
@@ -530,7 +571,7 @@ else:
             st.markdown("---")
             is_doubles = "복식" in st.session_state.match_type
             if is_doubles:
-                st.markdown("🔹 **[복식 생체역학 진단]** 복식은 **무산소성 포스파겐 시스템(ATP-PC)**과 **반복 스프린트(RSA)**가 지배적입니다.")
+                st.markdown("🔹 **[복식 생체역학 진단]** 복식은 **무산소성 포스파겐 시스템(ATP-PC)**과 **복합 스프린트(RSA)**가 지배적입니다.")
             else:
                 st.markdown("🔹 **[단식 생체역학 진단]** 단식은 **유산소/무산소 복합 대사(V̇O2max 및 젖산 역치)**와 장시간 코트 커버리지가 핵심입니다.")
 
@@ -565,5 +606,5 @@ else:
                 label="📥 훈련 일지 CSV 다운로드",
                 data=csv_data,
                 file_name=f"badminton_training_log_{datetime.date.today()}.csv",
-                mime="text/css"
-            )
+                mime="text/csv"
+        )
