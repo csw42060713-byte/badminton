@@ -2,7 +2,27 @@ import streamlit as st
 import datetime
 import pandas as pd
 
-st.set_page_config(page_title="배드민턴 정밀 훈련 시스템", page_icon="🏸", layout="wide")
+# 1. 페이지 설정 및 모바일 앱처럼 보이는 CSS 최적화
+st.set_page_config(
+    page_title="배드민턴 정밀 훈련 시스템", 
+    page_icon="🏸", 
+    layout="wide"
+)
+
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 3rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # 0. 세션 상태 초기화
 if "started" not in st.session_state:
@@ -72,7 +92,7 @@ if not st.session_state.started:
     
     col_start1, col_start2 = st.columns([2, 1])
     with col_start1:
-        st.info("💡 **시작하기 전 안내**\n- 좌측 상단 또는 아래 버튼을 눌러 훈련을 시작할 수 있습니다.\n- 매일의 컨디션과 훈련량을 기록하여 과학적인 데이터로 실력을 키워보세요!")
+        st.info("💡 **시작하기 전 안내**\n- 좌측 사이드바 또는 아래 버튼을 눌러 훈련을 시작할 수 있습니다.\n- 매일의 컨디션과 훈련량을 기록하여 과학적인 데이터로 실력을 키워보세요!")
     
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🔥 훈련 시스템 입장하기", type="primary", use_container_width=True):
@@ -92,7 +112,6 @@ else:
         
         st.markdown("⚙️ **현재 레벨 & 주력 종목 설정**")
         
-        # 좌측 창으로 이동한 레벨 선택
         selected_level = st.selectbox(
             "훈련자 레벨 선택",
             ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"],
@@ -122,7 +141,6 @@ else:
             st.session_state.schedule_mapping = level_default_schedules[selected_level]
             st.rerun()
 
-        # 좌측 창으로 이동한 주력 종목 선택
         selected_match_type = st.selectbox(
             "주력 종목 선택",
             ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"],
@@ -365,10 +383,10 @@ else:
 
         overall_memo = st.text_area("💬 오늘 훈련 생체역학적 및 심리적 소감 (부상이나 통증이 있다면 여기에 적어주세요!)", placeholder="예: 어깨 통증이 살짝 있음, 스매시 타점 교정 필요 등")
 
-        # 📱 핸드폰/패드 키보드 가림 방지를 위한 넉넉한 하단 여백 추가
+        # 📱 키보드 가림 방지 여백 추가
         st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
 
-        if st.button("💯 100점 만점 훈련 점수 산출 및 분석 저장"):
+        if st.button("💯 100점 만점 훈련 점수 산출 및 분석 저장", use_container_width=True):
             total_training_minutes = real_stroke_min + real_wall_min + real_interval_min + real_core_min + real_strength_min + (hunbol_time * 60)
             
             # 💯 100점 만점 훈련 완성도 점수 계산 알고리즘
@@ -410,21 +428,16 @@ else:
             
             st.markdown("---")
             st.markdown(f"### 💯 [{today_selection}] 오늘의 훈련 완성도 리포트")
-            col_res1, col_res2 = st.columns(2)
-            with col_res1:
-                st.metric("오늘의 종합 훈련 점수", f"{total_100_score}점 / 100점")
-            with col_res2:
-                st.metric("훈련 성취 등급", grade)
-
-            st.markdown("---")
+            
+            # 🎨 시각적 대시보드 강화: 등급별 컬러 카드 UI 적용
             if total_100_score >= 85:
-                st.info("🔥 **오늘 정말 완벽하게 훈련을 완성하셨네요!** 엄청난 몰입도와 집중력이었습니다. 따뜻한 물로 샤워하고 오늘은 푹 쉬어주세요! 고생 많으셨습니다 🥹")
+                st.success(f"### 🟢 훈련 점수: {total_100_score}점 / 100점\n**등급:** {grade}\n\n🔥 **오늘 정말 완벽하게 훈련을 완성하셨네요!** 엄청난 몰입도와 집중력이었습니다. 따뜻한 물로 샤워하고 오늘은 푹 쉬어주세요! 고생 많으셨습니다 🥹")
             elif total_100_score >= 70:
-                st.info("✨ **멋집니다! 오늘 할당량을 훌륭하게 해내셨군요!** 꾸준함이 실력을 만듭니다. 내일도 화이팅입니다 😆🏸")
-            elif condition <= 4:
-                st.info("🥺 **오늘 컨디션이 저조했음에도 불구하고 최선을 다하셨습니다!** 몸이 무거울 때 무리하지 않은 완급 조절이 아주 양호했습니다 💪")
+                st.info(f"### 🔵 훈련 점수: {total_100_score}점 / 100점\n**등급:** {grade}\n\n✨ **멋집니다! 오늘 할당량을 훌륭하게 해내셨군요!** 꾸준함이 실력을 만듭니다. 내일도 화이팅입니다 😆🏸")
+            elif total_100_score >= 50:
+                st.warning(f"### 🟠 훈련 점수: {total_100_score}점 / 100점\n**등급:** {grade}\n\n⚖️ **차분하게 밸런스를 유지한 하루였습니다!** 무리하지 않고 컨디션을 조절한 점이 아주 좋습니다 😊")
             else:
-                st.info("🍀 **차분하게 회복과 기초를 다진 하루였습니다!** 이런 가벼운 훈련도 차곡차곡 쌓여 단단한 내공이 됩니다 😊")
+                st.error(f"### 🔴 훈련 점수: {total_100_score}점 / 100점\n**등급:** {grade}\n\n🍀 **가벼운 회복과 휴식이 필요한 상태입니다.** 오늘은 무리한 고강도 훈련을 피하고 충분한 영양 섭취와 수면을 취하세요!")
 
             st.markdown("---")
             st.subheader("💡 맞춤 기술 생체역학 & 스포츠 심리/부하 처방전")
