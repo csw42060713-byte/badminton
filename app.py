@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import calendar
 
-# 1. 모바일 최적화 디자인 설정
+# 1. 모바일 최적화 및 완벽한 가로 정렬 스타일 설정
 st.set_page_config(
     page_title="내 손안의 배드민턴 훈련장", 
     page_icon="🏸", 
@@ -72,7 +72,39 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 📱 하단 고정 네비게이션바 강제 가로 한 줄 정렬 */
+    /* 🎨 가로 한 줄로 고정된 이모지 선택 버튼 컨테이너 */
+    .score-row {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    .score-btn {
+        flex: 1;
+        text-align: center;
+        padding: 10px 2px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: none;
+        border: 2px solid transparent;
+        box-sizing: border-box;
+    }
+    .score-btn.active {
+        border-color: #1e3c72;
+        box-shadow: 0 0 5px rgba(30, 60, 114, 0.4);
+    }
+    
+    /* 점수대별 배경 색상 */
+    .bg-1 { background-color: #f3e5f5; color: #4a148c; } /* 1~2점: 슬픔 (보라) */
+    .bg-2 { background-color: #e3f2fd; color: #0d47a1; } /* 3~4점: 조금 슬픔 (파랑) */
+    .bg-3 { background-color: #e8f5e9; color: #1b5e20; } /* 5~6점: 무표정 (초록) */
+    .bg-4 { background-color: #fff3e0; color: #e65100; } /* 7~8점: 조금 웃음 (주황) */
+    .bg-5 { background-color: #ffebee; color: #b71c1c; } /* 9~10점: 웃음 (빨강) */
+
+    /* 📱 순수 HTML/CSS Flexbox 기반 무조건 가로 한 줄 고정 하단 네비게이션 바 */
     .fixed-nav-container {
         position: fixed;
         bottom: 0;
@@ -89,6 +121,28 @@ hide_streamlit_style = """
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         padding: 0 5px;
         box-sizing: border-box;
+    }
+    .nav-tab-btn {
+        flex: 1;
+        height: 48px;
+        margin: 0 3px;
+        background-color: #f1f3f5;
+        border: 1px solid #dcedc8;
+        color: #333333;
+        font-size: 12px;
+        font-weight: bold;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        cursor: pointer;
+        box-sizing: border-box;
+    }
+    .nav-tab-btn.active {
+        background-color: #1e3c72;
+        color: #ffffff;
+        border-color: #1e3c72;
     }
     </style>
 """
@@ -121,6 +175,25 @@ if "cond_score" not in st.session_state:
 
 if "hard_score" not in st.session_state:
     st.session_state.hard_score = 6
+
+# URL 쿼리 파라미터 처리 (탭 및 점수 선택 즉시 반영)
+query_params = st.query_params
+if "tab" in query_params:
+    t = query_params["tab"]
+    if t in ["달력", "기록작성", "약점처방", "통계"]:
+        st.session_state.active_tab = t
+
+if "set_cond" in query_params:
+    try:
+        st.session_state.cond_score = int(query_params["set_cond"])
+    except:
+        pass
+
+if "set_hard" in query_params:
+    try:
+        st.session_state.hard_score = int(query_params["set_hard"])
+    except:
+        pass
 
 
 # ==========================================
@@ -165,7 +238,7 @@ if not st.session_state.started:
 
 
 # ==========================================
-# 🏆 2. 메인 앱 화면 (튕김 없는 네이티브 탭 관리)
+# 🏆 2. 메인 앱 화면
 # ==========================================
 else:
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
@@ -264,7 +337,7 @@ else:
                 st.rerun()
 
     # ------------------------------------------
-    # [탭 2] 오늘 기록 화면 (가로 5칸 표정 버튼형)
+    # [탭 2] 오늘 기록 화면 (얼굴표정 가로 한 줄 강제 정렬형)
     # ------------------------------------------
     elif st.session_state.active_tab == "기록작성":
         st.markdown("### 📝 오늘의 컨디션은 어때요?")
@@ -273,56 +346,34 @@ else:
         
         st.markdown("#### 🔋 컨디션 상태 선택 (1~10점)")
         
-        f1, f2, f3, f4, f5 = st.columns(5)
-        with f1:
-            if st.button("😢\n1~2점", use_container_width=True, type="primary" if st.session_state.cond_score==2 else "secondary"):
-                st.session_state.cond_score = 2
-                st.rerun()
-        with f2:
-            if st.button("🙁\n3~4점", use_container_width=True, type="primary" if st.session_state.cond_score==4 else "secondary"):
-                st.session_state.cond_score = 4
-                st.rerun()
-        with f3:
-            if st.button("😐\n5~6점", use_container_width=True, type="primary" if st.session_state.cond_score==6 else "secondary"):
-                st.session_state.cond_score = 6
-                st.rerun()
-        with f4:
-            if st.button("🙂\n7~8점", use_container_width=True, type="primary" if st.session_state.cond_score==8 else "secondary"):
-                st.session_state.cond_score = 8
-                st.rerun()
-        with f5:
-            if st.button("😄\n9~10점", use_container_width=True, type="primary" if st.session_state.cond_score==10 else "secondary"):
-                st.session_state.cond_score = 10
-                st.rerun()
-
-        st.info(f"현재 선택된 컨디션 점수: **{st.session_state.cond_score}점**")
+        c_score = st.session_state.cond_score
+        c_html = f"""
+        <div class="score-row">
+            <a class="score-btn bg-1 {"active" if c_score==2 else ""}" href="?tab=기록작성&set_cond=2" target="_self">😢<br>1~2점</a>
+            <a class="score-btn bg-2 {"active" if c_score==4 else ""}" href="?tab=기록작성&set_cond=4" target="_self">🙁<br>3~4점</a>
+            <a class="score-btn bg-3 {"active" if c_score==6 else ""}" href="?tab=기록작성&set_cond=6" target="_self">😐<br>5~6점</a>
+            <a class="score-btn bg-4 {"active" if c_score==8 else ""}" href="?tab=기록작성&set_cond=8" target="_self">🙂<br>7~8점</a>
+            <a class="score-btn bg-5 {"active" if c_score==10 else ""}" href="?tab=기록작성&set_cond=10" target="_self">😄<br>9~10점</a>
+        </div>
+        """
+        st.markdown(c_html, unsafe_allow_html=True)
+        st.info(f"현재 선택된 컨디션 점수: **{c_score}점**")
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("#### 🔥 오늘 훈련 강도 선택 (1~10점)")
         
-        h1, h2, h3, h4, h5 = st.columns(5)
-        with h1:
-            if st.button("😢\n1~2점", use_container_width=True, type="primary" if st.session_state.hard_score==2 else "secondary"):
-                st.session_state.hard_score = 2
-                st.rerun()
-        with h2:
-            if st.button("🙁\n3~4점", use_container_width=True, type="primary" if st.session_state.hard_score==4 else "secondary"):
-                st.session_state.hard_score = 4
-                st.rerun()
-        with h3:
-            if st.button("😐\n5~6점", use_container_width=True, type="primary" if st.session_state.hard_score==6 else "secondary"):
-                st.session_state.hard_score = 6
-                st.rerun()
-        with h4:
-            if st.button("🙂\n7~8점", use_container_width=True, type="primary" if st.session_state.hard_score==8 else "secondary"):
-                st.session_state.hard_score = 8
-                st.rerun()
-        with h5:
-            if st.button("😄\n9~10점", use_container_width=True, type="primary" if st.session_state.hard_score==10 else "secondary"):
-                st.session_state.hard_score = 10
-                st.rerun()
-
-        st.info(f"현재 선택된 훈련 강도: **{st.session_state.hard_score}점**")
+        h_score = st.session_state.hard_score
+        h_html = f"""
+        <div class="score-row">
+            <a class="score-btn bg-1 {"active" if h_score==2 else ""}" href="?tab=기록작성&set_hard=2" target="_self">😢<br>1~2점</a>
+            <a class="score-btn bg-2 {"active" if h_score==4 else ""}" href="?tab=기록작성&set_hard=4" target="_self">🙁<br>3~4점</a>
+            <a class="score-btn bg-3 {"active" if h_score==6 else ""}" href="?tab=기록작성&set_hard=6" target="_self">😐<br>5~6점</a>
+            <a class="score-btn bg-4 {"active" if h_score==8 else ""}" href="?tab=기록작성&set_hard=8" target="_self">🙂<br>7~8점</a>
+            <a class="score-btn bg-5 {"active" if h_score==10 else ""}" href="?tab=기록작성&set_hard=10" target="_self">😄<br>9~10점</a>
+        </div>
+        """
+        st.markdown(h_html, unsafe_allow_html=True)
+        st.info(f"현재 선택된 훈련 강도: **{h_score}점**")
 
         total_time = st.slider("총 운동 시간 (분)", 30, 240, 90, 10)
 
@@ -482,37 +533,16 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 튕김 없는 네이티브 버튼 하단 고정 바 (가로 한 줄 강제 정렬)
+    # 📱 순수 HTML/CSS Flexbox 기반 무조건 가로 한 줄 고정 하단 네비게이션 바
     # ------------------------------------------
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    st.markdown('<div class="fixed-nav-container">', unsafe_allow_html=True)
-    
-    b_col1, b_col2, b_col3, b_col4, b_col5 = st.columns(5)
-    
-    with b_col1:
-        if st.button("👥 소셜", use_container_width=True):
-            st.session_state.active_tab = "소셜"
-            st.rerun()
-    with b_col2:
-        btn_type_cal = "primary" if st.session_state.active_tab == "달력" else "secondary"
-        if st.button("📅 달력", use_container_width=True, type=btn_type_cal):
-            st.session_state.active_tab = "달력"
-            st.rerun()
-    with b_col3:
-        btn_type_rec = "primary" if st.session_state.active_tab == "기록작성" else "secondary"
-        if st.button("➕ 기록", use_container_width=True, type=btn_type_rec):
-            st.session_state.active_tab = "기록작성"
-            st.rerun()
-    with b_col4:
-        btn_type_weak = "primary" if st.session_state.active_tab == "약점처방" else "secondary"
-        if st.button("💡 약점", use_container_width=True, type=btn_type_weak):
-            st.session_state.active_tab = "약점처방"
-            st.rerun()
-    with b_col5:
-        btn_type_stat = "primary" if st.session_state.active_tab == "통계" else "secondary"
-        if st.button("📈 통계", use_container_width=True, type=btn_type_stat):
-            st.session_state.active_tab = "통계"
-            st.rerun()
-            
-    st.markdown('</div>', unsafe_allow_html=True)
+    nav_html = f"""
+        <div class="fixed-nav-container">
+            <div style="display: flex; flex-direction: row; justify-content: space-around; width: 100%;">
+                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "달력" else ""}" href="?tab=달력" target="_self">📅 달력</a>
+                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "기록작성" else ""}" href="?tab=기록작성" target="_self">➕ 기록</a>
+                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "약점처방" else ""}" href="?tab=약점처방" target="_self">💡 약점</a>
+                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "통계" else ""}" href="?tab=통계" target="_self">📈 통계</a>
+            </div>
+        </div>
+    """
+    st.markdown(nav_html, unsafe_allow_html=True)
