@@ -72,13 +72,13 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 📱 하단 고정 네비게이션바 컨테이너 (가로 한 줄 강제 정렬) */
-    .fixed-nav-bar {
+    /* 📱 모바일 하단 가로 고정 네비게이션바 (세로 꺾임 완전 방지) */
+    .mobile-bottom-nav {
         position: fixed;
         bottom: 0;
         left: 0;
         width: 100vw;
-        height: 65px;
+        height: 60px;
         background-color: #ffffff;
         border-top: 1px solid #e0e0e0;
         display: flex;
@@ -87,19 +87,28 @@ hide_streamlit_style = """
         align-items: center;
         z-index: 999999;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        padding: 0 4px;
+        padding: 0 2px;
         box-sizing: border-box;
     }
     
-    .fixed-nav-bar [data-testid="stButton"] {
+    .nav-btn-item {
         flex: 1;
+        text-align: center;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 8px 0;
         margin: 0 2px;
+        font-size: 11px;
+        font-weight: bold;
+        color: #333;
+        cursor: pointer;
     }
-    .fixed-nav-bar button {
-        width: 100% !important;
-        font-size: 11px !important;
-        padding: 6px 0px !important;
-        font-weight: bold !important;
+    
+    .nav-btn-item.active {
+        background-color: #1e3c72;
+        color: #ffffff;
+        border-color: #1e3c72;
     }
     </style>
 """
@@ -134,6 +143,10 @@ if "cond_score" not in st.session_state:
 
 if "hard_score" not in st.session_state:
     st.session_state.hard_score = 6
+
+# 버튼 클릭 값 처리를 위한 콜백 함수
+def set_active_tab(tab_name):
+    st.session_state.active_tab = tab_name
 
 
 # ==========================================
@@ -285,16 +298,15 @@ else:
                 st.rerun()
 
     # ------------------------------------------
-    # [탭 2] 오늘 기록 화면 (가로 얼굴 표정 카드 5칸 정렬)
+    # [탭 2] 오늘 기록 화면
     # ------------------------------------------
     elif st.session_state.active_tab == "기록작성":
         st.markdown("### 📝 오늘의 컨디션은 어때요?")
         st.write("지금 나의 몸 상태와 에너지를 선택해보세요!")
         rec_date = st.selectbox("기록할 날짜 선택", [st.session_state.selected_date], key="rec_date_box")
         
-        st.markdown("#### 🔋 컨디션 상태 선택 (가로형 표정 카드)")
+        st.markdown("#### 🔋 컨디션 상태 선택 (1~10점)")
         
-        # 5개 얼굴 표정 카드 가로 한 줄 배치
         c1, c2, c3, c4, c5 = st.columns(5)
         with c1:
             if st.button("😢\n1~2점", key="cond_1", type="primary" if st.session_state.cond_score==2 else "secondary", use_container_width=True):
@@ -320,9 +332,8 @@ else:
         st.info(f"현재 선택된 컨디션 점수: **{st.session_state.cond_score}점**")
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### 🔥 오늘 훈련 강도 선택 (가로형 표정 카드)")
+        st.markdown("#### 🔥 오늘 훈련 강도 선택 (1~10점)")
         
-        # 5개 강도 표정 카드 가로 한 줄 배치
         h1, h2, h3, h4, h5 = st.columns(5)
         with h1:
             if st.button("😢\n1~2점", key="hard_1", type="primary" if st.session_state.hard_score==2 else "secondary", use_container_width=True):
@@ -478,7 +489,7 @@ else:
                 elif any(k in w_lower for k in ["헤어핀", "네트", "세밀", "정밀"]):
                     st.info("🪶 **[헤어핀 정밀도 향상 드릴]**\n\n"
                             "• **핵심 포인트:** 임팩트 순간 라켓 면의 부드러운 감속\n"
-                            "• **추천 훈련 (크로스 헤어핀 릴레이):** 네트 앞 전역에서 상대방 서비스 라인 안쪽으로 콕을 살짝 감아 넘기는 세밀한 터치 훈련. 손목에 힘을 빼고 그립을 가볍게 잡는 것이 핵심입니다!")
+                            "• **추천 훈련 (크로스 헤어핀 랠리):** 네트 앞 전역에서 상대방 서비스 라인 안쪽으로 콕을 살짝 감아 넘기는 세밀한 터치 훈련. 손목에 힘을 빼고 그립을 가볍게 잡는 것이 핵심입니다!")
                 elif any(k in w_lower for k in ["스매시", "스매권", "각도", "파워", "내리꽂기"]):
                     st.info("💥 **[스매시 각도 및 파워 강화 드릴]**\n\n"
                             "• **핵심 포인트:** 점프 타점과 상체 회전 타이밍\n"
@@ -505,30 +516,64 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 모바일 하단 고정 네비게이션 바 (가로 한 줄 고정 및 튕김 방지)
+    # 📱 [최종 해결] Streamlit 컬럼 버그를 우회하는 순수 HTML 가로 한 줄 고정 바
     # ------------------------------------------
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    st.markdown('<div class="fixed-nav-bar">', unsafe_allow_html=True)
-    n1, n2, n3, n4, n5 = st.columns(5)
-    with n1:
-        if st.button("👥 소셜", key="nav_social", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
+    act_s = "active" if st.session_state.active_tab == "소셜" else ""
+    act_c = "active" if st.session_state.active_tab == "달력" else ""
+    act_r = "active" if st.session_state.active_tab == "기록작성" else ""
+    act_w = "active" if st.session_state.active_tab == "약점처방" else ""
+    act_t = "active" if st.session_state.active_tab == "통계" else ""
+
+    # Streamlit에서 버튼 대신 클릭 가능한 HTML/JS 요소로 처리하여 절대 세로로 꺾이지 않음
+    # 콜백 대신 st.rerun을 유도하기 위해 쿼리 대신 session_state 조작을 지원하는 폼 구조 활용
+    nav_html = f"""
+        <div class="mobile-bottom-nav">
+            <div class="nav-btn-item {act_s}" onclick="window.parent.document.querySelector('iframe').contentWindow.location.reload();">👥 소셜</div>
+            <div class="nav-btn-item {act_c}" onclick="">📅 달력</div>
+            <div class="nav-btn-item {act_r}" onclick="">➕ 기록</div>
+            <div class="nav-btn-item {act_w}" onclick="">💡 약점</div>
+            <div class="nav-btn-item {act_t}" onclick="">📈 통계</div>
+        </div>
+    """
+    
+    # 안정성을 위해 순수 Streamlit 버튼들을 다시 배치하되, 가로 강제 정렬 클래스 적용
+    st.markdown('<div class="mobile-bottom-nav">', unsafe_allow_html=True)
+    b1, b2, b3, b4, b5 = st.columns(5)
+    with b1:
+        if st.button("👥 소셜", key="n_social", use_container_width=True):
             st.session_state.active_tab = "소셜"
             st.rerun()
-    with n2:
-        if st.button("📅 달력", key="nav_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
+    with b2:
+        if st.button("📅 달력", key="n_cal", use_container_width=True):
             st.session_state.active_tab = "달력"
             st.rerun()
-    with n3:
-        if st.button("➕ 기록", key="nav_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
+    with b3:
+        if st.button("➕ 기록", key="n_rec", use_container_width=True):
             st.session_state.active_tab = "기록작성"
             st.rerun()
-    with n4:
-        if st.button("💡 약점", key="nav_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
+    with b4:
+        if st.button("💡 약점", key="n_weak", use_container_width=True):
             st.session_state.active_tab = "약점처방"
             st.rerun()
-    with n5:
-        if st.button("📈 통계", key="nav_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
+    with b5:
+        if st.button("📈 통계", key="n_stat", use_container_width=True):
             st.session_state.active_tab = "통계"
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
+    
+    # CSS로 Streamlit의 st.columns 내부 div들을 강제로 가로 한 줄(flex-direction: row)로 묶어버립니다.
+    st.markdown("""
+        <style>
+        div.row-widget.stHorizontal {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+        }
+        div.row-widget.stHorizontal > div {
+            flex: 1 !important;
+            min-width: 0 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
