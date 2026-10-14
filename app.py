@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import calendar
 
-# 1. 페이지 설정 및 모바일 디자인 CSS 최적화
+# 1. 페이지 설정 및 모바일 달력 CSS 최적화
 st.set_page_config(
     page_title="배드민턴 정밀 훈련 시스템", 
     page_icon="🏸", 
@@ -20,8 +20,8 @@ hide_streamlit_style = """
     .block-container {
         padding-top: 1rem;
         padding-bottom: 3rem;
-        padding-left: 0.8rem;
-        padding-right: 0.8rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
     }
     
     .mini-card {
@@ -32,15 +32,46 @@ hide_streamlit_style = """
         box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         margin-bottom: 15px;
     }
-    
-    .cal-memo-box {
-        font-size: 10px;
+
+    /* 핸드폰 전용 진짜 캘린더 그리드 스타일 */
+    .cal-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background-color: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .cal-th {
+        text-align: center;
+        padding: 8px 0;
+        font-size: 13px;
+        font-weight: bold;
+        background-color: #f8f9fa;
+    }
+    .cal-td {
+        height: 65px;
+        vertical-align: top;
+        border: 1px solid #f0f0f0;
+        padding: 4px;
+        position: relative;
+    }
+    .cal-day-num {
+        font-size: 12px;
+        font-weight: bold;
+        color: #333;
+    }
+    .cal-plan-badge {
+        font-size: 9px;
+        background-color: #e3f2fd;
         color: #1e3c72;
-        background-color: #eef2f5;
-        border-radius: 4px;
-        padding: 2px;
+        padding: 1px 3px;
+        border-radius: 3px;
         margin-top: 2px;
-        word-break: break-all;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     </style>
 """
@@ -147,7 +178,7 @@ if not st.session_state.started:
             st.rerun()
 
     st.markdown("---")
-    st.info("💡 **안내:** 입장 후에도 언제든지 상단이나 좌측 사이드바에서 레벨과 주력 종목을 변경하실 수 있습니다.")
+    st.info("💡 **안내:** 입장 후 상단에서 레벨과 주력 종목을 언제든 변경할 수 있습니다.")
 
 # ==========================================
 # 🏆 메인 훈련 시스템 화면
@@ -202,7 +233,7 @@ else:
             st.session_state.started = False
             st.rerun()
         st.markdown("---")
-        st.info("💡 모바일 화면 상단에서도 레벨과 종목을 간편하게 바꿀 수 있습니다!")
+        st.info("💡 모바일 화면 상단에서 레벨과 종목을 간편하게 바꿀 수 있습니다!")
 
     tab1, tab2, tab3 = st.tabs([
         "📅 1. 캘린더 & 일주일 훈련 진단", 
@@ -231,11 +262,11 @@ else:
             st.info(f"📋 **오늘의 훈련:** {', '.join(today_plans) if today_plans else '등록된 일정 없음'}\n\n📝 **오늘의 메모:** {today_memo if today_memo else '작성된 메모가 없습니다.'}")
             
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("📅 캘린더 전체 화면 열기 (눌러서 작성/보기)", type="primary", use_container_width=True):
+            if st.button("📅 핸드폰 캘린더 형식으로 전체 보기", type="primary", use_container_width=True):
                 st.session_state.cal_view_mode = "full_calendar"
                 st.rerun()
 
-        # 캘린더 전체 화면 모드
+        # 진짜 캘린더 형태 전체 화면 모드
         else:
             if st.button("⬅️ 미니 요약 위젯으로 돌아가기", use_container_width=True):
                 st.session_state.cal_view_mode = "widget"
@@ -252,54 +283,56 @@ else:
             with col_ctrl2:
                 cal_month = st.selectbox("월", list(range(1, 13)), index=now.month - 1, format_func=lambda x: f"{x}월", label_visibility="collapsed")
 
-            st.info("💡 **아래 달력에서 날짜 버튼을 터치하면, 하단 입력창에서 바로 내용을 적고 수정할 수 있습니다!**")
-            st.markdown("---")
+            st.info("💡 **아래 달력에서 날짜를 선택(클릭)한 뒤, 하단에서 일정을 작성·수정하세요!**")
             
-            cal = calendar.Calendar(firstweekday=6) 
-            month_days = list(cal.itermonthdates(cal_year, cal_month))
+            # 날짜 선택 버튼 (셀렉트박스로 깔끔하게 연동)
+            cal_dates_list = []
+            cal_temp = calendar.Calendar(firstweekday=6)
+            for d in cal_temp.itermonthdates(cal_year, cal_month):
+                if d.month == cal_month:
+                    cal_dates_list.append(str(d))
 
+            selected_date_box = st.selectbox(
+                "🎯 편집할 날짜 선택", 
+                cal_dates_list, 
+                index=cal_dates_list.index(st.session_state.selected_date) if st.session_state.selected_date in cal_dates_list else 0
+            )
+            if selected_date_box != st.session_state.selected_date:
+                st.session_state.selected_date = selected_date_box
+                st.rerun()
+
+            # HTML 표 기반 스마트폰 전용 캘린더 렌더링
+            cal_html = "<table class='cal-table'><thead><tr>"
             weekdays_kr = ["일", "월", "화", "수", "목", "금", "토"]
-            
-            # 폰에서 찌그러지지 않도록 줄바꿈 마크다운 대신 스타일 적용 테이블 형태 출력
-            header_cols = st.columns(7)
-            for i, day_name in enumerate(weekdays_kr):
-                with header_cols[i]:
-                    color = "red" if i == 0 else ("blue" if i == 6 else "black")
-                    st.markdown(f"<div style='text-align:center; font-weight:bold; color:{color}; font-size:13px;'>{day_name}</div>", unsafe_allow_html=True)
+            for i, w_name in enumerate(weekdays_kr):
+                color = "red" if i == 0 else ("blue" if i == 6 else "black")
+                cal_html += f"<th class='cal-th' style='color:{color};'>{w_name}</th>"
+            cal_html += "</tr></thead><tbody>"
 
-            st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
-
-            for week_idx in range(0, len(month_days), 7):
-                week_slice = month_days[week_idx:week_idx+7]
-                week_cols = st.columns(7)
-                
-                for i, d in enumerate(week_slice):
-                    with week_cols[i]:
-                        date_str = str(d)
-                        is_current_month = (d.month == cal_month)
+            month_weeks = cal_temp.monthdayscalendar(cal_year, cal_month)
+            for week in month_weeks:
+                cal_html += "<tr>"
+                for day in week:
+                    if day == 0:
+                        cal_html += "<td class='cal-td' style='background-color:#fafafa;'></td>"
+                    else:
+                        d_str = f"{cal_year}-{cal_month:02d}-{day:02d}"
+                        is_selected = (d_str == st.session_state.selected_date)
+                        bg_style = "background-color: #e8f4fd; border: 2px solid #1e3c72;" if is_selected else ""
                         
-                        if not is_current_month:
-                            st.markdown(f"<div style='color:#d3d3d3; text-align:center; font-size:11px; padding:8px 0;'>{d.day}</div>", unsafe_allow_html=True)
-                            continue
-
-                        day_plan = st.session_state.monthly_calendar_plans.get(date_str, [])
-                        day_memo = st.session_state.monthly_calendar_memos.get(date_str, "")
+                        day_plans = st.session_state.monthly_calendar_plans.get(d_str, [])
+                        plan_txt = f"🏸 {day_plans[0]}" if day_plans else ""
                         
-                        btn_label = f"{d.day}"
-                        if day_plan or day_memo:
-                            btn_label += "🏸"
-                            
-                        if st.button(btn_label, key=f"grid_btn_{date_str}", use_container_width=True):
-                            st.session_state.selected_date = date_str
-                            st.rerun()
-                            
-                        if day_plan:
-                            st.markdown(f"<div style='font-size:9px; text-align:center; color:#1e3c72; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'>{', '.join(day_plan[:1])}</div>", unsafe_allow_html=True)
-                        if day_memo:
-                            short_memo = day_memo[:3] + ".." if len(day_memo) > 3 else day_memo
-                            st.markdown(f"<div class='cal-memo-box' style='text-align:center;'>📌{short_memo}</div>", unsafe_allow_html=True)
+                        cal_html += f"<td class='cal-td' style='{bg_style}'>"
+                        cal_html += f"<div class='cal-day-num'>{day}</div>"
+                        if plan_txt:
+                            cal_html += f"<div class='cal-plan-badge'>{plan_txt}</div>"
+                        cal_html += "</td>"
+                cal_html += "</tr>"
+            cal_html += "</tbody></table>"
 
-            st.markdown("---")
+            st.markdown(cal_html, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
 
             # 선택된 날짜 편집 영역
             sel_date = st.session_state.selected_date
