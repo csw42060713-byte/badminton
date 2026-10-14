@@ -72,17 +72,40 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 📱 하단 고정 네비게이션바 레이아웃 강제 고정 */
-    .fixed-nav-container {
+    /* 📱 순수 CSS Flexbox 기반 무조건 가로 한 줄 고정 하단 네비게이션 바 */
+    .mobile-nav-bar {
         position: fixed;
         bottom: 0;
         left: 0;
-        width: 100%;
+        width: 100vw;
+        height: 60px;
         background-color: #ffffff;
         border-top: 1px solid #e0e0e0;
-        padding: 6px 4px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
         z-index: 999999;
         box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        padding: 0 4px;
+    }
+    .nav-btn {
+        flex: 1;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        color: #333;
+        font-size: 11px;
+        font-weight: bold;
+        padding: 8px 0;
+        margin: 0 2px;
+        border-radius: 6px;
+        text-align: center;
+        cursor: pointer;
+    }
+    .nav-btn.active {
+        background-color: #1e3c72;
+        color: white;
+        border-color: #1e3c72;
     }
     </style>
 """
@@ -169,6 +192,16 @@ else:
             st.rerun()
 
     st.markdown("---")
+
+    # URL 파라미터로 탭 전환 처리
+    query_params = st.query_params
+    if "tab" in query_params:
+        t = query_params["tab"]
+        if t in ["소셜", "달력", "기록작성", "약점처방", "통계"]:
+            if t == "소셜":
+                st.info("팀원 공유 기능은 준비 중입니다!")
+            else:
+                st.session_state.active_tab = t
 
     # ------------------------------------------
     # [탭 1] 달력 화면
@@ -421,34 +454,23 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 Streamlit 네이티브 버튼 기반 하단 고정 네비게이션 바 (터치 버그 원인 완전 해결)
+    # 📱 순수 CSS Flexbox 가로 한 줄 고정 하단 바
     # ------------------------------------------
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    st.markdown('<div class="fixed-nav-container">', unsafe_allow_html=True)
-    b_col1, b_col2, b_col3, b_col4, b_col5 = st.columns(5)
-    
-    with b_col1:
-        if st.button("👥 소셜", use_container_width=True):
-            st.info("팀원 공유 기능은 준비 중입니다!")
-    with b_col2:
-        btn_type_cal = "primary" if st.session_state.active_tab == "달력" else "secondary"
-        if st.button("📅 달력", use_container_width=True, type=btn_type_cal):
-            st.session_state.active_tab = "달력"
-            st.rerun()
-    with b_col3:
-        btn_type_rec = "primary" if st.session_state.active_tab == "기록작성" else "secondary"
-        if st.button("➕ 기록", use_container_width=True, type=btn_type_rec):
-            st.session_state.active_tab = "기록작성"
-            st.rerun()
-    with b_col4:
-        btn_type_weak = "primary" if st.session_state.active_tab == "약점처방" else "secondary"
-        if st.button("💡 약점", use_container_width=True, type=btn_type_weak):
-            st.session_state.active_tab = "약점처방"
-            st.rerun()
-    with b_col5:
-        btn_type_stat = "primary" if st.session_state.active_tab == "통계" else "secondary"
-        if st.button("📈 통계", use_container_width=True, type=btn_type_stat):
-            st.session_state.active_tab = "통계"
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    act_s = "active" if st.session_state.active_tab == "소셜" else ""
+    act_c = "active" if st.session_state.active_tab == "달력" else ""
+    act_r = "active" if st.session_state.active_tab == "기록작성" else ""
+    act_w = "active" if st.session_state.active_tab == "약점처방" else ""
+    act_t = "active" if st.session_state.active_tab == "통계" else ""
+
+    nav_html = f"""
+        <div class="mobile-nav-bar">
+            <button class="nav-btn {act_s}" onclick="window.location.href='?tab=소셜'">👥 소셜</button>
+            <button class="nav-btn {act_c}" onclick="window.location.href='?tab=달력'">📅 달력</button>
+            <button class="nav-btn {act_r}" onclick="window.location.href='?tab=기록작성'">➕ 기록</button>
+            <button class="nav-btn {act_w}" onclick="window.location.href='?tab=약점처방'">💡 약점</button>
+            <button class="nav-btn {act_t}" onclick="window.location.href='?tab=통계'">📈 통계</button>
+        </div>
+    """
+    st.markdown(nav_html, unsafe_allow_html=True)
