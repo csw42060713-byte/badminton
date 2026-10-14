@@ -86,6 +86,9 @@ level_default_schedules = {
     }
 }
 
+if "schedule_mapping" not in st.session_state:
+    st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
+
 if "training_history" not in st.session_state:
     st.session_state.training_history = []
 
@@ -122,13 +125,16 @@ else:
         
         st.markdown("⚙️ **현재 레벨 & 주력 종목 설정**")
         
-        # 🔍 선수용 / 일반부 / 초보용 레벨 선택 칸
+        levels = ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"]
+        current_level_idx = levels.index(st.session_state.user_level) if st.session_state.user_level in levels else 2
+
         selected_level = st.selectbox(
             "훈련자 레벨 선택",
-            ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"],
-            index=["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"].index(st.session_state.user_level) if st.session_state.user_level in ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"] else 0,
+            levels,
+            index=current_level_idx,
             key="sb_level_select"
         )
+        
         if selected_level != st.session_state.user_level:
             st.session_state.user_level = selected_level
             if "초보용" in selected_level:
@@ -152,10 +158,13 @@ else:
             st.session_state.schedule_mapping = level_default_schedules[selected_level]
             st.rerun()
 
+        match_types = ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"]
+        current_match_idx = match_types.index(st.session_state.match_type) if st.session_state.match_type in match_types else 0
+
         selected_match_type = st.selectbox(
             "주력 종목 선택",
-            ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"],
-            index=0 if "복식" in st.session_state.match_type else 1,
+            match_types,
+            index=current_match_idx,
             key="sb_match_select"
         )
         if selected_match_type != st.session_state.match_type:
@@ -188,9 +197,6 @@ else:
         st.subheader(f"🗓️ 요일별 훈련 배정 설정 (현재 레벨: {st.session_state.user_level})")
         days_of_week = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
         exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
-
-        if "schedule_mapping" not in st.session_state:
-            st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
 
         for day in days_of_week:
             with st.expander(f"📌 {day} 훈련 배정 관리"):
@@ -472,51 +478,4 @@ else:
                     elif "손목" in w or "악력" in w or "헤어핀" in w or "리시브" in w or "팔꿈치" in w:
                         st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 생체역학 처방:** 전완근 피로 완화를 위해 **추 감기(Heavy Roller)**와 **팻그립 바벨 홀드**를 처방합니다. 임팩트 순간 불필요한 긴장을 풀어줍니다.")
                     elif "런지" in w or "중심" in w or "하체" in w or "밸런스" in w or "스텝" in w or "체력" in w:
-                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 생체역학 처방:** 하체 밸런스 및 지구력 강화를 위해 **불리언 스쿼트(Bulgarian Split Squat)**와 코어 안티로테이션인 **케이블 팔로 오프 프레스**, **인터벌 젖산 내성 훈련**을 집중 수행하세요.")
-                    elif "멘탈" in w or "생각" in w or "범실" in w or "긴장" in w or "힘" in w or "당황" in w:
-                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🧠 스포츠 심리학 처방 (Arousal & Anxiety Control):** 인지적 불안 완화를 위해 **4-7-8 호흡 루틴(Box Breathing)**과 '과거 실점에 얽매이지 않는 주의 집중 전환(Attentional Control)' 훈련을 적용하세요.")
-                    else:
-                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 스포츠 과학 맞춤 분석 처방:** 입력하신 특이사항에 맞춰 해당 부위의 **관절 가동범위(ROM) 스트레칭**과 **종목별 반복 스냅 훈련**을 병행하여 전신 협응력을 높여주세요!")
-            else:
-                st.success("✨ 오늘 특별히 체크하신 취약점이 없습니다! 훌륭한 밸런스를 유지하고 계시네요.")
-
-            st.markdown("---")
-            is_doubles = "복식" in st.session_state.match_type
-            if is_doubles:
-                st.markdown("🔹 **[복식 생체역학 진단]** 복식은 **무산소성 포스파겐 시스템(ATP-PC)**과 **반복 스프린트(RSA)**가 지배적입니다.")
-            else:
-                st.markdown("🔹 **[단식 생체역학 진단]** 단식은 **유산소/무산소 복합 대사(V̇O2max 및 젖산 역치)**와 장시간 코트 커버리지가 핵심입니다.")
-
-    with tab3:
-        st.subheader("📊 주간 누적 통계 & 100점 만점 훈련 점수 트렌드")
-        
-        if len(st.session_state.training_history) == 0:
-            st.info("📌 저장된 훈련 일지가 없습니다. 2번 탭에서 훈련을 기록해 주세요!")
-        else:
-            df_history = pd.DataFrame(st.session_state.training_history)
-            
-            st.markdown("### 📋 전체 훈련 일지 목록")
-            st.dataframe(df_history, use_container_width=True)
-            
-            st.markdown("---")
-            st.subheader("📈 날짜별 100점 만점 훈련 완성도 그래프")
-            if len(df_history) > 0:
-                chart_data = df_history.set_index("날짜")[["훈련완성도점수"]]
-                st.line_chart(chart_data)
-            
-            st.markdown("---")
-            st.subheader("⏱️ 주간 누적 요약 지표")
-            col_m1, col_m2, col_m3 = st.columns(3)
-            col_m1.metric("총 훈련 세션 수", f"{len(df_history)}회")
-            col_m2.metric("평균 훈련 점수", f"{df_history['훈련완성도점수'].mean():.1f}점 / 100점")
-            col_m3.metric("평균 컨디션 점수", f"{df_history['컨디션'].mean():.1f}점 / 10점")
-
-            st.markdown("---")
-            st.subheader("💾 훈련 데이터 파일 다운로드 (CSV)")
-            csv_data = df_history.to_csv(index=False).encode('utf-8-sig')
-            st.download_button(
-                label="📥 훈련 일지 CSV 다운로드",
-                data=csv_data,
-                file_name=f"badminton_training_log_{datetime.date.today()}.csv",
-                mime="text/csv"
-            )
+                        st.warning(f"👉 **취약점:** `{w}`\n\n  * **🔬 생체역학 처방:** 하체 밸런스 및 지구력 강화를 위해 **불리언 스쿼트(Bulgarian Split Squat)**와 코어 안티로테이션인 **케
