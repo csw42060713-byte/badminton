@@ -72,7 +72,16 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 📱 하단 고정 네비게이션바 강제 가로 한 줄 정렬 */
+    /* 📱 컨디션 및 강도 선택 가로 한 줄 강제 정렬 스타일 */
+    .score-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 5px;
+        margin-bottom: 10px;
+    }
+
+    /* 📱 하단 고정 네비게이션바 컨테이너 */
     .fixed-nav-bar {
         position: fixed;
         bottom: 0;
@@ -95,7 +104,7 @@ hide_streamlit_style = """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # ==========================================
-# 세션 상태 안전 초기화 (에러 방어)
+# 세션 상태 안전 초기화 (튕김 및 에러 방어)
 # ==========================================
 if "started" not in st.session_state:
     st.session_state.started = False
@@ -266,7 +275,7 @@ else:
                 st.rerun()
 
     # ------------------------------------------
-    # [탭 2] 오늘 기록 화면 (컨디션 & 강도 5단계 가로 정렬)
+    # [탭 2] 오늘 기록 화면 (가로 정렬된 5단계 이모지 버튼)
     # ------------------------------------------
     elif st.session_state.active_tab == "기록작성":
         st.markdown("### 📝 오늘의 컨디션은 어때요?")
@@ -277,23 +286,23 @@ else:
         
         c1, c2, c3, c4, c5 = st.columns(5)
         with c1:
-            if st.button("😢\n1~2점", key="c_1", type="primary" if st.session_state.cond_score==2 else "secondary", use_container_width=True):
+            if st.button("😢\n1~2점", key="cond_1", type="primary" if st.session_state.cond_score==2 else "secondary", use_container_width=True):
                 st.session_state.cond_score = 2
                 st.rerun()
         with c2:
-            if st.button("🙁\n3~4점", key="c_2", type="primary" if st.session_state.cond_score==4 else "secondary", use_container_width=True):
+            if st.button("🙁\n3~4점", key="cond_2", type="primary" if st.session_state.cond_score==4 else "secondary", use_container_width=True):
                 st.session_state.cond_score = 4
                 st.rerun()
         with c3:
-            if st.button("😐\n5~6점", key="c_3", type="primary" if st.session_state.cond_score==6 else "secondary", use_container_width=True):
+            if st.button("😐\n5~6점", key="cond_3", type="primary" if st.session_state.cond_score==6 else "secondary", use_container_width=True):
                 st.session_state.cond_score = 6
                 st.rerun()
         with c4:
-            if st.button("🙂\n7~8점", key="c_4", type="primary" if st.session_state.cond_score==8 else "secondary", use_container_width=True):
+            if st.button("🙂\n7~8점", key="cond_4", type="primary" if st.session_state.cond_score==8 else "secondary", use_container_width=True):
                 st.session_state.cond_score = 8
                 st.rerun()
         with c5:
-            if st.button("😄\n9~10점", key="c_5", type="primary" if st.session_state.cond_score==10 else "secondary", use_container_width=True):
+            if st.button("😄\n9~10점", key="cond_5", type="primary" if st.session_state.cond_score==10 else "secondary", use_container_width=True):
                 st.session_state.cond_score = 10
                 st.rerun()
 
@@ -304,23 +313,23 @@ else:
         
         h1, h2, h3, h4, h5 = st.columns(5)
         with h1:
-            if st.button("😢\n1~2점", key="h_1", type="primary" if st.session_state.hard_score==2 else "secondary", use_container_width=True):
+            if st.button("😢\n1~2점", key="hard_1", type="primary" if st.session_state.hard_score==2 else "secondary", use_container_width=True):
                 st.session_state.hard_score = 2
                 st.rerun()
         with h2:
-            if st.button("🙁\n3~4점", key="h_2", type="primary" if st.session_state.hard_score==4 else "secondary", use_container_width=True):
+            if st.button("🙁\n3~4점", key="hard_2", type="primary" if st.session_state.hard_score==4 else "secondary", use_container_width=True):
                 st.session_state.hard_score = 4
                 st.rerun()
         with h3:
-            if st.button("😐\n5~6점", key="h_3", type="primary" if st.session_state.hard_score==6 else "secondary", use_container_width=True):
+            if st.button("😐\n5~6점", key="hard_3", type="primary" if st.session_state.hard_score==6 else "secondary", use_container_width=True):
                 st.session_state.hard_score = 6
                 st.rerun()
         with h4:
-            if st.button("🙂\n7~8점", key="h_4", type="primary" if st.session_state.hard_score==8 else "secondary", use_container_width=True):
+            if st.button("🙂\n7~8점", key="hard_4", type="primary" if st.session_state.hard_score==8 else "secondary", use_container_width=True):
                 st.session_state.hard_score = 8
                 st.rerun()
         with h5:
-            if st.button("😄\n9~10점", key="h_5", type="primary" if st.session_state.hard_score==10 else "secondary", use_container_width=True):
+            if st.button("😄\n9~10점", key="hard_5", type="primary" if st.session_state.hard_score==10 else "secondary", use_container_width=True):
                 st.session_state.hard_score = 10
                 st.rerun()
 
@@ -491,19 +500,19 @@ else:
     st.markdown('<div class="fixed-nav-bar">', unsafe_allow_html=True)
     n1, n2, n3, n4 = st.columns(4)
     with n1:
-        if st.button("📅 달력", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
+        if st.button("📅 달력", key="nav_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
             st.session_state.active_tab = "달력"
             st.rerun()
     with n2:
-        if st.button("➕ 기록", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
+        if st.button("➕ 기록", key="nav_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
             st.session_state.active_tab = "기록작성"
             st.rerun()
     with n3:
-        if st.button("💡 약점", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
+        if st.button("💡 약점", key="nav_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
             st.session_state.active_tab = "약점처방"
             st.rerun()
     with n4:
-        if st.button("📈 통계", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
+        if st.button("📈 통계", key="nav_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
             st.session_state.active_tab = "통계"
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
