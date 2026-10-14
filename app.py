@@ -19,9 +19,9 @@ hide_streamlit_style = """
     
     .block-container {
         padding-top: 0.5rem;
-        padding-bottom: 6rem;
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
+        padding-bottom: 7rem;
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
     }
     
     .main-title {
@@ -72,13 +72,13 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 📱 하단 고정 네비게이션바 (HTML 플렉스박스로 가로 한 줄 강제 고정) */
-    .bottom-nav-bar {
+    /* 📱 5개 버튼 크기를 쏙 줄여서 가로 한 줄에 완벽 고정하는 하단바 스타일 */
+    .fixed-bottom-bar {
         position: fixed;
         bottom: 0;
         left: 0;
         width: 100vw;
-        height: 60px;
+        height: 58px;
         background-color: #ffffff;
         border-top: 1px solid #e0e0e0;
         display: flex !important;
@@ -87,8 +87,26 @@ hide_streamlit_style = """
         align-items: center !important;
         z-index: 999999;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        padding: 0 5px;
+        padding: 0 2px;
         box-sizing: border-box;
+    }
+    
+    .fixed-bottom-bar [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        width: 100% !important;
+    }
+    .fixed-bottom-bar [data-testid="column"] {
+        flex: 1 !important;
+        width: auto !important;
+        min-width: 0 !important;
+        padding: 0 1px !important;
+    }
+    .fixed-bottom-bar button {
+        width: 100% !important;
+        font-size: 10px !important;       /* 폰트 크기를 줄여서 5개 모두 안착 */
+        padding: 6px 0px !important;      /* 상하 여백 축소 */
+        font-weight: bold !important;
     }
     </style>
 """
@@ -167,7 +185,7 @@ if not st.session_state.started:
 
 
 # ==========================================
-# 🏆 2. 메인 앱 화면
+# 🏆 2. 메인 앱 화면 (5개 탭 전부 포함)
 # ==========================================
 else:
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
@@ -492,28 +510,28 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 [최종] 아래쪽 가로 한 줄 고정 네비게이션 바 (튕김 없음)
+    # 📱 [5개 탭 전부 포함] 아래쪽 가로 한 줄 고정 네비게이션 바 (크기 축소 및 튕김 없음)
     # ------------------------------------------
-    st.markdown('<div class="bottom-nav-bar">', unsafe_allow_html=True)
-    b_col1, b_col2, b_col3, b_col4, b_col5 = st.columns(5)
-    with b_col1:
-        if st.button("👥소셜", key="tab_soc", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
+    st.markdown('<div class="fixed-bottom-bar">', unsafe_allow_html=True)
+    b1, b2, b3, b4, b5 = st.columns(5)
+    with b1:
+        if st.button("👥소셜", key="b_soc", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
             st.session_state.active_tab = "소셜"
             st.rerun()
-    with b_col2:
-        if st.button("📅달력", key="tab_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
+    with b2:
+        if st.button("📅달력", key="b_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
             st.session_state.active_tab = "달력"
             st.rerun()
-    with b_col3:
-        if st.button("➕기록", key="tab_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
+    with b3:
+        if st.button("➕기록", key="b_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
             st.session_state.active_tab = "기록작성"
             st.rerun()
-    with b_col4:
-        if st.button("💡약점", key="tab_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
+    with b4:
+        if st.button("💡약점", key="b_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
             st.session_state.active_tab = "약점처방"
             st.rerun()
-    with b_col5:
-        if st.button("📈통계", key="tab_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
+    with b5:
+        if st.button("📈통계", key="b_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
             st.session_state.active_tab = "통계"
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
