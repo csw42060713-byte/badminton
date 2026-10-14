@@ -72,8 +72,8 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 📱 모바일 하단 가로 고정 네비게이션바 (세로 꺾임 완전 방지) */
-    .mobile-bottom-nav {
+    /* 📱 모바일 하단 가로 한 줄 고정 네비게이션바 (절대 세로로 안 깨짐) */
+    .html-nav-bar {
         position: fixed;
         bottom: 0;
         left: 0;
@@ -87,35 +87,35 @@ hide_streamlit_style = """
         align-items: center;
         z-index: 999999;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        padding: 0 2px;
+        padding: 0 4px;
         box-sizing: border-box;
     }
     
-    .nav-btn-item {
+    .html-nav-item {
         flex: 1;
         text-align: center;
         background-color: #f8f9fa;
-        border: 1px solid #ddd;
+        border: 1px solid #dcdcdc;
         border-radius: 6px;
-        padding: 8px 0;
+        padding: 9px 0;
         margin: 0 2px;
         font-size: 11px;
         font-weight: bold;
-        color: #333;
-        cursor: pointer;
+        color: #333333;
+        text-decoration: none !important;
     }
     
-    .nav-btn-item.active {
-        background-color: #1e3c72;
-        color: #ffffff;
-        border-color: #1e3c72;
+    .html-nav-item.active {
+        background-color: #1e3c72 !important;
+        color: #ffffff !important;
+        border-color: #1e3c72 !important;
     }
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # ==========================================
-# 세션 상태 안전 초기화 (첫 화면 튕김 방어)
+# 세션 상태 안전 초기화
 # ==========================================
 if "started" not in st.session_state:
     st.session_state.started = False
@@ -144,9 +144,12 @@ if "cond_score" not in st.session_state:
 if "hard_score" not in st.session_state:
     st.session_state.hard_score = 6
 
-# 버튼 클릭 값 처리를 위한 콜백 함수
-def set_active_tab(tab_name):
-    st.session_state.active_tab = tab_name
+# URL 쿼리 파라미터로 탭 상태 동기화
+query_params = st.query_params
+if "tab" in query_params:
+    t_val = query_params["tab"]
+    if t_val in ["소셜", "달력", "기록작성", "약점처방", "통계"]:
+        st.session_state.active_tab = t_val
 
 
 # ==========================================
@@ -489,7 +492,7 @@ else:
                 elif any(k in w_lower for k in ["헤어핀", "네트", "세밀", "정밀"]):
                     st.info("🪶 **[헤어핀 정밀도 향상 드릴]**\n\n"
                             "• **핵심 포인트:** 임팩트 순간 라켓 면의 부드러운 감속\n"
-                            "• **추천 훈련 (크로스 헤어핀 랠리):** 네트 앞 전역에서 상대방 서비스 라인 안쪽으로 콕을 살짝 감아 넘기는 세밀한 터치 훈련. 손목에 힘을 빼고 그립을 가볍게 잡는 것이 핵심입니다!")
+                            "• **추천 훈련 (크로스 헤어핀 릴레이):** 네트 앞 전역에서 상대방 서비스 라인 안쪽으로 콕을 살짝 감아 넘기는 세밀한 터치 훈련. 손목에 힘을 빼고 그립을 가볍게 잡는 것이 핵심입니다!")
                 elif any(k in w_lower for k in ["스매시", "스매권", "각도", "파워", "내리꽂기"]):
                     st.info("💥 **[스매시 각도 및 파워 강화 드릴]**\n\n"
                             "• **핵심 포인트:** 점프 타점과 상체 회전 타이밍\n"
@@ -516,7 +519,7 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 [최종 해결] Streamlit 컬럼 버그를 우회하는 순수 HTML 가로 한 줄 고정 바
+    # 📱 모바일 하단 가로 고정 네비게이션 바 (순수 HTML 방식 적용으로 세로 깨짐 원천 차단)
     # ------------------------------------------
     st.markdown("<br><br>", unsafe_allow_html=True)
     
@@ -526,54 +529,13 @@ else:
     act_w = "active" if st.session_state.active_tab == "약점처방" else ""
     act_t = "active" if st.session_state.active_tab == "통계" else ""
 
-    # Streamlit에서 버튼 대신 클릭 가능한 HTML/JS 요소로 처리하여 절대 세로로 꺾이지 않음
-    # 콜백 대신 st.rerun을 유도하기 위해 쿼리 대신 session_state 조작을 지원하는 폼 구조 활용
-    nav_html = f"""
-        <div class="mobile-bottom-nav">
-            <div class="nav-btn-item {act_s}" onclick="window.parent.document.querySelector('iframe').contentWindow.location.reload();">👥 소셜</div>
-            <div class="nav-btn-item {act_c}" onclick="">📅 달력</div>
-            <div class="nav-btn-item {act_r}" onclick="">➕ 기록</div>
-            <div class="nav-btn-item {act_w}" onclick="">💡 약점</div>
-            <div class="nav-btn-item {act_t}" onclick="">📈 통계</div>
+    html_navigation_code = f"""
+        <div class="html-nav-bar">
+            <a href="?tab=소셜" target="_self" class="html-nav-item {act_s}">👥 소셜</a>
+            <a href="?tab=달력" target="_self" class="html-nav-item {act_c}">📅 달력</a>
+            <a href="?tab=기록작성" target="_self" class="html-nav-item {act_r}">➕ 기록</a>
+            <a href="?tab=약점처방" target="_self" class="html-nav-item {act_w}">💡 약점</a>
+            <a href="?tab=통계" target="_self" class="html-nav-item {act_t}">📈 통계</a>
         </div>
     """
-    
-    # 안정성을 위해 순수 Streamlit 버튼들을 다시 배치하되, 가로 강제 정렬 클래스 적용
-    st.markdown('<div class="mobile-bottom-nav">', unsafe_allow_html=True)
-    b1, b2, b3, b4, b5 = st.columns(5)
-    with b1:
-        if st.button("👥 소셜", key="n_social", use_container_width=True):
-            st.session_state.active_tab = "소셜"
-            st.rerun()
-    with b2:
-        if st.button("📅 달력", key="n_cal", use_container_width=True):
-            st.session_state.active_tab = "달력"
-            st.rerun()
-    with b3:
-        if st.button("➕ 기록", key="n_rec", use_container_width=True):
-            st.session_state.active_tab = "기록작성"
-            st.rerun()
-    with b4:
-        if st.button("💡 약점", key="n_weak", use_container_width=True):
-            st.session_state.active_tab = "약점처방"
-            st.rerun()
-    with b5:
-        if st.button("📈 통계", key="n_stat", use_container_width=True):
-            st.session_state.active_tab = "통계"
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # CSS로 Streamlit의 st.columns 내부 div들을 강제로 가로 한 줄(flex-direction: row)로 묶어버립니다.
-    st.markdown("""
-        <style>
-        div.row-widget.stHorizontal {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-        }
-        div.row-widget.stHorizontal > div {
-            flex: 1 !important;
-            min-width: 0 !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+    st.markdown(html_navigation_code, unsafe_allow_html=True)
