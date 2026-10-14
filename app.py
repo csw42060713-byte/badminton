@@ -86,28 +86,72 @@ level_default_schedules = {
     }
 }
 
+if "schedule_mapping" not in st.session_state:
+    st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
+
 if "training_history" not in st.session_state:
     st.session_state.training_history = []
 
 # ==========================================
-# 🏠 시작 화면 (Landing / Home Screen)
+# 🏠 시작 화면 (Landing / Home Screen with Level Selection)
 # ==========================================
 if not st.session_state.started:
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     st.title("🏸 스포츠 과학 & 심리학 기반 배드민턴 정밀 훈련 시스템")
     st.markdown("### 🚀 완벽한 코트 제압을 위한 나만의 맞춤형 훈련 파트너")
-    st.write("레벨별 맞춤 스케줄 관리, 100점 만점 직관적 훈련 분석, 그리고 스포츠 심리 처방까지 한 번에 관리하세요.")
+    st.write("먼저 본인의 **훈련 레벨**을 선택하고 시스템에 입장하세요!")
     
     st.markdown("---")
     
-    col_start1, col_start2 = st.columns([2, 1])
-    with col_start1:
-        st.info("💡 **시작하기 전 안내**\n- 좌측 사이드바 또는 아래 버튼을 눌러 훈련을 시작할 수 있습니다.\n- 매일의 컨디션과 훈련량을 기록하여 과학적인 데이터로 실력을 키워보세요!")
+    # 🎯 첫 화면 카드형 레벨 선택 UI
+    st.markdown("#### 👤 훈련자 레벨 선택")
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔥 훈련 시스템 입장하기", type="primary", use_container_width=True):
-        st.session_state.started = True
-        st.rerun()
+    col_l1, col_l2, col_l3 = st.columns(3)
+    
+    with col_l1:
+        st.markdown("🌱 **초보용**")
+        st.caption("입문 및 기초 체력 향상 코스")
+        if st.button("초보용으로 시작", use_container_width=True, key="btn_beginner"):
+            st.session_state.user_level = "초보용 (입문 및 기초 체력)"
+            st.session_state.weekly_goal_core = 1
+            st.session_state.weekly_goal_strength = 1
+            st.session_state.weekly_goal_interval = 0
+            st.session_state.weekly_goal_wall = 1
+            st.session_state.weekly_goal_stroke = 2
+            st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
+            st.session_state.started = True
+            st.rerun()
+            
+    with col_l2:
+        st.markdown("🔥 **일반부**")
+        st.caption("동호인 및 취미 실전 강화 코스")
+        if st.button("일반부로 시작", use_container_width=True, key="btn_normal"):
+            st.session_state.user_level = "일반부 (동호인/취미 운동)"
+            st.session_state.weekly_goal_core = 2
+            st.session_state.weekly_goal_strength = 2
+            st.session_state.weekly_goal_interval = 1
+            st.session_state.weekly_goal_wall = 2
+            st.session_state.weekly_goal_stroke = 3
+            st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
+            st.session_state.started = True
+            st.rerun()
+            
+    with col_l3:
+        st.markdown("🏆 **선수용**")
+        st.caption("고강도 전문 훈련 및 시합 준비반")
+        if st.button("선수용으로 시작", type="primary", use_container_width=True, key="btn_pro"):
+            st.session_state.user_level = "선수용 (고강도 전문 훈련)"
+            st.session_state.weekly_goal_core = 3
+            st.session_state.weekly_goal_strength = 2
+            st.session_state.weekly_goal_interval = 3
+            st.session_state.weekly_goal_wall = 3
+            st.session_state.weekly_goal_stroke = 6
+            st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
+            st.session_state.started = True
+            st.rerun()
+
+    st.markdown("---")
+    st.info("💡 **안내:** 입장 후에도 언제든지 좌측 사이드바에서 레벨과 주력 종목을 변경하실 수 있습니다.")
 
 # ==========================================
 # 🏆 메인 훈련 시스템 화면
@@ -122,13 +166,16 @@ else:
         
         st.markdown("⚙️ **현재 레벨 & 주력 종목 설정**")
         
-        # 🔍 선수용 / 일반부 / 초보용 레벨 선택 칸
+        levels = ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"]
+        current_level_idx = levels.index(st.session_state.user_level) if st.session_state.user_level in levels else 2
+
         selected_level = st.selectbox(
             "훈련자 레벨 선택",
-            ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"],
-            index=["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"].index(st.session_state.user_level) if st.session_state.user_level in ["초보용 (입문 및 기초 체력)", "일반부 (동호인/취미 운동)", "선수용 (고강도 전문 훈련)"] else 0,
+            levels,
+            index=current_level_idx,
             key="sb_level_select"
         )
+        
         if selected_level != st.session_state.user_level:
             st.session_state.user_level = selected_level
             if "초보용" in selected_level:
@@ -152,10 +199,13 @@ else:
             st.session_state.schedule_mapping = level_default_schedules[selected_level]
             st.rerun()
 
+        match_types = ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"]
+        current_match_idx = match_types.index(st.session_state.match_type) if st.session_state.match_type in match_types else 0
+
         selected_match_type = st.selectbox(
             "주력 종목 선택",
-            ["복식 (Double - 순발력/전위 반응/스매시 파워)", "단식 (Single - 심폐 지구력/코트 커버리지)"],
-            index=0 if "복식" in st.session_state.match_type else 1,
+            match_types,
+            index=current_match_idx,
             key="sb_match_select"
         )
         if selected_match_type != st.session_state.match_type:
@@ -188,9 +238,6 @@ else:
         st.subheader(f"🗓️ 요일별 훈련 배정 설정 (현재 레벨: {st.session_state.user_level})")
         days_of_week = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
         exercise_categories = ["스트록", "벽치기", "인터벌", "코어", "근력"]
-
-        if "schedule_mapping" not in st.session_state:
-            st.session_state.schedule_mapping = level_default_schedules[st.session_state.user_level]
 
         for day in days_of_week:
             with st.expander(f"📌 {day} 훈련 배정 관리"):
@@ -357,7 +404,7 @@ else:
         upper_exercises = []
         with st.expander("⑤ 상체 근력 (폭발적 파워 및 견관절 안정성)"):
             if st.checkbox("상체 근력 운동 수행함", key="chk_up"):
-                u_sel = st.multiselect("종목", ["푸시 프레스 (Push Press)", "웨이트 풀업", "벤치프레스"], key="u_sel_sci")
+                u_sel = st.multiselect("종목", ["푸시 프레스 (Push Press)", "웨이트 풀업", "벤치프레스"], key="us_sel_sci")
                 for u in u_sel:
                     sets = st.number_input(f"[{u}] 세트 수", 1, 10, 3, key=f"us_{u}")
                     upper_exercises.append(f"{u} {sets}세트")
@@ -365,7 +412,7 @@ else:
         lower_exercises = []
         with st.expander("⑥ 하체 근력 (불균형 방지 및 런지 파워)"):
             if st.checkbox("하체 근력 운동 수행함", key="chk_low"):
-                l_sel = st.multiselect("종목", ["불리언 스쿼트 (Bulgarian Split Squat)", "파워 클린", "바벨 힙스러스트"], key="l_sel_sci")
+                l_sel = st.multiselect("종목", ["불리언 스쿼트 (Bulgarian Split Squat)", "파워 클린", "바벨 힙스러스트"], key="ls_sel_sci")
                 for l in l_sel:
                     sets = st.number_input(f"[{l}] 세트 수", 1, 10, 3, key=f"ls_{l}")
                     lower_exercises.append(f"{l} {sets}세트")
@@ -518,5 +565,5 @@ else:
                 label="📥 훈련 일지 CSV 다운로드",
                 data=csv_data,
                 file_name=f"badminton_training_log_{datetime.date.today()}.csv",
-                mime="text/csv"
+                mime="text/css"
             )
