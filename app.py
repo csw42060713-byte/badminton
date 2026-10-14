@@ -712,4 +712,4 @@ else:
                 data=csv_data,
                 file_name=f"badminton_training_log_{datetime.date.today()}.csv",
                 mime="text/css"
-            )
+            ) 
