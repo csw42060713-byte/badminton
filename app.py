@@ -19,7 +19,7 @@ hide_streamlit_style = """
     
     .block-container {
         padding-top: 0.5rem;
-        padding-bottom: 7rem; /* 하단 바에 가리지 않도록 여백 확보 */
+        padding-bottom: 7rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
@@ -72,7 +72,7 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 📱 순수 HTML/CSS Flexbox 기반 무조건 가로 한 줄 고정 하단 바 */
+    /* 📱 하단 고정 네비게이션바 강제 가로 한 줄 정렬 */
     .fixed-nav-container {
         position: fixed;
         bottom: 0;
@@ -89,28 +89,6 @@ hide_streamlit_style = """
         box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         padding: 0 5px;
         box-sizing: border-box;
-    }
-    .nav-tab-btn {
-        flex: 1;
-        height: 48px;
-        margin: 0 3px;
-        background-color: #f1f3f5;
-        border: 1px solid #dcedc8;
-        color: #333333;
-        font-size: 12px;
-        font-weight: bold;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        cursor: pointer;
-        box-sizing: border-box;
-    }
-    .nav-tab-btn.active {
-        background-color: #1e3c72;
-        color: #ffffff;
-        border-color: #1e3c72;
     }
     </style>
 """
@@ -143,16 +121,6 @@ if "cond_score" not in st.session_state:
 
 if "hard_score" not in st.session_state:
     st.session_state.hard_score = 6
-
-# URL 쿼리 파라미터를 세션 상태로 즉시 반영
-query_params = st.query_params
-if "tab" in query_params:
-    t = query_params["tab"]
-    if t in ["소셜", "달력", "기록작성", "약점처방", "통계"]:
-        if t == "소셜":
-            st.session_state.active_tab = "소셜"
-        else:
-            st.session_state.active_tab = t
 
 
 # ==========================================
@@ -197,7 +165,7 @@ if not st.session_state.started:
 
 
 # ==========================================
-# 🏆 2. 메인 앱 화면
+# 🏆 2. 메인 앱 화면 (튕김 없는 네이티브 탭 관리)
 # ==========================================
 else:
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
@@ -296,7 +264,7 @@ else:
                 st.rerun()
 
     # ------------------------------------------
-    # [탭 2] 오늘 기록 화면 (얼굴 표정 가로 5칸 나열형)
+    # [탭 2] 오늘 기록 화면 (가로 5칸 표정 버튼형)
     # ------------------------------------------
     elif st.session_state.active_tab == "기록작성":
         st.markdown("### 📝 오늘의 컨디션은 어때요?")
@@ -309,18 +277,23 @@ else:
         with f1:
             if st.button("😢\n1~2점", use_container_width=True, type="primary" if st.session_state.cond_score==2 else "secondary"):
                 st.session_state.cond_score = 2
+                st.rerun()
         with f2:
             if st.button("🙁\n3~4점", use_container_width=True, type="primary" if st.session_state.cond_score==4 else "secondary"):
                 st.session_state.cond_score = 4
+                st.rerun()
         with f3:
             if st.button("😐\n5~6점", use_container_width=True, type="primary" if st.session_state.cond_score==6 else "secondary"):
                 st.session_state.cond_score = 6
+                st.rerun()
         with f4:
             if st.button("🙂\n7~8점", use_container_width=True, type="primary" if st.session_state.cond_score==8 else "secondary"):
                 st.session_state.cond_score = 8
+                st.rerun()
         with f5:
             if st.button("😄\n9~10점", use_container_width=True, type="primary" if st.session_state.cond_score==10 else "secondary"):
                 st.session_state.cond_score = 10
+                st.rerun()
 
         st.info(f"현재 선택된 컨디션 점수: **{st.session_state.cond_score}점**")
 
@@ -329,20 +302,25 @@ else:
         
         h1, h2, h3, h4, h5 = st.columns(5)
         with h1:
-            if st.button("😢\n1~2", use_container_width=True, type="primary" if st.session_state.hard_score==2 else "secondary"):
+            if st.button("😢\n1~2점", use_container_width=True, type="primary" if st.session_state.hard_score==2 else "secondary"):
                 st.session_state.hard_score = 2
+                st.rerun()
         with h2:
-            if st.button("🙁\n3~4", use_container_width=True, type="primary" if st.session_state.hard_score==4 else "secondary"):
+            if st.button("🙁\n3~4점", use_container_width=True, type="primary" if st.session_state.hard_score==4 else "secondary"):
                 st.session_state.hard_score = 4
+                st.rerun()
         with h3:
-            if st.button("😐\n5~6", use_container_width=True, type="primary" if st.session_state.hard_score==6 else "secondary"):
+            if st.button("😐\n5~6점", use_container_width=True, type="primary" if st.session_state.hard_score==6 else "secondary"):
                 st.session_state.hard_score = 6
+                st.rerun()
         with h4:
-            if st.button("🙂\n7~8", use_container_width=True, type="primary" if st.session_state.hard_score==8 else "secondary"):
+            if st.button("🙂\n7~8점", use_container_width=True, type="primary" if st.session_state.hard_score==8 else "secondary"):
                 st.session_state.hard_score = 8
+                st.rerun()
         with h5:
-            if st.button("😄\n9~10", use_container_width=True, type="primary" if st.session_state.hard_score==10 else "secondary"):
+            if st.button("😄\n9~10점", use_container_width=True, type="primary" if st.session_state.hard_score==10 else "secondary"):
                 st.session_state.hard_score = 10
+                st.rerun()
 
         st.info(f"현재 선택된 훈련 강도: **{st.session_state.hard_score}점**")
 
@@ -504,17 +482,37 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 순수 HTML/CSS Flexbox 기반 무조건 가로 한 줄 고정 하단 네비게이션 바
+    # 📱 튕김 없는 네이티브 버튼 하단 고정 바 (가로 한 줄 강제 정렬)
     # ------------------------------------------
-    nav_html = f"""
-        <div class="fixed-nav-container">
-            <div style="display: flex; flex-direction: row; justify-content: space-around; width: 100%;">
-                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "소셜" else ""}" href="?tab=소셜" target="_self">👥 소셜</a>
-                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "달력" else ""}" href="?tab=달력" target="_self">📅 달력</a>
-                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "기록작성" else ""}" href="?tab=기록작성" target="_self">➕ 기록</a>
-                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "약점처방" else ""}" href="?tab=약점처방" target="_self">💡 약점</a>
-                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "통계" else ""}" href="?tab=통계" target="_self">📈 통계</a>
-            </div>
-        </div>
-    """
-    st.markdown(nav_html, unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    st.markdown('<div class="fixed-nav-container">', unsafe_allow_html=True)
+    
+    b_col1, b_col2, b_col3, b_col4, b_col5 = st.columns(5)
+    
+    with b_col1:
+        if st.button("👥 소셜", use_container_width=True):
+            st.session_state.active_tab = "소셜"
+            st.rerun()
+    with b_col2:
+        btn_type_cal = "primary" if st.session_state.active_tab == "달력" else "secondary"
+        if st.button("📅 달력", use_container_width=True, type=btn_type_cal):
+            st.session_state.active_tab = "달력"
+            st.rerun()
+    with b_col3:
+        btn_type_rec = "primary" if st.session_state.active_tab == "기록작성" else "secondary"
+        if st.button("➕ 기록", use_container_width=True, type=btn_type_rec):
+            st.session_state.active_tab = "기록작성"
+            st.rerun()
+    with b_col4:
+        btn_type_weak = "primary" if st.session_state.active_tab == "약점처방" else "secondary"
+        if st.button("💡 약점", use_container_width=True, type=btn_type_weak):
+            st.session_state.active_tab = "약점처방"
+            st.rerun()
+    with b_col5:
+        btn_type_stat = "primary" if st.session_state.active_tab == "통계" else "secondary"
+        if st.button("📈 통계", use_container_width=True, type=btn_type_stat):
+            st.session_state.active_tab = "통계"
+            st.rerun()
+            
+    st.markdown('</div>', unsafe_allow_html=True)
