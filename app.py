@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import calendar
 
-# 1. 모바일 최적화 및 하단 가로 바 고정 CSS
+# 1. 모바일 최적화 디자인 설정
 st.set_page_config(
     page_title="내 손안의 배드민턴 훈련장", 
     page_icon="🏸", 
@@ -19,7 +19,7 @@ hide_streamlit_style = """
     
     .block-container {
         padding-top: 0.5rem;
-        padding-bottom: 7rem;
+        padding-bottom: 6rem;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
@@ -72,45 +72,17 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 📱 절대 세로로 떨어지지 않는 완벽한 가로 한 줄 하단 네비게이션 바 */
-    .mobile-bottom-nav {
+    /* 📱 하단 고정 네비게이션바 컨테이너 스타일 */
+    .fixed-nav-container {
         position: fixed;
         bottom: 0;
         left: 0;
-        width: 100vw;
-        height: 65px;
+        width: 100%;
         background-color: #ffffff;
         border-top: 1px solid #e0e0e0;
-        display: flex;
-        flex-direction: row !important;
-        justify-content: space-around;
-        align-items: center;
+        padding: 4px 2px;
         z-index: 999999;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        padding: 0 5px;
-        box-sizing: border-box;
-    }
-    .nav-tab-btn {
-        flex: 1;
-        height: 48px;
-        margin: 0 3px;
-        background-color: #f1f3f5;
-        border: 1px solid #dcedc8;
-        color: #333333;
-        font-size: 12px;
-        font-weight: bold;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        cursor: pointer;
-        box-sizing: border-box;
-    }
-    .nav-tab-btn.active {
-        background-color: #1e3c72;
-        color: #ffffff;
-        border-color: #1e3c72;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
     }
     </style>
 """
@@ -137,16 +109,6 @@ if "training_history" not in st.session_state:
 
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "달력"
-
-# URL 쿼리 파라미터를 세션 상태로 반영 (첫 화면 상태 유지)
-query_params = st.query_params
-if "tab" in query_params:
-    t = query_params["tab"]
-    if t in ["소셜", "달력", "기록작성", "약점처방", "통계"]:
-        if t == "소셜":
-            st.session_state.active_tab = "소셜"
-        else:
-            st.session_state.active_tab = t
 
 
 # ==========================================
@@ -191,7 +153,7 @@ if not st.session_state.started:
 
 
 # ==========================================
-# 🏆 2. 메인 앱 화면
+# 🏆 2. 메인 앱 화면 (튕김 없는 네이티브 버튼 탭 구조)
 # ==========================================
 else:
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
@@ -207,16 +169,9 @@ else:
     st.markdown("---")
 
     # ------------------------------------------
-    # [탭 0] 소셜 화면
-    # ------------------------------------------
-    if st.session_state.active_tab == "소셜":
-        st.markdown("### 👥 팀원 소셜 공유")
-        st.info("팀원 공유 기능은 준비 중입니다!")
-
-    # ------------------------------------------
     # [탭 1] 달력 화면
     # ------------------------------------------
-    elif st.session_state.active_tab == "달력":
+    if st.session_state.active_tab == "달력":
         st.markdown("### 🗓️ 월간 훈련 캘린더")
         
         now = datetime.datetime.now()
@@ -464,23 +419,53 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 순수 HTML/CSS Flexbox 하단 고정 바 (가로 한 줄 강제 정렬 + 시작화면 유지)
+    # 📱 튕김 없는 네이티브 버튼 하단 고정 바 (가로 한 줄 강제 정렬)
     # ------------------------------------------
     st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    st.markdown('<div class="fixed-nav-container">', unsafe_allow_html=True)
+    
+    # CSS로 하단 버튼들을 가로 한 줄로 강제 배치
+    st.markdown("""
+        <style>
+        .row-widget.stHorizontal {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-around !important;
+            align-items: center !important;
+        }
+        .row-widget.stHorizontal > div {
+            flex: 1 !important;
+            padding: 0 2px !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
-    act_s = "active" if st.session_state.active_tab == "소셜" else ""
-    act_c = "active" if st.session_state.active_tab == "달력" else ""
-    act_r = "active" if st.session_state.active_tab == "기록작성" else ""
-    act_w = "active" if st.session_state.active_tab == "약점처방" else ""
-    act_t = "active" if st.session_state.active_tab == "통계" else ""
-
-    nav_html = f"""
-        <div class="mobile-bottom-nav">
-            <a class="nav-tab-btn {act_s}" href="?tab=소셜" target="_self">👥 소셜</a>
-            <a class="nav-tab-btn {act_c}" href="?tab=달력" target="_self">📅 달력</a>
-            <a class="nav-tab-btn {act_r}" href="?tab=기록작성" target="_self">➕ 기록</a>
-            <a class="nav-tab-btn {act_w}" href="?tab=약점처방" target="_self">💡 약점</a>
-            <a class="nav-tab-btn {act_t}" href="?tab=통계" target="_self">📈 통계</a>
-        </div>
-    """
-    st.markdown(nav_html, unsafe_allow_html=True)
+    b_col1, b_col2, b_col3, b_col4, b_col5 = st.columns(5)
+    
+    with b_col1:
+        if st.button("👥 소셜", use_container_width=True):
+            st.session_state.active_tab = "소셜"
+            st.rerun()
+    with b_col2:
+        btn_type_cal = "primary" if st.session_state.active_tab == "달력" else "secondary"
+        if st.button("📅 달력", use_container_width=True, type=btn_type_cal):
+            st.session_state.active_tab = "달력"
+            st.rerun()
+    with b_col3:
+        btn_type_rec = "primary" if st.session_state.active_tab == "기록작성" else "secondary"
+        if st.button("➕ 기록", use_container_width=True, type=btn_type_rec):
+            st.session_state.active_tab = "기록작성"
+            st.rerun()
+    with b_col4:
+        btn_type_weak = "primary" if st.session_state.active_tab == "약점처방" else "secondary"
+        if st.button("💡 약점", use_container_width=True, type=btn_type_weak):
+            st.session_state.active_tab = "약점처방"
+            st.rerun()
+    with b_col5:
+        btn_type_stat = "primary" if st.session_state.active_tab == "통계" else "secondary"
+        if st.button("📈 통계", use_container_width=True, type=btn_type_stat):
+            st.session_state.active_tab = "통계"
+            st.rerun()
+            
+    st.markdown('</div>', unsafe_allow_html=True)
