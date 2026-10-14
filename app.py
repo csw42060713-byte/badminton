@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import calendar
 
-# 1. 모바일 최적화 디자인 설정 및 하단 메뉴바 CSS
+# 1. 모바일 최적화 디자인 설정 및 하단 메뉴바 가로 정렬 CSS 강화
 st.set_page_config(
     page_title="내 손안의 배드민턴 훈련장", 
     page_icon="🏸", 
@@ -19,7 +19,7 @@ hide_streamlit_style = """
     
     .block-container {
         padding-top: 0.5rem;
-        padding-bottom: 5rem; /* 하단 메뉴바에 가리지 않도록 여백 확보 */
+        padding-bottom: 6rem; /* 하단 메뉴바에 가리지 않도록 여백 확보 */
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
@@ -70,6 +70,40 @@ hide_streamlit_style = """
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    /* 📱 모바일 하단 고정 네비게이션바 강제 가로 정렬 스타일 */
+    .fixed-nav-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        background-color: #ffffff;
+        border-top: 1px solid #e0e0e0;
+        padding: 8px 4px;
+        z-index: 999999;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    }
+    .fixed-nav-flex {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        width: 100% !important;
+        margin: 0 auto !important;
+    }
+    /* Streamlit 내부 컬럼들이 세로로 떨어지는 현상 방지 */
+    .fixed-nav-flex [data-testid="column"] {
+        width: 19% !important;
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        padding: 0 2px !important;
+    }
+    .fixed-nav-flex button {
+        width: 100% !important;
+        font-size: 12px !important;
+        padding: 6px 2px !important;
+        text-align: center !important;
     }
     </style>
 """
@@ -353,7 +387,7 @@ else:
             })
 
     # ------------------------------------------
-    # [탭 3] 약점 처방 (새롭게 추가된 맞춤형 훈련 추천 탭)
+    # [탭 3] 약점 처방
     # ------------------------------------------
     elif st.session_state.active_tab == "약점처방":
         st.markdown("### 💡 약점 맞춤 훈련 처방전")
@@ -408,29 +442,11 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 하단 고정 네비게이션 바 (약점처방 탭 포함 총 5개 메뉴)
+    # 📱 모바일 하단 고정 네비게이션 바 (가로 한 줄 강제 정렬)
     # ------------------------------------------
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    st.markdown("""
-        <style>
-        .fixed-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: #ffffff;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 0;
-            z-index: 99999;
-            box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<div class="fixed-nav">', unsafe_allow_html=True)
+    st.markdown('<div class="fixed-nav-container"><div class="fixed-nav-flex">', unsafe_allow_html=True)
     b_col1, b_col2, b_col3, b_col4, b_col5 = st.columns(5)
     
     with b_col1:
@@ -456,4 +472,4 @@ else:
         if st.button("📈 통계", use_container_width=True, type=btn_type_stat):
             st.session_state.active_tab = "통계"
             st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div></div>', unsafe_allow_html=True)
