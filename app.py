@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import calendar
 
-# 1. 모바일 최적화 및 큼직한 표정 카드 스타일 설정
+# 1. 모바일 최적화 디자인 설정
 st.set_page_config(
     page_title="내 손안의 배드민턴 훈련장", 
     page_icon="🏸", 
@@ -19,7 +19,7 @@ hide_streamlit_style = """
     
     .block-container {
         padding-top: 0.5rem;
-        padding-bottom: 6rem;
+        padding-bottom: 7rem; /* 하단 바에 가리지 않도록 여백 확보 */
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
@@ -72,29 +72,45 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 🎨 큼직한 얼굴 이모지와 색감이 들어간 감성 카드 디자인 */
-    .face-card-1 { background-color: #f3e5f5; border: 2px solid #ab47bc; padding: 12px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
-    .face-card-2 { background-color: #e3f2fd; border: 2px solid #42a5f5; padding: 12px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
-    .face-card-3 { background-color: #e8f5e9; border: 2px solid #66bb6a; padding: 12px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
-    .face-card-4 { background-color: #fff3e0; border: 2px solid #ffa726; padding: 12px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
-    .face-card-5 { background-color: #ffebee; border: 2px solid #ef5350; padding: 12px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
-
-    .big-emoji {
-        font-size: 40px;
-        margin-bottom: 5px;
-    }
-
-    /* 📱 하단 고정 네비게이션바 컨테이너 스타일 */
+    /* 📱 순수 HTML/CSS Flexbox 기반 무조건 가로 한 줄 고정 하단 바 */
     .fixed-nav-container {
         position: fixed;
         bottom: 0;
         left: 0;
-        width: 100%;
+        width: 100vw;
+        height: 65px;
         background-color: #ffffff;
         border-top: 1px solid #e0e0e0;
-        padding: 4px 2px;
+        display: flex;
+        flex-direction: row !important;
+        justify-content: space-around;
+        align-items: center;
         z-index: 999999;
-        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        padding: 0 5px;
+        box-sizing: border-box;
+    }
+    .nav-tab-btn {
+        flex: 1;
+        height: 48px;
+        margin: 0 3px;
+        background-color: #f1f3f5;
+        border: 1px solid #dcedc8;
+        color: #333333;
+        font-size: 12px;
+        font-weight: bold;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        cursor: pointer;
+        box-sizing: border-box;
+    }
+    .nav-tab-btn.active {
+        background-color: #1e3c72;
+        color: #ffffff;
+        border-color: #1e3c72;
     }
     </style>
 """
@@ -127,6 +143,16 @@ if "cond_score" not in st.session_state:
 
 if "hard_score" not in st.session_state:
     st.session_state.hard_score = 6
+
+# URL 쿼리 파라미터를 세션 상태로 즉시 반영
+query_params = st.query_params
+if "tab" in query_params:
+    t = query_params["tab"]
+    if t in ["소셜", "달력", "기록작성", "약점처방", "통계"]:
+        if t == "소셜":
+            st.session_state.active_tab = "소셜"
+        else:
+            st.session_state.active_tab = t
 
 
 # ==========================================
@@ -270,7 +296,7 @@ else:
                 st.rerun()
 
     # ------------------------------------------
-    # [탭 2] 오늘 기록 화면 (큼직한 표정과 컬러 카드 디자인)
+    # [탭 2] 오늘 기록 화면 (얼굴 표정 가로 5칸 나열형)
     # ------------------------------------------
     elif st.session_state.active_tab == "기록작성":
         st.markdown("### 📝 오늘의 컨디션은 어때요?")
@@ -279,45 +305,22 @@ else:
         
         st.markdown("#### 🔋 컨디션 상태 선택 (1~10점)")
         
-        # 1~2점 (슬픈 표정)
-        st.markdown('<div class="face-card-1">', unsafe_allow_html=True)
-        st.markdown('<div class="big-emoji">😢</div>', unsafe_allow_html=True)
-        st.markdown("**1~2점 : 오늘은 회복이 먼저**\n\n피로가 쌓여 몸이 무거운 상태예요. 무리하지 말고 충분히 쉬어주세요.")
-        if st.button("이 컨디션으로 선택", key="c_12", type="primary" if st.session_state.cond_score==2 else "secondary", use_container_width=True):
-            st.session_state.cond_score = 2
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # 3~4점 (조금 슬픈 표정)
-        st.markdown('<div class="face-card-2">', unsafe_allow_html=True)
-        st.markdown('<div class="big-emoji">🙁</div>', unsafe_allow_html=True)
-        st.markdown("**3~4점 : 가볍게 몸 풀기**\n\n컨디션이 좋지 않아 무리하기 어려운 상태예요. 가벼운 운동으로 몸을 풀어보세요.")
-        if st.button("이 컨디션으로 선택", key="c_34", type="primary" if st.session_state.cond_score==4 else "secondary", use_container_width=True):
-            st.session_state.cond_score = 4
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # 5~6점 (무표정)
-        st.markdown('<div class="face-card-3">', unsafe_allow_html=True)
-        st.markdown('<div class="big-emoji">😐</div>', unsafe_allow_html=True)
-        st.markdown("**5~6점 : 무난한 컨디션**\n\n평소처럼 훈련할 수 있는 상태예요. 적당한 강도로 운동해보세요.")
-        if st.button("이 컨디션으로 선택", key="c_56", type="primary" if st.session_state.cond_score==6 else "secondary", use_container_width=True):
-            st.session_state.cond_score = 6
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # 7~8점 (조금 웃는 표정)
-        st.markdown('<div class="face-card-4">', unsafe_allow_html=True)
-        st.markdown('<div class="big-emoji">🙂</div>', unsafe_allow_html=True)
-        st.markdown("**7~8점 : 오늘은 제대로 달리기**\n\n몸이 가볍고 에너지가 충분한 상태예요. 고강도 훈련으로 실력을 끌어올려보세요.")
-        if st.button("이 컨디션으로 선택", key="c_78", type="primary" if st.session_state.cond_score==8 else "secondary", use_container_width=True):
-            st.session_state.cond_score = 8
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # 9~10점 (웃는 표정)
-        st.markdown('<div class="face-card-5">', unsafe_allow_html=True)
-        st.markdown('<div class="big-emoji">😄</div>', unsafe_allow_html=True)
-        st.markdown("**9~10점 : 컨디션 최고!**\n\n몸 상태가 매우 좋고 움직임에 자신이 있어요. 지금이 바로 최고의 타이밍이에요!")
-        if st.button("이 컨디션으로 선택", key="c_910", type="primary" if st.session_state.cond_score==10 else "secondary", use_container_width=True):
-            st.session_state.cond_score = 10
-        st.markdown('</div>', unsafe_allow_html=True)
+        f1, f2, f3, f4, f5 = st.columns(5)
+        with f1:
+            if st.button("😢\n1~2점", use_container_width=True, type="primary" if st.session_state.cond_score==2 else "secondary"):
+                st.session_state.cond_score = 2
+        with f2:
+            if st.button("🙁\n3~4점", use_container_width=True, type="primary" if st.session_state.cond_score==4 else "secondary"):
+                st.session_state.cond_score = 4
+        with f3:
+            if st.button("😐\n5~6점", use_container_width=True, type="primary" if st.session_state.cond_score==6 else "secondary"):
+                st.session_state.cond_score = 6
+        with f4:
+            if st.button("🙂\n7~8점", use_container_width=True, type="primary" if st.session_state.cond_score==8 else "secondary"):
+                st.session_state.cond_score = 8
+        with f5:
+            if st.button("😄\n9~10점", use_container_width=True, type="primary" if st.session_state.cond_score==10 else "secondary"):
+                st.session_state.cond_score = 10
 
         st.info(f"현재 선택된 컨디션 점수: **{st.session_state.cond_score}점**")
 
@@ -326,19 +329,19 @@ else:
         
         h1, h2, h3, h4, h5 = st.columns(5)
         with h1:
-            if st.button("😢 1~2점\n[가벼움]", use_container_width=True, type="primary" if st.session_state.hard_score==2 else "secondary"):
+            if st.button("😢\n1~2", use_container_width=True, type="primary" if st.session_state.hard_score==2 else "secondary"):
                 st.session_state.hard_score = 2
         with h2:
-            if st.button("🙁 3~4점\n[보통]", use_container_width=True, type="primary" if st.session_state.hard_score==4 else "secondary"):
+            if st.button("🙁\n3~4", use_container_width=True, type="primary" if st.session_state.hard_score==4 else "secondary"):
                 st.session_state.hard_score = 4
         with h3:
-            if st.button("😐 5~6점\n[적당함]", use_container_width=True, type="primary" if st.session_state.hard_score==6 else "secondary"):
+            if st.button("😐\n5~6", use_container_width=True, type="primary" if st.session_state.hard_score==6 else "secondary"):
                 st.session_state.hard_score = 6
         with h4:
-            if st.button("🙂 7~8점\n[고강도]", use_container_width=True, type="primary" if st.session_state.hard_score==8 else "secondary"):
+            if st.button("🙂\n7~8", use_container_width=True, type="primary" if st.session_state.hard_score==8 else "secondary"):
                 st.session_state.hard_score = 8
         with h5:
-            if st.button("😄 9~10점\n[극한]", use_container_width=True, type="primary" if st.session_state.hard_score==10 else "secondary"):
+            if st.button("😄\n9~10", use_container_width=True, type="primary" if st.session_state.hard_score==10 else "secondary"):
                 st.session_state.hard_score = 10
 
         st.info(f"현재 선택된 훈련 강도: **{st.session_state.hard_score}점**")
@@ -501,52 +504,17 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 튕김 없는 네이티브 버튼 하단 고정 바 (가로 한 줄 강제 정렬)
+    # 📱 순수 HTML/CSS Flexbox 기반 무조건 가로 한 줄 고정 하단 네비게이션 바
     # ------------------------------------------
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    st.markdown('<div class="fixed-nav-container">', unsafe_allow_html=True)
-    
-    st.markdown("""
-        <style>
-        .row-widget.stHorizontal {
-            display: flex !important;
-            flex-direction: row !important;
-            justify-content: space-around !important;
-            align-items: center !important;
-        }
-        .row-widget.stHorizontal > div {
-            flex: 1 !important;
-            padding: 0 2px !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    b_col1, b_col2, b_col3, b_col4, b_col5 = st.columns(5)
-    
-    with b_col1:
-        if st.button("👥 소셜", use_container_width=True):
-            st.session_state.active_tab = "소셜"
-            st.rerun()
-    with b_col2:
-        btn_type_cal = "primary" if st.session_state.active_tab == "달력" else "secondary"
-        if st.button("📅 달력", use_container_width=True, type=btn_type_cal):
-            st.session_state.active_tab = "달력"
-            st.rerun()
-    with b_col3:
-        btn_type_rec = "primary" if st.session_state.active_tab == "기록작성" else "secondary"
-        if st.button("➕ 기록", use_container_width=True, type=btn_type_rec):
-            st.session_state.active_tab = "기록작성"
-            st.rerun()
-    with b_col4:
-        btn_type_weak = "primary" if st.session_state.active_tab == "약점처방" else "secondary"
-        if st.button("💡 약점", use_container_width=True, type=btn_type_weak):
-            st.session_state.active_tab = "약점처방"
-            st.rerun()
-    with b_col5:
-        btn_type_stat = "primary" if st.session_state.active_tab == "통계" else "secondary"
-        if st.button("📈 통계", use_container_width=True, type=btn_type_stat):
-            st.session_state.active_tab = "통계"
-            st.rerun()
-            
-    st.markdown('</div>', unsafe_allow_html=True)
+    nav_html = f"""
+        <div class="fixed-nav-container">
+            <div style="display: flex; flex-direction: row; justify-content: space-around; width: 100%;">
+                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "소셜" else ""}" href="?tab=소셜" target="_self">👥 소셜</a>
+                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "달력" else ""}" href="?tab=달력" target="_self">📅 달력</a>
+                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "기록작성" else ""}" href="?tab=기록작성" target="_self">➕ 기록</a>
+                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "약점처방" else ""}" href="?tab=약점처방" target="_self">💡 약점</a>
+                <a class="nav-tab-btn {"active" if st.session_state.active_tab == "통계" else ""}" href="?tab=통계" target="_self">📈 통계</a>
+            </div>
+        </div>
+    """
+    st.markdown(nav_html, unsafe_allow_html=True)
