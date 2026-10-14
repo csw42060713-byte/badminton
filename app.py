@@ -18,18 +18,18 @@ hide_streamlit_style = """
     .stDeployButton {display: none;}
     
     .block-container {
-        padding-top: 0.3rem;
+        padding-top: 0.5rem;
         padding-bottom: 3rem;
-        padding-left: 0.4rem;
-        padding-right: 0.4rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
     }
     
     .main-title {
-        font-size: 16px;
+        font-size: 18px;
         font-weight: bold;
         color: #1e3c72;
         text-align: center;
-        margin-bottom: 2px;
+        margin-bottom: 5px;
     }
 
     /* 캘린더 표 스타일 */
@@ -96,9 +96,6 @@ if "monthly_calendar_plans" not in st.session_state:
 if "training_history" not in st.session_state:
     st.session_state.training_history = []
 
-if "active_tab" not in st.session_state:
-    st.session_state.active_tab = "달력"
-
 if "cond_score" not in st.session_state:
     st.session_state.cond_score = 6
 
@@ -148,7 +145,7 @@ if not st.session_state.started:
 
 
 # ==========================================
-# 🏆 2. 메인 앱 화면 (상단 가로 고정 5개 탭 메뉴)
+# 🏆 2. 메인 앱 화면 (옆으로 넘기는 가로 탭 방식)
 # ==========================================
 else:
     top_c1, top_c2, top_c3 = st.columns([1.5, 1.5, 1])
@@ -163,43 +160,23 @@ else:
 
     st.markdown("---")
 
-    # 📱 모바일 화면 최상단에서 5개 메뉴가 절대 세로로 꺾이지 않고 가로 한 줄로 나란히 정렬되는 탭 메뉴
-    t1, t2, t3, t4, t5 = st.columns(5)
-    with t1:
-        if st.button("👥소셜", key="top_soc", type="primary" if st.session_state.active_tab=="소셜" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "소셜"
-            st.rerun()
-    with t2:
-        if st.button("📅달력", key="top_cal", type="primary" if st.session_state.active_tab=="달력" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "달력"
-            st.rerun()
-    with t3:
-        if st.button("➕기록", key="top_rec", type="primary" if st.session_state.active_tab=="기록작성" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "기록작성"
-            st.rerun()
-    with t4:
-        if st.button("💡약점", key="top_weak", type="primary" if st.session_state.active_tab=="약점처방" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "약점처방"
-            st.rerun()
-    with t5:
-        if st.button("📈통계", key="top_stat", type="primary" if st.session_state.active_tab=="통계" else "secondary", use_container_width=True):
-            st.session_state.active_tab = "통계"
-            st.rerun()
-
-    st.markdown("---")
+    # 📱 옆으로 슥슥 넘기거나 터치해서 전환하는 가로 탭 네비게이션
+    tab_social, tab_cal, tab_rec, tab_weak, tab_stat = st.tabs([
+        "👥 소셜", "📅 달력", "➕ 기록", "💡 약점", "📈 통계"
+    ])
 
     # ------------------------------------------
-    # [탭 0] 소셜 화면
+    # [탭 1] 소셜 화면
     # ------------------------------------------
-    if st.session_state.active_tab == "소셜":
+    with tab_social:
         st.markdown("### 👥 배드민턴 소셜 커뮤니티")
         st.write("다른 선수들과 훈련 노하우를 공유하고 소통해보세요!")
         st.info("💬 추후 업데이트를 통해 팀원 간 소통 및 랭킹 기능이 제공될 예정입니다.")
 
     # ------------------------------------------
-    # [탭 1] 달력 화면
+    # [탭 2] 달력 화면
     # ------------------------------------------
-    elif st.session_state.active_tab == "달력":
+    with tab_cal:
         st.markdown("### 🗓️ 월간 훈련 캘린더")
         
         now = datetime.datetime.now()
@@ -280,9 +257,9 @@ else:
                 st.rerun()
 
     # ------------------------------------------
-    # [탭 2] 오늘 기록 화면
+    # [탭 3] 오늘 기록 화면
     # ------------------------------------------
-    elif st.session_state.active_tab == "기록작성":
+    with tab_rec:
         st.markdown("### 📝 오늘의 컨디션은 어때요?")
         st.write("지금 나의 몸 상태와 에너지를 선택해보세요!")
         rec_date = st.selectbox("기록할 날짜 선택", [st.session_state.selected_date], key="rec_date_box")
@@ -443,9 +420,9 @@ else:
             })
 
     # ------------------------------------------
-    # [탭 3] 약점 처방
+    # [탭 4] 약점 처방
     # ------------------------------------------
-    elif st.session_state.active_tab == "약점처방":
+    with tab_weak:
         st.markdown("### 💡 약점 맞춤 훈련 처방전")
         st.write("부족한 기술이나 집중하고 싶은 부분을 적어주시면, 딱 맞는 훈련 드릴(Drill)을 추천해 드립니다!")
 
@@ -487,12 +464,12 @@ else:
                 st.warning("보완하고 싶은 약점이나 기술을 입력해주세요!")
 
     # ------------------------------------------
-    # [탭 4] 통계 화면
+    # [탭 5] 통계 화면
     # ------------------------------------------
-    elif st.session_state.active_tab == "통계":
+    with tab_stat:
         st.markdown("### 📊 내 훈련 기록 모아보기")
         if len(st.session_state.training_history) > 0:
             df_log = pd.DataFrame(st.session_state.training_history)
             st.dataframe(df_log, use_container_width=True)
         else:
-            st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
+            st.info("아직 저장된 훈련 기록이 없습니다. '기록(+)' 탭에서 오늘의 훈련을 남겨보세요!")
