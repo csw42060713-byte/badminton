@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import calendar
 
-# 1. 모바일 최적화 디자인 설정
+# 1. 모바일 최적화 및 하단 가로 바 고정 CSS
 st.set_page_config(
     page_title="내 손안의 배드민턴 훈련장", 
     page_icon="🏸", 
@@ -19,7 +19,7 @@ hide_streamlit_style = """
     
     .block-container {
         padding-top: 0.5rem;
-        padding-bottom: 6rem; /* 하단 바에 가리지 않도록 여백 확보 */
+        padding-bottom: 7rem; /* 하단 메뉴바에 가리지 않도록 넉넉한 여백 */
         padding-left: 0.5rem;
         padding-right: 0.5rem;
     }
@@ -72,39 +72,44 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
-    /* 📱 순수 CSS Flexbox 기반 무조건 가로 한 줄 고정 하단 네비게이션 바 */
-    .mobile-nav-bar {
+    /* 📱 절대 세로로 떨어지지 않는 완벽한 가로 한 줄 하단 네비게이션 바 */
+    .mobile-bottom-nav {
         position: fixed;
         bottom: 0;
         left: 0;
         width: 100vw;
-        height: 60px;
+        height: 65px;
         background-color: #ffffff;
         border-top: 1px solid #e0e0e0;
         display: flex;
-        flex-direction: row;
+        flex-direction: row !important;
         justify-content: space-around;
         align-items: center;
         z-index: 999999;
-        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
-        padding: 0 4px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        padding: 0 5px;
+        box-sizing: border-box;
     }
-    .nav-btn {
+    .nav-tab-btn {
         flex: 1;
-        background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        color: #333;
-        font-size: 11px;
+        height: 48px;
+        margin: 0 3px;
+        background-color: #f1f3f5;
+        border: 1px solid #dcedc8;
+        color: #333333;
+        font-size: 12px;
         font-weight: bold;
-        padding: 8px 0;
-        margin: 0 2px;
-        border-radius: 6px;
-        text-align: center;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
         cursor: pointer;
+        box-sizing: border-box;
     }
-    .nav-btn.active {
+    .nav-tab-btn.active {
         background-color: #1e3c72;
-        color: white;
+        color: #ffffff;
         border-color: #1e3c72;
     }
     </style>
@@ -193,7 +198,7 @@ else:
 
     st.markdown("---")
 
-    # URL 파라미터로 탭 전환 처리
+    # URL 쿼리 파라미터로 탭 전환 처리 (터치 시 즉시 반응)
     query_params = st.query_params
     if "tab" in query_params:
         t = query_params["tab"]
@@ -454,7 +459,7 @@ else:
             st.info("아직 저장된 훈련 기록이 없습니다. '기록작성(+)' 탭에서 오늘의 훈련을 남겨보세요!")
 
     # ------------------------------------------
-    # 📱 순수 CSS Flexbox 가로 한 줄 고정 하단 바
+    # 📱 순수 HTML/CSS Flexbox 하단 고정 바 (가로 한 줄 강제 정렬 + 터치 최적화)
     # ------------------------------------------
     st.markdown("<br><br>", unsafe_allow_html=True)
     
@@ -465,12 +470,12 @@ else:
     act_t = "active" if st.session_state.active_tab == "통계" else ""
 
     nav_html = f"""
-        <div class="mobile-nav-bar">
-            <button class="nav-btn {act_s}" onclick="window.location.href='?tab=소셜'">👥 소셜</button>
-            <button class="nav-btn {act_c}" onclick="window.location.href='?tab=달력'">📅 달력</button>
-            <button class="nav-btn {act_r}" onclick="window.location.href='?tab=기록작성'">➕ 기록</button>
-            <button class="nav-btn {act_w}" onclick="window.location.href='?tab=약점처방'">💡 약점</button>
-            <button class="nav-btn {act_t}" onclick="window.location.href='?tab=통계'">📈 통계</button>
+        <div class="mobile-bottom-nav">
+            <a class="nav-tab-btn {act_s}" href="?tab=소셜">👥 소셜</a>
+            <a class="nav-tab-btn {act_c}" href="?tab=달력">📅 달력</a>
+            <a class="nav-tab-btn {act_r}" href="?tab=기록작성">➕ 기록</a>
+            <a class="nav-tab-btn {act_w}" href="?tab=약점처방">💡 약점</a>
+            <a class="nav-tab-btn {act_t}" href="?tab=통계">📈 통계</a>
         </div>
     """
     st.markdown(nav_html, unsafe_allow_html=True)
