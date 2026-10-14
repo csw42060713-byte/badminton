@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import calendar
 
-# 1. 모바일 최적화 및 카드 선택형 디자인 CSS
+# 1. 모바일 최적화 및 구간별 맞춤 컬러 스타일 설정
 st.set_page_config(
     page_title="내 손안의 배드민턴 훈련장", 
     page_icon="🏸", 
@@ -72,6 +72,13 @@ hide_streamlit_style = """
         white-space: nowrap;
     }
 
+    /* 🎨 구간별 색상을 살린 커스텀 카드 컨테이너 스타일 */
+    .card-box-1 { background-color: #f3e5f5; border-left: 5px solid #ab47bc; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+    .card-box-2 { background-color: #e3f2fd; border-left: 5px solid #42a5f5; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+    .card-box-3 { background-color: #e8f5e9; border-left: 5px solid #66bb6a; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+    .card-box-4 { background-color: #fff3e0; border-left: 5px solid #ffa726; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+    .card-box-5 { background-color: #ffebee; border-left: 5px solid #ef5350; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+
     /* 📱 하단 고정 네비게이션바 컨테이너 스타일 */
     .fixed-nav-container {
         position: fixed;
@@ -110,9 +117,8 @@ if "training_history" not in st.session_state:
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "달력"
 
-# 기록 작성용 임시 선택 상태 값 초기화
 if "cond_score" not in st.session_state:
-    st.session_state.cond_score = 7  # 기본 무난한 컨디션 (7점 대)
+    st.session_state.cond_score = 7
 
 if "hard_score" not in st.session_state:
     st.session_state.hard_score = 6
@@ -259,51 +265,85 @@ else:
                 st.rerun()
 
     # ------------------------------------------
-    # [탭 2] 오늘 기록 화면 (2점 단위 컨디션 카드 선택형 적용)
+    # [탭 2] 오늘 기록 화면 (컬러 카드 디자인 적용)
     # ------------------------------------------
     elif st.session_state.active_tab == "기록작성":
         st.markdown("### 📝 오늘의 컨디션은 어때요?")
-        st.write("지금 나의 몸 상태와 에너지를 선택해보세요[span_1](start_span)[span_1](end_span)!")
+        st.write("지금 나의 몸 상태와 에너지를 선택해보세요[span_2](start_span)[span_2](end_span)!")
         rec_date = st.selectbox("기록할 날짜 선택", [st.session_state.selected_date], key="rec_date_box")
         
         st.markdown("#### 🔋 컨디션 상태 선택 (1~10점)")
-        c1, c2, c3, c4, c5 = st.columns(5)
         
-        with c1:
-            if st.button("1~2점\n[회복먼저]", use_container_width=True, type="primary" if st.session_state.cond_score==2 else "secondary"):
+        # 1~2점 카드 (보라색 계열 - 회복 우선)
+        st.markdown('<div class="card-box-1">', unsafe_allow_html=True)
+        col_a, col_b = st.columns([3, 1])
+        with col_a:
+            st.markdown("🟣 **😢 1~2점 : 오늘은 회복이 먼저**\n\n* 피로가 쌓여 몸이 무거운 상태예요. 무리하지 말고 충분히 쉬어주세요[span_3](start_span)[span_3](end_span).")
+        with col_b:
+            if st.button("선택", key="c_12", type="primary" if st.session_state.cond_score==2 else "secondary", use_container_width=True):
                 st.session_state.cond_score = 2
-        with c2:
-            if st.button("3~4점\n[가볍게]", use_container_width=True, type="primary" if st.session_state.cond_score==4 else "secondary"):
-                st.session_state.cond_score = 4
-        with c3:
-            if st.button("5~6점\n[무난함]", use_container_width=True, type="primary" if st.session_state.cond_score==6 else "secondary"):
-                st.session_state.cond_score = 6
-        with c4:
-            if st.button("7~8점\n[제대로달리기]", use_container_width=True, type="primary" if st.session_state.cond_score==8 else "secondary"):
-                st.session_state.cond_score = 8
-        with c5:
-            if st.button("9~10점\n[최고조!]", use_container_width=True, type="primary" if st.session_state.cond_score==10 else "secondary"):
-                st.session_state.cond_score = 10
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        st.info(f"현재 선택된 컨디션 점수: **{st.session_state.cond_score}점** 레벨[span_2](start_span)[span_2](end_span)")
+        # 3~4점 카드 (파란색 계열 - 가볍게 몸 풀기)
+        st.markdown('<div class="card-box-2">', unsafe_allow_html=True)
+        col_a, col_b = st.columns([3, 1])
+        with col_a:
+            st.markdown("🔵 **🙁 3~4점 : 가볍게 몸 풀기**\n\n* 컨디션이 좋지 않아 무리하기 어려운 상태예요. 가벼운 운동으로 몸을 풀어보세요[span_4](start_span)[span_4](end_span).")
+        with col_b:
+            if st.button("선택", key="c_34", type="primary" if st.session_state.cond_score==4 else "secondary", use_container_width=True):
+                st.session_state.cond_score = 4
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # 5~6점 카드 (초록색 계열 - 무난한 컨디션)
+        st.markdown('<div class="card-box-3">', unsafe_allow_html=True)
+        col_a, col_b = st.columns([3, 1])
+        with col_a:
+            st.markdown("🟢 **😐 5~6점 : 무난한 컨디션**\n\n* 평소처럼 훈련할 수 있는 상태예요. 적당한 강도로 운동해보세요[span_5](start_span)[span_5](end_span).")
+        with col_b:
+            if st.button("선택", key="c_56", type="primary" if st.session_state.cond_score==6 else "secondary", use_container_width=True):
+                st.session_state.cond_score = 6
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # 7~8점 카드 (주황색 계열 - 제대로 달리기)
+        st.markdown('<div class="card-box-4">', unsafe_allow_html=True)
+        col_a, col_b = st.columns([3, 1])
+        with col_a:
+            st.markdown("🟠 **🙂 7~8점 : 오늘은 제대로 달리기**\n\n* 몸이 가볍고 에너지가 충분한 상태예요. 고강도 훈련으로 실력을 끌어올려보세요[span_6](start_span)[span_6](end_span).")
+        with col_b:
+            if st.button("선택", key="c_78", type="primary" if st.session_state.cond_score==8 else "secondary", use_container_width=True):
+                st.session_state.cond_score = 8
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # 9~10점 카드 (빨간색 계열 - 컨디션 최고)
+        st.markdown('<div class="card-box-5">', unsafe_allow_html=True)
+        col_a, col_b = st.columns([3, 1])
+        with col_a:
+            st.markdown("🔴 **😄 9~10점 : 컨디션 최고!**\n\n* 몸 상태가 매우 좋고 움직임에 자신이 있어요. 지금이 바로 최고의 타이밍이에요[span_7](start_span)[span_7](end_span)!")
+        with col_b:
+            if st.button("선택", key="c_910", type="primary" if st.session_state.cond_score==10 else "secondary", use_container_width=True):
+                st.session_state.cond_score = 10
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.info(f"현재 선택된 컨디션 점수: **{st.session_state.cond_score}점** 레벨")
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("#### 🔥 오늘 훈련 강도 선택 (1~10점)")
+        
         h1, h2, h3, h4, h5 = st.columns(5)
         with h1:
-            if st.button("1~2점\n[가벼움]", use_container_width=True, type="primary" if st.session_state.hard_score==2 else "secondary"):
+            if st.button("😢 1~2점\n[가벼움]", use_container_width=True, type="primary" if st.session_state.hard_score==2 else "secondary"):
                 st.session_state.hard_score = 2
         with h2:
-            if st.button("3~4점\n[보통]", use_container_width=True, type="primary" if st.session_state.hard_score==4 else "secondary"):
+            if st.button("🙁 3~4점\n[보통]", use_container_width=True, type="primary" if st.session_state.hard_score==4 else "secondary"):
                 st.session_state.hard_score = 4
         with h3:
-            if st.button("5~6점\n[적당함]", use_container_width=True, type="primary" if st.session_state.hard_score==6 else "secondary"):
+            if st.button("😐 5~6점\n[적당함]", use_container_width=True, type="primary" if st.session_state.hard_score==6 else "secondary"):
                 st.session_state.hard_score = 6
         with h4:
-            if st.button("7~8점\n[고강도]", use_container_width=True, type="primary" if st.session_state.hard_score==8 else "secondary"):
+            if st.button("🙂 7~8점\n[고강도]", use_container_width=True, type="primary" if st.session_state.hard_score==8 else "secondary"):
                 st.session_state.hard_score = 8
         with h5:
-            if st.button("9~10점\n[극한]", use_container_width=True, type="primary" if st.session_state.hard_score==10 else "secondary"):
+            if st.button("😄 9~10점\n[극한]", use_container_width=True, type="primary" if st.session_state.hard_score==10 else "secondary"):
                 st.session_state.hard_score = 10
 
         st.info(f"현재 선택된 훈련 강도: **{st.session_state.hard_score}점**")
