@@ -182,6 +182,10 @@
     document.body.classList.remove('is-onboarding');
     setNav(false);
     hideSplash();
+    /* 시작화면은 특정 탭의 주소를 남기지 않습니다 */
+    if (location.hash && location.hash !== '#/') {
+      try { history.replaceState(null, '', '#/'); } catch (e) { /* 무시 */ }
+    }
     var host = el('main');
     if (!host || !BM.views.start) return;
     BM.views.start.reset();
