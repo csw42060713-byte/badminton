@@ -43,7 +43,12 @@ var CONFIG = {
   MATCH_HEART_COST: 2,       // 1:1 매칭 1회 비용
   GIFT_HEART_COST: 1,        // 하트 선물 1회 비용
   THEME_PRICES: { th_def: 0, th_night: 0, th_court: 2, th_sakura: 2 },
-  MAX_ROWS_PER_REQUEST: 5000 // bootstrap 한 번에 내려보낼 최대 행
+  MAX_ROWS_PER_REQUEST: 5000, // bootstrap 한 번에 내려보낼 최대 행
+
+  /* --- 관리자(멘토 심사) ---
+   * 시트 스크립트 속성 ADMIN_EMAILS(또는 ADMIN_EMAIL)가 있으면 그 값을 우선하고,
+   * 없으면 아래 기본값을 씁니다. 쉼표로 여러 명을 넣을 수 있습니다. */
+  ADMIN_EMAILS: ['csw42060713@gmail.com']
 };
 
 /* 시트 26칸 (A~Z) — 순서를 바꾸면 앱과 어긋납니다 */
@@ -70,7 +75,25 @@ var OBJ_KEYS = {
 var WRITABLE_TYPES = [
   '프로필', '기록', '경기', '계획', '약점', '소셜', '답글', '채팅', '채팅읽음',
   '매칭프로필', '매칭신청', '매칭채팅', '코치신청', '코치피드백', '하트', '광고하트',
-  '출석하트', '선물하트', '하트합치기', '내하트사용', '꾸미기구매', '달력메모', '친구', '배민친구'
+  '출석하트', '선물하트', '하트합치기', '내하트사용', '꾸미기구매', '달력메모', '친구', '배민친구',
+  /* 친구(친추) */
+  '친구요청', '친구수락', '친구거절', '친구삭제',
+  /* 멘토 신청과 관리자 심사 기록 */
+  '멘토신청', '멘토승인', '멘토거절'
+];
+
+/* 예전 앱이 커뮤니티에 자동으로 넣던 샘플 글·답글 (관리자 청소용) */
+var SAMPLE_TEXTS = [
+  '오늘 21:17로 이겼다! 마지막 5점은 전부 드라이브로 따냈어요 🔥',
+  '나래울 클럽 토요일 오픈! 초보분들 환영합니다. 9시에 모여요.',
+  '풋워크 영상 보고 육각 스텝 시작했는데 3일 만에 다리가 터졌습니다 ㅋㅋ 그래도 빨라진 느낌',
+  '팔꿈치가 아파서 이번 주는 쉽니다. 다들 스매시 연습할 때 그립 힘 꼭 빼세요!',
+  '네트 앞에서 무조건 헤어핀만 넣는 습관 고치는 중. 리프트 섞으니 상대가 흔들린다.',
+  '경기 남부에서 드라이브 연습 파트너 구해요. 아직 초보지만 꾸준히 나가요!',
+  '드라이브 그거 진짜 무기 되던데요. 축하합니다!',
+  '다음에 한 게임 붙어봐요 ㅎㅎ',
+  'ㅋㅋㅋ 저도 시작했어요. 이틀째 다리 아픔',
+  '저도 팔꿈치 때문에 고생했어요. 밴드 차니까 좀 나아졌어요.'
 ];
 
 /* ============================================================
@@ -112,6 +135,7 @@ function route_(p) {
   if (action === 'append') return append_(session, p);
   if (action === 'update') return update_(session, p);
   if (action === 'remove') return remove_(session, p);
+  if (action === 'purge_samples') return purgeSamples_(session);
   if (action === 'whoami') return { ok: true, me: meOf_(session.userKey) };
 
   return { ok: false, code: 'unknown_action', message: '알 수 없는 요청입니다: ' + action };
@@ -235,7 +259,8 @@ function meOf_(userKey) {
   return {
     key: publicId_(userKey),
     nick: nick || (String(userKey).split('@')[0] || '회원'),
-    level: level, discipline: discipline, bio: bio, theme: parsedTheme
+    level: level, discipline: discipline, bio: bio, theme: parsedTheme,
+    admin: isAdmin_(userKey)
   };
 }
 
@@ -429,6 +454,11 @@ function append_(session, p) {
     return { ok: false, code: 'bad_type', message: '저장할 수 없는 유형입니다: ' + type };
   }
 
+  /* 멘토 심사 기록(멘토승인/멘토거절)은 관리자 세션만 저장할 수 있습니다 */
+  if ((type === '멘토승인' || type === '멘토거절') && !isAdmin_(session.userKey)) {
+    return { ok: false, code: 'forbidden', message: '관리자만 멘토 심사를 처리할 수 있습니다.' };
+  }
+
   /* 신뢰 경계: 작성자와 시각은 서버가 정합니다 (위조 방지) */
   if (!cells[COL['ID']]) cells[COL['ID']] = recordId_();
   cells[COL['작성일시']] = now_();
@@ -443,6 +473,23 @@ function append_(session, p) {
     var reverse = buildReverseMap_(data0.rows);
     var ids0 = buildIdSet_(data0.rows);
     if (!ids0[target]) cells[COL['대상']] = reverse[target] || target;
+  }
+
+  /* 멘토 신청은 항상 관리자 계정으로 (대상을 위조해 다른 사람에게 보내지 못하게) */
+  if (type === '멘토신청') {
+    cells[COL['대상']] = adminEmails_()[0] || '';
+    if (cells[COL['승패']]) cells[COL['승패']] = '심사중';
+  }
+
+  /* 친구 요청/수락/거절/삭제: 대상이 있어야 하고, 자기 자신은 안 됩니다 */
+  if (type === '친구요청' || type === '친구수락' || type === '친구거절' || type === '친구삭제') {
+    var friendTarget = String(cells[COL['대상']] || '');
+    if (!friendTarget) {
+      return { ok: false, code: 'bad_target', message: '친구 대상을 정해 주세요.' };
+    }
+    if (friendTarget.toLowerCase() === String(session.userKey).toLowerCase()) {
+      return { ok: false, code: 'bad_target', message: '자기 자신에게는 친구 요청을 보낼 수 없습니다.' };
+    }
   }
 
   /* 하트 규칙 (서버가 최종 판정: 한도·간격·잔액. 앱 값은 믿지 않습니다) */
@@ -536,6 +583,7 @@ var UPDATABLE = {
   '프로필': ['닉네임', '실력', '주력종목', '자기소개', '꾸미기'],
   '매칭프로필': ['소셜글'],
   '코치신청': ['소셜글', '승패'],
+  '멘토신청': ['소셜글', '승패'],
   '매칭신청': ['소셜글', '승패'],
   '기록': ['맞춤처방', '추천드릴', '아픈부위', '약점기술', '훈련계획']
 };
@@ -559,6 +607,9 @@ function update_(session, p) {
     var sh = sheet_();
     Object.keys(p.cells || {}).forEach(function (name) {
       if (allowed.indexOf(name) < 0) return;
+      /* 멘토/코치 신청의 승인·거절(승패·소셜글)은 관리자만 */
+      if ((type === '멘토신청' || type === '코치신청') &&
+        (name === '승패' || name === '소셜글') && !isAdmin) return;
       if (!(owner || isAdmin || (isTarget && type === '매칭신청'))) return;
       var col = COL[name];
       if (col === undefined || col === COL['비밀번호']) return;
@@ -598,10 +649,81 @@ function remove_(session, p) {
 }
 
 function isAdmin_(userKey) {
-  var admins = PropertiesService.getScriptProperties().getProperty('ADMIN_EMAILS') || '';
-  if (!admins) return false;
-  return admins.split(',').map(function (s) { return s.trim().toLowerCase(); })
-    .indexOf(String(userKey).toLowerCase()) >= 0;
+  if (!userKey) return false;
+  return adminEmails_().indexOf(String(userKey).toLowerCase()) >= 0;
+}
+
+/* ============================================================
+ *  커뮤니티 샘플 글 정리 (관리자 전용)
+ *  예전 앱이 자동으로 넣은 글·답글·하트만 지우고, 개인 기록은 건드리지 않습니다.
+ * ============================================================ */
+function normText_(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
+
+function purgeSamples_(session) {
+  if (!isAdmin_(session && session.userKey)) {
+    return { ok: false, code: 'forbidden', message: '관리자만 샘플 글을 정리할 수 있습니다.' };
+  }
+  var sample = {};
+  SAMPLE_TEXTS.forEach(function (t) { sample[normText_(t)] = 1; });
+
+  var data = readRows_();
+  var victims = {};   /* ID → rowNum */
+  data.rows.forEach(function (r) {
+    var c = r.cells;
+    if (c[COL['유형']] === '소셜' && sample[normText_(c[COL['소셜글']])]) {
+      victims[String(c[COL['ID']])] = r.rowNum;
+    }
+  });
+  data.rows.forEach(function (r) {
+    var c = r.cells;
+    var t = c[COL['유형']];
+    var target = String(c[COL['대상']] || '');
+    if (t === '답글' && (victims[target] || sample[normText_(c[COL['소셜글']])])) {
+      victims[String(c[COL['ID']])] = r.rowNum;
+    }
+    if (t === '하트' && victims[target]) victims[String(c[COL['ID']])] = r.rowNum;
+  });
+
+  var ids = Object.keys(victims);
+  if (!ids.length) return { ok: true, removed: 0 };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sh = sheet_();
+    ids.forEach(function (id) {
+      var rowNum = victims[id];
+      var blank = [];
+      for (var i = 0; i < 26; i++) blank.push('');
+      blank[0] = id;
+      blank[COL['유형']] = '삭제';
+      sh.getRange(rowNum, 1, 1, 26).setValues([blank]);
+    });
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true, removed: ids.length };
+}
+
+function purgeSamplesMenu() {
+  var email = '';
+  try { email = Session.getActiveUser().getEmail(); } catch (e) { /* 웹앱 실행 */ }
+  var ui = SpreadsheetApp.getUi();
+  if (!isAdmin_(email)) { ui.alert('관리자만 실행할 수 있습니다.'); return; }
+  var res = purgeSamples_({ userKey: email });
+  ui.alert('커뮤니티 샘플 글 ' + res.removed + '건을 정리했습니다.');
+}
+
+/** 관리자 이메일 목록 — 스크립트 속성이 있으면 그 값, 없으면 CONFIG 기본값 */
+function adminEmails_() {
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty('ADMIN_EMAILS') || props.getProperty('ADMIN_EMAIL') || '';
+  var list = String(raw).split(',').map(function (s) { return s.trim().toLowerCase(); })
+    .filter(function (s) { return !!s; });
+  if (!list.length) {
+    list = (CONFIG.ADMIN_EMAILS || []).map(function (s) { return String(s).trim().toLowerCase(); });
+  }
+  return list;
 }
 
 /* 하트 잔액 = 기본 + 적립(출석·광고·합치기·선물받음) - 사용(매칭·테마·선물보냄) */
@@ -709,6 +831,7 @@ function onOpen() {
       .addItem('초기 설정 (헤더/서식)', 'setup')
       .addItem('깨진 ID 찾기', 'findBrokenIds')
       .addItem('관리자 이메일 설정', 'setAdminEmails')
+      .addItem('커뮤니티 샘플 글 정리', 'purgeSamplesMenu')
       .addItem('하트 규칙 보기', 'heartRules')
       .addToUi();
   } catch (e) { /* 웹 앱에서 열린 경우 메뉴 없음 */ }

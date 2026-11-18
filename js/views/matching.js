@@ -30,14 +30,19 @@
     var incomingDone = requests.filter(function (r) {
       return r.target === me.key && r.userKey === p.userKey && r.status === '수락';
     })[0];
+    var fs = D.friendState(state.data.idx, me.key, p.userKey);
+    var thread = (state.data.threads || []).filter(function (t) { return t.other === p.userKey; })[0];
     var room = (state.data.rooms || []).filter(function (r) { return r.other === p.userKey; })[0];
     return {
       mine: mine,
       incoming: incoming,
       incomingAccepted: incomingDone,
+      friend: fs,
       accepted: (mine && mine.status === '수락') || !!incomingDone,
+      canChat: D.canChatWith(state.data.idx, me.key, p.userKey),
       room: room,
-      roomId: (room && room.roomId) || (mine && mine.status === '수락' && mine.id) || (incomingDone && incomingDone.id) || ''
+      roomId: (thread && thread.roomId) || (fs.state === 'friends' && fs.acceptId) ||
+        (room && room.roomId) || (mine && mine.status === '수락' && mine.id) || (incomingDone && incomingDone.id) || ''
     };
   }
 
@@ -103,7 +108,7 @@
     if (st.incoming) {
       action = '<button class="btn btn--ghost grow" data-open-profile="' + key + '">' +
         UI.icon('community') + '받은 신청 보기</button>';
-    } else if (st.accepted || st.room) {
+    } else if (st.canChat && st.roomId) {
       action = '<button class="btn grow" data-open-chat="' + U.esc(st.roomId) + '" data-other="' + key + '">' +
         UI.icon('community') + '채팅하기' + (st.room && st.room.unread ? ' <i class="badge">' + st.room.unread + '</i>' : '') + '</button>';
     } else if (st.mine) {
@@ -117,7 +122,8 @@
       '<div class="pcard__top">' + UI.avatar(p, 52) +
       '<div class="pcard__id"><div class="pcard__name">' + U.esc(p.nick) +
       genderPill(p) +
-      '<span class="pill pill--grade">' + U.esc(p.level || '급수 미입력') + '</span></div>' +
+      '<span class="pill pill--grade">' + U.esc(p.level || '급수 미입력') + '</span>' +
+      (st.friend.state === 'friends' ? '<span class="pill pill--friend">친구</span>' : '') + '</div>' +
       '<p class="pcard__meta">' + U.esc([p.region, p.club, p.availability].filter(Boolean).join(' · ')) + '</p></div>' +
       '<div class="matchbadge"><strong>' + scored.score + '</strong><span>궁합</span></div></div>' +
 
@@ -202,10 +208,9 @@
         '<div class="row gap8 mt8">' +
         '<button class="btn btn--ghost grow" data-decline="' + U.esc(st.incoming.id) + '">거절</button>' +
         '<button class="btn btn--primary grow" data-accept="' + U.esc(st.incoming.id) + '">수락하고 대화하기</button></div>';
-    } else if (st.accepted || st.room) {
-      footer = '<div class="pp__note pp__note--ok">' + UI.icon('check') + '매칭이 성사됐어요.</div>' +
-        '<button class="btn btn--primary btn--big mt8" data-open-chat="' + U.esc(st.roomId) + '" data-other="' + key + '">' +
-        UI.icon('community') + '채팅하기</button>';
+    } else if (st.canChat) {
+      footer = '<div class="pp__note pp__note--ok">' + UI.icon('check') +
+        (st.friend.state === 'friends' ? '친구예요. 바로 1:1 대화를 할 수 있어요.' : '매칭이 성사됐어요. 바로 1:1 대화를 할 수 있어요.') + '</div>';
     } else if (st.mine) {
       footer = '<div class="pp__note">' + UI.icon('clock') + '이미 요청을 보냈어요 · 상태 <b>' + U.esc(st.mine.status) + '</b></div>' +
         '<button class="btn btn--ghost btn--big mt8" data-close>닫기</button>';
@@ -250,6 +255,7 @@
       '</dl>' +
 
       (p.bio ? '<p class="pp__bio">' + U.esc(p.bio) + '</p>' : '') +
+      '<div class="pp__social">' + (BM.views.profile ? BM.views.profile.buttons(state, p.userKey) : '') + '</div>' +
       '<div class="pp__foot">' + footer + '</div></div>';
   }
 
@@ -258,6 +264,7 @@
       title: '선수 프로필 · ' + (p.level || '급수 미입력'),
       body: profileBody(ctx.store.state, p),
       onMount: function (wrap) {
+        if (BM.views.profile) BM.views.profile.bind(wrap, ctx);
         wrap.addEventListener('click', function (ev) {
           var send = ev.target.closest('[data-send-request]');
           if (send) {
@@ -294,7 +301,7 @@
           if (chat) {
             ev.preventDefault();
             UI.closeSheet();
-            ctx.actions.openChat(chat.getAttribute('data-open-chat'));
+            ctx.actions.openChat(chat.getAttribute('data-open-chat'), chat.getAttribute('data-other'));
             ctx.actions.markChatRead(chat.getAttribute('data-open-chat'), chat.getAttribute('data-other'));
             return;
           }
@@ -315,52 +322,6 @@
         var input = wrap.querySelector('[data-note]');
         if (input) input.addEventListener('input', function () { noteDrafts[p.userKey] = input.value; }, { passive: true });
       }
-    });
-  }
-
-  /* ---------- 채팅 ---------- */
-  function chatOverlay(state) {
-    var roomId = state.ui.chatRoom;
-    if (!roomId) return '';
-    var room = state.data.rooms.filter(function (r) { return String(r.roomId) === String(roomId); })[0];
-    var req = state.data.requests.filter(function (r) { return String(r.id) === String(roomId); })[0];
-    var me = (state.me && state.me.key) || '';
-    var other = (room && room.other) || (req && (req.userKey === me ? req.target : req.userKey)) || '';
-    var mp = state.data.matchProfiles.filter(function (m) { return m.userKey === other; })[0] || {};
-    var msgs = room ? room.messages : [];
-    return '<div class="chat is-on" data-chat data-room="' + U.esc(roomId) + '" data-other="' + U.esc(other) + '">' +
-      '<header class="chat__head">' +
-      '<button class="iconbtn" data-act="chat-close" aria-label="닫기">' + UI.icon('arrow') + '</button>' +
-      '<div class="chat__who">' + UI.avatar(mp, 34) +
-      '<div><strong>' + U.esc(mp.nick || '상대') + '</strong>' +
-      '<span>' + U.esc([mp.level, mp.discipline, mp.club].filter(Boolean).join(' · ')) + '</span></div></div></header>' +
-      '<div class="chat__body" data-chat-msgs>' +
-      '<div class="chat__list">' + msgs.map(function (m) {
-        var mine = m.userKey === me;
-        return '<div class="bubble ' + (mine ? 'bubble--me' : '') + '"><p>' + U.esc(m.text) + '</p>' +
-          '<time>' + U.timeAgo(m.createdAt) + '</time></div>';
-      }).join('') + '</div>' +
-      '<div class="quick">' +
-      ['안녕하세요! 주말 오전 어떠세요?', '코트는 어디서 치세요?', '혼복도 가능하세요?', '좋아요, 그때 뵐게요 👍'].map(function (q) {
-        return '<button class="chip chip--sm" data-quick="' + U.esc(q) + '">' + U.esc(q) + '</button>';
-      }).join('') + '</div></div>' +
-      '<form class="chat__input" data-chat-form>' +
-      '<input type="text" placeholder="메시지 보내기" autocomplete="off" maxlength="300" data-chat-text>' +
-      '<button class="btn btn--send" type="submit" aria-label="보내기">' + UI.icon('send') + '</button></form>' +
-      '</div>';
-  }
-
-  function bindChat(root, ctx) {
-    var form = root.querySelector('[data-chat-form]');
-    if (!form || form.dataset.bound === '1') return;
-    form.dataset.bound = '1';
-    form.addEventListener('submit', function (ev) {
-      ev.preventDefault();
-      var input = form.querySelector('[data-chat-text]');
-      var chat = root.querySelector('[data-chat]');
-      if (!input || !chat) return;
-      var res = ctx.actions.sendChat(chat.getAttribute('data-room'), chat.getAttribute('data-other'), input.value);
-      if (res.ok) { input.value = ''; UI.haptic(10); }
     });
   }
 
@@ -387,7 +348,7 @@
     title: '1:1 매칭',
 
     render: function (state) {
-      var rooms = state.data.rooms || [];
+      var rooms = state.data.threads || [];
 
       return '' +
         myCard(state) +
@@ -405,9 +366,7 @@
               (r.unread ? '<span class="badge">' + r.unread + '</span>' : '') + '</div></li>';
           }).join('') + '</ul></section>' : '') +
 
-        resultsBlock(state) +
-
-        chatOverlay(state);
+        resultsBlock(state);
     },
 
     mount: function (root, ctx) {
@@ -455,12 +414,8 @@
           var roomId = open.getAttribute('data-open-chat');
           var other = open.getAttribute('data-other');
           if (!roomId) return;
-          ctx.actions.openChat(roomId);
+          ctx.actions.openChat(roomId, other);
           if (other) ctx.actions.markChatRead(roomId, other);
-          setTimeout(function () {
-            var box2 = root.querySelector('[data-chat-msgs]');
-            if (box2) box2.scrollTop = box2.scrollHeight;
-          }, 60);
           UI.haptic(8);
           return;
         }
@@ -471,20 +426,6 @@
           var key = profileTarget.getAttribute('data-open-profile');
           var p = (ctx.store.state.data.matchProfiles || []).filter(function (m) { return m.userKey === key; })[0];
           if (p) openProfile(p, ctx);
-          return;
-        }
-
-        if (ev.target.closest('[data-act="chat-close"]')) {
-          ev.preventDefault();
-          ctx.actions.closeChat();
-          return;
-        }
-
-        var quick = ev.target.closest('[data-quick]');
-        if (quick) {
-          ev.preventDefault();
-          var qInput = root.querySelector('[data-chat-text]');
-          if (qInput) { qInput.value = quick.getAttribute('data-quick'); qInput.focus(); }
           return;
         }
 
@@ -513,8 +454,6 @@
           ctx.actions.setMatchQuery(search.value);
         });
       }
-
-      bindChat(root, ctx);
     },
 
     update: function (root, state, ctx) {
@@ -525,26 +464,6 @@
         if (region.getAttribute('data-sig') !== sig) {
           region.innerHTML = resultsHtml(state);
           region.setAttribute('data-sig', sig);
-        }
-      }
-      var chat = root.querySelector('[data-chat]');
-      if (state.ui.chatRoom && !chat) {
-        root.insertAdjacentHTML('beforeend', chatOverlay(state));
-        bindChat(root, ctx);
-      } else if (!state.ui.chatRoom && chat) {
-        chat.parentNode.removeChild(chat);
-      } else if (chat) {
-        var roomId = state.ui.chatRoom;
-        var room = (state.data.rooms || []).filter(function (r) { return String(r.roomId) === String(roomId); })[0];
-        var box = chat.querySelector('[data-chat-msgs] .chat__list');
-        if (box && room) {
-          var me = (state.me && state.me.key) || '';
-          box.innerHTML = room.messages.map(function (m) {
-            return '<div class="bubble ' + (m.userKey === me ? 'bubble--me' : '') + '"><p>' + U.esc(m.text) + '</p>' +
-              '<time>' + U.timeAgo(m.createdAt) + '</time></div>';
-          }).join('');
-          var body = chat.querySelector('[data-chat-msgs]');
-          if (body) body.scrollTop = body.scrollHeight;
         }
       }
     },

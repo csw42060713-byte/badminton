@@ -23,9 +23,11 @@
     var open = !!openReplies[p.id];
     var me = (state.me && state.me.key) || '';
     return '<article class="post" data-post="' + U.esc(p.id) + '">' +
-      '<header class="post__head">' + UI.avatar(avatarFor(state, p.userKey), 40) +
-      '<div class="post__who"><strong>' + U.esc(p.nick) + '</strong>' +
-      '<time>' + U.timeAgo(p.createdAt) + '</time></div></header>' +
+      '<header class="post__head">' +
+      '<button type="button" class="post__author" data-author="' + U.esc(p.userKey) + '" aria-label="' + U.esc(p.nick) + ' 프로필 보기">' +
+      UI.avatar(avatarFor(state, p.userKey), 40) +
+      '<span class="post__who"><strong>' + U.esc(p.nick) + '</strong>' +
+      '<time>' + U.timeAgo(p.createdAt) + '</time></span></button></header>' +
       '<p class="post__text">' + U.esc(p.text).replace(/\n/g, '<br>') + '</p>' +
       '<footer class="post__foot">' +
       '<button class="react' + (p.likedByMe ? ' is-on' : '') + '" data-like="' + U.esc(p.id) + '" aria-pressed="' + (p.likedByMe ? 'true' : 'false') + '">' +
@@ -69,6 +71,14 @@
 
     mount: function (root, ctx) {
       root.addEventListener('click', function (ev) {
+        /* 글쓴이 아바타·닉네임을 누르면 프로필(친구 추가·채팅) */
+        var author = ev.target.closest('[data-author]');
+        if (author) {
+          ev.preventDefault();
+          var key = author.getAttribute('data-author');
+          if (key && BM.views.profile) BM.views.profile.open(key, ctx);
+          return;
+        }
         var like = ev.target.closest('[data-like]');
         if (like) {
           ev.preventDefault();

@@ -18,10 +18,13 @@
   var AD_DAILY_LIMIT = D.HEART_RULES ? D.HEART_RULES.AD_PER_DAY : 5;
 
   /* ---------- 파생 데이터 (순수 함수: 테스트에서도 그대로 사용) ---------- */
-    function derive(rows, meKey) {
+    function derive(rows, meKey, meInfo) {
     var idx = D.index(rows.map(function (r) { return Array.isArray(r) ? D.fromRow(r) : r; }));
-    var posts = U.sortBy(idx.byType['소셜'] || [], function (p) { return p.createdAt || ''; }, true);
-    var replies = idx.byType['답글'] || [];
+    var isSample = (BM.seed && BM.seed.isSampleText) ? BM.seed.isSampleText : function () { return false; };
+    /* 커뮤니티에는 실제 사용자가 쓴 글만 보입니다 (예전 앱이 넣은 샘플 글 제외) */
+    var posts = U.sortBy((idx.byType['소셜'] || []).filter(function (p) { return !isSample(p.text); }),
+      function (p) { return p.createdAt || ''; }, true);
+    var replies = (idx.byType['답글'] || []).filter(function (r) { return !isSample(r.text); });
     var hearts = idx.byType['하트'] || [];
     var me = meKey || '';
     var likeSets = {};
@@ -66,6 +69,11 @@
 
     var requests = idx.byType['매칭신청'] || [];
     var rooms = me ? D.chatRooms(idx, me) : [];
+    var threads = me ? D.chatThreads(idx, me) : [];
+    var friends = me ? D.friendsOf(idx, me) : [];
+    var friendRequests = me ? D.incomingFriendRequests(idx, me) : [];
+    var admin = D.isAdminMe(meInfo || {});
+    var mentorApps = me ? D.mentorApplications(idx, me, admin) : [];
     var coachApps = U.sortBy(idx.byType['코치신청'] || [], function (a) { return a.createdAt || ''; }, true);
     var feedback = U.sortBy(idx.byType['코치피드백'] || [], function (a) { return a.createdAt || ''; }, true);
 
@@ -81,6 +89,12 @@
     matchProfiles: matchProfiles,
     requests: me ? D.matchRequests(idx, me) : [],
     rooms: rooms,
+    threads: threads,
+    friends: friends,
+    friendRequests: friendRequests,
+    mentorApps: mentorApps,
+    mentorPending: admin ? mentorApps.filter(function (a) { return a.status === '심사중'; }).length : 0,
+    isAdmin: admin,
     coachApps: coachApps,
     feedback: feedback,
     memos: U.sortBy(idx.byType['달력메모'] || [], function (m) { return m.date || ''; }, true),
@@ -92,7 +106,7 @@
       todayEarned: 0, todaySpent: 0
     },
     stats: D.stats(idx, me),
-    unread: U.sum(rooms, function (r) { return r.unread; })
+    unread: U.sum(threads, function (r) { return r.unread; })
     };
     }
 
@@ -118,7 +132,7 @@
       ui: {
         tab: 'log',
         matchFilter: { level: '전체', gender: '전체', region: '전체', discipline: '전체', query: '' },
-        chatRoom: null, coachTab: 'feedback', coachPlayer: null, composer: '', replyTo: null
+        chatRoom: null, chatOpen: false, coachTab: '', coachPlayer: null, composer: '', replyTo: null
       },
       analysis: null,
       queue: U.readJSON(QUEUE_KEY, []),
@@ -142,7 +156,7 @@
 
     function recompute() {
       state.idx = D.index(state.rows.map(function (r) { return Array.isArray(r) ? D.fromRow(r) : r; }));
-      state.data = derive(state.rows, state.me && state.me.key);
+      state.data = derive(state.rows, state.me && state.me.key, state.me);
     }
 
     function emit() {
@@ -228,6 +242,41 @@
       return step();
     }
 
+    /* ---------- 예전 앱이 넣은 샘플 글 걷어내기 ---------- */
+    function dropSampleRows() {
+      var seed = BM.seed;
+      if (!seed || !seed.isSampleText) return [];
+      var victims = {};
+      state.rows.forEach(function (r) {
+        if (String(r[D.COL['유형']]) !== '소셜') return;
+        if (seed.isSampleText(r[D.COL['소셜글']])) victims[String(r[0])] = true;
+      });
+      state.rows.forEach(function (r) {
+        var type = String(r[D.COL['유형']]);
+        var target = String(r[D.COL['대상']] || '');
+        if (type === '답글' && (victims[target] || seed.isSampleText(r[D.COL['소셜글']]))) victims[String(r[0])] = true;
+        if (type === '하트' && victims[target]) victims[String(r[0])] = true;
+      });
+      var ids = Object.keys(victims);
+      if (!ids.length) return [];
+      state.rows = state.rows.filter(function (r) { return !victims[String(r[0])]; });
+      return ids;
+    }
+
+    function purgeSamples() {
+      var ids = dropSampleRows();
+      if (!ids.length) return 0;
+      if (state.mode === 'local') {
+        ids.forEach(function (id) {
+          enqueue({ kind: 'remove', id: id, clientId: U.clientId() });
+        });
+      } else if (apiRef && typeof apiRef.purgeSamples === 'function' && D.isAdminMe(state.me)) {
+        /* 시트 모드: 관리자만 서버에서 실제로 지울 수 있습니다 */
+        Promise.resolve(apiRef.purgeSamples()).catch(function () { /* 화면은 이미 필터로 가려짐 */ });
+      }
+      return ids.length;
+    }
+
     /* ---------- 낙관적 행 추가 ---------- */
     function pushRow(entity, queueIt) {
       var row = D.toRow(entity);
@@ -268,6 +317,7 @@
           state.rows = res.rows || [];
           state.ready = true;
           state.lastSync = res.syncedAt || U.stamp();
+          purgeSamples();
           U.writeJSON(CACHE_KEY, { rows: state.rows, me: state.me, at: state.lastSync });
           U.writeJSON(MODE_KEY, state.mode);
           recompute();
@@ -501,6 +551,10 @@
       sendChat: function (roomId, otherKey, text) {
         text = (text || '').trim();
         if (!text) return { ok: false, reason: 'empty' };
+        if (!roomId || !otherKey) return { ok: false, reason: 'no_room' };
+        if (!D.canChatWith(state.idx, state.me && state.me.key, otherKey)) {
+          return { ok: false, reason: 'not_allowed' };
+        }
         if (!tryLock('chat:' + roomId, 450)) return { ok: false, reason: 'locked' };
         var entity = meEntity({
           type: '매칭채팅', id: U.uid(), clientId: U.clientId(), nick: state.me.nick,
@@ -512,16 +566,99 @@
         return { ok: true };
       },
 
-      openChat: function (roomId) { state.ui.chatRoom = roomId; emit(); },
-      closeChat: function () { state.ui.chatRoom = null; emit(); },
+      /* ---------- 1:1 채팅(상단 DM) ---------- */
+      openChats: function () {
+        state.ui.chatOpen = true;
+        state.ui.chatRoom = null;
+        emit();
+      },
+
+      closeChats: function () {
+        state.ui.chatOpen = false;
+        state.ui.chatRoom = null;
+        emit();
+      },
+
+      openChat: function (roomId, otherKey) {
+        state.ui.chatOpen = true;
+        state.ui.chatRoom = roomId || null;
+        state.ui.chatOther = otherKey || '';
+        emit();
+      },
+
+      closeChat: function () {
+        state.ui.chatRoom = null;
+        emit();
+      },
 
       markChatRead: function (roomId, otherKey) {
+        if (!roomId) return { ok: false, reason: 'no_room' };
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        var thread = D.threadById(state.idx, me, roomId);
+        if (!thread || !thread.unread) return { ok: false, reason: 'read' };
+        if (!tryLock('read:' + roomId, 1500)) return { ok: false, reason: 'locked' };
         var entity = meEntity({
           type: '채팅읽음', id: U.uid(), clientId: U.clientId(),
-          target: otherKey, team: roomId, createdAt: U.stamp()
+          target: otherKey || thread.other, team: roomId, createdAt: U.stamp()
         });
-        var row = D.toRow(entity);
-        state.rows.unshift(row);
+        pushRow(entity);
+        commit();
+        return { ok: true };
+      },
+
+      /* ---------- 친구(친추) ---------- */
+      sendFriendRequest: function (targetKey) {
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        if (!targetKey) return { ok: false, reason: 'no_target' };
+        if (targetKey === me) return { ok: false, reason: 'self' };
+        if (!tryLock('friendReq:' + targetKey, 1200)) return { ok: false, reason: 'locked' };
+        var st = D.friendState(state.idx, me, targetKey);
+        if (st.state === 'friends') return { ok: false, reason: 'already' };
+        if (st.state === 'sent') return { ok: false, reason: 'sent' };
+        if (st.state === 'received') return { ok: false, reason: 'received', requestId: st.requestId };
+        var known = (state.idx.byType['프로필'] || []).some(function (p) { return p.userKey === targetKey; }) ||
+          (state.idx.byType['매칭프로필'] || []).some(function (m) { return m.userKey === targetKey; });
+        if (!known) return { ok: false, reason: 'no_target' };
+        pushRow(meEntity({
+          type: '친구요청', id: U.uid(), clientId: U.clientId(),
+          nick: state.me.nick, target: targetKey
+        }));
+        commit();
+        return { ok: true };
+      },
+
+      respondFriendRequest: function (requestId, accept) {
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        var req = (state.idx.byType['친구요청'] || []).filter(function (r) {
+          return String(r.id) === String(requestId) && r.target === me;
+        })[0];
+        if (!req) return { ok: false, reason: 'notfound' };
+        if (!tryLock('friendRes:' + requestId, 1200)) return { ok: false, reason: 'locked' };
+        var st = D.friendState(state.idx, me, req.userKey);
+        if (st.state === 'friends') return { ok: false, reason: 'already' };
+        if (st.state !== 'received') return { ok: false, reason: 'notfound' };
+        pushRow(meEntity({
+          type: accept ? '친구수락' : '친구거절', id: U.uid(), clientId: U.clientId(),
+          nick: state.me.nick, target: req.userKey
+        }));
+        commit();
+        return { ok: true, accepted: !!accept };
+      },
+
+      removeFriend: function (targetKey) {
+        var me = state.me && state.me.key;
+        if (!me || !targetKey) return { ok: false, reason: 'no_target' };
+        if (!tryLock('friendDel:' + targetKey, 1200)) return { ok: false, reason: 'locked' };
+        if (D.friendState(state.idx, me, targetKey).state !== 'friends') {
+          return { ok: false, reason: 'not_friends' };
+        }
+        pushRow(meEntity({
+          type: '친구삭제', id: U.uid(), clientId: U.clientId(),
+          nick: state.me.nick, target: targetKey
+        }));
         commit();
         return { ok: true };
       },
@@ -624,6 +761,8 @@
       },
 
       decideCoachApp: function (rowId, status) {
+        if (!D.isAdminMe(state.me)) return { ok: false, reason: 'forbidden' };
+        if (status !== '승인' && status !== '거절') return { ok: false, reason: 'bad_status' };
         if (!tryLock('coach:' + rowId, 1200)) return { ok: false, reason: 'locked' };
         var app = (state.idx.byType['코치신청'] || []).filter(function (a) { return a.id === rowId; })[0];
         if (!app) return { ok: false, reason: 'notfound' };
@@ -639,10 +778,84 @@
         return { ok: true };
       },
 
+      /* ---------- 멘토 신청 · 심사 (관리자만) ----------
+       * 일반 사용자가 신청하면 '대상'이 관리자로 기록되고, 화면에는
+       * '관리자에게 전달되었습니다 (심사중)'만 보입니다.
+       * 승인/거절은 관리자 계정에서만 가능합니다. */
+      requestMentor: function (input) {
+        input = input || {};
+        var me = state.me || {};
+        if (!me.key) return { ok: false, reason: 'no_login' };
+        var reason = String(input.reason || input.intro || '').trim();
+        if (!reason) return { ok: false, reason: 'empty' };
+        if (!tryLock('mentor:' + me.key, 2000)) return { ok: false, reason: 'locked' };
+        var pending = D.mentorApplications(state.idx, me.key, false)
+          .filter(function (a) { return a.status === '심사중'; })[0];
+        if (pending) return { ok: false, reason: 'pending' };
+        var mp = D.matchProfileOf(state.idx, me.key);
+        var payload = {
+          status: '심사중',
+          submitted: U.stamp(),
+          type: input.type || '선수 멘토',
+          experience: input.experience || '',
+          awards: input.awards || '',
+          proof: input.proof || '',
+          reason: reason,
+          intro: reason,
+          level: input.level || me.level || '',
+          discipline: input.discipline || me.discipline || '',
+          gender: D.normalizeGender(input.gender || mp.gender),
+          region: input.region || mp.region || '',
+          club: input.club || mp.club || ''
+        };
+        pushRow(meEntity({
+          type: '멘토신청', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
+          nick: me.nick, target: D.ADMIN_TARGET, payload: payload
+        }));
+        commit();
+        return { ok: true, status: '심사중' };
+      },
+
+      decideMentor: function (appId, status) {
+        if (!D.isAdminMe(state.me)) return { ok: false, reason: 'forbidden' };
+        if (status !== '승인' && status !== '거절') return { ok: false, reason: 'bad_status' };
+        if (!tryLock('mentorDecide:' + appId, 1500)) return { ok: false, reason: 'locked' };
+        var row = (state.idx.byType['멘토신청'] || []).concat(state.idx.byType['코치신청'] || [])
+          .filter(function (r) { return String(r.id) === String(appId); })[0];
+        if (!row) return { ok: false, reason: 'notfound' };
+        var current = row.status || (row.payload && row.payload.status) || '심사중';
+        if (current !== '심사중') return { ok: false, reason: 'done' };
+        var payload = {};
+        Object.keys(row.payload || {}).forEach(function (k) { payload[k] = row.payload[k]; });
+        payload.status = status;
+        payload.decided = U.stamp();
+        payload.decidedBy = (state.me && state.me.nick) || '관리자';
+        patchRowById(row.id, { '소셜글': JSON.stringify(payload), '승패': status });
+        enqueue({ kind: 'update', id: row.id, clientId: U.clientId(), cells: { '소셜글': JSON.stringify(payload), '승패': status } });
+        /* 심사 기록 (브리지는 관리자 세션만 '멘토승인'/'멘토거절'을 허용) */
+        pushRow(meEntity({
+          type: status === '승인' ? '멘토승인' : '멘토거절',
+          id: U.uid(), clientId: U.clientId(), date: U.ymd(),
+          nick: state.me && state.me.nick, target: row.userKey, team: row.id
+        }));
+        commit();
+        return { ok: true, status: status };
+      },
+
+      /* ---------- 커뮤니티 샘플 글 정리 ----------
+       * 예전 앱이 커뮤니티에 남긴 샘플 글·답글·하트를 실제로 지웁니다.
+       * (사용자가 직접 쓴 글은 본문이 달라서 건드리지 않습니다.) */
+      purgeSampleCommunity: function () {
+        var removed = purgeSamples();
+        if (removed) commit();
+        return { ok: true, removed: removed };
+      },
+
       sendCoachFeedback: function (input) {
         input = input || {};
         var text = (input.text || '').trim();
         if (!text) return { ok: false, reason: 'empty' };
+        if (!D.isAdminMe(state.me) && !actions.isCoach()) return { ok: false, reason: 'forbidden' };
         if (!tryLock('feedback', 1200)) return { ok: false, reason: 'locked' };
         var entity = meEntity({
           type: '코치피드백', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
@@ -674,8 +887,8 @@
         });
       },
 
-      /* 관리자: 데모에서는 내가 관리자 */
-      isAdmin: function () { return true; },
+      /* 관리자: 관리자 계정(ADMIN_EMAILS)으로 로그인했을 때만 true */
+      isAdmin: function () { return D.isAdminMe(state.me); },
 
       setFilter: function (patch) {
         Object.keys(patch).forEach(function (k) { state.ui.matchFilter[k] = patch[k]; });

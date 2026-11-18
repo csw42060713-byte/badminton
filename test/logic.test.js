@@ -42,11 +42,13 @@
     region: '경기', club: '나래울', theme: { theme: 'th_night', avatar: '🦋' }
   };
 
+  function copyOf(o) { return JSON.parse(JSON.stringify(o)); }
+
   function stateOf(rows, meKey) {
     rows = rows || BM.fixtures.demo();
     meKey = meKey || BM.seed.ME;
     return {
-      ready: true, mode: 'local', me: ME, rows: rows,
+      ready: true, mode: 'local', me: copyOf(ME), rows: rows,
       data: BM.store.derive(rows, meKey),
       drafts: {
         log: {
@@ -575,8 +577,9 @@
     });
   });
 
-  test('코치: 멘토 신청 승인/거절', function () {
+  test('코치: 멘토 신청 승인/거절 (관리자)', function () {
     return freshStore().then(function (store) {
+      store.state.me.admin = true;
       var pending = store.state.data.coachApps.filter(function (a) { return a.status === '심사중'; })[0];
       ok(pending, '심사중 신청 존재');
       var res = store.actions.decideCoachApp(pending.id, '승인');
@@ -590,8 +593,9 @@
     });
   });
 
-  test('코치: 피드백 보내기', function () {
+  test('코치: 피드백 보내기 (관리자)', function () {
     return freshStore().then(function (store) {
+      store.state.me.admin = true;
       var res = store.actions.sendCoachFeedback({ playerKey: 'demo_drive', text: '타점을 몸 앞에서', rating: 4, drills: ['드라이브'] });
       ok(res.ok, '전송');
       var fb = store.state.data.feedback[0];
@@ -759,14 +763,16 @@
     includes(html, '주력', '주력 종목 표시');
   });
 
-  test('화면: 채팅 오버레이 렌더', function () {
+  test('화면: 1:1 대화방 렌더', function () {
     var state = stateOf();
-    var room = state.data.rooms[0];
+    var room = state.data.threads[0];
     state.ui.chatRoom = room.roomId;
-    var html = BM.views.matching.render(state);
+    var html = BM.views.chat.roomHtml(state);
     checkHtml(html, '채팅');
-    includes(html, 'chat__input', '입력창');
+    includes(html, 'dm__composer', '입력창');
+    includes(html, 'data-dm-form', '전송 폼');
     includes(html, '네트앞여우', '상대 이름');
+    includes(html, 'dmsg--me', '내 메시지는 오른쪽');
   });
 
   test('화면: 커뮤니티 렌더', function () {
@@ -774,21 +780,21 @@
     var html = BM.views.community.render(state);
     checkHtml(html, '커뮤니티');
     includes(html, '올리기', '글쓰기');
-    includes(html, '나래울 클럽', '시드 글');
+    includes(html, '나래울 코트 빈 자리', '사용자가 쓴 글');
   });
 
   test('화면: 코치 렌더 (피드백/심사)', function () {
     var state = stateOf();
-    var feedback = BM.views.coach._render ? BM.views.coach._render(state) : null;
+    state.me.admin = true;
     var html = BM.views.coach.render(state);
     checkHtml(html, '코치-피드백');
     includes(html, '선수 피드백', '탭');
+    includes(html, '도착한 멘토 신청', '관리자 배너');
     state.ui.coachTab = 'approve';
     var html2 = BM.views.coach.render(state);
     checkHtml(html2, '코치-심사');
     includes(html2, '멘토 신청 심사', '심사 탭');
-    includes(html2, '승인', '승인 버튼');
-    ok(feedback === null || true, 'noop');
+    includes(html2, '조건 확인 후 수락', '수락 버튼');
   });
 
   test('화면: MY 렌더', function () {
@@ -1263,6 +1269,230 @@
       eq(mp.gender, '남성', '매칭 카드 성별');
       eq(store.state.me.gender, '남성', '프로필 성별');
     });
+  });
+
+
+  /* ================= 11. 커뮤니티 정리 (AI·샘플 글) ================= */
+  test('커뮤니티: 예전 앱이 넣은 샘플 글은 보이지 않는다', function () {
+    var rows = BM.fixtures.demo();
+    rows.push(D.toRow({
+      id: 's1', type: '소셜', createdAt: U.stamp(), date: U.ymd(),
+      nick: '나래', userKey: BM.seed.ME, text: BM.seed.SAMPLE_POSTS[1]
+    }));
+    rows.push(D.toRow({
+      id: 's2', type: '소셜', createdAt: U.stamp(), date: U.ymd(),
+      nick: '나래', userKey: BM.seed.ME, text: '내가 직접 쓴 진짜 글입니다'
+    }));
+    var data = BM.store.derive(rows, BM.seed.ME);
+    excludes(data.posts.map(function (p) { return p.text; }).join('|'), '나래울 클럽 토요일 오픈', '샘플 글 숨김');
+    includes(data.posts.map(function (p) { return p.text; }).join('|'), '내가 직접 쓴 진짜 글입니다', '실제 글은 보임');
+  });
+
+  test('커뮤니티: 정리하면 샘플 글·답글·하트가 저장소에서도 사라진다', function () {
+    return freshStoreWith([
+      { id: 's1', type: '소셜', createdAt: U.stamp(), date: U.ymd(), nick: '나래', userKey: BM.seed.ME, text: BM.seed.SAMPLE_POSTS[2] },
+      { id: 'r1', type: '답글', createdAt: U.stamp(), date: U.ymd(), nick: '콕집사', userKey: 'demo_chi', target: 's1', text: BM.seed.SAMPLE_REPLIES[0] },
+      { id: 'h1', type: '하트', createdAt: U.stamp(), date: U.ymd(), nick: '나래', userKey: BM.seed.ME, target: 's1' },
+      { id: 's2', type: '소셜', createdAt: U.stamp(), date: U.ymd(), nick: '나래', userKey: BM.seed.ME, text: '지우면 안 되는 내 글' }
+    ]).then(function (store) {
+      var texts = store.state.rows.map(function (r) { return r[D.COL['소셜글']]; }).join('|');
+      excludes(texts, BM.seed.SAMPLE_POSTS[2], '샘플 글 삭제');
+      excludes(texts, BM.seed.SAMPLE_REPLIES[0], '샘플 답글 삭제');
+      includes(texts, '지우면 안 되는 내 글', '내 글은 보존');
+      ok(!store.state.data.posts.some(function (p) { return p.id === 's1'; }), '글 목록에서도 제외');
+      var removed = store.actions.purgeSampleCommunity();
+      eq(removed.removed, 0, '두 번 지우면 0건');
+    });
+  });
+
+  /* ================= 12. 친구(친추) ================= */
+  test('친구: 요청을 보내면 대기, 수락하면 친구가 되어 대화할 수 있다', function () {
+    return freshStore().then(function (store) {
+      eq(D.friendState(store.state.idx, BM.seed.ME, 'demo_chi').state, 'none', '처음엔 관계 없음');
+      var r = store.actions.sendFriendRequest('demo_chi');
+      ok(r.ok, '요청 보내기');
+      eq(D.friendState(store.state.idx, BM.seed.ME, 'demo_chi').state, 'sent', '보낸 상태');
+      eq(D.canChatWith(store.state.idx, BM.seed.ME, 'demo_chi'), false, '친구 전엔 대화 불가');
+      store.state.locks = {};
+      eq(store.actions.sendFriendRequest('demo_chi').reason, 'sent', '중복 요청 차단');
+
+      /* 상대가 수락한 상황 (시트에서 내려온 행) */
+      var rows = BM.fixtures.demo().concat([
+        D.toRow({ id: 'fq1', type: '친구요청', createdAt: '2026-11-17 10:00:00', date: '2026-11-17', nick: '나래', userKey: BM.seed.ME, target: 'demo_chi' }),
+        D.toRow({ id: 'fa1', type: '친구수락', createdAt: '2026-11-17 10:05:00', date: '2026-11-17', nick: '콕집사', userKey: 'demo_chi', target: BM.seed.ME })
+      ]);
+      var state = stateOf(rows);
+      eq(D.friendState(state.data.idx, BM.seed.ME, 'demo_chi').state, 'friends', '친구 상태');
+      eq(D.canChatWith(state.data.idx, BM.seed.ME, 'demo_chi'), true, '친구는 대화 가능');
+      var thread = (state.data.threads || []).filter(function (t) { return t.other === 'demo_chi'; })[0];
+      ok(thread, '대화방 생김');
+      eq(thread.roomId, 'fa1', '친구수락 행이 대화방 ID');
+      eq(D.friendState(state.data.idx, BM.seed.ME, 'demo_foot').state, 'none', '모르는 사이');
+    });
+  });
+
+  test('친구: 받은 요청은 수락/거절, 친구는 끊을 수 있다', function () {
+    return freshStoreWith([
+      { id: 'fq2', type: '친구요청', createdAt: U.stamp(), date: U.ymd(), nick: '네트앞여우', userKey: 'demo_net', target: BM.seed.ME }
+    ]).then(function (store) {
+      var reqs = store.state.data.friendRequests;
+      eq(reqs.length, 1, '받은 요청 1건');
+      eq(reqs[0].id, 'fq2', '요청 ID');
+      var res = store.actions.respondFriendRequest('fq2', true);
+      ok(res.ok, '수락');
+      eq(D.friendState(store.state.idx, BM.seed.ME, 'demo_net').state, 'friends', '친구');
+      store.state.locks = {};
+      var del = store.actions.removeFriend('demo_net');
+      ok(del.ok, '친구 끊기');
+      eq(D.friendState(store.state.idx, BM.seed.ME, 'demo_net').state, 'none', '끊긴 상태');
+    });
+  });
+
+  test('친구: 거절하면 관계가 없어지고 다시 요청할 수 있다', function () {
+    return freshStoreWith([
+      { id: 'fq3', type: '친구요청', createdAt: U.stamp(), date: U.ymd(), nick: '드라이브요정', userKey: 'demo_drive', target: BM.seed.ME }
+    ]).then(function (store) {
+      ok(store.actions.respondFriendRequest('fq3', false).ok, '거절');
+      eq(D.friendState(store.state.idx, BM.seed.ME, 'demo_drive').state, 'none', '거절 후 관계 없음');
+      store.state.locks = {};
+      ok(store.actions.sendFriendRequest('demo_drive').ok, '다시 요청 가능');
+    });
+  });
+
+  test('친구: 프로필 버튼이 상태에 맞게 바뀐다', function () {
+    var rows = BM.fixtures.demo().concat([
+      D.toRow({ id: 'fq4', type: '친구요청', createdAt: U.stamp(), date: U.ymd(), nick: '발놀림장인', userKey: 'demo_foot', target: BM.seed.ME }),
+      D.toRow({ id: 'fq5', type: '친구요청', createdAt: U.stamp(), date: U.ymd(), nick: '나래', userKey: BM.seed.ME, target: 'demo_chi' }),
+      D.toRow({ id: 'fa5', type: '친구수락', createdAt: U.stamp(), date: U.ymd(), nick: '콕집사', userKey: 'demo_chi', target: BM.seed.ME })
+    ]);
+    var state = stateOf(rows);
+    includes(BM.views.profile.buttons(state, 'demo_foot'), 'data-friend-accept', '받은 요청 수락 버튼');
+    includes(BM.views.profile.buttons(state, 'demo_chi'), 'data-friend-chat', '친구는 채팅 버튼');
+    includes(BM.views.profile.buttons(state, 'demo_drive'), 'data-friend-add', '모르는 사람은 친구 추가');
+    includes(BM.views.profile.buttons(state, 'demo_chi'), '친구 끊기', '친구 끊기');
+  });
+
+  /* ================= 13. 1:1 채팅 목록 ================= */
+  test('채팅: 친구·매칭 상대가 메시지 없이도 대화 목록에 뜬다', function () {
+    var rows = BM.fixtures.demo().concat([
+      D.toRow({ id: 'fq6', type: '친구요청', createdAt: '2026-11-17 09:00:00', date: '2026-11-17', nick: '나래', userKey: BM.seed.ME, target: 'demo_drive' }),
+      D.toRow({ id: 'fa6', type: '친구수락', createdAt: '2026-11-17 09:05:00', date: '2026-11-17', nick: '드라이브요정', userKey: 'demo_drive', target: BM.seed.ME })
+    ]);
+    var state = stateOf(rows);
+    var friendThread = state.data.threads.filter(function (t) { return t.roomId === 'fa6'; })[0];
+    ok(friendThread, '메시지 없어도 친구 대화방');
+    eq(friendThread.other, 'demo_drive', '상대');
+    eq(friendThread.kind, 'friend', '친구 대화방');
+    var matchThread = state.data.threads.filter(function (t) { return t.kind === 'match'; })[0];
+    ok(matchThread, '매칭 성사 대화방도 목록에');
+    var html = BM.views.chat.listHtml(state);
+    checkHtml(html, '채팅 목록');
+    includes(html, 'data-thread="fa6"', '친구 대화방');
+    includes(html, '대화를 시작해 보세요', '첫 대화 안내');
+  });
+
+  test('채팅: 받은 친구 요청은 목록 상단에서 수락/거절', function () {
+    var rows = BM.fixtures.demo().concat([
+      D.toRow({ id: 'fq7', type: '친구요청', createdAt: U.stamp(), date: U.ymd(), nick: '발놀림장인', userKey: 'demo_foot', target: BM.seed.ME })
+    ]);
+    var state = stateOf(rows);
+    var html = BM.views.chat.listHtml(state);
+    includes(html, '받은 친구 요청', '요청 섹션');
+    includes(html, 'data-req-accept="fq7"', '수락 버튼');
+    includes(html, 'data-req-reject="fq7"', '거절 버튼');
+    includes(html, '발놀림장인', '신청자 이름');
+  });
+
+  test('채팅: 친구가 아닌 상대에게는 메시지를 보낼 수 없다', function () {
+    return freshStore().then(function (store) {
+      var res = store.actions.sendChat('anyroom', 'demo_drive', '안녕하세요');
+      eq(res.ok, false, '차단');
+      eq(res.reason, 'not_allowed', '이유');
+      store.state.locks = {};
+      var okRes = store.actions.sendChat('anyroom', 'demo_net', '매칭된 상대에게는 가능');
+      ok(okRes.ok, '매칭 상대에게 전송');
+    });
+  });
+
+  /* ================= 14. 멘토 신청·관리자 심사 ================= */
+  test('멘토: 신청은 관리자에게 전달되고 심사중으로 남는다', function () {
+    return freshStore().then(function (store) {
+      eq(D.isAdminMe(store.state.me), false, '일반 계정은 관리자 아님');
+      var res = store.actions.requestMentor({
+        type: '코치', experience: '5년', awards: '시 대회 3위', reason: '초보 스매시 폼을 봐드릴 수 있어요'
+      });
+      ok(res.ok, '신청 접수');
+      var app = (store.state.data.idx.byType['멘토신청'] || [])[0];
+      ok(app, '멘토신청 행');
+      eq(app.target, D.ADMIN_TARGET, '대상은 관리자');
+      eq(app.status, '심사중', '심사중');
+      eq(store.state.data.mentorApps.length, 1, '내 신청 1건');
+      store.state.locks = {};
+      eq(store.actions.decideMentor(app.id, '승인').reason, 'forbidden', '일반 사용자는 승인 불가');
+      store.state.ui.coachTab = 'apply';
+      var html = BM.views.coach.render(store.state);
+      includes(html, '관리자에게 멘토 신청이 전달되었습니다', '전달 안내');
+      excludes(html, '조건 확인 후 수락', '심사 버튼 없음');
+    });
+  });
+
+  test('멘토: 관리자만 조건을 보고 수락/거절한다', function () {
+    clearStorage();
+    U.writeJSON('bm_rows_v1', BM.fixtures.demo());
+    var api = BM.api.createLocal({
+      latency: 0, me: { email: 'csw42060713@gmail.com', nick: '승우' }
+    });
+    var store = BM.store.createStore({ api: api });
+    return store.actions.init().then(function () {
+      eq(D.isAdminMe(store.state.me), true, '관리자 로그인');
+      var apps = store.state.data.mentorApps;
+      ok(apps.length >= 2, '관리자는 모든 신청을 본다');
+      var html = BM.views.coach.render(store.state);
+      includes(html, '도착한 멘토 신청', '상단 배너');
+      store.state.ui.coachTab = 'approve';
+      html = BM.views.coach.render(store.state);
+      includes(html, '조건 확인 후 수락', '수락 버튼');
+      includes(html, '거절', '거절 버튼');
+      var pending = apps.filter(function (a) { return a.status === '심사중'; })[0];
+      ok(pending, '심사중 신청');
+      var res = store.actions.decideMentor(pending.id, '승인');
+      ok(res.ok, '승인');
+      var after = stateApps(store, pending.id);
+      eq(after.status, '승인', '상태 반영');
+      eq((store.state.queue[0] || {}).kind, 'update', '시트 수정 요청');
+      var audit = (store.state.data.idx.byType['멘토승인'] || [])[0];
+      ok(audit, '심사 기록');
+      eq(audit.target, pending.userKey, '대상');
+      store.state.locks = {};
+      var next = store.state.data.mentorApps.filter(function (a) { return a.status === '심사중'; })[0];
+      if (next) eq(store.actions.decideMentor(next.id, '거절').ok, true, '거절');
+    });
+  });
+
+  function stateApps(store, id) {
+    return (store.state.data.idx.byType['멘토신청'] || []).concat(store.state.data.idx.byType['코치신청'] || [])
+      .filter(function (a) { return a.id === id; })[0];
+  }
+
+  test('멘토: 관리자 계정 판별은 이메일 기준', function () {
+    eq(D.isAdminEmail('CSW42060713@gmail.com'), true, '대소문자 무시');
+    eq(D.isAdminEmail('someone@example.com'), false, '일반 계정');
+    eq(D.isAdminMe({ email: 'csw42060713@gmail.com' }), true, '로컬 로그인');
+    eq(D.isAdminMe({ admin: true }), true, '브리지가 내려 준 관리자 표시');
+    eq(D.isAdminMe({ email: 'player@gmail.com' }), false, '일반');
+    eq(D.ADMIN_TARGET, 'csw42060713@gmail.com', '신청 대상 관리자');
+  });
+
+  test('멘토: 일반 사용자 화면에는 내 신청 상태만 보인다', function () {
+    var rows = BM.fixtures.demo();
+    var state = stateOf(rows);
+    var html = BM.views.coach.render(state);
+    includes(html, '멘토 신청', '신청 탭');
+    excludes(html, '멘토 신청 심사', '심사 탭은 관리자만');
+    excludes(html, '도착한 멘토 신청', '배너 없음');
+    state.ui.coachTab = 'approve';
+    var html2 = BM.views.coach.render(state);
+    excludes(html2, '조건 확인 후 수락', '남의 신청을 승인할 수 없음');
   });
 
   /* ---------- 자동 실행 ---------- */
