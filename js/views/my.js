@@ -121,6 +121,21 @@
       '</section>';
   }
 
+  /* ---------- 개인정보 · 계정 삭제 (Play 스토어 필수 항목) ---------- */
+  function legalCard(state) {
+    var s = BM.auth.session();
+    var guest = !s || s.kind === 'guest';
+    return '' +
+      '<section class="card" data-region="legal">' +
+      '<header class="card__head"><h2>개인정보 · 계정</h2></header>' +
+      '<a class="linkbtn legal__link" href="privacy.html" target="_blank" rel="noopener">개인정보처리방침 보기</a>' +
+      (guest
+        ? '<p class="hint">체험 모드에는 계정이 없어요. 지금 남긴 기록은 <b>이 기기에만</b> 저장되고, 위의 ‘저장된 기록 모두 지우기’로 언제든 지울 수 있어요.</p>'
+        : '<p class="hint">탈퇴하면 프로필·일지·채팅·매칭 신청 등 <b>계정의 모든 기록</b>이 삭제되고 되돌릴 수 없어요.</p>' +
+          '<button type="button" class="btn btn--danger btn--sm mt8" data-act="delete-account">회원 탈퇴</button>') +
+      '</section>';
+  }
+
   function ledgerRow(h) {
     var iconName = h.delta > 0 ? 'plus' : 'arrow';
     var note = h.note ? ' · ' + h.note : '';
@@ -262,6 +277,8 @@
         (state.queue && state.queue.length ? '<button class="linkbtn" data-act="retry">대기 중인 저장 ' + state.queue.length + '건 지금 보내기</button>' : '') +
         '</section>' +
 
+        legalCard(state) +
+
         '<p class="version">배드민턴 · 프로토타입 v1.2 · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : 'localStorage') + '</p>';
     },
 
@@ -369,6 +386,11 @@
         if (ev.target.closest('[data-act="export"]')) {
           ev.preventDefault();
           exportJson(ctx);
+          return;
+        }
+        if (ev.target.closest('[data-act="delete-account"]')) {
+          ev.preventDefault();
+          openDeleteAccountSheet(ctx);
           return;
         }
         if (ev.target.closest('[data-act="reset-demo"]')) {
@@ -731,6 +753,77 @@
         });
       }
     });
+  }
+
+  /* ---------- 회원 탈퇴(계정 삭제) 확인 시트 ----------
+   * Play 스토어 정책: 앱 안에서 계정을 지울 수 있어야 하고,
+   * 지워지는 범위와 되돌릴 수 없다는 점을 분명히 알려야 합니다.
+   * 실수 방지를 위해 '탈퇴'를 직접 입력해야 버튼이 열립니다. */
+  function openDeleteAccountSheet(ctx) {
+    var s = BM.auth.session();
+    var guest = !s || s.kind === 'guest';
+    var who = (s && s.email) || (s && s.name) || '';
+    var word = '탈퇴';
+    var wrap = UI.openSheet({
+      title: guest ? '기록 삭제' : '회원 탈퇴',
+      body: '<p class="sheet__text">' + (guest
+          ? '이 기기에 저장된 <b>프로필·일지·채팅·매칭 기록</b>을 모두 지웁니다.'
+          : '<b>' + U.esc(who) + '</b> 계정을 삭제합니다.') + '</p>' +
+        '<ul class="bullets">' +
+        '<li>프로필·급수·성별·플레이스타일</li>' +
+        '<li>훈련 일지·경기 기록·AI 분석</li>' +
+        '<li>1:1 채팅·친구·매칭/멘토 신청 기록</li>' +
+        '<li>하트·꾸미기 같은 계정 활동 기록</li>' +
+        '</ul>' +
+        '<p class="hint">삭제한 기록은 <b>되돌릴 수 없어요.</b>' +
+        (guest ? '' : ' 시트(서버)에 있는 내 기록도 함께 지워집니다.') + '</p>' +
+        '<label class="flabel">확인을 위해 <b>' + word + '</b>를 입력해 주세요' +
+        '<input type="text" data-delete-word autocomplete="off" spellcheck="false" placeholder="' + word + '"></label>' +
+        '<p class="start__error" data-delete-error style="display:none"></p>' +
+        '<div class="row gap8 mt16">' +
+        '<button type="button" class="btn btn--ghost grow" data-close>취소</button>' +
+        '<button type="button" class="btn btn--danger grow" data-act="confirm-delete" disabled>' + (guest ? '모두 지우기' : '탈퇴하기') + '</button>' +
+        '</div>',
+      onMount: function (node) {
+        var input = node.querySelector('[data-delete-word]');
+        var btn = node.querySelector('[data-act="confirm-delete"]');
+        var err = node.querySelector('[data-delete-error]');
+        function sync() { if (btn) btn.disabled = !input || input.value.trim() !== word; }
+        if (input) input.addEventListener('input', sync);
+        sync();
+        node.addEventListener('click', function (ev) {
+          if (!ev.target.closest('[data-act="confirm-delete"]')) return;
+          if (!btn || btn.disabled || btn.classList.contains('is-busy')) return;
+          if (typeof ctx.deleteAccount !== 'function') {
+            if (err) { err.textContent = '지금은 탈퇴를 처리할 수 없어요.'; err.style.display = ''; }
+            return;
+          }
+          btn.classList.add('is-busy');
+          btn.disabled = true;
+          if (input) input.disabled = true;
+          var label = btn.textContent;
+          btn.textContent = '처리 중…';
+          Promise.resolve(ctx.deleteAccount()).then(function (res) {
+            if (res && res.ok) { UI.closeSheet(); return; }   /* app.js가 시작화면으로 돌려보냅니다 */
+            btn.classList.remove('is-busy');
+            btn.textContent = label;
+            btn.disabled = false;
+            if (input) input.disabled = false;
+            if (err) {
+              err.textContent = (res && res.message) || '탈퇴를 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.';
+              err.style.display = '';
+            }
+          }, function (e) {
+            btn.classList.remove('is-busy');
+            btn.textContent = label;
+            btn.disabled = false;
+            if (input) input.disabled = false;
+            if (err) { err.textContent = (e && e.message) || '탈퇴를 처리하지 못했어요.'; err.style.display = ''; }
+          });
+        });
+      }
+    });
+    return wrap;
   }
 
   function openConnectSheet(ctx) {

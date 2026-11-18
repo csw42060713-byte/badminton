@@ -145,6 +145,16 @@
         persist();
         U.writeJSON(DEDUPE_KEY, {});
         return Promise.resolve({ ok: true });
+      },
+      /* 계정 삭제(탈퇴): 이 기기의 기록·중복 방지 기록을 모두 비웁니다 */
+      deleteAccount: function () {
+        return delay(function () {
+          rows = [];
+          dedupe = {};
+          persist();
+          U.writeJSON(DEDUPE_KEY, {});
+          return { ok: true, mode: 'local', removed: 0 };
+        });
       }
     };
   }
@@ -230,6 +240,10 @@
         return request({ action: 'remove', token: token, id: id, clientId: clientId });
       },
       resetDemo: function () { return Promise.resolve({ ok: false }); },
+      /* 계정 삭제(탈퇴): 브리지가 본인 세션 토큰을 확인하고 그 계정의 행만 지웁니다 */
+      deleteAccount: function () {
+        return request({ action: 'deleteAccount', token: token });
+      },
       /* 관리자: 예전 앱이 넣은 샘플 글을 시트에서 실제로 지웁니다 */
       purgeSamples: function () {
         return request({ action: 'purge_samples', token: token });

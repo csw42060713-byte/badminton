@@ -49,6 +49,7 @@
       '</div>' +
       '<p class="start__note">처음이라면 <b>10초 설정</b>으로 프로필을 만들고 바로 시작해요.<br>' +
       '체험 모드에서는 이 기기에만 저장되고, 남긴 기록으로 모든 기능을 써 볼 수 있어요.</p>' +
+      '<p class="start__legal"><a href="privacy.html" target="_blank" rel="noopener">개인정보처리방침</a></p>' +
       '</div>';
   }
 

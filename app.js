@@ -220,6 +220,54 @@
     });
   }
 
+  /* ---------- 계정 삭제(탈퇴) ----------
+   * 1) 시트(서버)에 있는 내 기록 삭제 (브리지 deleteAccount, 본인 토큰 필요)
+   * 2) 이 기기에 남은 세션·캐시·프로필·계정 기록 삭제
+   * 3) 시작화면으로 돌아갑니다.
+   * 서버 삭제가 실패하면 이 기기 데이터도 지우지 않습니다(반쪽 탈퇴 방지).
+   */
+  var ACCOUNT_LOCAL_KEYS = ['bm_queue_v1', 'bm_cache_v1', 'bm_mode_v1', 'bm_dedupe_v1', 'bm_seen_v1'];
+
+  function wipeAccountLocal(sess) {
+    if (!sess) return;
+    U.storage.removeItem(BM.auth.rowsKeyFor(sess));
+    ACCOUNT_LOCAL_KEYS.forEach(function (k) { U.storage.removeItem(k); });
+    var profiles = U.readJSON(BM.auth.PROFILE_KEY, {}) || {};
+    var idKey = BM.auth.identityKey(sess);
+    if (profiles[idKey]) {
+      delete profiles[idKey];
+      U.writeJSON(BM.auth.PROFILE_KEY, profiles);
+    }
+    if (sess.kind === 'email' && sess.email) {
+      var accounts = U.readJSON(BM.auth.ACCOUNTS_KEY, {}) || {};
+      var email = String(sess.email).toLowerCase();
+      if (accounts[email]) {
+        delete accounts[email];
+        U.writeJSON(BM.auth.ACCOUNTS_KEY, accounts);
+      }
+    }
+  }
+
+  function deleteAccount() {
+    var sess = BM.auth.session();
+    if (!sess) return Promise.resolve({ ok: false, message: '로그인 정보가 없어요.' });
+    if (!store) return Promise.resolve({ ok: false, message: '잠시 뒤 다시 시도해 주세요.' });
+    return store.actions.deleteAccount().then(function (res) {
+      if (!res || res.ok === false) {
+        var msg = (res && res.message) || '탈퇴를 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.';
+        if (res && res.code === 'unauthorized') msg = '로그인 세션이 만료됐어요. 다시 로그인한 뒤 탈퇴해 주세요.';
+        return { ok: false, message: msg };
+      }
+      wipeAccountLocal(sess);
+      var guest = sess.kind === 'guest';
+      signOut();
+      UI.toast(guest ? '이 기기에 저장된 기록을 모두 지웠어요' : '탈퇴가 완료됐어요. 그동안 함께해서 즐거웠어요!');
+      return { ok: true, removed: (res && res.removed) || 0 };
+    }).catch(function (err) {
+      return { ok: false, message: (err && err.message) || '탈퇴를 처리하지 못했어요.' };
+    });
+  }
+
   /* ---------- 시작화면(게이트) ---------- */
   function hideSplash() {
     var sp = el('splash');
@@ -324,6 +372,7 @@
       actions: store.actions,
       saveLog: saveLogWithFeedback,
       connectSheets: connectSheets,
+      deleteAccount: deleteAccount,
       repaint: repaint,
       refresh: repaint,
       signOut: signOut,

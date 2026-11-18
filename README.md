@@ -138,10 +138,21 @@ python3 -m http.server 8000
 ```
 badminton-app/
 ├─ index.html            앱 껍데기 (상단바·본문·하단 탭 5개)
+├─ privacy.html          개인정보처리방침 (Play 스토어 제출용, 로그인 없이 열림)
 ├─ styles.css            모바일 우선 스타일 (390~430px), 테마 4종 변수
-├─ app.js                시작·탭 이동·화면 다시 그리기·시트 연결 전환
-├─ manifest.json         PWA 설정 (이름·아이콘·바로가기)
+├─ app.js                시작·탭 이동·화면 다시 그리기·시트 연결 전환·회원 탈퇴
+├─ manifest.webmanifest  PWA/TWA 설정 (id·scope·start_url·아이콘·스크린샷)
+├─ manifest.json         위와 같은 내용(예전 설치·도구 호환용 사본)
 ├─ sw.js                 오프라인 캐시 (앱 껍데기만, 시트 요청은 건드리지 않음)
+├─ .well-known/assetlinks.json   TWA 디지털 자산 링크(지문 넣는 템플릿)
+├─ twa-manifest.json     Bubblewrap 빌드 설정
+├─ PLAY_STORE_GUIDE.md   플레이 스토어 출시 순서(서명·빌드·등록·심사 체크)
+├─ store-assets/         스토어 등록 그래픽 + 만드는 스크립트
+│  ├─ icon-512.png                    512×512 앱 아이콘
+│  ├─ feature-graphic-1024x500.png    대표 그래픽
+│  ├─ screenshot-1-matching.png … screenshot-4-my.png  1080×1920 화면 4장
+│  ├─ make-store-assets.py            아이콘·대표 그래픽 생성(PIL)
+│  └─ capture-screenshots.py          로컬 서버 + 모바일 뷰포트 촬영(Playwright)
 ├─ icons/                앱 아이콘 192·512·maskable, favicon.svg
 ├─ js/
 │  ├─ util.js            날짜·숫자·ID·디바운스·저장소 등 작은 도구
@@ -158,7 +169,8 @@ badminton-app/
 ├─ test/
 │  ├─ run.js             node 실행기 (브라우저 없이 로직 검증)
 │  ├─ harness.js         아주 작은 테스트 도구
-│  ├─ logic.test.js      82개 테스트 (시트 호환·AI·하트·급수·검색·꾸미기·저장·화면·계정)
+│  ├─ logic.test.js      96개 테스트 (시트 호환·AI·하트·급수·검색·꾸미기·저장·화면·계정)
+│  ├─ account.test.js    계정 삭제·개인정보처리방침 테스트 (브리지 .gs를 가짜 Google 환경에서 실행)
 │  └─ fixtures.js        테스트 전용 예시 데이터 (앱 번들에는 포함되지 않음)
 └─ README.md
 ```
@@ -309,7 +321,7 @@ domain / ai 는 화면도 네트워크도 모르는 순수 함수 → 테스트�
 node test/run.js
 ```
 
-- 결과: **82/82 통과** (node 없이도 동작을 확인하려면 브라우저 콘솔에서 `BM.test.run()` — `test/browser-test.html`을 열면 자동 실행)
+- 결과: **110/110 통과** (node 없이도 동작을 확인하려면 브라우저 콘솔에서 `BM.test.run()` — `test/browser-test.html`을 열면 자동 실행)
 - 검증하는 것
   - 실제 시트 행(26칸)을 그대로 읽고/다시 쓰기, JSON 유형 분리, 삭제 행 무시
   - AI: 드릴 3개·필드 완비·부위별 처방(목→온찜질)·반복 통증 경고·결정성·기록 없음
@@ -324,7 +336,8 @@ node test/run.js
   - 멘토 승인/거절 상태 반영, 코치 피드백 저장, 광고/출석 화면 상태(한도·쿨다운)
   - 5개 화면 렌더: `undefined`/`NaN` 없음, 태그 짝, 핵심 문구 존재
   - 시트 모드 통신: action 형식·토큰 전달·text/plain(사전요청 회피)·서버 오류 메시지
-  - 시드에 이메일·비밀번호 없음, ID 15~16자리 고유성
+  - **개인정보·계정**: 개인정보처리방침 필수 문구, MY·시작화면 링크, 탈퇴 버튼/모달, 로컬·시트 삭제, 브리지 `deleteAccount`(본인 토큰·본인 행만·세션 종료), `AUTH_SECRET` 우선 사용
+- 시드에 이메일·비밀번호 없음, ID 15~16자리 고유성
   - 계정: 둘러보기/이메일 가입·로그인/재가입·틀린 비밀번호 거절, 해시 저장(평문 없음), 온보딩 필요 판단, 계정별 저장 키 분리, Google Client ID 검증
   - 시작화면·온보딩 렌더: 세 갈래 진입, 급수 7개·종목 3개, MY 계정 카드
 
@@ -334,7 +347,9 @@ node test/run.js
 
 - **정적 호스팅**(GitHub Pages, Netlify, Vercel 등)에 이 폴더를 그대로 올리면 끝입니다. 빌드 과정 없음.
 - https 주소에서 열면 브라우저 메뉴의 **홈 화면에 추가**로 앱처럼 설치됩니다(아이콘·전체 화면·오프라인 껍데기).
-- 파일을 고치면 `sw.js`의 `VERSION`을 올려 주세요(현재 `bm-v1.3.0`). 그래야 사용자 기기에 새 파일이 반영됩니다.
+- 파일을 고치면 `sw.js`의 `VERSION`을 올려 주세요(현재 `bm-v1.5.0`). 그래야 사용자 기기에 새 파일이 반영됩니다.
+- 휴대폰에 앱처럼 설치되는 조건: **https** + `manifest.webmanifest`(아이콘·`display: standalone`) + **서비스워커**.
+- 안드로이드 앱(.aab)으로 내려면 `PLAY_STORE_GUIDE.md`를 따라가세요.
 
 ---
 
@@ -351,6 +366,37 @@ node test/run.js
 
 ## 17. 개인정보 메모
 
+- 개인정보처리방침 전문은 **`privacy.html`** 입니다. Play 스토어 제출 URL로 그대로 쓰세요.
+- 계정 탈퇴는 **MY > 개인정보 · 계정 > 회원 탈퇴**에서 할 수 있고, 시트(서버)의 내 행까지 함께 지웁니다(브리지 `deleteAccount`).
+
 - 체험 데이터의 인물·닉네임·이메일은 **모두 가상**입니다. 실제 시트에 있던 회원 정보(이메일·비밀번호·기록)는 앱 코드에 **복사하지 않았습니다**.
 - 실제 시트와 연결하면 그때부터 본인 계정의 데이터만 앱에 내려옵니다(비밀번호 제외).
 - 시트 공유 범위는 '비공개'로 유지하고, 브리지 웹 앱 주소(`/exec`)는 아는 사람에게만 공유하세요. 주소를 아는 사람은 로그인은 해야 하지만 접근 자체는 가능합니다.
+
+---
+
+## 18. 플레이 스토어 출시 (TWA)
+
+웹 앱을 그대로 안드로이드 앱으로 감싸 올리는 **TWA(Trusted Web Activity)** 준비가 끝나 있습니다.
+
+| 준비물 | 어디에 |
+|---|---|
+| 아이콘·대표 그래픽·스크린샷 | `store-assets/` |
+| 웹 앱 매니페스트(id·scope·start_url·아이콘·maskless) | `manifest.webmanifest` |
+| 자산 링크 템플릿(서명 지문) | `.well-known/assetlinks.json` |
+| Bubblewrap 설정 | `twa-manifest.json` |
+| 빌드·등록·심사 체크리스트 | `PLAY_STORE_GUIDE.md` |
+
+```bash
+# 1) 지문 확인 → assetlinks.json에 넣기
+keytool -list -v -keystore android.keystore -alias android
+
+# 2) .aab 만들기
+bubblewrap build            # → app-release-bundle.aab
+
+# 3) Play Console 내부 테스트 → 프로덕션
+```
+
+- 패키지 ID `io.github.csw42060713_byte.badminton` 은 **첫 업로드 후 바꿀 수 없습니다.**
+- 키스토어(`android.keystore`)는 깃에 올리지 말고 따로 백업하세요.
+- 시트(Apps Script)는 `deleteAccount`가 추가되었으니 **새 버전으로 다시 배포**해야 합니다(6장 참고).

@@ -27,9 +27,10 @@ var CONFIG = {
   TAB: '출력결과',
   TIMEZONE: 'Asia/Seoul',
 
-  // 해시에 섞는 비밀 문자열입니다. 반드시 길게 바꾸세요.
-  // 바꾸면 기존 비밀번호/세션이 모두 무효가 됩니다(재설정 필요).
-  SECRET: 'CHANGE_ME_badminton_bridge_secret_2026',
+  // 해시에 섞는 비밀 문자열입니다. 스크립트 속성(AUTH_SECRET)이 있으면 그 값을 먼저 씁니다.
+  // 저장소에 코드와 함께 올라가지 않도록, 실제 운영에서는 AUTH_SECRET에 긴 임의 문자열을 넣어 두세요.
+  // (값을 바꾸면 기존 비밀번호 해시·세션·공개 ID가 모두 무효가 됩니다.)
+  SECRET: PropertiesService.getScriptProperties().getProperty('AUTH_SECRET') || 'CHANGE_ME_badminton_bridge_secret_2026',
 
   SESSION_HOURS: 6,          // 로그인 유지 시간 (CacheService 최대 6시간)
   PASSWORD_ROUNDS: 120,      // 비밀번호 해시 반복 횟수
@@ -135,6 +136,7 @@ function route_(p) {
   if (action === 'append') return append_(session, p);
   if (action === 'update') return update_(session, p);
   if (action === 'remove') return remove_(session, p);
+  if (action === 'deleteAccount') return deleteAccount_(session);
   if (action === 'purge_samples') return purgeSamples_(session);
   if (action === 'whoami') return { ok: true, me: meOf_(session.userKey) };
 
@@ -649,6 +651,53 @@ function remove_(session, p) {
     lock.releaseLock();
   }
   return { ok: true, id: p.id };
+}
+
+/* ============================================================
+ *  계정 삭제 (앱: MY > 회원 탈퇴)
+ *  - 본인 세션 토큰이 있어야만 실행됩니다(route_의 requireSession_ 통과).
+ *  - 그 계정이 쓴 모든 행 + 그 계정을 가리키는 행(친구·매칭 신청 등)을
+ *    '삭제' 표시로 비웁니다. 행 번호가 밀리지 않게 remove_와 같은 방식을 씁니다.
+ *  - 세션은 즉시 지우고, 다른 기기의 세션은 SESSION_HOURS(6시간) 뒤에 만료됩니다.
+ * ============================================================ */
+function deleteAccount_(session) {
+  var userKey = String((session && session.userKey) || '');
+  if (!userKey) return { ok: false, code: 'unauthorized', message: '로그인이 필요합니다.' };
+
+  var data = readRows_();
+  var me = userKey.toLowerCase();
+  var victims = {};   /* ID → rowNum */
+  data.rows.forEach(function (r) {
+    var c = r.cells;
+    var owner = String(c[COL['사용자ID']] || '').toLowerCase() === me;
+    var target = String(c[COL['대상']] || '').toLowerCase() === me;
+    var team = String(c[COL['팀']] || '').toLowerCase() === me;
+    if (owner || target || team) victims[String(c[COL['ID']])] = r.rowNum;
+  });
+
+  var ids = Object.keys(victims);
+  if (ids.length) {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      var sh = sheet_();
+      ids.forEach(function (id) {
+        var rowNum = victims[id];
+        var blank = [];
+        for (var i = 0; i < 26; i++) blank.push('');
+        blank[0] = id;
+        blank[COL['유형']] = '삭제';
+        sh.getRange(rowNum, 1, 1, 26).setValues([blank]);
+      });
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
+  /* 이 기기의 세션은 바로 끊습니다 */
+  if (session && session.token) cache_().remove('sess_' + session.token);
+
+  return { ok: true, removed: ids.length };
 }
 
 function isAdmin_(userKey) {

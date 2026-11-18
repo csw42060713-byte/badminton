@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="th_night" style="background:#080b0a">
+<head>
+<meta charset="utf-8">
+<title>개인정보처리방침 · 배드민턴 분석</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080b0a">
+<meta name="robots" content="index, follow">
+<meta name="description" content="배드민턴 분석 앱이 수집하는 정보, 이용 목적, 보관·파기, 이용자 권리와 계정 삭제 방법을 안내합니다.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #080b0a;
+    --bg-2: #0c1210;
+    --card: #111816;
+    --card-2: #17211e;
+    --line: rgba(255, 255, 255, 0.08);
+    --line-2: rgba(255, 255, 255, 0.16);
+    --text: #f2f6f3;
+    --text-2: #c2cec8;
+    --muted: #8b9a93;
+    --accent: #c6f24e;
+    --accent-2: #43dfa0;
+    --warn: #f2c14e;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(198, 242, 78, 0.10), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+      "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.72;
+    -webkit-text-size-adjust: 100%;
+    letter-spacing: -0.01em;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 20px 18px 56px; }
+
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0 18px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 800; letter-spacing: -0.02em; }
+  .brand span { font-size: 20px; line-height: 1; }
+  .back {
+    display: inline-flex; align-items: center; gap: 5px;
+    color: var(--text-2); text-decoration: none; font-size: 13px; font-weight: 700;
+    border: 1px solid var(--line-2); border-radius: 11px; padding: 7px 11px;
+    background: color-mix(in srgb, #fff 4%, transparent);
+  }
+  .back:active { opacity: 0.7; }
+
+  h1 { font-size: 26px; line-height: 1.32; letter-spacing: -0.03em; margin: 6px 0 6px; }
+  .lede { color: var(--text-2); font-size: 14px; margin: 0 0 4px; }
+  .meta { color: var(--muted); font-size: 12px; margin: 10px 0 22px; }
+
+  .summary {
+    background: linear-gradient(180deg, rgba(198, 242, 78, 0.10), rgba(198, 242, 78, 0.03));
+    border: 1px solid rgba(198, 242, 78, 0.28);
+    border-radius: 18px; padding: 16px 16px 8px; margin: 0 0 26px;
+  }
+  .summary h2 { font-size: 14px; margin: 0 0 8px; color: var(--accent); letter-spacing: 0; }
+  .summary ul { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 14px; }
+  .summary li { margin: 0 0 8px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 18px 16px 6px;
+    margin: 0 0 14px;
+  }
+  .card h2 {
+    font-size: 16px; margin: 0 0 10px; letter-spacing: -0.02em;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .card h2 i {
+    font-style: normal; font-size: 11px; font-weight: 800; color: var(--accent-2);
+    border: 1px solid color-mix(in srgb, var(--accent-2) 40%, transparent);
+    border-radius: 7px; padding: 1px 6px; letter-spacing: 0;
+  }
+  .card h3 { font-size: 13.5px; margin: 16px 0 6px; color: var(--text); letter-spacing: -0.01em; }
+  .card p, .card li { color: var(--text-2); font-size: 14px; }
+  .card p { margin: 0 0 10px; }
+  .card ul { margin: 0 0 10px; padding-left: 18px; }
+  .card li { margin: 0 0 6px; }
+  .card b { color: var(--text); font-weight: 700; }
+  .card a { color: var(--accent-2); text-underline-offset: 2px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 4px 0 12px; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--text-2); }
+  th { color: var(--text); font-weight: 700; background: color-mix(in srgb, #fff 3%, transparent); }
+  td:first-child, th:first-child { white-space: nowrap; }
+  .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 0 0 10px; }
+  .steps li {
+    counter-increment: s; position: relative; padding: 0 0 10px 30px; font-size: 14px; color: var(--text-2);
+  }
+  .steps li::before {
+    content: counter(s); position: absolute; left: 0; top: 1px;
+    width: 22px; height: 22px; border-radius: 8px;
+    display: grid; place-items: center; font-size: 11.5px; font-weight: 800;
+    color: #0a1410; background: var(--accent);
+  }
+  .note {
+    background: color-mix(in srgb, var(--warn) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+    border-radius: 14px; padding: 12px 14px; margin: 4px 0 12px;
+    color: var(--text-2); font-size: 13.5px;
+  }
+  .contact {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: #0a1410; font-weight: 800;
+    border-radius: 13px; padding: 11px 16px; text-decoration: none; font-size: 14px;
+  }
+  .foot { color: var(--muted); font-size: 12px; text-align: center; margin-top: 26px; line-height: 1.8; }
+  .foot a { color: var(--text-2); }
+  @media (min-width: 720px) {
+    body { font-size: 15.5px; }
+    .wrap { padding: 32px 24px 72px; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <div class="top">
+    <div class="brand"><span>🏸</span>배드민턴 분석</div>
+    <a class="back" href="./index.html">← 앱으로 돌아가기</a>
+  </div>
+
+  <h1>개인정보처리방침</h1>
+  <p class="lede">배드민턴 분석 앱(이하 “앱”)이 어떤 정보를 받고, 어떻게 쓰고, 언제 지우는지 안내합니다.</p>
+  <p class="meta">시행일 2026년 11월 18일 · 버전 1.0</p>
+
+  <section class="summary">
+    <h2>한눈에 보기</h2>
+    <ul>
+      <li>서비스 운영에 필요한 <b>최소한의 정보</b>만 받습니다. 주민등록번호·위치·연락처는 받지 않습니다.</li>
+      <li>광고·판매를 위해 <b>다른 회사에 정보를 넘기지 않습니다.</b> 데이터는 Google 시트(비공개)에만 보관됩니다.</li>
+      <li>앱 안에서 <b>MY → 회원 탈퇴</b>로 언제든 계정과 기록을 직접 삭제할 수 있습니다.</li>
+    </ul>
+  </section>
+
+  <section class="card" id="collect">
+    <h2><i>1</i>수집하는 정보</h2>
+    <p>앱은 회원님이 직접 입력하거나 앱을 쓰는 과정에서 생기는 아래 정보를 받습니다.</p>
+    <div class="tbl-scroll">
+      <table>
+        <thead>
+          <tr><th>구분</th><th>항목</th><th>필수</th><th>받는 시점</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>계정</td><td>이메일 주소, 비밀번호(암호화된 해시로만 저장), 닉네임</td><td>필수</td><td>회원가입·로그인</td></tr>
+          <tr><td>프로필</td><td>급수, 성별(선택), 주력 종목, 지역·클럽(선택), 한 줄 소개(선택), 프로필 사진·프레임(선택)</td><td>급수·종목 필수, 나머지 선택</td><td>10초 설정, MY &gt; 프로필 수정</td></tr>
+          <tr><td>활동 기록</td><td>훈련 일지(날짜·컨디션·강도·운동 시간·완료 훈련·경기 점수·승패·아픈 부위·약점 기술), AI가 만든 분석·추천 드릴</td><td>이용 시</td><td>일지 저장</td></tr>
+          <tr><td>소통 기록</td><td>1:1 채팅 메시지, 친구 요청·수락, 1:1 매칭 신청, 멘토(코치) 신청과 피드백, 커뮤니티 글·답글·좋아요</td><td>이용 시</td><td>해당 기능 사용</td></tr>
+          <tr><td>이용 기록</td><td>하트 적립·사용 내역(출석·광고·선물·테마 구매), 테마 설정, 마지막 동기화 시각</td><td>이용 시</td><td>앱 사용 중</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>받지 않는 정보</h3>
+    <ul>
+      <li>주민등록번호, 운전면허번호 등 고유식별정보</li>
+      <li>위치 정보, 연락처, 통화·문자 기록</li>
+      <li>결제 수단 정보 (현재 앱 안에서 유료 결제를 받지 않습니다)</li>
+    </ul>
+    <h3>기기에만 남는 정보</h3>
+    <ul>
+      <li>로그인 상태(세션), 마지막으로 열어 본 화면, 오프라인 캐시는 <b>회원님 기기의 브라우저 저장소</b>에 남습니다. 앱을 지우거나 MY에서 로그아웃하면 함께 사라집니다.</li>
+      <li>로그인 없이 둘러보는 <b>체험 모드</b>의 기록은 기기에만 저장되며 서버로 보내지 않습니다.</li>
+    </ul>
+  </section>
+
+  <section class="card" id="purpose">
+    <h2><i>2</i>이용 목적</h2>
+    <ul>
+      <li><b>로그인·계정 관리:</b> 본인 확인, 중복 가입 방지, 회원 탈퇴 처리</li>
+      <li><b>일지와 AI 분석:</b> 남긴 기록을 바탕으로 맞춤 처방·추천 드릴·이번 주 루틴 만들기</li>
+      <li><b>1:1 매칭:</b> 급수·종목·지역·성별 조건에 맞는 상대 찾기와 신청·수락</li>
+      <li><b>소통:</b> 친구·매칭 상대와의 채팅, 커뮤니티 글·답글, 멘토 신청과 코치 피드백</li>
+      <li><b>서비스 운영:</b> 하트 적립·사용 한도 확인, 오류 확인과 개선, 부정 이용 방지</li>
+    </ul>
+    <p>위 목적과 관계없는 <b>광고·판매·홍보</b>에 회원님의 정보를 쓰지 않습니다.</p>
+  </section>
+
+  <section class="card" id="retention">
+    <h2><i>3</i>보관 기간과 파기</h2>
+    <p>회원님이 <b>탈퇴할 때까지</b> 보관하고, 탈퇴하면 아래와 같이 지웁니다.</p>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>정보</th><th>보관 기간</th><th>파기 방법</th></tr></thead>
+        <tbody>
+          <tr><td>계정·프로필·일지·채팅·매칭 기록</td><td>회원 탈퇴 시까지</td><td>탈퇴 즉시 저장 시트에서 삭제</td></tr>
+          <tr><td>비밀번호</td><td>회원 탈퇴 시까지</td><td>해시 값만 보관하며 탈퇴 시 함께 삭제</td></tr>
+          <tr><td>기기 저장 정보(세션·캐시)</td><td>앱을 지우거나 로그아웃할 때까지</td><td>탈퇴 시 앱이 기기에서 직접 삭제</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      서비스 제공에 쓰는 Google의 저장 공간·백업·접속 로그는 Google의 보관 정책을 따르며, 앱은 그 내용을 따로 복제해 두지 않습니다.
+      법령에 따라 보관이 필요한 정보가 생기면 그 기간 동안만 보관한 뒤 지웁니다.
+    </div>
+  </section>
+
+  <section class="card" id="delete-account">
+    <h2><i>4</i>계정 삭제(회원 탈퇴) 방법</h2>
+    <p>앱 안에서 직접, 또는 이메일로 요청할 수 있습니다. 어느 쪽이든 <b>같은 범위</b>가 삭제됩니다.</p>
+    <h3>앱에서 삭제하기</h3>
+    <ol class="steps">
+      <li>앱을 열고 아래 <b>MY</b> 탭으로 이동합니다.</li>
+      <li><b>개인정보 · 계정</b> 카드에서 <b>회원 탈퇴</b>를 누릅니다.</li>
+      <li>지워지는 내용을 확인하고 확인란에 <b>탈퇴</b>를 입력한 뒤 <b>탈퇴하기</b>를 누릅니다.</li>
+    </ol>
+    <p>탈퇴하면 프로필·일지·AI 분석·채팅·친구·매칭/멘토 신청·하트 내역이 삭제되고, 시작화면으로 돌아갑니다. <b>되돌릴 수 없습니다.</b></p>
+    <h3>이메일로 요청하기</h3>
+    <p>앱에 로그인할 수 없다면 가입한 이메일 주소에서 아래 주소로 “계정 삭제 요청”이라고 보내 주세요. 본인 확인 후 <b>영업일 기준 7일 이내</b>에 처리하고 결과를 회신합니다.</p>
+    <a class="contact" href="mailto:csw42060713@gmail.com?subject=%EA%B3%84%EC%A0%95%20%EC%82%AD%EC%A0%9C%20%EC%9A%94%EC%B2%AD">✉ csw42060713@gmail.com</a>
+  </section>
+
+  <section class="card" id="third-party">
+    <h2><i>5</i>제3자 제공</h2>
+    <p><b>없습니다.</b> 앱은 회원님의 개인정보를 다른 회사·기관·개인에게 판매하거나 제공하지 않습니다.</p>
+    <p>다만 서비스 운영에 꼭 필요한 범위에서 아래 업체의 서비스를 이용하며, 이는 개인정보의 <b>처리위탁</b>에 해당합니다.</p>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>업체</th><th>맡은 일</th><th>보관 위치</th></tr></thead>
+        <tbody>
+          <tr><td>Google LLC</td><td>Google Sheets·Apps Script로 데이터 저장·전송, Google Play로 앱 배포</td><td>Google 데이터센터(국외 포함)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>국외 이전 안내</h3>
+    <ul>
+      <li>이전되는 항목: 위 1항의 수집 항목 전체</li>
+      <li>이전 국가·업체: 미국 등 Google LLC가 운영하는 데이터센터</li>
+      <li>이전 시점·방법: 앱에서 저장·조회할 때마다 암호화된 통신(HTTPS)으로 전송</li>
+      <li>이전 목적: 데이터 보관과 서비스 제공, 이전받는 자의 보유 기간: 회원 탈퇴 시까지</li>
+    </ul>
+  </section>
+
+  <section class="card" id="rights">
+    <h2><i>6</i>회원님의 권리</h2>
+    <ul>
+      <li>언제든 <b>내 정보를 조회·수정</b>할 수 있습니다 (MY &gt; 프로필 수정).</li>
+      <li>언제든 <b>계정과 기록을 삭제</b>할 수 있습니다 (MY &gt; 회원 탈퇴, 또는 이메일 요청).</li>
+      <li>처리 정지나 동의 철회를 원하시면 문의처로 알려 주세요. 확인 후 지체 없이 처리합니다.</li>
+      <li>권리 행사로 서비스를 이용하지 못하게 되는 경우(예: 탈퇴)에는 그 사실을 미리 안내합니다.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2><i>7</i>안전하게 지키는 방법</h2>
+    <ul>
+      <li>비밀번호는 <b>되돌릴 수 없는 해시</b>로 바꿔 저장하며, 앱과 서버 어디에서도 원래 값을 보여 주지 않습니다.</li>
+      <li>이메일 같은 계정 식별자는 다른 회원에게 <b>공개 ID</b>로 바꿔서만 보입니다.</li>
+      <li>시트는 공개하지 않고, 로그인한 본인 세션으로만 읽고 쓸 수 있습니다.</li>
+      <li>통신 구간은 HTTPS로 암호화됩니다.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2><i>8</i>아동의 개인정보</h2>
+    <p>앱은 <b>만 14세 미만 아동의 가입을 받지 않습니다.</b> 만 14세 미만 아동의 정보가 수집된 사실을 알게 되면 지체 없이 삭제합니다. 보호자가 삭제를 원하시면 문의처로 알려 주세요.</p>
+  </section>
+
+  <section class="card">
+    <h2><i>9</i>쿠키·광고·자동 수집</h2>
+    <ul>
+      <li>앱은 로그인 유지와 오프라인 동작을 위해 기기 저장소(쿠키와 같은 역할의 localStorage)를 씁니다. 브라우저 설정에서 지울 수 있습니다.</li>
+      <li>현재 앱에는 <b>제3자 광고·분석 SDK가 들어 있지 않습니다.</b> 하트 보상 화면의 광고는 동작을 보여 주는 화면일 뿐, 광고 사업자에게 정보를 보내지 않습니다.</li>
+      <li>나중에 광고나 분석 도구를 넣게 되면, 무엇을 어떻게 쓰는지 이 방침을 고쳐 미리 알리고 필요한 동의를 받습니다.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2><i>10</i>방침의 변경과 문의</h2>
+    <p>내용이 바뀌면 앱 안 공지와 이 페이지로 알리고, 중요한 변경은 시행 <b>7일 전</b>에 안내합니다. 이전 방침은 페이지 하단의 시행일로 구분합니다.</p>
+    <p><b>개인정보 보호 책임자·문의처</b><br>
+      이메일: <a href="mailto:csw42060713@gmail.com">csw42060713@gmail.com</a><br>
+      앱: 배드민턴 분석 (Google Play · 웹 앱)</p>
+    <p>문의는 영업일 기준 3일 안에 답변드립니다.</p>
+  </section>
+
+  <p class="foot">
+    배드민턴 분석 · 개인정보처리방침 v1.0<br>
+    시행일 2026년 11월 18일 · <a href="./index.html">앱 열기</a>
+  </p>
+</main>
+</body>
+</html>

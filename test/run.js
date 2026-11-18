@@ -15,11 +15,13 @@ const files = [
   'js/util.js', 'js/domain.js', 'js/ai.js', 'js/seed.js', 'js/api.js',
   'js/auth.js', 'js/store.js', 'js/ui.js', 'js/views/profile.js', 'js/views/chat.js', 'js/views/log.js', 'js/views/matching.js',
   'js/views/community.js', 'js/views/coach.js', 'js/views/my.js', 'js/views/start.js',
-  'test/harness.js', 'test/fixtures.js', 'test/logic.test.js'
+  'test/harness.js', 'test/fixtures.js', 'test/logic.test.js', 'test/account.test.js'
 ];
 
 const sandbox = {
   console,
+  require,                      // 계정 삭제 테스트가 파일·vm·crypto를 씁니다
+  __REPO_ROOT__: root,
   setTimeout: () => 0,          // 테스트에서는 타이머를 쓰지 않습니다
   clearTimeout: () => {},
   Date, Math, JSON, Promise, Error, String, Number, Object, Array, RegExp
