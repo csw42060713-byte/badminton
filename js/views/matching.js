@@ -155,6 +155,14 @@
     var players = visiblePlayers(state);
     var active = D.activeFilters(filterOf(state));
     var q = String(filterOf(state).query || '').trim();
+    var f = filterOf(state);
+    /* 예전에 저장된 프로필에는 성별이 없습니다. 필터 결과가 비었을 때 이유를 알려줍니다. */
+    var anyGender = (state.data.matchProfiles || []).some(function (p) {
+      return D.normalizeGender(p.gender) !== '비공개';
+    });
+    var emptySub = f.gender && f.gender !== '전체' && !anyGender
+      ? '아직 성별을 공개한 플레이어가 없어요. 상대가 프로필에서 성별을 공개하면 여기에 보여요.'
+      : (q ? '다른 낱말로 찾아보거나 필터를 풀어 보세요.' : '급수·성별·지역 필터를 바꿔 보세요.');
     return '<div class="resultbar">' +
       '<p>' +
       (q ? '<span class="resultbar__q">“' + U.esc(q) + '” 검색 결과</span><span class="resultbar__dot">·</span>' : '') +
@@ -165,8 +173,7 @@
       '</div>' +
       (players.length
         ? '<div class="pcards">' + players.map(function (p) { return playerCard(p, state); }).join('') + '</div>'
-        : UI.emptyState('search', '조건에 맞는 플레이어가 없어요',
-          q ? '다른 낱말로 찾아보거나 필터를 풀어 보세요.' : '급수·성별·지역 필터를 바꿔 보세요.',
+        : UI.emptyState('search', '조건에 맞는 플레이어가 없어요', emptySub,
           '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="reset-filter">조건 초기화</button>'));
   }
 

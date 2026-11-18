@@ -470,6 +470,7 @@ a { color: var(--accent-2); text-decoration: none; }
 
 .scrollx { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
 .scrollx::-webkit-scrollbar { display: none; }
+.filter-line .scrollx { flex: 1; min-width: 0; -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent); mask-image: linear-gradient(90deg, #000 92%, transparent); }
 
 /* 세그먼트 */
 .seg {
@@ -1296,8 +1297,8 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 .profile { display: flex; align-items: flex-start; gap: 14px; }
 .profile__av { position: relative; flex: none; padding: 0; }
 .profile__avcam {
-  position: absolute; right: -3px; bottom: -3px;
-  width: 28px; height: 28px;
+  position: absolute; right: -2px; top: -2px;
+  width: 26px; height: 26px;
   display: grid; place-items: center;
   border-radius: 50%;
   background: var(--accent);
