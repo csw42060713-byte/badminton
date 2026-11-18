@@ -28,6 +28,7 @@
 <script src="js/ui.js"></script>
 <script src="js/views/profile.js"></script>
 <script src="js/views/chat.js"></script>
+<script src="js/views/coach.js"></script>
 <script src="test-fixtures.js"></script>
 <script>
 /* 테스트용 사람들로 채팅 목록/대화방 화면을 그려 보는 미리보기입니다.
@@ -63,6 +64,19 @@
     }));
   });
 
+
+  if (/view=mentor/.test(location.search)) {
+    /* 관리자(승우) 계정으로 본 멘토 심사 화면 미리보기 */
+    rows.push(D.toRow({ id: '910000000000001', type: '멘토신청', createdAt: at(120), date: U.ymd(), nick: '콕집사', userKey: 'demo_chi', target: 'csw42060713@gmail.com', payload: { status: '심사중', submitted: at(120), type: '코치', experience: '5년, A조 리그 3회 출전', awards: '시·군 대회 복식 3위, 생활체육지도자 2급', proof: '지도자 자격증 2급', reason: '초보분 스매시 폼과 어깨 부상 예방 위주로 봐드릴 수 있습니다.', level: 'B조', discipline: '복식', gender: '남성', region: '경기', club: '나래울' } }));
+    rows.push(D.toRow({ id: '910000000000002', type: '멘토신청', createdAt: at(1800), date: U.ymd(), nick: '네트앞여우', userKey: 'demo_net', target: 'csw42060713@gmail.com', payload: { status: '심사중', submitted: at(1800), type: '선수 멘토', experience: '혼합복식 8년, 클럽 코치 2년', awards: '지역 리그 혼복 우승', proof: '나래울 클럽 코치 활동 2년', reason: '네트 앞 플레이와 헤어핀을 집중적으로 봐드려요.', level: '선수부', discipline: '혼합복식', gender: '여성', region: '경기', club: '나래울' } }));
+    var adminMe = { key: 'u_admin', nick: '승우', level: 'A조', email: 'csw42060713@gmail.com', admin: true };
+    var adminData = BM.store.derive(rows, adminMe.key, adminMe);
+    var adminState = { me: adminMe, data: adminData, ui: { coachTab: 'approve', coachPlayer: null } };
+    document.getElementById('dm').className = 'preview-app';
+    document.getElementById('dm').innerHTML = '<div class="main" style="padding-top:24px"><div class="view">' + BM.views.coach.render(adminState) + '</div></div>';
+    document.title = '멘토 심사 미리보기';
+    return;
+  }
   var me = { key: BM.seed.ME, nick: '나래', level: 'C조', discipline: '복식', theme: { theme: 'th_night', avatar: '🦋' } };
   var data = BM.store.derive(rows, me.key, me);
   var view = /view=room/.test(location.search) ? ROOM : null;
