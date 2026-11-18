@@ -1728,6 +1728,8 @@ body.is-onboarding .main { padding: calc(var(--safe-t) + 10px) 18px calc(var(--s
   top: -6px; right: -6px;
   box-shadow: 0 0 0 2px var(--bg);
 }
+/* .badge 는 display:inline-flex 라서 hidden 속성만으로는 숨지 않습니다 */
+.badge[hidden], .hdr__chatbadge[hidden] { display: none; }
 
 .dm {
   position: fixed;
