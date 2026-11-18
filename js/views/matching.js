@@ -144,15 +144,15 @@
 
     var action;
     if (st.incoming) {
-      action = '<button class="btn btn--primary btn--sm grow" data-open-profile="' + key + '">' +
+      action = '<button class="btn btn--primary btn--sm" data-open-profile="' + key + '">' +
         '받은 요청 확인</button>';
     } else if (st.canChat && st.roomId) {
-      action = '<button class="btn btn--primary btn--sm grow" data-open-chat="' + U.esc(st.roomId) + '" data-other="' + key + '">' +
+      action = '<button class="btn btn--primary btn--sm" data-open-chat="' + U.esc(st.roomId) + '" data-other="' + key + '">' +
         '채팅하기' + (st.room && st.room.unread ? ' <i class="badge">' + st.room.unread + '</i>' : '') + '</button>';
     } else if (st.mine && st.mine.status !== '거절') {
       action = '<span class="pcard__state">보낸 요청 · ' + U.esc(st.mine.status) + '</span>';
     } else {
-      action = '<button class="btn btn--ghost btn--sm grow" data-open-profile="' + key + '">' +
+      action = '<button class="btn btn--ghost btn--sm" data-open-profile="' + key + '">' +
         '프로필 보고 요청하기</button>';
     }
 
