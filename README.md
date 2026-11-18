@@ -40,9 +40,9 @@ python3 -m http.server 8000
 - **MY > 계정 카드**: 지금 상태(Google 연동 / 이메일 계정 / 체험 모드), 로그아웃, `고급 · Google Client ID` 입력란.
 - 계정별 데이터는 저장 키가 따로입니다(`bm_rows_v1::이메일`). 로그아웃해도 그 계정의 기록은 기기에 남고, 다시 로그인하면 이어집니다.
 
-> 실제 Google 로그인을 쓰려면 **Google Cloud Console → API 및 서비스 → 사용자 인증 정보 → OAuth 클라이언트 ID(웹 애플리케이션)** 를 만들어
-> `승인된 자바스크립트 원본`에 이 앱 주소(`https://csw42060713-byte.github.io`)를 추가하고, 발급된
-> `…apps.googleusercontent.com` 값을 **MY > 계정 > 고급 · Google Client ID** 에 붙여넣으면 됩니다.
+> **Google 로그인은 별도 설정 없이 바로 됩니다.** `js/auth.js`의 `DEFAULT_GOOGLE_CLIENT_ID`에 배포된 웹 클라이언트 ID가 들어 있어서입니다
+> (OAuth 프로젝트 `badminton-app` / 클라이언트 `배드민턴 웹`, 승인된 JavaScript 원본 `https://csw42060713-byte.github.io`, 게시 상태 프로덕션).
+> 다른 Google Cloud 프로젝트 것을 쓰려면 **MY > 계정 > 고급 · Google Client ID** 에 붙여넣으면 그 기기에서만 그 값이 우선합니다(지우면 기본값으로 복귀).
 
 ---
 
