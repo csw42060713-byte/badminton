@@ -10,14 +10,16 @@
   var U = BM.util, D = BM.domain;
 
   var ME = 'demo_me';
+  /* 데모 선수 8명 — 급수·성별·지역·종목이 골고루 섞이도록 구성했습니다. */
   var PLAYERS = [
-    { key: 'demo_chi', nick: '콕집사', level: 'B조', region: '경기', club: '나래울', availability: '주말', experience: '2~5년', discipline: '복식', avatar: '🐧', bio: '주말 저녁에 꾸준히 칩니다. 같이 기본기 다지실 분 환영해요.' },
-    { key: 'demo_suttle', nick: '셔틀버스', level: 'C조', region: '경기', club: '나래울', availability: '평일 저녁', experience: '2~5년', discipline: '복식', avatar: '🦊', bio: '회사 끝나고 8시 이후 가능. 드라이브 연습 파트너 찾아요.' },
-    { key: 'demo_foot', nick: '발놀림장인', level: 'A조', region: '서울', club: '강서 SH', availability: '무관', experience: '5년 이상', discipline: '복식', avatar: '🐯', bio: '풋워크 교정 환영. 3:1로 훈련해 주실 분 좋아요.' },
-    { key: 'demo_net', nick: '네트앞여우', level: '선수부', region: '경기', club: '나래울', availability: '주말', experience: '5년 이상', discipline: '혼합복식', avatar: '🦉', bio: '혼복 전문. 네트 앞 플레이와 헤어핀 세밀하게 잡아드려요.' },
-    { key: 'demo_bear', nick: '스매시곰', level: '자강', region: '인천', club: '인천 유소년', availability: '평일 낮', experience: '5년 이상', discipline: '복식', avatar: '🐻', bio: '코치 자격 준비 중입니다. 초보분들 스매시 폼 잡아드려요.' },
-    { key: 'demo_drive', nick: '드라이브요정', level: 'D조', region: '경기', club: '부천 레인보우', availability: '평일 저녁', experience: '1년 미만', discipline: '복식', avatar: '🐰', bio: '시작한 지 8개월. 같이 천천히 늘어요.' },
-    { key: 'demo_koala', nick: '콕콕이', level: '초심', region: '서울', club: '양천 러브콕', availability: '주말', experience: '1~2년', discipline: '단식', avatar: '🐨', bio: '단식 위주로 칩니다. 랠리 길게 해 주실 분!' }
+    { key: 'demo_chi', nick: '콕집사', level: 'B조', region: '경기', club: '나래울', availability: '주말', experience: '2~5년', discipline: '복식', avatar: '🐧', gender: '남성', avatarFrame: 'court', bio: '주말 저녁에 꾸준히 칩니다. 같이 기본기 다지실 분 환영해요.' },
+    { key: 'demo_suttle', nick: '셔틀버스', level: 'C조', region: '경기', club: '나래울', availability: '평일 저녁', experience: '2~5년', discipline: '복식', avatar: '🦊', gender: '남성', bio: '회사 끝나고 8시 이후 가능. 드라이브 연습 파트너 찾아요.' },
+    { key: 'demo_foot', nick: '발놀림장인', level: 'A조', region: '서울', club: '강서 SH', availability: '무관', experience: '5년 이상', discipline: '복식', avatar: '🐯', gender: '남성', avatarFrame: 'gold', avatarBadge: '🥇', bio: '풋워크 교정 환영. 3:1로 훈련해 주실 분 좋아요.' },
+    { key: 'demo_net', nick: '네트앞여우', level: '선수부', region: '경기', club: '나래울', availability: '주말', experience: '5년 이상', discipline: '혼합복식', avatar: '🦉', gender: '여성', avatarFrame: 'sakura', avatarBadge: '🏸', bio: '혼복 전문. 네트 앞 플레이와 헤어핀 세밀하게 잡아드려요.' },
+    { key: 'demo_bear', nick: '스매시곰', level: '자강', region: '인천', club: '인천 유소년', availability: '평일 낮', experience: '5년 이상', discipline: '복식', avatar: '🐻', gender: '남성', avatarFrame: 'royal', bio: '코치 자격 준비 중입니다. 초보분들 스매시 폼 잡아드려요.' },
+    { key: 'demo_drive', nick: '드라이브요정', level: 'D조', region: '경기', club: '부천 레인보우', availability: '평일 저녁', experience: '1년 미만', discipline: '복식', avatar: '🐰', gender: '여성', avatarBg: 'mint', bio: '시작한 지 8개월. 같이 천천히 늘어요.' },
+    { key: 'demo_koala', nick: '콕콕이', level: '초심', region: '서울', club: '양천 러브콕', availability: '주말', experience: '1~2년', discipline: '단식', avatar: '🐨', gender: '여성', avatarBg: 'sunset', bio: '단식 위주로 칩니다. 랠리 길게 해 주실 분!' },
+    { key: 'demo_clear', nick: '하늘클리어', level: 'B조', region: '서울', club: '양천 러브콕', availability: '평일 저녁', experience: '2~5년', discipline: '혼합복식', avatar: '🦌', gender: '여성', avatarFrame: 'neon', avatarBg: 'ocean', bio: '클리어 깊이를 늘리는 중이에요. 혼복으로 주 2회 치고 싶어요.' }
   ];
 
   function build(now) {
@@ -29,9 +31,10 @@
 
     var rows = [];
     var me = {
-      nick: '나래', level: 'C조', discipline: '복식',
+      nick: '나래', level: 'C조', discipline: '복식', gender: '비공개',
       region: '경기', club: '나래울', availability: '주말', experience: '2~5년',
-      avatar: '🦋', bio: '주말마다 나래울에서 칩니다. 드라이브를 무기로 만들고 싶어요.'
+      avatar: '🦋', avatarFrame: 'court', avatarBg: 'mint', avatarBadge: '🏸',
+      bio: '주말마다 나래울에서 칩니다. 드라이브를 무기로 만들고 싶어요.'
     };
     var profileUsers = [{ key: ME, p: me }].concat(PLAYERS.map(function (p) {
       return { key: p.key, p: p };
@@ -43,7 +46,9 @@
         id: U.uid(), type: '프로필', createdAt: stampAt(-30 + i, 9, 10 + i),
         nick: u.p.nick, level: u.p.level, discipline: u.p.discipline, userKey: u.key,
         bio: u.p.bio,
-        theme: u.key === ME ? { theme: 'th_night', avatar: u.p.avatar } : { avatar: u.p.avatar }
+        theme: u.key === ME
+          ? { theme: 'th_night', avatar: u.p.avatar, avatarFrame: u.p.avatarFrame || 'basic', avatarBg: u.p.avatarBg || 'plain', avatarBadge: u.p.avatarBadge || '' }
+          : { avatar: u.p.avatar, avatarFrame: u.p.avatarFrame || 'basic', avatarBg: u.p.avatarBg || 'plain', avatarBadge: u.p.avatarBadge || '' }
       }));
     });
 
@@ -53,7 +58,9 @@
         id: U.uid(), type: '매칭프로필', createdAt: stampAt(-20 + i, 20, 5 + i), userKey: p.key, nick: p.nick,
         payload: {
           region: p.region, level: p.level, discipline: p.discipline, club: p.club,
-          availability: p.availability, experience: p.experience, bio: p.bio, avatar: p.avatar
+          availability: p.availability, experience: p.experience, bio: p.bio,
+          avatar: p.avatar, gender: p.gender,
+          avatarFrame: p.avatarFrame || 'basic', avatarBg: p.avatarBg || 'plain', avatarBadge: p.avatarBadge || ''
         }
       }));
     });
@@ -61,7 +68,9 @@
       id: U.uid(), type: '매칭프로필', createdAt: stampAt(-1, 21, 30), userKey: ME, nick: me.nick,
       payload: {
         region: me.region, level: me.level, discipline: me.discipline, club: me.club,
-        availability: me.availability, experience: me.experience, bio: me.bio, avatar: me.avatar
+        availability: me.availability, experience: me.experience, bio: me.bio,
+        avatar: me.avatar, gender: me.gender,
+        avatarFrame: me.avatarFrame, avatarBg: me.avatarBg, avatarBadge: me.avatarBadge
       }
     }));
 

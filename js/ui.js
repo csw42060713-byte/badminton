@@ -29,7 +29,13 @@
     send: '<path d="M4 12l16-8-6 16-3-6z"/>',
     alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>',
     chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
-    edit: '<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z"/>'
+    edit: '<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z"/>',
+    search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-3.6-3.6"/>',
+    filter: '<path d="M4 7h16M7 12h10M10 17h4"/>',
+    camera: '<path d="M4 9h3l1.4-2h7.2L18 9h2v10H4z"/><circle cx="12" cy="13.5" r="3.2"/>',
+    palette: '<path d="M12 3a9 9 0 1 0 0 18h1.6a2 2 0 0 0 0-4h-.8a1.8 1.8 0 0 1 0-3.6H17a4 4 0 0 0 4-4c0-3.4-4-6.4-9-6.4z"/><circle cx="8" cy="10" r="1"/><circle cx="12" cy="7.6" r="1"/>',
+    trash: '<path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/><path d="M11 11v6M13 11v6"/>',
+    pin: '<path d="M12 21s6-5.3 6-10a6 6 0 1 0-12 0c0 4.7 6 10 6 10z"/><circle cx="12" cy="11" r="2.2"/>'
   };
 
   function icon(name, cls) {
@@ -149,8 +155,29 @@
     chipEl.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
 
-  function avatar(emoji, size) {
-    return '<span class="avatar" style="--av:' + (size || 40) + 'px">' + (emoji || '🏸') + '</span>';
+  /* ---------- 아바타 (프로필 사진 · 프레임 · 배경 · 배지) ----------
+   * UI.avatar('🏸', 40) 처럼 이모지만 넘기던 예전 호출도 그대로 동작하고,
+   * 프로필/매칭프로필 객체를 넘기면 꾸민 모습으로 그립니다. */
+  function avatar(input, size, opts) {
+    opts = opts || {};
+    var D = BM.domain;
+    var spec;
+    if (typeof input === 'string' || input == null) {
+      spec = D ? D.normalizeAvatar({ avatar: input || '🏸' }) : { emoji: input || '🏸', frame: 'basic', bg: 'plain', badge: '' };
+    } else {
+      spec = D ? D.avatarOf(input) : { emoji: '🏸', frame: 'basic', bg: 'plain', badge: '' };
+    }
+    var px = Math.max(18, Math.round(size || 40));
+    var inner = spec.photo
+      ? '<img class="avx__img" src="' + U.esc(spec.photo) + '" alt="" loading="lazy">'
+      : '<span class="avx__emoji">' + U.esc(spec.emoji) + '</span>';
+    var badge = spec.badge && opts.badge !== false
+      ? '<i class="avx__badge" aria-hidden="true">' + U.esc(spec.badge) + '</i>'
+      : '';
+    return '<span class="avx avx--' + U.esc(spec.frame) + ' avx--bg-' + U.esc(spec.bg) +
+      '" data-frame="' + U.esc(spec.frame) + '" data-bg="' + U.esc(spec.bg) +
+      '" style="--av:' + px + 'px">' +
+      '<span class="avx__inner">' + inner + '</span>' + badge + '</span>';
   }
 
   function emptyState(iconName, title, sub, actionHtml) {

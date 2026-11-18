@@ -8,7 +8,22 @@
   var UI = BM.ui;
   BM.views = BM.views || {};
 
-  var AVATARS = ['🏸', '🦋', '🐻', '🦊', '🐧', '🐰', '🦉', '🐯', '🐨', '🔥', '🌟', '🥇'];
+  var AVATARS = D.VOCAB && D.AVATAR ? D.AVATAR.emojis : ['🏸', '🦋', '🐻', '🦊', '🐧', '🐰', '🦉', '🐯', '🐨', '🔥', '🌟', '🥇'];
+
+  function myAvatar(me) {
+    return D.avatarOf({ theme: (me && me.theme) || {}, avatar: (me && me.theme && me.theme.avatar) || '🏸' });
+  }
+
+  function myMatchProfile(state) {
+    var key = (state.me && state.me.key) || '';
+    return (state.data.matchProfiles || []).filter(function (m) { return m.userKey === key; })[0] || {};
+  }
+
+  function genderPillOf(g) {
+    var v = D.normalizeGender(g);
+    if (!v || v === '비공개') return '';
+    return '<span class="pill pill--gender pill--' + (v === '여성' ? 'f' : 'm') + '">' + U.esc(v) + '</span>';
+  }
 
   function themeSwatches(state) {
     var current = (state.me && state.me.theme && state.me.theme.theme) || 'th_def';
@@ -192,7 +207,7 @@
     render: function (state) {
       var me = state.me || {};
       var theme = (me.theme && me.theme.theme) || 'th_def';
-      var avatar = (me.theme && me.theme.avatar) || '🏸';
+      var mp = myMatchProfile(state);
       var s = state.data.stats || {};
       var hearts = state.data.hearts || { balance: 0, earned: 0, spent: 0, history: [] };
       var myApps = (state.data.coachApps || []).filter(function (a) { return a.userKey === me.key; });
@@ -200,12 +215,18 @@
       var pendingApp = myApps.filter(function (a) { return a.status === '심사중'; })[0];
       return '' +
         '<section class="card card--profile">' +
-        '<div class="profile">' + UI.avatar(avatar, 64) +
+        '<div class="profile">' +
+        '<button type="button" class="profile__av" data-act="decorate-avatar" aria-label="프로필 사진 꾸미기">' +
+        UI.avatar(myAvatar(me), 88) +
+        '<span class="profile__avcam">' + UI.icon('camera') + '</span></button>' +
         '<div class="profile__id"><div class="profile__name">' + U.esc(me.nick || '회원') +
+        genderPillOf(mp.gender || me.gender) +
         (coach ? '<span class="pill pill--ok">코치</span>' : '') + '</div>' +
         '<p class="profile__meta">' + U.esc([me.level, me.discipline, me.region, me.club].filter(Boolean).join(' · ')) + '</p>' +
         (me.bio ? '<p class="profile__bio">' + U.esc(me.bio) + '</p>' : '') + '</div>' +
         '<button class="iconbtn" data-act="edit-profile" aria-label="프로필 수정">' + UI.icon('edit') + '</button></div>' +
+        '<button type="button" class="btn btn--ghost btn--big profile__deco" data-act="decorate-avatar">' +
+        UI.icon('camera') + '내 사진 · 프레임 꾸미기</button>' +
         (pendingApp ? '<p class="notice">멘토 신청이 <b>심사중</b>이에요. 승인되면 코치 기능을 쓸 수 있어요.</p>' : '') +
         '<div class="stats">' +
         '<div class="stat"><strong>' + (s.count || 0) + '</strong><span>총 기록</span></div>' +
@@ -220,7 +241,11 @@
 
         heartCard(hearts) +
 
-        '<section class="card"><header class="card__head"><h2>꾸미기</h2><span class="muted sm">탭하면 바로 적용</span></header>' +
+        '<section class="card" data-region="decor"><header class="card__head"><h2>프로필 꾸미기</h2>' +
+        '<button type="button" class="linkbtn" data-act="decorate-avatar">사진 · 배경</button></header>' +
+        decoratePanel(me) + '</section>' +
+
+        '<section class="card"><header class="card__head"><h2>테마</h2><span class="muted sm">탭하면 바로 적용</span></header>' +
         themeSwatches(state) + '</section>' +
 
         '<section class="card"><header class="card__head"><h2>데이터 연결</h2>' +
@@ -361,32 +386,280 @@
     }
   };
 
+  /* ---------- 프로필 꾸미기 (MY 카드 · 시트) ---------- */
+  function frames() { return (D.AVATAR && D.AVATAR.frames) || [{ id: 'basic', name: '기본' }]; }
+  function bgs() { return (D.AVATAR && D.AVATAR.bgs) || [{ id: 'plain', name: '담백' }]; }
+  function badges() { return (D.AVATAR && D.AVATAR.badges) || ['']; }
+
+  function decoratePanel(me) {
+    var spec = myAvatar(me);
+    return '<div class="decor">' +
+      '<div class="decor__preview">' + UI.avatar(spec, 76) + '</div>' +
+      '<div class="decor__body">' +
+      '<p class="decor__t">' + (spec.photo ? '내 사진을 쓰고 있어요' : '이모지 ' + U.esc(spec.emoji)) + '</p>' +
+      '<p class="hint">사진은 256×256으로 줄여 저장해요. 프레임은 아래에서 바로 바뀌어요.</p>' +
+      '<div class="decor__acts">' +
+      '<button type="button" class="btn btn--primary btn--sm" data-act="pick-photo">' + UI.icon('camera') + '사진 올리기</button>' +
+      (spec.photo ? '<button type="button" class="btn btn--ghost btn--sm" data-act="clear-photo">지우기</button>' : '') +
+      '</div></div></div>' +
+      '<div class="framestrip">' + frames().map(function (f) {
+        return '<button type="button" class="framepick' + (spec.frame === f.id ? ' is-on' : '') + '"' +
+          ' data-pick-frame="' + U.esc(f.id) + '" title="' + U.esc(f.name) + '">' +
+          '<span class="framepick__dot framepick__dot--' + U.esc(f.id) + '"></span>' +
+          '<span class="framepick__name">' + U.esc(f.name) + '</span></button>';
+      }).join('') + '</div>';
+  }
+
+  /* 사진 → 256×256 정사각형으로 잘라 JPEG로 압축 (localStorage·시트 한 칸 보호) */
+  function readPhoto(file, cb, onError) {
+    if (!file) return;
+    if (!/^image\//.test(file.type || '')) { if (onError) onError('이미지 파일만 올릴 수 있어요'); return; }
+    if (file.size > 12 * 1024 * 1024) { if (onError) onError('12MB보다 작은 사진을 골라 주세요'); return; }
+    if (typeof document === 'undefined' || typeof FileReader === 'undefined') return;
+    var reader = new FileReader();
+    reader.onerror = function () { if (onError) onError('사진을 읽지 못했어요'); };
+    reader.onload = function () {
+      var img = new Image();
+      img.onerror = function () { if (onError) onError('사진을 열지 못했어요'); };
+      img.onload = function () {
+        var limit = (D.AVATAR && D.AVATAR.maxPhotoChars) || 60000;
+        var tries = [{ size: 256, q: 0.72 }, { size: 256, q: 0.55 }, { size: 200, q: 0.6 }, { size: 160, q: 0.5 }];
+        var url = '';
+        for (var i = 0; i < tries.length; i++) {
+          url = drawSquare(img, tries[i].size, tries[i].q);
+          if (url && url.length <= limit) break;
+        }
+        if (!url || url.length > limit) { if (onError) onError('사진이 너무 커요. 다른 사진으로 해 주세요'); return; }
+        cb(url);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function drawSquare(img, size, quality) {
+    var canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    var c2 = canvas.getContext('2d');
+    if (!c2) return '';
+    var iw = img.width || size, ih = img.height || size;
+    var scale = Math.max(size / iw, size / ih);
+    var w = iw * scale, h = ih * scale;
+    c2.fillStyle = '#101614';
+    c2.fillRect(0, 0, size, size);
+    c2.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+    try { return canvas.toDataURL('image/jpeg', quality); } catch (e) { return ''; }
+  }
+
+  function pickPhotoFile(cb, onError) {
+    if (typeof document === 'undefined') return;
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    document.body.appendChild(input);
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      readPhoto(file, function (url) {
+        if (input.parentNode) input.parentNode.removeChild(input);
+        cb(url);
+      }, function (msg) {
+        if (input.parentNode) input.parentNode.removeChild(input);
+        if (onError) onError(msg);
+      });
+    });
+    input.click();
+  }
+
+  function togglePick(wrap, attr, value) {
+    Array.prototype.forEach.call(wrap.querySelectorAll('[' + attr + ']'), function (b) {
+      b.classList.toggle('is-on', b.getAttribute(attr) === value);
+      b.setAttribute('aria-pressed', b.getAttribute(attr) === value ? 'true' : 'false');
+    });
+  }
+
+  function openAvatarSheet(root, ctx) {
+    var me = ctx.store.state.me || {};
+    var draft = myAvatar(me);
+
+    var wrap = UI.openSheet({
+      title: '프로필 꾸미기',
+      body: '<div class="avstudio">' +
+        '<div class="avstudio__stage"><div data-preview>' + UI.avatar(draft, 118) + '</div>' +
+        '<p class="avstudio__hint" data-studio-hint>' +
+        (draft.photo ? '내 사진 · ' : '이모지 ' + U.esc(draft.emoji) + ' · ') + '프레임 ' + U.esc(frameName(draft.frame)) + '</p></div>' +
+        '<div class="avstudio__row">' +
+        '<button type="button" class="btn btn--primary btn--sm" data-act="studio-photo">' + UI.icon('camera') + '사진 올리기</button>' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-act="studio-clear"' + (draft.photo ? '' : ' disabled') + '>' + UI.icon('trash') + '사진 지우기</button>' +
+        '</div>' +
+
+        '<h4 class="avstudio__label">프레임</h4>' +
+        '<div class="pickgrid pickgrid--frame">' + frames().map(function (f) {
+          return '<button type="button" class="framepick' + (draft.frame === f.id ? ' is-on' : '') + '"' +
+            ' data-pick-frame="' + U.esc(f.id) + '" aria-pressed="' + (draft.frame === f.id ? 'true' : 'false') + '">' +
+            '<span class="framepick__dot framepick__dot--' + U.esc(f.id) + '"></span>' +
+            '<span class="framepick__name">' + U.esc(f.name) + '</span></button>';
+        }).join('') + '</div>' +
+
+        '<h4 class="avstudio__label">배경</h4>' +
+        '<div class="pickgrid pickgrid--bg">' + bgs().map(function (b) {
+          return '<button type="button" class="bgpick' + (draft.bg === b.id ? ' is-on' : '') + '" data-pick-bg="' + U.esc(b.id) + '"' +
+            ' aria-pressed="' + (draft.bg === b.id ? 'true' : 'false') + '">' +
+            '<span class="bgpick__dot bgpick__dot--' + U.esc(b.id) + '"></span>' +
+            '<span class="bgpick__name">' + U.esc(b.name) + '</span></button>';
+        }).join('') + '</div>' +
+
+        '<h4 class="avstudio__label">이모지</h4>' +
+        '<div class="pickgrid pickgrid--emoji">' + AVATARS.map(function (a) {
+          return '<button type="button" class="avataropt' + (draft.emoji === a ? ' is-on' : '') + '" data-pick-emoji="' + U.esc(a) + '"' +
+            ' aria-pressed="' + (draft.emoji === a ? 'true' : 'false') + '">' + U.esc(a) + '</button>';
+        }).join('') + '</div>' +
+
+        '<h4 class="avstudio__label">배지</h4>' +
+        '<div class="pickgrid pickgrid--badge">' + badges().map(function (b) {
+          return '<button type="button" class="badgeopt' + (draft.badge === b ? ' is-on' : '') + '" data-pick-badge="' + U.esc(b) + '"' +
+            ' aria-pressed="' + (draft.badge === b ? 'true' : 'false') + '">' + (b ? U.esc(b) : '없음') + '</button>';
+        }).join('') + '</div></div>' +
+        '<button class="btn btn--primary btn--big mt16" data-act="studio-save">저장</button>' +
+        '<p class="hint">사진은 기기에 256×256 JPEG로 저장되고, MY·1:1 매칭·커뮤니티에 같은 모습으로 보여요.</p>',
+      onMount: function (node) {
+        function repaintPreview() {
+          var box = node.querySelector('[data-preview]');
+          if (box) box.innerHTML = UI.avatar(draft, 118);
+          var hint = node.querySelector('[data-studio-hint]');
+          if (hint) hint.textContent = (draft.photo ? '내 사진 · ' : '이모지 ' + draft.emoji + ' · ') + '프레임 ' + frameName(draft.frame);
+          var clear = node.querySelector('[data-act="studio-clear"]');
+          if (clear) clear.disabled = !draft.photo;
+        }
+
+        node.addEventListener('click', function (ev) {
+          var f = ev.target.closest('[data-pick-frame]');
+          if (f) {
+            ev.preventDefault();
+            draft.frame = f.getAttribute('data-pick-frame');
+            togglePick(node, 'data-pick-frame', draft.frame);
+            repaintPreview(); UI.haptic(6);
+            return;
+          }
+          var b = ev.target.closest('[data-pick-bg]');
+          if (b) {
+            ev.preventDefault();
+            draft.bg = b.getAttribute('data-pick-bg');
+            togglePick(node, 'data-pick-bg', draft.bg);
+            repaintPreview(); UI.haptic(6);
+            return;
+          }
+          var e = ev.target.closest('[data-pick-emoji]');
+          if (e) {
+            ev.preventDefault();
+            draft.emoji = e.getAttribute('data-pick-emoji');
+            togglePick(node, 'data-pick-emoji', draft.emoji);
+            repaintPreview(); UI.haptic(6);
+            return;
+          }
+          var bd = ev.target.closest('[data-pick-badge]');
+          if (bd) {
+            ev.preventDefault();
+            draft.badge = bd.getAttribute('data-pick-badge');
+            togglePick(node, 'data-pick-badge', draft.badge);
+            repaintPreview(); UI.haptic(6);
+            return;
+          }
+          if (ev.target.closest('[data-act="studio-photo"]')) {
+            ev.preventDefault();
+            pickPhotoFile(function (url) {
+              draft.photo = url;
+              repaintPreview();
+              UI.toast('사진을 넣었어요. 저장을 누르면 적용돼요');
+            }, function (msg) { UI.toast(msg, 'error'); });
+            return;
+          }
+          if (ev.target.closest('[data-act="studio-clear"]')) {
+            ev.preventDefault();
+            draft.photo = '';
+            repaintPreview();
+            return;
+          }
+          if (ev.target.closest('[data-act="studio-save"]')) {
+            ev.preventDefault();
+            saveAvatar(ctx, draft).then(function (ok) {
+              if (!ok) { UI.toast('잠시만요, 저장 중이에요'); return; }
+              UI.closeSheet();
+              UI.toast('프로필을 꾸몄어요');
+              UI.haptic(14);
+              ctx.refresh();
+            });
+          }
+        });
+      }
+    });
+    return wrap;
+  }
+
+  function frameName(id) {
+    var hit = frames().filter(function (f) { return f.id === id; })[0];
+    return hit ? hit.name : '기본';
+  }
+
+  /* 꾸민 모습을 프로필(꾸미기 칸)과 매칭 카드(매칭프로필 JSON)에 함께 반영합니다 */
+  function saveAvatar(ctx, spec) {
+    var state = ctx.store.state;
+    var me = state.me || {};
+    var mp = myMatchProfile(state);
+    var res = ctx.actions.saveProfile({
+      avatar: spec.emoji, avatarPhoto: spec.photo, avatarFrame: spec.frame,
+      avatarBg: spec.bg, avatarBadge: spec.badge, gender: mp.gender || me.gender
+    });
+    if (!res.ok) return Promise.resolve(false);
+    if (mp && mp.rowId) {
+      state.locks = state.locks || {};
+      delete state.locks['matchProfile'];
+      ctx.actions.saveMatchProfile({
+        region: mp.region || '', level: mp.level || me.level || '', discipline: mp.discipline || me.discipline || '',
+        club: mp.club || '', availability: mp.availability || '', experience: mp.experience || '',
+        bio: mp.bio || me.bio || '', gender: mp.gender || me.gender || '비공개',
+        avatar: spec.emoji, avatarPhoto: spec.photo, avatarFrame: spec.frame,
+        avatarBg: spec.bg, avatarBadge: spec.badge
+      });
+    }
+    return Promise.resolve(true);
+  }
+
   function openProfileSheet(root, ctx) {
     var me = ctx.store.state.me || {};
-    var avatar = (me.theme && me.theme.avatar) || '🏸';
+    var mp = myMatchProfile(ctx.store.state);
+    var avatar = myAvatar(me);
+    var gender = mp.gender || me.gender || '비공개';
     UI.openSheet({
       title: '프로필 수정',
-      body: '<div class="form">' +
-        '<div class="avatars">' + AVATARS.map(function (a) {
-          return '<button type="button" class="avataropt' + (a === avatar ? ' is-on' : '') + '" data-avatar="' + a + '">' + a + '</button>';
-        }).join('') + '</div>' +
+      body: '<div class="sheethero">' + UI.avatar(avatar, 64) +
+        '<div><strong>' + U.esc(me.nick || '회원') + '</strong>' +
+        '<p class="hint">사진 · 프레임 · 배경은 한곳에서 바꿔요.</p>' +
+        '<button type="button" class="linkbtn" data-act="decorate-from-sheet">' + UI.icon('camera') + '사진 · 프레임 꾸미기</button></div></div>' +
+        '<div class="form">' +
         '<label class="flabel">닉네임<input type="text" data-p="nick" maxlength="12" value="' + U.esc(me.nick || '') + '"></label>' +
+        '<label class="flabel">성별<div class="scrollx" data-p-group="gender">' + D.VOCAB.genders.map(function (g) {
+          return '<button type="button" class="chip chip--sm' + (gender === g ? ' is-on' : '') + '" data-pick-val="' + g + '">' + g + '</button>';
+        }).join('') + '</div></label>' +
         '<label class="flabel">급수<div class="scrollx" data-p-group="level">' + D.VOCAB.grades.map(function (l) {
           return '<button type="button" class="chip chip--sm' + (me.level === l ? ' is-on' : '') + '" data-pick-val="' + l + '">' + l + '</button>';
         }).join('') + '</div></label>' +
         '<label class="flabel">주력 종목<div class="scrollx" data-p-group="discipline">' + D.VOCAB.disciplines.map(function (l) {
           return '<button type="button" class="chip chip--sm' + (me.discipline === l ? ' is-on' : '') + '" data-pick-val="' + l + '">' + l + '</button>';
         }).join('') + '</div></label>' +
+        '<label class="flabel">지역<div class="scrollx" data-p-group="region">' + D.VOCAB.regions.map(function (r) {
+          return '<button type="button" class="chip chip--sm' + ((mp.region || me.region) === r ? ' is-on' : '') + '" data-pick-val="' + r + '">' + r + '</button>';
+        }).join('') + '</div></label>' +
         '<label class="flabel">한 줄 소개<input type="text" data-p="bio" maxlength="60" value="' + U.esc(me.bio || '') + '"></label>' +
         '</div><button class="btn btn--primary btn--big mt16" data-act="save-profile">저장</button>',
       onMount: function (wrap) {
-        var chosen = { level: me.level, discipline: me.discipline, avatar: avatar };
+        var chosen = { level: me.level, discipline: me.discipline, gender: gender, region: mp.region || me.region || '' };
         wrap.addEventListener('click', function (ev) {
-          var av = ev.target.closest('[data-avatar]');
-          if (av) {
-            chosen.avatar = av.getAttribute('data-avatar');
-            Array.prototype.forEach.call(wrap.querySelectorAll('[data-avatar]'), function (b) { b.classList.remove('is-on'); });
-            av.classList.add('is-on');
+          if (ev.target.closest('[data-act="decorate-from-sheet"]')) {
+            ev.preventDefault();
+            UI.closeSheet();
+            openAvatarSheet(root, ctx);
             return;
           }
           var pick = ev.target.closest('[data-pick-val]');
@@ -402,10 +675,24 @@
             var res = ctx.actions.saveProfile({
               nick: wrap.querySelector('[data-p="nick"]').value.trim() || me.nick,
               bio: wrap.querySelector('[data-p="bio"]').value.trim(),
-              level: chosen.level, discipline: chosen.discipline, avatar: chosen.avatar
+              level: chosen.level, discipline: chosen.discipline, gender: chosen.gender, region: chosen.region
             });
-            if (res.ok) { UI.closeSheet(); UI.toast('프로필을 저장했어요'); }
-            else UI.toast('잠시만요, 저장 중이에요');
+            if (res.ok) {
+              var nowMp = myMatchProfile(ctx.store.state);
+              if (nowMp && nowMp.rowId) {
+                ctx.store.state.locks = ctx.store.state.locks || {};
+                delete ctx.store.state.locks['matchProfile'];
+                ctx.actions.saveMatchProfile({
+                  region: chosen.region, level: chosen.level, discipline: chosen.discipline,
+                  club: nowMp.club || '', availability: nowMp.availability || '', experience: nowMp.experience || '',
+                  bio: wrap.querySelector('[data-p="bio"]').value.trim(), gender: chosen.gender,
+                  avatar: nowMp.avatar || avatar.emoji, avatarPhoto: nowMp.avatarPhoto || '',
+                  avatarFrame: nowMp.avatarFrame || 'basic', avatarBg: nowMp.avatarBg || 'plain',
+                  avatarBadge: nowMp.avatarBadge || ''
+                });
+              }
+              UI.closeSheet(); UI.toast('프로필을 저장했어요');
+            } else UI.toast('잠시만요, 저장 중이에요');
           }
         });
       }

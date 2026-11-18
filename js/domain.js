@@ -44,15 +44,97 @@
     return '';
   }
 
+  /* 성별 — 매칭 검색용. 모두에게 밝히고 싶지 않은 사람이 있으므로 '비공개'를 둡니다. */
+  var GENDERS = ['남성', '여성', '비공개'];
+  function normalizeGender(v) {
+    var s = String(v == null ? '' : v).trim().replace(/\s+/g, '');
+    if (!s) return '비공개';
+    var low = s.toLowerCase();
+    if (s === '남성' || s === '여성' || s === '비공개') return s;
+    if (low === 'm' || low === 'male' || low === 'man' || s.indexOf('남자') >= 0 || s.indexOf('남') === 0) return '남성';
+    if (low === 'f' || low === 'female' || low === 'woman' || s.indexOf('여자') >= 0 || s.indexOf('여') === 0) return '여성';
+    return '비공개';
+  }
+
+  /* 프로필 사진 꾸미기 — 프레임 / 배경 / 배지.
+   * 실제 저장은 프로필 JSON(꾸미기 칸, 매칭프로필 payload) 안에
+   * avatarPhoto·avatarFrame·avatarBg·avatarBadge 로 들어갑니다. */
+  var AVATAR = {
+    frames: [
+      { id: 'basic', name: '기본', hint: '담백한 링' },
+      { id: 'court', name: '코트그린', hint: '배드민턴 코트' },
+      { id: 'gold', name: '골드', hint: '챔피언 링' },
+      { id: 'royal', name: '로열블루', hint: '차분한 블루' },
+      { id: 'sakura', name: '사쿠라', hint: '핑크 라이트' },
+      { id: 'neon', name: '네온', hint: '야간 코트' }
+    ],
+    bgs: [
+      { id: 'plain', name: '담백', hint: '테마 기본' },
+      { id: 'mint', name: '민트', hint: '코트 그린' },
+      { id: 'ocean', name: '오션', hint: '블루' },
+      { id: 'sunset', name: '선셋', hint: '코랄' },
+      { id: 'grape', name: '그레이프', hint: '퍼플' },
+      { id: 'lime', name: '라임', hint: '셔틀콕 포인트' }
+    ],
+    badges: ['', '🏸', '🔥', '⭐', '🥇', '👑', '🦋'],
+    emojis: ['🏸', '🦋', '🐻', '🦊', '🐧', '🐰', '🦉', '🐯', '🐨', '🦌', '🔥', '🌟', '🥇', '⚡', '🐳', '🐍'],
+    maxPhotoChars: 60000     /* 시트 한 칸·localStorage를 지키는 상한 (base64 글자 수) */
+  };
+
+  function pickId(list, value, fallback) {
+    var v = String(value == null ? '' : value);
+    for (var i = 0; i < list.length; i++) if (list[i].id === v) return v;
+    return fallback;
+  }
+
+  function isPhoto(v) {
+    return typeof v === 'string' && /^data:image\/(png|jpeg|jpg|webp);base64,/i.test(v);
+  }
+
+  /* 어떤 모양의 입력이 와도 화면이 바로 쓸 수 있는 형태로 정리합니다.
+   *  입력: { photo|avatarPhoto, emoji|avatar, frame|avatarFrame, bg|avatarBg, badge|avatarBadge }
+   *  출력: { photo, emoji, frame, bg, badge } */
+  function normalizeAvatar(o) {
+    o = o || {};
+    var photo = o.photo != null ? o.photo : o.avatarPhoto;
+    var emoji = o.emoji != null ? o.emoji : o.avatar;
+    var em = String(emoji == null ? '' : emoji).trim();
+    if (!em || em.length > 8) em = '🏸';
+    var badge = String((o.badge != null ? o.badge : o.avatarBadge) || '').trim();
+    if (AVATAR.badges.indexOf(badge) < 0) badge = '';
+    return {
+      photo: isPhoto(photo) && photo.length <= AVATAR.maxPhotoChars ? photo : '',
+      emoji: em,
+      frame: pickId(AVATAR.frames, o.frame != null ? o.frame : o.avatarFrame, 'basic'),
+      bg: pickId(AVATAR.bgs, o.bg != null ? o.bg : o.avatarBg, 'plain'),
+      badge: badge
+    };
+  }
+
+  /* 프로필·매칭프로필·내 계정 어디서든 같은 모양으로 꺼냅니다 */
+  function avatarOf(p) {
+    p = p || {};
+    var t = p.theme || {};
+    return normalizeAvatar({
+      avatarPhoto: p.avatarPhoto || t.avatarPhoto,
+      avatar: p.avatar || t.avatar,
+      avatarFrame: p.avatarFrame || t.avatarFrame,
+      avatarBg: p.avatarBg || t.avatarBg,
+      avatarBadge: p.avatarBadge || t.avatarBadge
+    });
+  }
+
   var VOCAB = {
     grades: GRADES,
     levels: GRADES,                 /* 예전 이름 호환 */
+    genders: GENDERS,
     legacyLevels: ['초보용', '일반부', '상급', '선수부'],
     disciplines: ['복식', '단식', '혼합복식'],
     done: ['스트록', '벽치기', '런닝', '코어', '풋워크', '스매시', '게임', '웨이트', '21점제'],
     weakness: ['드라이브', '헤어핀', '드롭', '클리어', '스매시', '풋워크', '서브', '리시브'],
     pain: ['목', '어깨', '허리', '팔꿈치', '무릎', '손목', '아킬레스건', '발목'],
     regions: ['서울', '경기', '인천', '부산', '대구', '광주', '대전', '기타'],
+    genderFilter: ['전체'].concat(GENDERS.slice(0, 2)),
     availability: ['평일 저녁', '주말', '평일 낮', '무관'],
     experience: ['1년 미만', '1~2년', '2~5년', '5년 이상']
   };
@@ -477,6 +559,65 @@
     }).sort(function (a, b) { return a.at < b.at ? 1 : -1; });
   }
 
+  /* --- 매칭 검색 · 필터 ---
+   * 화면과 테스트가 같은 규칙을 쓰도록 순수 함수로 둡니다.
+   *  검색어: 닉네임 · 지역 · 클럽 · 소개 · 급수 · 종목 · 성별 · 경력 · 가능 시간
+   *  필터: 급수 / 성별 / 종목 / 지역 (값이 '전체'이거나 비어 있으면 통과) */
+  function searchText(p) {
+    p = p || {};
+    return [p.nick, p.region, p.club, p.bio, p.level, p.discipline, p.gender,
+      p.experience, p.availability, p.badge]
+      .filter(function (v) { return v != null && v !== ''; }).join(' ').toLowerCase();
+  }
+
+  function queryTerms(query) {
+    return String(query == null ? '' : query).toLowerCase().split(/[\s,]+/).filter(Boolean);
+  }
+
+  function matchesQuery(p, query) {
+    var terms = queryTerms(query);
+    if (!terms.length) return true;
+    var hay = searchText(p);
+    var compact = hay.replace(/\s+/g, '');
+    for (var i = 0; i < terms.length; i++) {
+      var term = terms[i].replace(/\s+/g, '');
+      if (compact.indexOf(term) < 0) return false;
+    }
+    return true;
+  }
+
+  function filterPlayers(players, filter, opts) {
+    filter = filter || {};
+    opts = opts || {};
+    var level = filter.level || '전체';
+    var gender = filter.gender || '전체';
+    var region = filter.region || '전체';
+    var discipline = filter.discipline || '전체';
+    var query = filter.query || '';
+    return (players || []).filter(function (p) {
+      if (!p) return false;
+      if (opts.excludeKey && p.userKey === opts.excludeKey) return false;
+      if (level !== '전체' && normalizeGrade(p.level) !== level) return false;
+      if (region !== '전체' && p.region !== region) return false;
+      if (discipline !== '전체' && p.discipline !== discipline) return false;
+      if (gender !== '전체' && normalizeGender(p.gender) !== gender) return false;
+      if (!matchesQuery(p, query)) return false;
+      return true;
+    });
+  }
+
+  /* 화면에 보여 줄 조건 요약 — 초기화 버튼을 보일지 판단할 때도 씁니다 */
+  function activeFilters(filter) {
+    filter = filter || {};
+    var out = [];
+    ['level', 'gender', 'discipline', 'region'].forEach(function (k) {
+      var v = filter[k];
+      if (v && v !== '전체') out.push({ key: k, value: v });
+    });
+    if (filter.query) out.push({ key: 'query', value: filter.query });
+    return out;
+  }
+
   /* --- 매칭 신청 상태 --- */
   function matchRequests(idx, userKey) {
     return (idx.byType['매칭신청'] || []).filter(function (m) {
@@ -485,8 +626,10 @@
   }
 
   BM.domain = {
-    COLS: COLS, COL: COL, VOCAB: VOCAB, GRADES: GRADES, THEMES: THEMES,
-    normalizeGrade: normalizeGrade,
+    COLS: COLS, COL: COL, VOCAB: VOCAB, GRADES: GRADES, GENDERS: GENDERS, THEMES: THEMES, AVATAR: AVATAR,
+    normalizeGrade: normalizeGrade, normalizeGender: normalizeGender,
+    normalizeAvatar: normalizeAvatar, avatarOf: avatarOf,
+    searchText: searchText, matchesQuery: matchesQuery, filterPlayers: filterPlayers, activeFilters: activeFilters,
     HEART_RULES: HEART_RULES,
     BASE_HEARTS: BASE_HEARTS, HEART_COST_MATCH: HEART_COST_MATCH,
     JSON_TYPES: JSON_TYPES,
