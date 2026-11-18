@@ -231,6 +231,8 @@
     document.body.classList.remove('is-onboarding');
     setNav(true);
     hideSplash();
+    /* 시작화면/온보딩 리스너를 떼어 냅니다(본문 클릭과 겹치지 않게) */
+    if (BM.views.start && BM.views.start.unmount) BM.views.start.unmount();
 
     var saved = BM.api.savedSession();
     var sheets = !!(session && session.kind !== 'guest' && saved && saved.token && saved.url);
