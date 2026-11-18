@@ -194,7 +194,11 @@
    * 포커스를 받은 입력 요소를 잠시 뒤 가운데로 스크롤하고, 하단 여백을 키보드 높이만큼 띄웁니다. */
   function bindKeyboardScroll() {
     if (typeof document === 'undefined') return;
+    /* 손가락 입력 기기에서만 스크롤을 옮깁니다 (데스크톱에서 클릭할 때 화면이 튀지 않게) */
+    var coarse = false;
+    try { coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); } catch (e) { coarse = false; }
     document.addEventListener('focusin', function (ev) {
+      if (!coarse) return;
       var t = ev.target;
       if (!t || !t.tagName) return;
       if (!/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
