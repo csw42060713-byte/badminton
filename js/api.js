@@ -60,7 +60,7 @@
       var signed = !!identity;
       return {
         key: meKey,
-        nick: p.nick || base.nick || (signed ? '회원' : '나래'),
+        nick: p.nick || base.nick || (signed ? '회원' : '체험 사용자'),
         level: p.level || base.level || (signed ? '' : '일반회원'),
         discipline: p.discipline || base.discipline || (signed ? '' : '복식'),
         bio: p.bio || base.bio || '',

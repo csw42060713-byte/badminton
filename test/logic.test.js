@@ -16,6 +16,12 @@
 
   function freshStore(opts) {
     clearStorage();
+    /* 예전에는 seed.build()가 데모 행을 깔아 줬지만 이제 앱은 빈 상태로 시작합니다.
+     * 저장소 동작 검증에는 '행이 있는 상태'가 필요하므로 테스트 픽스처를 직접 깔아 둡니다.
+     * opts.empty = true 이면 아무 행도 없는 상태를 씁니다. */
+    if (!(opts && opts.empty)) {
+      U.writeJSON('bm_rows_v1', BM.fixtures.demo());
+    }
     var api = BM.api.createLocal({ latency: 0 });
     var store = BM.store.createStore({ api: api });
     return store.actions.init().then(function () { return store; });
@@ -23,7 +29,7 @@
 
   function freshStoreWith(extra) {
     clearStorage();
-    var rows = BM.seed.build();
+    var rows = BM.fixtures.demo();
     (extra || []).forEach(function (e) { rows.push(D.toRow(e)); });
     U.writeJSON('bm_rows_v1', rows);
     var api = BM.api.createLocal({ latency: 0 });
@@ -37,7 +43,7 @@
   };
 
   function stateOf(rows, meKey) {
-    rows = rows || BM.seed.build();
+    rows = rows || BM.fixtures.demo();
     meKey = meKey || BM.seed.ME;
     return {
       ready: true, mode: 'local', me: ME, rows: rows,
@@ -213,7 +219,7 @@
 
   /* ================= 3. 하트 ================= */
   test('하트: 적립·사용 계산 (기본 3개 포함)', function () {
-    var rows = BM.seed.build();
+    var rows = BM.fixtures.demo();
     var idx = D.index(rows.map(D.fromRow));
     var ledger = D.heartLedger(idx, BM.seed.ME);
     eq(ledger.base, 3, '기본 하트');
@@ -232,7 +238,7 @@
   });
 
   test('하트: 오늘 현황(출석·광고 한도·대기시간)', function () {
-    var st = D.heartStatus(D.index(BM.seed.build().map(D.fromRow)), BM.seed.ME);
+    var st = D.heartStatus(D.index(BM.fixtures.demo().map(D.fromRow)), BM.seed.ME);
     eq(st.checkedInToday, false, '오늘 출석 전');
     eq(st.canCheckIn, true, '출석 가능');
     eq(st.adUsedToday, 0, '오늘 광고 0');
@@ -283,7 +289,7 @@
   });
 
   test('급수: 예전 매칭 프로필(상급)도 급수로 표시된다', function () {
-    var rows = BM.seed.build().concat([D.toRow({
+    var rows = BM.fixtures.demo().concat([D.toRow({
       id: U.uid(), type: '매칭프로필', userKey: 'demo_legacy', nick: '옛회원', createdAt: U.stamp(),
       payload: { region: '경기', level: '상급', discipline: '복식', club: '옛클럽', availability: '주말', experience: '2~5년', bio: '', avatar: '🏸' }
     })]);
@@ -800,7 +806,7 @@
 
   test('화면: MY 하트 카드 — 광고 한도/쿨다운 표시', function () {
     var old = U.stamp(new Date(Date.now() - 40000));
-    var rows = BM.seed.build();
+    var rows = BM.fixtures.demo();
     for (var i = 0; i < 5; i++) {
       rows.push(D.toRow({ id: U.uid(), type: '광고하트', userKey: BM.seed.ME, date: U.ymd(), likes: 1, createdAt: old }));
     }
@@ -810,7 +816,7 @@
     includes(html, '오늘 모두 받았어요', '한도 도달 문구');
     includes(html, '5/5', '오늘 광고 5/5');
 
-    var rows2 = BM.seed.build();
+    var rows2 = BM.fixtures.demo();
     rows2.push(D.toRow({ id: U.uid(), type: '광고하트', userKey: BM.seed.ME, date: U.ymd(), likes: 1, createdAt: U.stamp(new Date(Date.now() - 5000)) }));
     var html2 = BM.views.my.render(stateOf(rows2));
     checkHtml(html2, 'MY-쿨다운');
@@ -819,8 +825,25 @@
   });
 
   /* ================= 10. 시드/개인정보 ================= */
-  test('시드: 26칸 구조이고 개인정보(이메일·비밀번호)가 없다', function () {
-    var rows = BM.seed.build();
+  test('시드: 첫 설치에는 아무 데이터도 넣지 않는다 (build() → [])', function () {
+    eq(BM.seed.build().length, 0, '행 수 0');
+    eq((BM.seed.PLAYERS || []).length, 0, '데모 선수 없음');
+    ok(BM.seed.ME, '사용자ID 키는 유지');
+    /* 빈 배열을 저장소·화면이 그대로 받아도 터지지 않아야 합니다 */
+    var data = BM.store.derive(BM.seed.build(), BM.seed.ME);
+    eq(data.posts.length, 0, '글 0');
+    eq(data.matchProfiles.length, 0, '매칭 프로필 0');
+    eq(data.rooms.length, 0, '대화방 0');
+    eq(data.records.length, 0, '기록 0');
+    eq(data.stats.count, 0, '통계 0');
+    eq(data.hearts.balance, D.HEART_RULES.BASE, '하트는 기본 3개');
+    var html = BM.views.log.render(stateOf(BM.seed.build()));
+    checkHtml(html, '빈 일지 화면');
+    includes(html, '아직 기록이 없어요', '빈 상태 안내');
+  });
+
+  test('픽스처: 26칸 구조이고 개인정보(이메일·비밀번호)가 없다', function () {
+    var rows = BM.fixtures.demo();
     ok(rows.length > 50, '행 수: ' + rows.length);
     var types = {};
     rows.forEach(function (r) {
@@ -833,8 +856,8 @@
       .forEach(function (ty) { ok(types[ty], '유형 존재: ' + ty); });
   });
 
-  test('시드 → 파생 데이터 (대화·신청·통계)', function () {
-    var data = BM.store.derive(BM.seed.build(), BM.seed.ME);
+  test('픽스처 → 파생 데이터 (대화·신청·통계)', function () {
+    var data = BM.store.derive(BM.fixtures.demo(), BM.seed.ME);
     ok(data.posts.length >= 5, '글 수');
     ok(data.matchProfiles.length >= 6, '매칭 프로필');
     eq(data.rooms.length, 1, '대화방');
@@ -1016,13 +1039,13 @@
 
   test('MY 화면: 계정 카드에 상태·로그아웃·Client ID 설정이 있다', function () {
     clearAuth();
-    var guest = BM.views.my.render(stateOf(BM.seed.build()));
+    var guest = BM.views.my.render(stateOf(BM.fixtures.demo()));
     includes(guest, 'data-region="account"', '계정 카드');
     includes(guest, '체험 모드', '체험 표시');
     includes(guest, 'data-act="account-login"', '로그인 버튼');
     includes(guest, '고급 · Google Client ID', 'Client ID 설정');
     return BM.auth.signInEmail({ email: 'my@example.com', password: 'secret12', nick: '마이', create: true }).then(function () {
-      var html = BM.views.my.render(stateOf(BM.seed.build()));
+      var html = BM.views.my.render(stateOf(BM.fixtures.demo()));
       includes(html, '이메일 계정', '이메일 표시');
       includes(html, 'data-act="logout"', '로그아웃 버튼');
       includes(html, 'my@example.com', '이메일 주소');
@@ -1037,15 +1060,16 @@
     var guestApi = BM.api.createLocal({ latency: 0 });
     var acctApi = BM.api.createLocal({ latency: 0, rowsKey: 'bm_rows_v1::guest@example.com', me: { nick: '새회원', level: '', discipline: '' } });
     return guestApi.bootstrap().then(function (res) {
-      ok(res.rows.length > 50, '체험 데이터');
+      eq(res.rows.length, 0, '체험 데이터 없음(빈 상태로 시작)');
+      eq(res.me.nick, '체험 사용자', '체험 기본 닉네임(데모 인물 아님)');
+      ok(Array.isArray(U.readJSON('bm_rows_v1', null)), '체험 데이터 키 생성');
       return acctApi.bootstrap();
     }).then(function (res) {
-      ok(res.rows.length > 50, '계정도 첫 실행에 예시 데이터를 가짐');
+      eq(res.rows.length, 0, '계정도 빈 상태로 시작');
       eq(res.me.nick, '새회원', '계정 닉네임 적용');
       eq(res.me.level, '', '급수는 비어 있음(온보딩 대상)');
       eq(res.me.discipline, '', '종목은 비어 있음(온보딩 대상)');
-      ok(U.readJSON('bm_rows_v1', null), '체험 데이터 키 유지');
-      ok(U.readJSON('bm_rows_v1::guest@example.com', null), '계정 데이터 따로 저장');
+      ok(Array.isArray(U.readJSON('bm_rows_v1::guest@example.com', null)), '계정 데이터 따로 저장');
       U.storage.removeItem('bm_rows_v1::guest@example.com');
     });
   });

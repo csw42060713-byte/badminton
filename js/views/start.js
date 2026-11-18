@@ -48,7 +48,7 @@
       '<button type="button" class="start__guest" data-act="guest">로그인 없이 둘러보기</button>' +
       '</div>' +
       '<p class="start__note">처음이라면 <b>10초 설정</b>으로 프로필을 만들고 바로 시작해요.<br>' +
-      '체험 모드에서는 예시 인물과 기록으로 모든 기능을 써 볼 수 있어요.</p>' +
+      '체험 모드에서는 이 기기에만 저장되고, 남긴 기록으로 모든 기능을 써 볼 수 있어요.</p>' +
       '</div>';
   }
 
@@ -184,6 +184,14 @@
   /* ---------- 이벤트 ---------- */
   function mount(host, ctx) {
     ctx = ctx || {};
+    /* 시작화면 → 온보딩처럼 같은 host에 다시 그릴 때, 예전 리스너가 남아 있으면
+     * 한 번의 탭이 두 번 처리됩니다(온보딩 칩이 골라지지 않던 원인). 먼저 떼어 냅니다. */
+    if (host.__bmStartHandlers) {
+      Object.keys(host.__bmStartHandlers).forEach(function (type) {
+        host.removeEventListener(type, host.__bmStartHandlers[type]);
+      });
+    }
+    var handlers = host.__bmStartHandlers = {};
     paint(host);
 
     function done() {
@@ -220,7 +228,7 @@
       BM.auth.loadGoogleScript().then(setupGsi).catch(function () { /* 직접 버튼으로 안내 */ });
     }
 
-    host.addEventListener('click', function (ev) {
+    handlers.click = function (ev) {
       var act = ev.target.closest('[data-act]');
       if (act) {
         var name = act.getAttribute('data-act');
@@ -343,23 +351,26 @@
         ui.error = '';
         UI.haptic(6);
       }
-    });
+    };
+    host.addEventListener('click', handlers.click);
 
-    host.addEventListener('input', function (ev) {
+    handlers.input = function (ev) {
       var f = ev.target.closest('[data-f]');
       if (f) { ui.draft[f.getAttribute('data-f')] = f.value; return; }
       var o = ev.target.closest('[data-o]');
       if (o) { ui.onb[o.getAttribute('data-o')] = o.value; }
-    });
+    };
+    host.addEventListener('input', handlers.input);
 
-    host.addEventListener('keydown', function (ev) {
+    handlers.keydown = function (ev) {
       if (ev.key !== 'Enter') return;
       var field = ev.target.closest('[data-f]');
       if (!field || ui.screen !== 'email' || ui.busy) return;
       ev.preventDefault();
       var btn = host.querySelector('[data-act="submit"]');
       if (btn) btn.click();
-    });
+    };
+    host.addEventListener('keydown', handlers.keydown);
 
     if (ui.screen === 'home' && !BM.auth.googleClientId()) {
       /* Client ID가 없어도 버튼은 눌리게 두고, 눌렀을 때 안내합니다 */
