@@ -6,7 +6,6 @@ store-assets/make-store-assets.py — 플레이 스토어 등록 그래픽 만�
 
   · store-assets/icon-512.png            512×512 (Play 아이콘, 모서리 없이 꽉 찬 사각형)
   · store-assets/feature-graphic-1024x500.png  1024×500 (대표 그래픽)
-  · store-assets/promo-icon-512.png      아이콘 사본(내부용 확인)
 
 아이콘 그림은 icons/icon-512.png(기존 앱 아이콘)을 그대로 쓰고, 투명한 모서리만
 배경색으로 채웁니다. 글꼴은 시스템의 Noto Sans CJK KR을 씁니다.
@@ -132,9 +131,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     p1, _ = square_icon()
     p2, _ = feature_graphic()
-    promo = os.path.join(OUT, "promo-icon-512.png")
-    Image.open(p1).save(promo, "PNG", optimize=True)
-    for p in (p1, p2, promo):
+    for p in (p1, p2):
         im = Image.open(p)
         print(os.path.relpath(p, APP), im.size, im.mode, os.path.getsize(p) // 1024, "KB")
 
