@@ -919,6 +919,23 @@
         });
       },
 
+      /* 계정 삭제(탈퇴): 시트(서버)의 내 기록을 지우고 화면 상태도 비웁니다.
+       * 실패하면 아무것도 지우지 않고 오류를 그대로 돌려줍니다(부분 삭제 방지). */
+      deleteAccount: function () {
+        var api = apiRef;
+        if (!api || !api.deleteAccount) return Promise.resolve({ ok: true, removed: 0 });
+        return api.deleteAccount().then(function (res) {
+          if (res && res.ok === false) return res;
+          state.rows = [];
+          state.queue = []; persistQueue();
+          state.analysis = null;
+          state.syncState = 'idle';
+          recompute();
+          emit();
+          return res || { ok: true, removed: 0 };
+        });
+      },
+
       /* 테스트/디버그용 */
       _state: function () { return state; },
       _flush: function () { return flush(); },

@@ -1,0 +1,46 @@
+{
+  "packageId": "io.github.csw42060713_byte.badminton",
+  "host": "csw42060713-byte.github.io",
+  "name": "배드민턴 분석",
+  "launcherName": "배드민턴",
+  "display": "standalone",
+  "themeColor": "#080B0A",
+  "themeColorDark": "#000000",
+  "navigationColor": "#080B0A",
+  "navigationColorDark": "#000000",
+  "backgroundColor": "#080B0A",
+  "enableNotifications": false,
+  "startUrl": "/badminton/index.html",
+  "iconUrl": "https://csw42060713-byte.github.io/badminton/store-assets/icon-512.png",
+  "maskableIconUrl": "https://csw42060713-byte.github.io/badminton/icons/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "오늘 일지 쓰기",
+      "shortName": "일지",
+      "url": "/badminton/index.html#/log",
+      "chosenIconUrl": "https://csw42060713-byte.github.io/badminton/icons/icon-192.png"
+    },
+    {
+      "name": "매칭 찾기",
+      "shortName": "매칭",
+      "url": "/badminton/index.html#/matching",
+      "chosenIconUrl": "https://csw42060713-byte.github.io/badminton/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://csw42060713-byte.github.io/badminton/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "appVersion": "1.0.0"
+}

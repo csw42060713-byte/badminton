@@ -4,13 +4,14 @@
  * 서비스워커가 건드리지 않습니다.
  * 파일을 수정하면 VERSION을 올리면 새로 받습니다.
  * ============================================================ */
-var VERSION = 'bm-v1.4.0';
+var VERSION = 'bm-v1.5.0';
 var SHELL = [
   './',
   './index.html',
+  './privacy.html',
   './styles.css',
   './app.js',
-  './manifest.json',
+  './manifest.webmanifest',
   './js/util.js',
   './js/domain.js',
   './js/ai.js',
