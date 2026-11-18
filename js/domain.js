@@ -167,7 +167,12 @@
   var BASE_HEARTS = HEART_RULES.BASE;            // 가입 축하 하트 (구버전 호환)
   var HEART_COST_MATCH = HEART_RULES.MATCH_COST; // 1:1 매칭 신청 비용
 
-  var JSON_TYPES = { '매칭프로필': 1, '코치신청': 1, '매칭신청': 1, '코치피드백': 1, '계획': 1 };
+  var JSON_TYPES = { '매칭프로필': 1, '코치신청': 1, '멘토신청': 1, '매칭신청': 1, '코치피드백': 1, '계획': 1 };
+
+  /* 멘토 심사는 관리자 계정만 할 수 있습니다.
+   * 앱(화면)과 브리지(APPS_SCRIPT_BRIDGE.gs CONFIG.ADMIN_EMAILS)가 같은 값을 봅니다. */
+  var ADMIN_EMAILS = ['csw42060713@gmail.com'];
+  var ADMIN_TARGET = ADMIN_EMAILS[0];
 
   function asCells(row) {
     var out = [];
@@ -234,7 +239,7 @@
       theme: U.jsonParse(c[COL['꾸미기']], null)
     };
     if (type === '매칭신청') e.status = c[COL['승패']] || (payload && payload.status) || '대기';
-    if (type === '코치신청') e.status = (payload && payload.status) || c[COL['승패']] || '심사중';
+    if (type === '코치신청' || type === '멘토신청') e.status = (payload && payload.status) || c[COL['승패']] || '심사중';
     return e;
   }
 
@@ -626,6 +631,285 @@
     });
   }
 
+  /* ============================================================
+   * 관리자 · 멘토 심사
+   * ============================================================ */
+  function normEmail(v) { return String(v == null ? '' : v).trim().toLowerCase(); }
+
+  function isAdminEmail(email) {
+    return ADMIN_EMAILS.indexOf(normEmail(email)) >= 0;
+  }
+
+  /* me.admin 은 브리지가(시트 모드) 내려 주는 서버 판정값입니다.
+   * 체험/로컬 모드는 로그인 세션의 이메일로 판단합니다. */
+  function isAdminMe(me) {
+    me = me || {};
+    if (me.admin === true) return true;
+    if (isAdminEmail(me.email)) return true;
+    return isAdminEmail(me.key);
+  }
+
+  function matchProfileOf(idx, userKey) {
+    var list = (idx.byType['매칭프로필'] || []).filter(function (m) {
+      return m.userKey === userKey && m.payload;
+    });
+    var last = U.sortBy(list, function (m) { return m.createdAt || ''; }).pop();
+    return (last && last.payload) || {};
+  }
+
+  /* 멘토 신청 목록 — 관리자는 전부, 일반 사용자는 내 신청만 봅니다. */
+  function mentorApplications(idx, meKey, admin) {
+    var rows = [];
+    ['멘토신청', '코치신청'].forEach(function (t) {
+      rows = rows.concat(idx.byType[t] || []);
+    });
+    if (!admin) rows = rows.filter(function (r) { return r.userKey === meKey; });
+    return U.sortBy(rows, function (r) { return r.createdAt || ''; }, true).map(function (r) {
+      var pl = r.payload || {};
+      var p = profileOf(idx, r.userKey);
+      var mp = matchProfileOf(idx, r.userKey);
+      var status = r.status || pl.status || '심사중';
+      return {
+        id: r.id, type: r.type, userKey: r.userKey,
+        nick: r.nick || p.nick || '신청자',
+        status: status,
+        payload: pl,
+        createdAt: r.createdAt || '',
+        submitted: pl.submitted || r.createdAt || '',
+        level: pl.level || p.level || '',
+        discipline: pl.discipline || p.discipline || '',
+        gender: normalizeGender(pl.gender || mp.gender),
+        region: pl.region || mp.region || '',
+        club: pl.club || mp.club || '',
+        experience: pl.experience || mp.experience || '',
+        awards: pl.awards || '',
+        reason: pl.reason || pl.intro || '',
+        proof: pl.proof || '',
+        bio: p.bio || ''
+      };
+    });
+  }
+
+  function mentorPendingCount(idx, meKey, admin) {
+    if (!admin) return 0;
+    return mentorApplications(idx, meKey, true).filter(function (a) { return a.status === '심사중'; }).length;
+  }
+
+  /* 승인된 코치·멘토인지 (피드백을 보낼 수 있는 사람) */
+  function isCoach(idx, meKey) {
+    if (!meKey) return false;
+    return (idx.byType['코치신청'] || []).concat(idx.byType['멘토신청'] || []).some(function (a) {
+      return a.userKey === meKey && a.status === '승인';
+    });
+  }
+
+  /* ============================================================
+   * 친구(친추)
+   *  시트에는 '친구요청'/'친구수락'/'친구거절'/'친구삭제' 행으로 남고,
+   *  한 쌍의 관계는 그 행들을 시간순으로 접어서 계산합니다(순수 함수).
+   *    none     → 관계 없음
+   *    sent     → 내가 요청을 보냄 (상대 응답 대기)
+   *    received → 상대가 요청을 보냄 (내가 수락/거절)
+   *    friends  → 친구
+   * ============================================================ */
+  var FRIEND_TYPES = ['친구요청', '친구수락', '친구거절', '친구삭제'];
+
+  function friendPairRows(idx, a, b) {
+    var out = [];
+    FRIEND_TYPES.forEach(function (type) {
+      (idx.byType[type] || []).forEach(function (r) {
+        if ((r.userKey === a && r.target === b) || (r.userKey === b && r.target === a)) out.push(r);
+      });
+    });
+    return U.sortBy(out, function (r) { return r.createdAt || ''; });
+  }
+
+  function friendState(idx, meKey, otherKey) {
+    var res = { state: 'none', requestId: '', acceptId: '', since: '', incomingId: '', outgoingId: '' };
+    if (!meKey || !otherKey || meKey === otherKey) return res;
+    var friends = false;
+    friendPairRows(idx, meKey, otherKey).forEach(function (r) {
+      var mine = r.userKey === meKey;
+      if (r.type === '친구요청') {
+        if (mine) res.outgoingId = r.id;
+        else res.incomingId = r.id;
+      } else if (r.type === '친구수락') {
+        friends = true;
+        res.acceptId = r.id;
+        res.since = r.createdAt || '';
+        res.incomingId = '';
+        res.outgoingId = '';
+      } else if (r.type === '친구거절') {
+        friends = false;
+        res.acceptId = '';
+        /* 내가 거절했으면 받은 요청이, 상대가 거절했으면 보낸 요청이 사라집니다 */
+        if (mine) res.incomingId = '';
+        else res.outgoingId = '';
+      } else if (r.type === '친구삭제') {
+        friends = false;
+        res.acceptId = '';
+      }
+    });
+    if (friends) {
+      res.state = 'friends';
+    } else if (res.incomingId) {
+      res.state = 'received';
+      res.requestId = res.incomingId;
+    } else if (res.outgoingId) {
+      res.state = 'sent';
+      res.requestId = res.outgoingId;
+    }
+    return res;
+  }
+
+  function friendKeysOf(idx, meKey) {
+    var keys = {};
+    if (!meKey) return [];
+    FRIEND_TYPES.forEach(function (type) {
+      (idx.byType[type] || []).forEach(function (r) {
+        if (r.userKey === meKey && r.target) keys[r.target] = 1;
+        if (r.target === meKey && r.userKey) keys[r.userKey] = 1;
+      });
+    });
+    delete keys[meKey];
+    return Object.keys(keys);
+  }
+
+  function friendsOf(idx, meKey) {
+    return friendKeysOf(idx, meKey).map(function (key) {
+      var st = friendState(idx, meKey, key);
+      var p = profileOf(idx, key);
+      return { key: key, since: st.since, roomId: st.acceptId, nick: p.nick, level: p.level };
+    }).filter(function (f) { return !!f.roomId; });
+  }
+
+  function incomingFriendRequests(idx, meKey) {
+    if (!meKey) return [];
+    return friendKeysOf(idx, meKey).map(function (key) {
+      var st = friendState(idx, meKey, key);
+      if (st.state !== 'received') return null;
+      var row = (idx.byType['친구요청'] || []).filter(function (r) { return r.id === st.incomingId; })[0] || {};
+      var p = profileOf(idx, key);
+      return {
+        id: st.incomingId, key: key,
+        nick: row.nick || p.nick || '회원',
+        level: p.level || '', theme: p.theme || null,
+        at: row.createdAt || ''
+      };
+    }).filter(Boolean);
+  }
+
+  /* 두 사람 사이의 1:1 매칭 상태 */
+  function matchBetween(idx, meKey, otherKey) {
+    if (!meKey || !otherKey) return { accepted: false, requestId: '', pending: false };
+    var reqs = (idx.byType['매칭신청'] || []).filter(function (r) {
+      return (r.userKey === meKey && r.target === otherKey) ||
+        (r.userKey === otherKey && r.target === meKey);
+    });
+    var accepted = null, last = null;
+    U.sortBy(reqs, function (r) { return r.createdAt || ''; }).forEach(function (r) {
+      last = r;
+      if (r.status === '수락') accepted = r;
+    });
+    return {
+      accepted: !!accepted,
+      requestId: accepted ? accepted.id : '',
+      pending: !!(last && last.status === '대기')
+    };
+  }
+
+  /* 친구이거나 매칭이 성사된 상대와만 1:1 대화를 할 수 있습니다.
+   * (이미 대화가 시작된 방은 그대로 이어집니다.) */
+  function canChatWith(idx, meKey, otherKey) {
+    if (!meKey || !otherKey || meKey === otherKey) return false;
+    if (friendState(idx, meKey, otherKey).state === 'friends') return true;
+    if (matchBetween(idx, meKey, otherKey).accepted) return true;
+    return (idx.byType['매칭채팅'] || []).some(function (m) {
+      return (m.userKey === meKey && m.target === otherKey) ||
+        (m.userKey === otherKey && m.target === meKey);
+    });
+  }
+
+  /* 대화 목록: 메시지가 있는 방 + 친구 + 매칭 성사 상대(첫 대화 전 포함) */
+  function chatReadMap(idx, meKey) {
+    var map = {};
+    (idx.byType['채팅읽음'] || []).forEach(function (r) {
+      if (r.userKey !== meKey) return;
+      var key = r.team || r.target;
+      if (!key) return;
+      if (!map[key] || (r.createdAt || '') > map[key]) map[key] = r.createdAt || '';
+    });
+    return map;
+  }
+
+  function threadOf(idx, roomId, list, meKey, readAt) {
+    var sorted = U.sortBy(list, function (m) { return m.createdAt || ''; });
+    var last = sorted[sorted.length - 1] || null;
+    var other = '';
+    sorted.forEach(function (m) {
+      var cand = m.userKey === meKey ? m.target : m.userKey;
+      if (cand && cand !== meKey) other = cand;
+    });
+    var since = readAt[roomId] || readAt[other] || '';
+    var unread = sorted.filter(function (m) {
+      return m.userKey !== meKey && (!since || (m.createdAt || '') > since);
+    }).length;
+    return {
+      roomId: roomId, other: other, messages: sorted, last: last,
+      unread: unread, at: (last && last.createdAt) || '', kind: ''
+    };
+  }
+
+  function chatThreads(idx, meKey) {
+    if (!meKey) return [];
+    var readAt = chatReadMap(idx, meKey);
+    var msgs = (idx.byType['매칭채팅'] || []).filter(function (m) {
+      return m.userKey === meKey || m.target === meKey;
+    });
+    var groups = U.groupBy(msgs, function (m) { return m.team || m.id; });
+    var map = {};
+    Object.keys(groups).forEach(function (roomId) {
+      map[roomId] = threadOf(idx, roomId, groups[roomId], meKey, readAt);
+    });
+
+    /* 친구: 친구수락 행 ID가 곧 대화방 ID (양쪽 기기에서 같은 값) */
+    friendsOf(idx, meKey).forEach(function (f) {
+      if (!f.roomId) return;
+      if (!map[f.roomId]) map[f.roomId] = threadOf(idx, f.roomId, [], meKey, readAt);
+      if (!map[f.roomId].other) map[f.roomId].other = f.key;
+      map[f.roomId].kind = 'friend';
+    });
+
+    /* 1:1 매칭 성사: 매칭신청 행 ID가 대화방 ID */
+    (idx.byType['매칭신청'] || []).forEach(function (r) {
+      if (r.status !== '수락') return;
+      var mine = r.userKey === meKey, theirs = r.target === meKey;
+      if (!mine && !theirs) return;
+      var other = mine ? r.target : r.userKey;
+      if (!other) return;
+      if (!map[r.id]) {
+        map[r.id] = threadOf(idx, r.id, [], meKey, readAt);
+        map[r.id].other = other;
+      }
+      if (!map[r.id].kind) map[r.id].kind = 'match';
+      if (!map[r.id].other) map[r.id].other = other;
+    });
+
+    return Object.keys(map).map(function (k) { return map[k]; })
+      .filter(function (t) { return t.other && t.other !== meKey; })
+      .sort(function (a, b) { return (a.at || '') < (b.at || '') ? 1 : -1; });
+  }
+
+  function chatUnread(idx, meKey) {
+    return U.sum(chatThreads(idx, meKey), function (t) { return t.unread || 0; });
+  }
+
+  function threadById(idx, meKey, roomId) {
+    var list = chatThreads(idx, meKey);
+    for (var i = 0; i < list.length; i++) if (String(list[i].roomId) === String(roomId)) return list[i];
+    return null;
+  }
+
   BM.domain = {
     COLS: COLS, COL: COL, VOCAB: VOCAB, GRADES: GRADES, GENDERS: GENDERS, THEMES: THEMES, AVATAR: AVATAR,
     normalizeGrade: normalizeGrade, normalizeGender: normalizeGender,
@@ -640,6 +924,14 @@
     heartLedger: heartLedger, heartStatus: heartStatus,
     ownsTheme: ownsTheme, themeById: themeById, themePrice: themePrice,
     stats: stats, matchScore: matchScore, levelGap: levelGap,
-    chatRooms: chatRooms, matchRequests: matchRequests
+    chatRooms: chatRooms, matchRequests: matchRequests,
+    ADMIN_EMAILS: ADMIN_EMAILS, ADMIN_TARGET: ADMIN_TARGET,
+    isAdminEmail: isAdminEmail, isAdminMe: isAdminMe, isCoach: isCoach,
+    mentorApplications: mentorApplications, mentorPendingCount: mentorPendingCount,
+    FRIEND_TYPES: FRIEND_TYPES,
+    friendState: friendState, friendsOf: friendsOf, incomingFriendRequests: incomingFriendRequests,
+    matchBetween: matchBetween, canChatWith: canChatWith,
+    chatThreads: chatThreads, threadById: threadById, chatUnread: chatUnread,
+    matchProfileOf: matchProfileOf
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

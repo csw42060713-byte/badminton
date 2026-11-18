@@ -70,6 +70,61 @@
     if (document.documentElement.getAttribute('data-theme') !== theme) {
       document.documentElement.setAttribute('data-theme', theme);
     }
+    /* 상단 오른쪽 채팅 아이콘: 안 읽은 메시지 + 친구 요청 배지 */
+    var chatBtn = el('hdrChat');
+    if (chatBtn) {
+      var chatBadge = el('hdrChatBadge');
+      var total = (state.data.unread || 0) + ((state.data.friendRequests || []).length);
+      if (chatBadge) {
+        chatBadge.textContent = total > 9 ? '9+' : String(total);
+        chatBadge.hidden = !total;
+      }
+      chatBtn.classList.toggle('has-unread', !!total);
+    }
+    /* 코치 탭: 관리자에게만 도착한 멘토 신청 배지 */
+    var coachBtn = nav && nav.querySelector('[data-tab="coach"]');
+    if (coachBtn) {
+      var coachBadge = coachBtn.querySelector('.nav__badge');
+      var pendingMentor = (state.data.isAdmin && state.data.mentorPending) || 0;
+      if (coachBadge) {
+        coachBadge.textContent = pendingMentor > 9 ? '9+' : String(pendingMentor);
+        coachBadge.hidden = !pendingMentor;
+      }
+    }
+  }
+
+  /* ---------- 1:1 채팅(DM) 패널 ---------- */
+  function paintDm(state) {
+    var host = el('dm');
+    if (!host) return;
+    var open = !!(state.ui && state.ui.chatOpen && state.ready && !gated);
+    if (!open) {
+      if (!host.hidden) {
+        host.hidden = true;
+        host.innerHTML = '';
+        host.dataset.sig = '';
+      }
+      document.body.classList.remove('no-scroll');
+      return;
+    }
+    var active = document.activeElement;
+    var keep = null;
+    if (active && active.matches && active.matches('[data-dm-input]')) {
+      keep = { value: active.value, pos: active.selectionStart };
+    }
+    host.hidden = false;
+    BM.views.chat.bind(host, ctx);
+    BM.views.chat.render(host, state);
+    host.dataset.sig = state.ui.chatRoom ? 'room:' + state.ui.chatRoom : 'list';
+    if (keep) {
+      var inp = host.querySelector('[data-dm-input]');
+      if (inp) {
+        inp.value = keep.value;
+        inp.focus();
+        try { inp.setSelectionRange(keep.pos, keep.pos); } catch (e) { /* noop */ }
+      }
+    }
+    document.body.classList.add('no-scroll');
   }
 
   /* ---------- 화면 그리기 ---------- */
@@ -99,6 +154,7 @@
   function onChange(state) {
     if (!state.ready || gated) return;
     paintChrome(state);
+    paintDm(state);
     if (painting) return;
     if (state.ui.tab !== currentTab) {
       mountView(state.ui.tab);
@@ -173,6 +229,10 @@
   function setNav(on) {
     var nav = el('tabbar');
     if (nav) nav.hidden = !on;
+    if (!on) {
+      var dm = el('dm');
+      if (dm) { dm.hidden = true; dm.innerHTML = ''; }
+    }
   }
 
   function showGate() {
@@ -247,6 +307,7 @@
       api = BM.api.createSheets({ url: saved.url, token: saved.token });
     } else {
       var ident = session && session.kind !== 'guest' ? {
+        email: session.email || '',
         nick: session.name || '',
         level: (session.profile && session.profile.level) || '',
         discipline: (session.profile && session.profile.discipline) || '',
@@ -277,6 +338,7 @@
     store.actions.init().then(function () {
       if (!store) return;
       paintChrome(store.state);
+      paintDm(store.state);
       var s = BM.auth.session();
       if (BM.auth.needsOnboarding(s, store.state.me)) {
         showOnboarding(s);
@@ -299,6 +361,8 @@
       U.storage.removeItem(BM.api.SESSION_KEY);
     }
     BM.auth.signOut();
+    var dm = el('dm');
+    if (dm) { dm.hidden = true; dm.innerHTML = ''; }
     store = null;
     ctx = null;
     BM.app.ctx = null;
@@ -357,6 +421,15 @@
       store.actions.setTab('my');
     });
 
+    /* 상단 오른쪽 채팅(DM) 아이콘 */
+    var chatBtn = el('hdrChat');
+    if (chatBtn) chatBtn.addEventListener('click', function () {
+      if (!store || gated) return;
+      UI.haptic(6);
+      if (store.state.ui.chatOpen) store.actions.closeChats();
+      else store.actions.openChats();
+    });
+
     window.addEventListener('hashchange', function () {
       if (!store || gated) return;
       var id = (location.hash || '').replace('#/', '');
@@ -373,7 +446,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.2.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.3.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

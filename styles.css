@@ -1712,3 +1712,186 @@ body.is-onboarding .main { padding: calc(var(--safe-t) + 10px) 18px calc(var(--s
   .framepick, .bgpick, .badgeopt, .avataropt, .searchbar { background: rgba(255, 255, 255, 0.04); }
   .toast { background: #16201d; }
 }
+
+/* ============================================================
+ * 상단 1:1 채팅(DM) — 목록 · 대화방 · 친구 요청
+ * ============================================================ */
+.hdr__chat { position: relative; }
+.hdr__chat svg { width: 19px; height: 19px; }
+.hdr__chat.has-unread {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.hdr__chatbadge {
+  position: absolute;
+  top: -6px; right: -6px;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.dm {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  max-width: 460px;
+  margin: 0 auto;
+  background: var(--bg);
+}
+.dm[hidden] { display: none; }
+.dm__panel { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+
+.dmhead {
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(var(--safe-t) + 10px) 14px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  flex: none;
+}
+.dmhead__title { flex: 1; min-width: 0; }
+.dmhead__title strong { font-size: 17px; font-weight: 900; letter-spacing: -0.4px; }
+.dmhead__title span { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
+.dmhead--room .iconbtn .ico { transform: rotate(180deg); }
+.dmhead__who {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
+  background: none; border: 0; padding: 0;
+  color: var(--text); text-align: left;
+}
+.dmhead__who strong { display: block; font-size: 14.5px; letter-spacing: -0.2px; }
+.dmhead__who span { font-size: 11px; color: var(--muted); }
+
+.dm__scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 14px calc(14px + var(--safe-b));
+}
+.dm__scroll--chat { display: flex; flex-direction: column; padding-bottom: 8px; }
+
+.dmsec { margin-bottom: 18px; }
+.dmsec__t {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 2px 8px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.7px;
+  color: var(--muted); text-transform: uppercase;
+}
+.dmreqs, .dmrooms { display: grid; gap: 4px; }
+
+.dmreq {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.dmreq__mid { flex: 1; min-width: 0; }
+.dmreq__mid strong { font-size: 13.5px; }
+.dmreq__mid p { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.dmreq__act { display: flex; gap: 6px; flex: none; }
+
+.dmroom {
+  display: flex; align-items: center; gap: 11px;
+  padding: 10px 8px;
+  border-radius: 16px;
+  cursor: pointer;
+}
+.dmroom:active { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.dmroom__mid { flex: 1; min-width: 0; }
+.dmroom__top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.dmroom__top strong { font-size: 14px; letter-spacing: -0.2px; }
+.dmroom__mid p {
+  margin-top: 2px;
+  font-size: 12.5px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dmroom__mid p.is-unread { color: var(--text); font-weight: 700; }
+.dmroom__right { display: grid; gap: 4px; justify-items: end; flex: none; }
+.dmroom__right time { font-size: 10.5px; color: var(--muted); }
+
+.dm__msgs { display: flex; flex-direction: column; gap: 10px; }
+.dmsg { display: flex; align-items: flex-end; gap: 7px; max-width: 86%; align-self: flex-start; }
+.dmsg--me { align-self: flex-end; flex-direction: row-reverse; }
+.dmsg__av { flex: none; }
+.dmsg__col { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; min-width: 0; }
+.dmsg--me .dmsg__col { align-items: flex-end; }
+.dbubble {
+  padding: 10px 13px;
+  border-radius: 16px 16px 16px 5px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.dmsg--me .dbubble {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 90%, #fff), var(--accent));
+  color: var(--accent-ink);
+  border-color: transparent;
+  border-radius: 16px 16px 5px 16px;
+  font-weight: 600;
+}
+.dmsg__col time { font-size: 10px; color: var(--muted); }
+
+.dm__start {
+  margin: auto;
+  padding: 40px 0;
+  display: grid; justify-items: center; gap: 6px;
+  text-align: center;
+}
+.dm__start-t { font-weight: 800; margin-top: 8px; }
+.dm__start-s { font-size: 12.5px; color: var(--muted); }
+
+.dm__composer {
+  display: flex; gap: 8px; align-items: center;
+  padding: 10px 14px calc(10px + var(--safe-b));
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+  flex: none;
+}
+.dm__composer input { flex: 1; min-height: 46px; border-radius: 15px; padding: 0 14px; }
+.dm__locked {
+  flex: none;
+  padding: 14px 14px calc(16px + var(--safe-b));
+  border-top: 1px solid var(--line);
+  font-size: 12px; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+
+/* 친구 상태 · 친구 버튼 */
+.pill--friend {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: color-mix(in srgb, var(--good) 16%, transparent);
+  color: var(--good);
+}
+.pill--friend .ico { width: 11px; height: 11px; }
+.pp__social {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-top: 16px; padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.pp__friendnote, .pp__friendhint {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--muted);
+}
+.pp__friendnote { color: var(--accent-2); }
+.post__author {
+  display: flex; align-items: center; gap: 10px;
+  background: none; border: 0; padding: 0;
+  color: inherit; text-align: left;
+}
+.post__author:active { opacity: 0.7; }
+
+/* 멘토 신청·심사 */
+.card--banner {
+  border-color: var(--accent-line);
+  background: linear-gradient(180deg, var(--accent-soft), transparent);
+}
+.banner__t { font-size: 13.5px; font-weight: 800; }
+.banner__s { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.approw__top { display: flex; align-items: center; gap: 10px; }
+.approw__who { min-width: 0; }
+.approw--mentor { display: grid; gap: 8px; }
+.approw__act { margin-top: 4px; }
+.approw__done { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+.card--mentor .card__head { gap: 8px; }

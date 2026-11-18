@@ -1,15 +1,32 @@
 /* ============================================================
- * views/coach.js — 코치 (선수 피드백 + 멘토 신청 심사)
+ * views/coach.js — 코치 (선수 피드백 + 멘토 신청/심사)
+ *
+ *  · 일반 사용자: '멘토 신청' 탭에서 조건(경력·수상·지원 사유)을 적어 신청하고,
+ *    화면에는 "관리자에게 전달되었습니다 (심사중)" 상태만 보입니다.
+ *    (남의 신청을 승인/거절하는 버튼은 아예 그리지 않습니다.)
+ *  · 관리자(ADMIN_EMAILS): 코치 탭 상단에 "도착한 멘토 신청 N건"이 뜨고,
+ *    신청자의 닉네임·급수·주력·성별·지역/클럽·경력·수상·사유·신청일시를 보고
+ *    '조건 확인 후 수락' 또는 '거절'을 할 수 있습니다.
  * ============================================================ */
 (function (root) {
   'use strict';
   var BM = root.BM = root.BM || {};
-  var U = BM.util;
+  var U = BM.util, D = BM.domain;
   var UI = BM.ui;
   BM.views = BM.views || {};
 
   var rating = 4;
   var picked = [];
+
+  function isAdmin(state) {
+    return !!(state.data && state.data.isAdmin) || D.isAdminMe(state.me);
+  }
+
+  /* 화면이 항상 최신 신청 목록을 보도록 idx에서 직접 계산합니다.
+   * (관리자는 전부, 일반 사용자는 내 신청만) */
+  function mentorAppsOf(state) {
+    return D.mentorApplications(state.data.idx, state.me && state.me.key, isAdmin(state));
+  }
 
   function playersWithLogs(state) {
     var me = (state.me && state.me.key) || '';
@@ -31,7 +48,7 @@
     }).sort(function (a, b) { return a.last < b.last ? 1 : -1; });   /* 최근 기록이 있는 선수부터 */
   }
 
-  function playerBlock(p, state) {
+  function playerBlock(p, state, canCoach) {
     var sum = BM.ai.summarize(p.records, p.level);
     var last = p.records[0] || {};
     var openRec = state.ui.coachPlayer === p.key;
@@ -54,49 +71,169 @@
         }).join('') + '</ul>' +
         '<div class="coachbox" data-coachbox="' + U.esc(p.key) + '">' +
         '<h4 class="sec-title">피드백 보내기</h4>' +
-        '<div class="stars" data-stars>' + [1, 2, 3, 4, 5].map(function (n) {
-          return '<button type="button" class="star' + (n <= rating ? ' is-on' : '') + '" data-star="' + n + '">★</button>';
-        }).join('') + '</div>' +
-        '<div class="chips" data-drills>' + ['드라이브', '풋워크', '헤어핀', '스매시', '기초 체력'].map(function (d) {
-          return '<button type="button" class="chip chip--sm" data-drill="' + U.esc(d) + '">' + U.esc(d) + '</button>';
-        }).join('') + '</div>' +
-        '<textarea rows="3" data-fb-text placeholder="예: 드라이브 타점이 뒤로 밀려요. 몸 앞에서 잡는 연습 3세트 해보세요." maxlength="300"></textarea>' +
-        '<button class="btn btn--primary btn--big" data-act="send-fb" data-player="' + U.esc(p.key) + '">' + UI.icon('send') + '피드백 보내기</button>' +
+        (canCoach ?
+          '<div class="stars" data-stars>' + [1, 2, 3, 4, 5].map(function (n) {
+            return '<button type="button" class="star' + (n <= rating ? ' is-on' : '') + '" data-star="' + n + '">★</button>';
+          }).join('') + '</div>' +
+          '<div class="chips" data-drills>' + ['드라이브', '풋워크', '헤어핀', '스매시', '기초 체력'].map(function (d) {
+            return '<button type="button" class="chip chip--sm" data-drill="' + U.esc(d) + '">' + U.esc(d) + '</button>';
+          }).join('') + '</div>' +
+          '<textarea rows="3" data-fb-text placeholder="예: 드라이브 타점이 뒤로 밀려요. 몸 앞에서 잡는 연습 3세트 해보세요." maxlength="300"></textarea>' +
+          '<button class="btn btn--primary btn--big" data-act="send-fb" data-player="' + U.esc(p.key) + '">' + UI.icon('send') + '피드백 보내기</button>'
+          : '<p class="approw__done">멘토 승인을 받은 코치만 피드백을 보낼 수 있어요.</p>') +
         '</div></div>' : '') +
       '</article>';
   }
 
-  function approveBlock(state) {
-    var apps = state.data.coachApps || [];
+  /* ---------- 멘토 신청 (일반 사용자) ---------- */
+  function statusPill(status) {
+    var cls = status === '승인' ? 'ok' : status === '거절' ? 'no' : 'wait';
+    return '<span class="pill pill--' + cls + '">' + U.esc(status) + '</span>';
+  }
+
+  function myApplicationBlock(state) {
+    var apps = mentorAppsOf(state);
+    var mine = apps[0] || null;
+    var pending = mine && mine.status === '심사중';
+    var approved = mine && mine.status === '승인';
+
+    var statusCard = mine ? '<section class="card card--mentor">' +
+      '<header class="card__head"><h2>' + UI.icon('coach') + '내 멘토 신청</h2>' + statusPill(mine.status) + '</header>' +
+      (pending
+        ? '<div class="pp__note">' + UI.icon('clock') + '<span><b>관리자에게 멘토 신청이 전달되었습니다.</b><br>조건을 확인한 뒤 수락 여부를 알려 줍니다 (심사중).</span></div>'
+        : approved
+          ? '<div class="pp__note pp__note--ok">' + UI.icon('check') + '멘토로 승인되었습니다. 선수 피드백을 남길 수 있어요.</div>'
+          : '<div class="pp__note">' + UI.icon('alert') + '이번 신청은 거절되었습니다. 조건을 보완해 다시 신청할 수 있어요.</div>') +
+      '<dl class="kv kv--tight">' +
+      '<dt>신청일</dt><dd>' + U.esc(mine.submitted ? U.dayLabel(String(mine.submitted).slice(0, 10)) : '—') + '</dd>' +
+      '<dt>경력</dt><dd>' + U.esc(mine.experience || '—') + '</dd>' +
+      '<dt>수상</dt><dd>' + U.esc(mine.awards || '—') + '</dd>' +
+      '<dt>지원 사유</dt><dd>' + U.esc(mine.reason || '—') + '</dd>' +
+      '</dl></section>' : '';
+
+    var form = (!mine || mine.status === '거절') ? '<section class="card">' +
+      '<header class="card__head"><h2>멘토 신청</h2><span class="muted sm">관리자 심사</span></header>' +
+      '<p class="sectionnote">코치·멘토로 활동하려면 아래 조건을 적어 신청해 주세요. <b>관리자에게만 전달</b>되고, 다른 회원에게는 보이지 않습니다.</p>' +
+      '<div class="form">' +
+      '<label class="flabel">활동 유형' +
+      '<div class="chips" data-mentor-type>' +
+      ['선수 멘토', '코치', '클럽 운영'].map(function (t, i) {
+        return '<button type="button" class="chip' + (i === 0 ? ' is-on' : '') + '" data-mtype="' + U.esc(t) + '">' + U.esc(t) + '</button>';
+      }).join('') + '</div></label>' +
+      '<label class="flabel">경력<input type="text" data-mentor-field="experience" maxlength="40" placeholder="예: 5년, A조 리그 3회 출전" value=""></label>' +
+      '<label class="flabel">수상·자격<input type="text" data-mentor-field="awards" maxlength="60" placeholder="예: 시·군 대회 복식 3위, 생활체육지도자 2급" value=""></label>' +
+      '<label class="flabel">지원 사유<textarea rows="3" data-mentor-field="reason" maxlength="300" placeholder="어떤 도움을 줄 수 있는지 적어 주세요"></textarea></label>' +
+      '<label class="flabel">증빙 (선택)<input type="text" data-mentor-field="proof" maxlength="60" placeholder="자격증 번호·링크 등" value=""></label>' +
+      '</div>' +
+      '<button class="btn btn--primary btn--big mt16" data-act="apply-mentor">' + UI.icon('send') + '멘토 신청 보내기</button>' +
+      '<p class="hint">보내면 관리자 계정으로 전달되고, 수락 여부는 여기에서 확인할 수 있어요.</p>' +
+      '</section>' : '';
+
+    return statusCard + form;
+  }
+
+  /* ---------- 멘토 심사 (관리자) ---------- */
+  function applicantAvatar(state, a) {
+    return UI.avatar(UI.person(state, a.userKey), 46);
+  }
+
+  function mentorCard(a, state) {
+    var cls = a.status === '승인' ? 'is-ok' : a.status === '거절' ? 'is-no' : 'is-wait';
+    var pending = a.status === '심사중';
+    return '<li class="approw approw--mentor ' + cls + '" data-mentor="' + U.esc(a.id) + '">' +
+      '<div class="approw__top">' + applicantAvatar(state, a) +
+      '<div class="approw__who"><strong>' + U.esc(a.nick || '신청자') + '</strong>' +
+      '<div class="pp__pills">' + statusPill(a.status) +
+      (a.level ? '<span class="pill pill--grade">' + U.esc(a.level) + '</span>' : '') +
+      (a.discipline ? '<span class="pill pill--ghost">' + U.esc(a.discipline) + '</span>' : '') +
+      (a.gender && a.gender !== '비공개' ? '<span class="pill pill--gender">' + U.esc(a.gender) + '</span>' : '') +
+      '</div></div></div>' +
+      '<dl class="kv kv--tight">' +
+      '<dt>지역·클럽</dt><dd>' + U.esc([a.region, a.club].filter(Boolean).join(' · ') || '—') + '</dd>' +
+      '<dt>경력</dt><dd>' + U.esc(a.experience || '—') + '</dd>' +
+      '<dt>수상·자격</dt><dd>' + U.esc(a.awards || '—') + '</dd>' +
+      '<dt>지원 사유</dt><dd>' + U.esc(a.reason || '—') + '</dd>' +
+      '<dt>신청일시</dt><dd>' + U.esc(a.submitted || a.createdAt || '—') + '</dd>' +
+      '</dl>' +
+      '<div class="approw__act">' +
+      '<button class="linkbtn" data-mentor-open="' + U.esc(a.id) + '">조건 자세히 보기</button>' +
+      (pending
+        ? '<div class="row gap8 mt8">' +
+          '<button class="btn btn--ghost grow" data-mentor-reject="' + U.esc(a.id) + '">거절</button>' +
+          '<button class="btn btn--primary grow" data-mentor-accept="' + U.esc(a.id) + '">조건 확인 후 수락</button></div>'
+        : '<p class="approw__done">' + U.esc(a.payload && a.payload.decidedBy ? a.payload.decidedBy + ' 님이 처리' : '처리 완료') +
+          (a.payload && a.payload.decided ? ' · ' + U.esc(a.payload.decided) : '') + '</p>') +
+      '</div></li>';
+  }
+
+  function mentorAdminBlock(state) {
+    var apps = mentorAppsOf(state);
     var pending = apps.filter(function (a) { return a.status === '심사중'; });
     var done = apps.filter(function (a) { return a.status !== '심사중'; });
-    return '<section class="card"><header class="card__head"><h2>멘토 신청 심사</h2>' +
+    return '<section class="card">' +
+      '<header class="card__head"><h2>멘토 신청 심사</h2>' +
       '<span class="badge">' + pending.length + ' 대기</span></header>' +
-      (apps.length ? '' : UI.emptyState('coach', '신청이 없어요', '멘토 신청이 들어오면 여기에서 승인/거절할 수 있어요.')) +
-      '<ul class="applist">' + apps.map(function (a) {
-        var pl = a.payload || {};
-        var cls = a.status === '승인' ? 'is-ok' : a.status === '거절' ? 'is-no' : 'is-wait';
-        return '<li class="approw ' + cls + '">' +
-          '<div class="approw__top"><strong>' + U.esc(a.nick || '신청자') + '</strong>' +
-          '<span class="pill pill--' + (a.status === '승인' ? 'ok' : a.status === '거절' ? 'no' : 'wait') + '">' + U.esc(a.status) + '</span></div>' +
-          '<dl class="kv kv--tight">' +
-          '<dt>유형</dt><dd>' + U.esc(pl.type || '—') + '</dd>' +
-          '<dt>경력</dt><dd>' + U.esc(pl.experience || '—') + '</dd>' +
-          '<dt>증빙</dt><dd>' + U.esc(pl.proof || '—') + '</dd>' +
-          '<dt>소개</dt><dd>' + U.esc(pl.intro || '—') + '</dd>' +
-          '<dt>신청일</dt><dd>' + U.esc(pl.submitted || a.createdAt || '') + '</dd>' +
-          '</dl>' +
-          (a.status === '심사중' ? '<div class="row gap8 mt8">' +
-            '<button class="btn btn--ghost grow" data-decide="' + U.esc(a.id) + '" data-status="거절">거절</button>' +
-            '<button class="btn btn--primary grow" data-decide="' + U.esc(a.id) + '" data-status="승인">승인</button></div>' : '') +
-          '</li>';
-      }).join('') + '</ul></section>';
+      '<p class="sectionnote">신청자의 조건을 확인하고 <b>수락</b> 또는 <b>거절</b>을 정해 주세요. 심사는 관리자 계정에서만 보입니다.</p>' +
+      (apps.length
+        ? '<ul class="applist">' + pending.concat(done).map(function (a) { return mentorCard(a, state); }).join('') + '</ul>'
+        : UI.emptyState('coach', '도착한 멘토 신청이 없어요', '회원이 멘토를 신청하면 여기로 옵니다.')) +
+      '</section>';
+  }
+
+  /* 관리자 상단 배너 */
+  function mentorBanner(state) {
+    if (!isAdmin(state)) return '';
+    var pending = mentorAppsOf(state).filter(function (a) { return a.status === '심사중'; });
+    if (!pending.length) return '';
+    return '<section class="card card--banner" data-act="open-mentor">' +
+      '<div class="row between">' +
+      '<div><p class="banner__t">도착한 멘토 신청 <b>' + pending.length + '건</b></p>' +
+      '<p class="banner__s">조건을 보고 수락 여부를 정해 주세요.</p></div>' +
+      '<button class="btn btn--primary btn--sm" data-act="open-mentor">심사하기</button>' +
+      '</div></section>';
+  }
+
+  function openMentorSheet(appId, ctx) {
+    var state = ctx.store.state;
+    var a = mentorAppsOf(state).filter(function (x) { return String(x.id) === String(appId); })[0];
+    if (!a) return;
+    UI.openSheet({
+      title: '멘토 신청 조건',
+      body: '<div class="pp">' +
+        '<div class="pp__head">' + applicantAvatar(state, a) +
+        '<div class="pp__id"><div class="pp__name">' + U.esc(a.nick) + '</div>' +
+        '<div class="pp__pills">' + statusPill(a.status) +
+        (a.level ? '<span class="pill pill--grade">' + U.esc(a.level) + '</span>' : '') +
+        (a.discipline ? '<span class="pill pill--ghost">' + U.esc(a.discipline) + '</span>' : '') +
+        '</div></div></div>' +
+        '<dl class="kv kv--tight">' +
+        '<dt>성별</dt><dd>' + U.esc(a.gender || '비공개') + '</dd>' +
+        '<dt>지역</dt><dd>' + U.esc(a.region || '—') + '</dd>' +
+        '<dt>클럽</dt><dd>' + U.esc(a.club || '—') + '</dd>' +
+        '<dt>경력</dt><dd>' + U.esc(a.experience || '—') + '</dd>' +
+        '<dt>수상·자격</dt><dd>' + U.esc(a.awards || '—') + '</dd>' +
+        '<dt>지원 사유</dt><dd>' + U.esc(a.reason || '—') + '</dd>' +
+        '<dt>증빙</dt><dd>' + U.esc(a.proof || '—') + '</dd>' +
+        '<dt>신청일시</dt><dd>' + U.esc(a.submitted || a.createdAt || '—') + '</dd>' +
+        '</dl>' +
+        (a.bio ? '<p class="pp__bio">' + U.esc(a.bio) + '</p>' : '') +
+        (a.status === '심사중'
+          ? '<div class="row gap8 mt16">' +
+            '<button class="btn btn--ghost grow" data-mentor-reject="' + U.esc(a.id) + '">거절</button>' +
+            '<button class="btn btn--primary grow" data-mentor-accept="' + U.esc(a.id) + '">조건 확인 후 수락</button></div>'
+          : '<p class="approw__done">' + U.esc(a.status) + ' 처리됨</p>') +
+        '</div>'
+    });
   }
 
   var view = {
     title: '코치',
     render: function (state) {
-      var tab = state.ui.coachTab || 'feedback';
+      var admin = isAdmin(state);
+      var canCoach = admin || D.isCoach(state.data.idx, state.me && state.me.key);
+      var tab = state.ui.coachTab || (canCoach ? 'feedback' : 'apply');
+      if (!admin && tab === 'approve') tab = 'apply';
+      if (admin && tab === 'apply') tab = 'approve';
       var players = playersWithLogs(state);
       var myFeedback = (state.data.feedback || []).filter(function (f) {
         return state.me && f.target === state.me.key;
@@ -104,10 +241,16 @@
       var sent = (state.data.feedback || []).filter(function (f) {
         return state.me && f.userKey === state.me.key;
       });
+      var pendingCount = mentorAppsOf(state).filter(function (a) { return a.status === '심사중'; }).length;
+
       return '' +
+        mentorBanner(state) +
         '<div class="seg seg--wide" data-coachtabs>' +
         '<button class="seg__btn' + (tab === 'feedback' ? ' is-on' : '') + '" data-coachtab="feedback">선수 피드백</button>' +
-        '<button class="seg__btn' + (tab === 'approve' ? ' is-on' : '') + '" data-coachtab="approve">멘토 심사</button>' +
+        (admin
+          ? '<button class="seg__btn' + (tab === 'approve' ? ' is-on' : '') + '" data-coachtab="approve">멘토 심사' +
+            (pendingCount ? ' <i class="badge">' + pendingCount + '</i>' : '') + '</button>'
+          : '<button class="seg__btn' + (tab === 'apply' ? ' is-on' : '') + '" data-coachtab="apply">멘토 신청</button>') +
         '</div>' +
 
         (tab === 'feedback' ?
@@ -120,20 +263,98 @@
                 '<div class="tags">' + (pl.drills || []).map(function (d) { return '<span class="tag">' + U.esc(d) + '</span>'; }).join('') + '</div></div>';
             }).join('') + '</section>' : '') +
           '<p class="sectionnote">코치는 선수 기록을 보고 한 줄 피드백과 추천 드릴을 남길 수 있어요. 내 기록은 <b>일지 & AI</b>에서 확인합니다.</p>' +
-          (players.length ? players.map(function (p) { return playerBlock(p, state); }).join('')
+          (players.length ? players.map(function (p) { return playerBlock(p, state, canCoach); }).join('')
             : '<section class="card">' + UI.emptyState('coach', '선수 기록이 아직 없어요', '다른 회원이 일지를 저장하면 여기에 나타납니다.') + '</section>') +
           (sent.length ? '<section class="card"><header class="card__head"><h2>내가 보낸 피드백</h2><span class="muted sm">' + sent.length + '건</span></header>' +
             '<ul class="bullets">' + sent.slice(0, 5).map(function (f) {
               var pl = f.payload || {};
               return '<li><b>' + U.esc(f.nick ? '보낸 피드백' : '피드백') + '</b> · ' + U.esc(U.truncate(pl.feedback || '', 40)) + '</li>';
             }).join('') + '</ul></section>' : '')
-          : approveBlock(state));
+          : (admin ? mentorAdminBlock(state) : myApplicationBlock(state)));
     },
 
     mount: function (root, ctx) {
       root.addEventListener('click', function (ev) {
         var t = ev.target.closest('[data-coachtab]');
         if (t) { ev.preventDefault(); ctx.actions.setCoachTab(t.getAttribute('data-coachtab')); return; }
+
+        if (ev.target.closest('[data-act="open-mentor"]')) {
+          ev.preventDefault();
+          ctx.actions.setCoachTab('approve');
+          UI.haptic(6);
+          return;
+        }
+
+        var mtype = ev.target.closest('[data-mtype]');
+        if (mtype) {
+          ev.preventDefault();
+          UI.$$('[data-mtype]', root).forEach(function (b) { b.classList.remove('is-on'); });
+          mtype.classList.add('is-on');
+          return;
+        }
+
+        var apply = ev.target.closest('[data-act="apply-mentor"]');
+        if (apply) {
+          ev.preventDefault();
+          if (apply.dataset.busy === '1') return;
+          apply.dataset.busy = '1';
+          var val = function (name) {
+            var el = root.querySelector('[data-mentor-field="' + name + '"]');
+            return el ? el.value : '';
+          };
+          var typeBtn = root.querySelector('[data-mtype].is-on');
+          var res = ctx.actions.requestMentor({
+            type: typeBtn ? typeBtn.getAttribute('data-mtype') : '선수 멘토',
+            experience: val('experience'), awards: val('awards'),
+            reason: val('reason'), proof: val('proof')
+          });
+          setTimeout(function () { apply.dataset.busy = '0'; }, 800);
+          if (res.ok) { UI.toast('관리자에게 멘토 신청을 보냈어요 (심사중)'); UI.haptic(12); }
+          else if (res.reason === 'empty') UI.toast('지원 사유를 적어 주세요');
+          else if (res.reason === 'pending') UI.toast('이미 심사중인 신청이 있어요');
+          else if (res.reason === 'locked') UI.toast('잠시만요, 보내는 중이에요');
+          else UI.toast('신청을 보내지 못했어요', 'error');
+          return;
+        }
+
+        var mopen = ev.target.closest('[data-mentor-open]');
+        if (mopen) {
+          ev.preventDefault();
+          openMentorSheet(mopen.getAttribute('data-mentor-open'), ctx);
+          return;
+        }
+
+        var maccept = ev.target.closest('[data-mentor-accept]');
+        if (maccept) {
+          ev.preventDefault();
+          var id = maccept.getAttribute('data-mentor-accept');
+          UI.confirm('이 신청의 조건을 확인했고, 멘토로 수락할까요?', '수락').then(function (ok) {
+            if (!ok) return;
+            var r = ctx.actions.decideMentor(id, '승인');
+            UI.closeSheet();
+            if (r.ok) { UI.toast('멘토 신청을 수락했어요.'); UI.haptic(12); }
+            else if (r.reason === 'forbidden') UI.toast('관리자 계정에서만 심사할 수 있어요', 'error');
+            else if (r.reason === 'done') UI.toast('이미 처리된 신청이에요');
+            else UI.toast('처리하지 못했어요', 'error');
+          });
+          return;
+        }
+
+        var mreject = ev.target.closest('[data-mentor-reject]');
+        if (mreject) {
+          ev.preventDefault();
+          var rid = mreject.getAttribute('data-mentor-reject');
+          UI.confirm('이 멘토 신청을 거절할까요?', '거절').then(function (ok) {
+            if (!ok) return;
+            var r = ctx.actions.decideMentor(rid, '거절');
+            UI.closeSheet();
+            if (r.ok) { UI.toast('멘토 신청을 거절했어요.'); UI.haptic(10); }
+            else if (r.reason === 'forbidden') UI.toast('관리자 계정에서만 심사할 수 있어요', 'error');
+            else if (r.reason === 'done') UI.toast('이미 처리된 신청이에요');
+            else UI.toast('처리하지 못했어요', 'error');
+          });
+          return;
+        }
 
         var pickBtn = ev.target.closest('[data-pick]');
         if (pickBtn) {
@@ -173,14 +394,16 @@
             UI.toast('피드백을 보냈어요.');
             UI.haptic(12);
           } else if (res.reason === 'empty') UI.toast('피드백 내용을 적어 주세요');
+          else if (res.reason === 'forbidden') UI.toast('코치·관리자만 피드백을 보낼 수 있어요', 'error');
           else if (res.reason === 'locked') UI.toast('잠시만요');
           return;
         }
         var dec = ev.target.closest('[data-decide]');
         if (dec) {
           ev.preventDefault();
-          ctx.actions.decideCoachApp(dec.getAttribute('data-decide'), dec.getAttribute('data-status'));
-          UI.toast('멘토 신청을 ' + dec.getAttribute('data-status') + ' 처리했어요.');
+          var d = ctx.actions.decideCoachApp(dec.getAttribute('data-decide'), dec.getAttribute('data-status'));
+          if (d.ok) UI.toast('멘토 신청을 ' + dec.getAttribute('data-status') + ' 처리했어요.');
+          else if (d.reason === 'forbidden') UI.toast('관리자 계정에서만 심사할 수 있어요', 'error');
           UI.haptic(10);
           return;
         }

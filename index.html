@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=20261118">
+<link rel="stylesheet" href="styles.css?v=20261118-3">
 <link rel="preconnect" href="https://accounts.google.com">
 </head>
 <body>
@@ -32,6 +32,10 @@
   </div>
   <div class="hdr__right">
     <span id="syncDot" class="syncdot" title="동기화됨"></span>
+    <button id="hdrChat" class="iconbtn hdr__chat" aria-label="1:1 채팅, 안 읽은 메시지">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 3v-5.6A7.5 7.5 0 0 1 11 4h2.5A7.5 7.5 0 0 1 21 11.5z"/><path d="M9 11h6M9 14h3"/></svg>
+      <i id="hdrChatBadge" class="badge hdr__chatbadge" hidden>0</i>
+    </button>
     <button id="hdrHearts" class="heartchip" aria-label="하트 잔액, MY로 이동"></button>
   </div>
 </header>
@@ -43,6 +47,9 @@
     <div class="sk sk--card"></div>
   </div>
 </main>
+
+<!-- 상단 오른쪽 채팅(DM) 패널 -->
+<div id="dm" class="dm" hidden></div>
 
 <nav id="tabbar" class="tabbar" aria-label="주요 메뉴">
   <button class="tab" data-tab="log" aria-current="page">
@@ -61,6 +68,7 @@
   <button class="tab" data-tab="coach">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4a4 4 0 0 1 4 4v1h2a2 2 0 0 1 0 4h-1.2A6 6 0 0 1 6 13V7a3 3 0 0 1 3-3h4z"/><path d="M10 17v3"/></svg>
     <span>코치</span>
+    <i class="nav__badge" hidden>0</i>
   </button>
   <button class="tab" data-tab="my">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-4.1 3.4-7 7.5-7s7.5 2.9 7.5 7"/></svg>
@@ -79,6 +87,8 @@
 <script defer src="js/auth.js"></script>
 <script defer src="js/store.js"></script>
 <script defer src="js/ui.js"></script>
+<script defer src="js/views/profile.js"></script>
+<script defer src="js/views/chat.js"></script>
 <script defer src="js/views/log.js"></script>
 <script defer src="js/views/matching.js"></script>
 <script defer src="js/views/community.js"></script>

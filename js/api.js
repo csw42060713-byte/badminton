@@ -60,6 +60,7 @@
       var signed = !!identity;
       return {
         key: meKey,
+        email: (identity && identity.email) || '',
         nick: p.nick || base.nick || (signed ? '회원' : '체험 사용자'),
         level: p.level || base.level || (signed ? '' : '일반회원'),
         discipline: p.discipline || base.discipline || (signed ? '' : '복식'),
@@ -228,7 +229,11 @@
       remove: function (id, clientId) {
         return request({ action: 'remove', token: token, id: id, clientId: clientId });
       },
-      resetDemo: function () { return Promise.resolve({ ok: false }); }
+      resetDemo: function () { return Promise.resolve({ ok: false }); },
+      /* 관리자: 예전 앱이 넣은 샘플 글을 시트에서 실제로 지웁니다 */
+      purgeSamples: function () {
+        return request({ action: 'purge_samples', token: token });
+      }
     };
   }
 

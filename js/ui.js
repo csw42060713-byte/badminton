@@ -194,10 +194,24 @@
     return out;
   }
 
+  /* 화면에 보여 줄 사람 정보 — 매칭 카드가 있으면 그걸, 없으면 프로필 행을 씁니다 */
+  function person(state, key) {
+    var D = BM.domain;
+    var list = (state && state.data && state.data.matchProfiles) || [];
+    var mp = list.filter(function (m) { return m.userKey === key; })[0];
+    if (mp) return mp;
+    var idx = (state && state.data && state.data.idx) || (D ? D.index([]) : { byType: {} });
+    var p = D ? D.profileOf(idx, key) : {};
+    return {
+      nick: p.nick || '회원', level: p.level || '', discipline: p.discipline || '',
+      bio: p.bio || '', theme: p.theme || null
+    };
+  }
+
   BM.ui = {
     $: $, $$: $$, icon: icon, toast: toast, haptic: haptic,
     openSheet: openSheet, closeSheet: closeSheet, confirm: confirmSheet,
     paint: paint, chips: chips, readChips: readChips, toggleChip: toggleChip,
-    avatar: avatar, emptyState: emptyState, stars: stars, hasDom: hasDom
+    avatar: avatar, emptyState: emptyState, stars: stars, person: person, hasDom: hasDom
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
