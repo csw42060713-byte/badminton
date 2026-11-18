@@ -4,7 +4,7 @@
  * 서비스워커가 건드리지 않습니다.
  * 파일을 수정하면 VERSION을 올리면 새로 받습니다.
  * ============================================================ */
-var VERSION = 'bm-v1.1.0';
+var VERSION = 'bm-v1.1.1';
 var SHELL = [
   './',
   './index.html',
@@ -33,7 +33,10 @@ var SHELL = [
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(VERSION).then(function (cache) {
-      return cache.addAll(SHELL).catch(function () { /* 일부 파일이 없어도 설치는 진행 */ });
+      /* 한 파일이 실패해도 나머지는 새 버전으로 채웁니다 */
+      return Promise.all(SHELL.map(function (url) {
+        return cache.add(url).catch(function () {});
+      }));
     }).then(function () { return self.skipWaiting(); })
   );
 });
