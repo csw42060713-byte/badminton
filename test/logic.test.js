@@ -1,0 +1,868 @@
+/* ============================================================
+ * test/logic.test.js — 실제 로직 검증 (시트 호환 · AI · 하트 · 저장 · 화면)
+ * 실행: node test/run.js
+ * ============================================================ */
+(function (root) {
+  'use strict';
+  var BM = root.BM;
+  var U = BM.util, D = BM.domain, AI = BM.ai;
+  var t = BM.test, test = t.test, eq = t.eq, ok = t.ok, includes = t.includes, excludes = t.excludes, near = t.near;
+
+  /* ---------- 도우미 ---------- */
+  function clearStorage() {
+    ['bm_rows_v1', 'bm_queue_v1', 'bm_dedupe_v1', 'bm_cache_v1', 'bm_seen_v1', 'bm_me_v1', 'bm_mode_v1']
+      .forEach(function (k) { U.storage.removeItem(k); });
+  }
+
+  function freshStore(opts) {
+    clearStorage();
+    var api = BM.api.createLocal({ latency: 0 });
+    var store = BM.store.createStore({ api: api });
+    return store.actions.init().then(function () { return store; });
+  }
+
+  function freshStoreWith(extra) {
+    clearStorage();
+    var rows = BM.seed.build();
+    (extra || []).forEach(function (e) { rows.push(D.toRow(e)); });
+    U.writeJSON('bm_rows_v1', rows);
+    var api = BM.api.createLocal({ latency: 0 });
+    var store = BM.store.createStore({ api: api });
+    return store.actions.init().then(function () { return store; });
+  }
+
+  var ME = {
+    key: BM.seed.ME, nick: '나래', level: 'C조', discipline: '복식', bio: '소개',
+    region: '경기', club: '나래울', theme: { theme: 'th_night', avatar: '🦋' }
+  };
+
+  function stateOf(rows, meKey) {
+    rows = rows || BM.seed.build();
+    meKey = meKey || BM.seed.ME;
+    return {
+      ready: true, mode: 'local', me: ME, rows: rows,
+      data: BM.store.derive(rows, meKey),
+      drafts: {
+        log: {
+          date: U.ymd(), cond: 6, intensity: 6, minutes: 60, done: ['스트록', '게임'],
+          score: { a: 21, b: 18 }, result: '승', pain: [], weakness: ['드라이브'], note: ''
+        }
+      },
+      ui: {
+        tab: 'log', matchFilter: { level: '전체', region: '전체', discipline: '전체' },
+        chatRoom: null, coachTab: 'feedback', coachPlayer: null, composer: '', replyTo: null
+      },
+      analysis: null, queue: [], locks: {}, syncState: 'idle', syncError: null, lastSync: '',
+      stats: { writes: 0, blocked: 0, failed: 0 }
+    };
+  }
+
+  function rec(offsetDays, extra) {
+    var e = {
+      date: U.ymd(U.addDays(new Date(), offsetDays)),
+      cond: 6, intensity: 6, minutes: 60, done: ['스트록'], score: { a: 21, b: 18 }, result: '승',
+      pain: [], weakness: [], level: '일반부'
+    };
+    Object.keys(extra || {}).forEach(function (k) { e[k] = extra[k]; });
+    return e;
+  }
+
+  function checkHtml(html, label) {
+    ok(html && html.length > 50, label + ': 화면이 비어 있습니다');
+    excludes(html, 'undefined', label + ': undefined가 출력됨');
+    excludes(html, 'NaN', label + ': NaN이 출력됨');
+    ['div', 'section', 'ul', 'ol', 'li', 'button', 'header', 'footer', 'article', 'form', 'dl', 'p'].forEach(function (tag) {
+      var open = (html.match(new RegExp('<' + tag + '[\\s>]', 'g')) || []).length;
+      var close = (html.match(new RegExp('</' + tag + '>', 'g')) || []).length;
+      eq(open, close, label + ': <' + tag + '> 태그 짝');
+    });
+  }
+
+  /* 실제 시트에 있던 기록 행 (개인정보 제외, 26칸 그대로) */
+  var REAL_ROW = [
+    '179222027616658', '기록', '2026-10-17 15:57:56', '2026-10-17', '우승', '초보용', '복식', '',
+    '5', '6', '54', '스트록,벽치기,코어', '21:13', '패', '목',
+    '{"rehab":["목 주변 근육 긴장 시 20분 온찜질 후 가벼운 움직임","스마트폰·장시간 고개 숙임 자세 줄이기"],"stretch":["어깨 돌리기 10회씩 앞·뒤","햄스트링·종아리 스트레칭 30초×2","고관절 스트레칭 30초×2"],"mental":["좋은 흐름이에요!"]}',
+    '드라이브', '', '', '', '', '', '', '', '', '', '', ''
+  ];
+
+  /* ================= 1. 시트 호환 ================= */
+  test('시트 26칸: 실제 행을 그대로 읽는다', function () {
+    eq(D.COLS.length, 26, '열 개수');
+    var e = D.fromRow(REAL_ROW);
+    eq(e.id, '179222027616658', 'ID');
+    eq(e.type, '기록', '유형');
+    eq(e.nick, '우승', '닉네임');
+    eq(e.cond, 5, '컨디션');
+    eq(e.intensity, 6, '훈련강도');
+    eq(e.minutes, 54, '운동시간');
+    eq(e.done.join(','), '스트록,벽치기,코어', '완료훈련');
+    eq(e.score.a, 21, '내 점수');
+    eq(e.score.b, 13, '상대 점수');
+    eq(e.result, '패', '승패');
+    eq(e.pain.join(','), '목', '아픈부위');
+    eq(e.weakness.join(','), '드라이브', '약점기술');
+    eq(e.prescription.rehab.length, 2, '맞춤처방 파싱');
+  });
+
+  test('시트 26칸: 앱 객체를 다시 행으로 (비밀번호 칸은 비어 있음)', function () {
+    var e = D.fromRow(REAL_ROW);
+    var row = D.toRow(e);
+    eq(row.length, 26, '칸 수');
+    eq(row[0], '179222027616658', 'ID 유지');
+    eq(row[24], '', '비밀번호 칸은 항상 빈칸');
+    eq(row[D.COL['컨디션']], '5', '컨디션');
+    eq(row[D.COL['완료훈련']], '스트록,벽치기,코어', '완료훈련');
+    eq(row[D.COL['게임점수']], '21:13', '게임점수');
+    var again = D.fromRow(row);
+    eq(again.cond, e.cond, '왕복 후 컨디션');
+    eq(again.weakness.join(','), e.weakness.join(','), '왕복 후 약점');
+  });
+
+  test('JSON 유형(매칭프로필·코치신청)은 payload로 분리된다', function () {
+    var row = [];
+    for (var i = 0; i < 26; i++) row.push('');
+    row[0] = '1'; row[1] = '코치신청'; row[4] = '치이';
+    row[18] = '{"type":"동호인 멘토","experience":"경력","proof":"증빙","intro":"소개","status":"심사중"}';
+    var e = D.fromRow(row);
+    eq(e.text, '', 'JSON은 본문 텍스트가 아니다');
+    eq(e.payload.status, '심사중', '상태 파싱');
+    eq(e.status, '심사중', '상태 노출');
+  });
+
+  test('삭제 표시된 행은 목록에서 빠진다', function () {
+    var row = REAL_ROW.slice();
+    row[D.COL['유형']] = '삭제';
+    var idx = D.index([D.fromRow(REAL_ROW), D.fromRow(row)]);
+    eq(idx.all.length, 1, '남은 행');
+    eq((idx.byType['기록'] || []).length, 1, '기록 수');
+  });
+
+  test('점수/결과 계산', function () {
+    eq(D.parseScore('21:13').a, 21);
+    eq(D.parseScore('21:13').b, 13);
+    eq(D.resultFromScore({ a: 21, b: 13 }), '승');
+    eq(D.resultFromScore({ a: 13, b: 21 }), '패');
+    eq(D.resultFromScore({ a: 21, b: 21 }), '무');
+    eq(D.parseScore(''), null);
+    eq(D.splitList('스트록,벽치기,코어').length, 3);
+  });
+
+  /* ================= 2. AI 분석 ================= */
+  test('AI: 추천드릴 3개와 시트 호환 JSON을 만든다', function () {
+    var history = [rec(-3, { weakness: ['드라이브'] }), rec(-2, { pain: ['목'] })];
+    var an = AI.analyze({ draft: { cond: 5, intensity: 6, minutes: 54, pain: ['목'], weakness: ['드라이브'], score: { a: 21, b: 13 }, result: '패' }, records: history, level: '일반부', nick: '나래' });
+    eq(an.drills.drills.length, 3, '드릴 개수');
+    an.drills.drills.forEach(function (d) {
+      ok(d.name && d.method && d.sets && d.point, '드릴 필드: ' + d.name);
+      eq(d.level, '일반부', '레벨');
+    });
+    ok(an.score >= 0 && an.score <= 100, '점수 범위');
+    ok(an.care.rehab.length >= 1 && an.care.stretch.length >= 1 && an.care.mental.length >= 1, '처방 3종');
+    var patch = JSON.parse(an.sheetPatch['추천드릴']);
+    ok(patch.drills.length === 3, '추천드릴 JSON');
+    var care = JSON.parse(an.sheetPatch['맞춤처방']);
+    ok(care.rehab && care.stretch && care.mental, '맞춤처방 JSON');
+    excludes(JSON.stringify(an), 'undefined', '분석 결과에 undefined 없음');
+  });
+
+  test('AI: 아픈 부위에 맞는 처방 (목 → 온찜질)', function () {
+    var an = AI.analyze({ draft: { cond: 6, intensity: 5, minutes: 50, pain: ['목'], weakness: [] }, records: [], level: '초보용', nick: '나' });
+    includes(an.care.rehab.join(' '), '온찜질', '목 처방');
+    includes(an.care.stretch.join(' '), '턱 당기기', '목 스트레칭');
+  });
+
+  test('AI: 반복 통증은 경고로 잡아낸다', function () {
+    var history = [
+      rec(-9, { pain: ['어깨'] }), rec(-5, { pain: ['어깨'] }), rec(-2, { pain: ['어깨'] })
+    ];
+    var an = AI.analyze({ draft: { cond: 6, intensity: 7, minutes: 60, pain: [], weakness: [] }, records: history, level: '일반부', nick: '나' });
+    eq(an.risk[0].level, 'warn', '경고 단계');
+    includes(an.risk[0].text, '어깨', '경고 내용');
+    includes(an.insights.map(function (i) { return i.label; }).join(' '), '반복 통증', '진단에 반복 통증');
+  });
+
+  test('AI: 컨디션이 낮으면 회복 우선으로 말한다', function () {
+    var an = AI.analyze({ draft: { cond: 1, intensity: 9, minutes: 15, pain: ['무릎', '허리'], weakness: ['풋워크'] }, records: [], level: '일반부', nick: '나' });
+    includes(an.headline, '회복', '헤드라인');
+    ok(an.score < 50, '낮은 점수: ' + an.score);
+    includes(an.focus, '회복', '다음 목표');
+  });
+
+  test('AI: 기록이 없어도 동작한다 (기본값)', function () {
+    var an = AI.analyze({ draft: {}, records: [], level: '', nick: '' });
+    eq(an.drills.drills.length, 3, '기본 드릴');
+    ok(an.insights.length >= 0, '진단');
+    excludes(JSON.stringify(an), 'undefined', 'undefined 없음');
+    excludes(JSON.stringify(an), 'null', 'null 없음');
+  });
+
+  test('AI: 같은 입력이면 같은 결과 (결정적)', function () {
+    var input = { draft: { cond: 7, intensity: 6, minutes: 70, pain: [], weakness: ['헤어핀'], score: { a: 21, b: 19 }, result: '승' }, records: [rec(-2, { weakness: ['헤어핀'] })], level: '상급', nick: '나' };
+    eq(JSON.stringify(AI.analyze(input)), JSON.stringify(AI.analyze(input)), '결정성');
+  });
+
+  test('AI: 코치용 요약', function () {
+    var rows = [rec(-1, { weakness: ['클리어'], pain: ['팔꿈치'] }), rec(-4, { weakness: ['클리어'], score: { a: 12, b: 21 }, result: '패' })];
+    var s = AI.summarize(rows, '초보용');
+    eq(s.sessions, 2, '세션 수');
+    eq(s.topWeakness[0], '클리어', '주 약점');
+    includes(s.pain.join(' '), '팔꿈치', '통증');
+    eq(s.winRate, 50, '승률');
+  });
+
+  /* ================= 3. 하트 ================= */
+  test('하트: 적립·사용 계산 (기본 3개 포함)', function () {
+    var rows = BM.seed.build();
+    var idx = D.index(rows.map(D.fromRow));
+    var ledger = D.heartLedger(idx, BM.seed.ME);
+    eq(ledger.base, 3, '기본 하트');
+    eq(ledger.earned, 6, '적립: 출석2 + 광고2 + 선물받음1 + 합치기1');
+    eq(ledger.spent, 3, '사용: 매칭2 + 선물보냄1');
+    eq(ledger.balance, 6, '잔액');
+    var kinds = {};
+    ledger.history.forEach(function (h) { kinds[h.kind] = true; });
+    ['checkin', 'ad', 'gift-in', 'gift-out', 'merge', 'match'].forEach(function (k) {
+      ok(kinds[k], '원장 종류: ' + k);
+    });
+    ledger.history.forEach(function (h) {
+      ok(h.delta !== 0, '금액 0인 내역 없음');
+      ok(h.label && h.at, '라벨/시각');
+    });
+  });
+
+  test('하트: 오늘 현황(출석·광고 한도·대기시간)', function () {
+    var st = D.heartStatus(D.index(BM.seed.build().map(D.fromRow)), BM.seed.ME);
+    eq(st.checkedInToday, false, '오늘 출석 전');
+    eq(st.canCheckIn, true, '출석 가능');
+    eq(st.adUsedToday, 0, '오늘 광고 0');
+    eq(st.adLimit, 5, '하루 5회');
+    eq(st.adRemaining, 5, '남은 5');
+    eq(st.canWatchAd, true, '광고 가능');
+    eq(st.matchCost, 2, '매칭 비용');
+    eq(st.giftCost, 1, '선물 비용');
+    eq(st.balance, 6, '잔액');
+  });
+
+  /* ================= 4. 통계 ================= */
+  test('통계: 승률·연속 기록·운동시간', function () {
+    var rows = [
+      rec(0, { score: { a: 21, b: 19 }, result: '승', minutes: 60 }),
+      rec(-1, { score: { a: 15, b: 21 }, result: '패', minutes: 40 }),
+      rec(-2, { score: { a: 21, b: 10 }, result: '승', minutes: 80 })
+    ].map(function (e) { e.id = U.uid(); e.type = '기록'; e.userKey = BM.seed.ME; return D.toRow(e); });
+    var s = D.stats(D.index(rows.map(D.fromRow)), BM.seed.ME);
+    eq(s.count, 3, '기록 수');
+    eq(s.wins, 2, '승');
+    eq(s.losses, 1, '패');
+    eq(s.winRate, 67, '승률');
+    eq(s.streak, 3, '연속 기록');
+    eq(s.minutesTotal, 180, '총 시간');
+    eq(s.minutesMonth, 180, '이번 달');
+  });
+
+  /* ================= 5. 매칭 ================= */
+  test('매칭: 조건이 맞을수록 점수가 높다', function () {
+    var me = { level: '일반부', region: '경기', discipline: '복식', availability: '주말', experience: '2~5년' };
+    var same = D.matchScore(me, { level: '일반부', region: '경기', discipline: '복식', availability: '주말', experience: '2~5년' });
+    var far = D.matchScore(me, { level: '선수부', region: '부산', discipline: '단식', availability: '평일 낮', experience: '1년 미만' });
+    ok(same.score > far.score, '같은 조건이 더 높아야: ' + same.score + ' vs ' + far.score);
+    ok(same.reasons.length >= 2, '이유 표시');
+  });
+
+  test('급수: 예전 실력 값을 급수로 바꾼다', function () {
+    eq(D.VOCAB.grades.length, 7, '급수 7단계');
+    eq(D.normalizeGrade('일반부'), 'C조', '일반부 → C조');
+    eq(D.normalizeGrade('초보용'), '초심', '초보용 → 초심');
+    eq(D.normalizeGrade('상급'), 'B조', '상급 → B조');
+    eq(D.normalizeGrade('선수부'), '선수부', '선수부 유지');
+    eq(D.normalizeGrade('a조'), 'A조', '소문자 조');
+    eq(D.normalizeGrade('자강부'), '자강', '자강부 → 자강');
+    eq(D.normalizeGrade(''), '', '빈 값');
+    eq(D.fromRow(REAL_ROW).level, '초심', '예전 시트 행 → 급수');
+  });
+
+  test('급수: 예전 매칭 프로필(상급)도 급수로 표시된다', function () {
+    var rows = BM.seed.build().concat([D.toRow({
+      id: U.uid(), type: '매칭프로필', userKey: 'demo_legacy', nick: '옛회원', createdAt: U.stamp(),
+      payload: { region: '경기', level: '상급', discipline: '복식', club: '옛클럽', availability: '주말', experience: '2~5년', bio: '', avatar: '🏸' }
+    })]);
+    var data = BM.store.derive(rows, BM.seed.ME);
+    var p = data.matchProfiles.filter(function (m) { return m.userKey === 'demo_legacy'; })[0];
+    eq(p.level, 'B조', '급수로 변환');
+    var state = stateOf(rows);
+    state.ui.matchFilter.level = 'B조';
+    var html = BM.views.matching.render(state);
+    includes(html, '옛회원', 'B조 필터에 포함');
+  });
+
+  test('급수: 필터가 급수로 동작한다', function () {
+    var state = stateOf();
+    state.ui.matchFilter.level = 'A조';
+    var html = BM.views.matching.render(state);
+    includes(html, '발놀림장인', 'A조 선수 표시');
+    excludes(html, '콕집사', 'B조는 제외');
+    excludes(html, '드라이브요정', 'D조는 제외');
+  });
+
+  test('매칭: 카드에서는 프로필로 들어간다 (바로 신청 없음)', function () {
+    var state = stateOf();
+    var html = BM.views.matching.render(state);
+    includes(html, 'data-open-profile', '프로필 열기');
+    excludes(html, 'data-apply', '바로 신청 버튼 없음');
+    includes(html, '프로필 보고 요청하기', '안내 문구');
+    includes(html, 'eventchip', '주력 종목 칩');
+    includes(html, 'pill--grade', '급수 배지');
+  });
+
+  test('매칭: 프로필에서 종목·급수를 확인하고 요청/닫기', function () {
+    var state = stateOf();
+    var p = state.data.matchProfiles.filter(function (m) { return m.userKey === 'demo_foot'; })[0];
+    var html = BM.views.matching.profileBody(state, p);
+    checkHtml(html, '프로필 시트');
+    includes(html, '주력 종목', '종목 라벨');
+    includes(html, 'eventchip eventchip--lg is-on">복식', '상대 주력 종목 강조');
+    includes(html, '급수', '급수 라벨');
+    includes(html, 'A조', '상대 급수');
+    includes(html, '요청 보내기', '요청 버튼');
+    includes(html, '닫기', '닫기 버튼');
+    includes(html, '궁합', '궁합 점수');
+    includes(html, 'data-send-request="demo_foot"', '요청 대상');
+    excludes(html, 'undefined', 'undefined 없음');
+  });
+
+  test('매칭: 받은 신청은 프로필에서 수락/거절', function () {
+    var state = stateOf();
+    var p = state.data.matchProfiles.filter(function (m) { return m.userKey === 'demo_suttle'; })[0];
+    var html = BM.views.matching.profileBody(state, p);
+    includes(html, 'data-accept', '수락 버튼');
+    includes(html, 'data-decline', '거절 버튼');
+    excludes(html, 'data-send-request', '내가 다시 신청하지 않음');
+  });
+
+  /* ================= 6. 채팅 ================= */
+  test('채팅: 방 단위로 묶고 안 읽은 수를 센다', function () {
+    function chat(id, from, text, at, team) {
+      return { id: id, type: '매칭채팅', userKey: from, target: from === BM.seed.ME ? 'demo_net' : BM.seed.ME, text: text, createdAt: at, team: team };
+    }
+    var rows = [
+      chat('m1', BM.seed.ME, '안녕하세요', '2026-11-10 10:00:00', 'r1'),
+      chat('m2', 'demo_net', '네 반가워요', '2026-11-10 10:05:00', 'r1'),
+      chat('m3', 'demo_net', '토요일 좋아요', '2026-11-11 10:00:00', 'r1')
+    ].map(function (e) { return D.toRow(e); });
+    rows.push(D.toRow({ id: 'rd1', type: '채팅읽음', userKey: BM.seed.ME, target: 'demo_net', team: 'r1', createdAt: '2026-11-10 10:06:00' }));
+    var rooms = D.chatRooms(D.index(rows.map(D.fromRow)), BM.seed.ME);
+    eq(rooms.length, 1, '방 개수');
+    eq(rooms[0].roomId, 'r1', '방 ID');
+    eq(rooms[0].messages.length, 3, '메시지 수');
+    eq(rooms[0].unread, 1, '안 읽은 수');
+    eq(rooms[0].other, 'demo_net', '상대');
+  });
+
+  /* ================= 7. 저장소(API) ================= */
+  test('API: 같은 clientId는 한 번만 저장된다 (연타·재시도 방지)', function () {
+    clearStorage();
+    var api = BM.api.createLocal({ latency: 0 });
+    var row = D.toRow({ id: '700001', type: '소셜', userKey: 'demo_me', nick: '나', date: U.ymd(), text: '중복 테스트' });
+    return api.append(row, 'cid-1').then(function (r1) {
+      eq(r1.duplicate, undefined, '첫 저장');
+      return api.append(row, 'cid-1');
+    }).then(function (r2) {
+      eq(r2.duplicate, true, '두 번째는 중복');
+      return api.bootstrap();
+    }).then(function (res) {
+      var same = res.rows.filter(function (r) { return r[0] === '700001'; });
+      eq(same.length, 1, '행은 1개만');
+    });
+  });
+
+  test('API: 수정과 삭제가 해당 행에만 적용된다', function () {
+    clearStorage();
+    var api = BM.api.createLocal({ latency: 0 });
+    var row = D.toRow({ id: '700002', type: '소셜', userKey: 'demo_me', nick: '나', text: '처음' });
+    return api.append(row, 'a').then(function () {
+      return api.update('700002', { '소셜글': '고침' }, 'b');
+    }).then(function () {
+      return api.bootstrap();
+    }).then(function (res) {
+      var hit = res.rows.filter(function (r) { return r[0] === '700002'; })[0];
+      eq(hit[D.COL['소셜글']], '고침', '수정 반영');
+      return api.remove('700002', 'c');
+    }).then(function () {
+      return api.bootstrap();
+    }).then(function (res) {
+      eq(res.rows.filter(function (r) { return r[0] === '700002'; }).length, 0, '삭제 반영');
+    });
+  });
+
+  test('시트 모드: 요청 형식(preflight 회피)과 토큰 전달', function () {
+    var calls = [];
+    var fakeFetch = function (url, opts) {
+      calls.push({ url: url, body: JSON.parse(opts.body), headers: opts.headers });
+      return Promise.resolve({
+        text: function () {
+          return Promise.resolve(JSON.stringify({ ok: true, token: 'tok-1', me: { key: 'u1', nick: '나' }, rows: [] }));
+        }
+      });
+    };
+    var saved = root.fetch;
+    root.fetch = fakeFetch;
+    var api = BM.api.createSheets({ url: 'https://script.google.com/macros/s/x/exec' });
+    return api.login({ email: 'me@example.com', password: 'pw', create: true }).then(function (res) {
+      eq(res.token, 'tok-1', '로그인 토큰');
+      eq(calls[0].body.action, 'login', 'action=login');
+      eq(calls[0].body.create, true, '가입 허용');
+      includes(calls[0].headers['Content-Type'], 'text/plain', '사전요청 없는 content-type');
+      return api.bootstrap();
+    }).then(function (bs) {
+      eq(calls[1].body.action, 'bootstrap', 'action=bootstrap');
+      eq(calls[1].body.token, 'tok-1', '토큰 전달');
+      eq(bs.rows.length, 0, '행 0개');
+      root.fetch = saved;
+    });
+  });
+
+  test('시트 모드: 서버 오류는 메시지로 돌려준다', function () {
+    var saved = root.fetch;
+    root.fetch = function () {
+      return Promise.resolve({
+        text: function () { return Promise.resolve(JSON.stringify({ ok: false, code: 'bad_password', message: '비밀번호가 맞지 않습니다.' })); }
+      });
+    };
+    var api = BM.api.createSheets({ url: 'https://x/y' });
+    return api.login({ email: 'a@b.c', password: 'nope' }).then(function () {
+      throw new Error('실패해야 합니다');
+    }, function (err) {
+      eq(err.code, 'bad_password', '오류 코드');
+      includes(err.message, '비밀번호', '오류 메시지');
+      root.fetch = saved;
+    });
+  });
+
+  /* ================= 8. 상태/동작 ================= */
+  test('저장: 연타해도 한 번만 기록된다', function () {
+    return freshStore().then(function (store) {
+      var before = store.state.data.records.length;
+      var a = store.actions.saveLog();
+      var b = store.actions.saveLog();
+      eq(a.ok, true, '첫 저장');
+      eq(b.ok, false, '두 번째는 잠김');
+      eq(b.reason, 'locked', '이유');
+      eq(store.state.data.records.length, before + 1, '기록은 1개만 추가');
+      eq(store.state.stats.blocked, 1, '막은 횟수');
+      eq(store.state.queue.length, 1, '전송 대기 1건');
+      return store.flush();
+    }).then(function () {
+      return BM.api.createLocal({ latency: 0 }).bootstrap();
+    }).then(function (res) {
+      /* 저장소에 남은 기록 행이 1개인지 (시드 10 + 1) */
+      var mine = res.rows.filter(function (r) { return r[D.COL['유형']] === '기록' && r[D.COL['사용자ID']] === BM.seed.ME; });
+      eq(mine.length, 11, '실제 저장된 기록 수');
+    });
+  });
+
+  test('저장: AI 분석이 함께 저장되고 화면에 바로 반영된다', function () {
+    return freshStore().then(function (store) {
+      store.actions.setDraft({ pain: ['어깨'], weakness: ['스매시'], cond: 4, intensity: 9, minutes: 100 });
+      var res = store.actions.saveLog();
+      ok(res.ok, '저장');
+      ok(store.state.analysis, '분석 결과');
+      var last = store.state.data.records[0];
+      ok(last.prescription, '처방 저장');
+      ok(last.drills && last.drills.drills.length === 3, '드릴 저장');
+      ok(last.prescription.rehab.length >= 2, '처방 항목');
+      includes(last.prescription.rehab.join(' '), '오버헤드', '어깨 부위 처방');
+    });
+  });
+
+  test('커뮤니티: 좋아요 토글 (낙관적 반영)', function () {
+    return freshStore().then(function (store) {
+      var post = store.state.data.posts.filter(function (p) { return !p.likedByMe; })[0];
+      ok(post, '좋아요 안 한 글 존재');
+      var count = post.likes;
+      var r1 = store.actions.toggleLike(post.id);
+      eq(r1.liked, true, '좋아요');
+      eq(store.state.data.posts.filter(function (p) { return p.id === post.id; })[0].likes, count + 1, '숫자 증가');
+      store.state.locks['like:' + post.id] = 0;   /* 잠금 해제 후 취소 */
+      var r2 = store.actions.toggleLike(post.id);
+      eq(r2.liked, false, '취소');
+      eq(store.state.data.posts.filter(function (p) { return p.id === post.id; })[0].likes, count, '숫자 원복');
+      eq(store.state.queue.length, 2, '대기 2건(추가/삭제)');
+    });
+  });
+
+  test('커뮤니티: 답글과 글쓰기', function () {
+    return freshStore().then(function (store) {
+      var post = store.state.data.posts[0];
+      var before = post.replies.length;
+      var r = store.actions.addReply(post.id, '좋은 정보 감사합니다');
+      ok(r.ok, '답글');
+      eq(store.state.data.posts.filter(function (p) { return p.id === post.id; })[0].replies.length, before + 1, '답글 수');
+      var p = store.actions.createPost('오늘 승리!');
+      ok(p.ok, '글쓰기');
+      eq(store.state.data.posts[0].text, '오늘 승리!', '맨 위에 표시');
+      eq(store.actions.createPost('   ').ok, false, '빈 글은 막는다');
+    });
+  });
+
+  test('매칭: 하트가 부족하면 신청되지 않는다', function () {
+    return freshStore().then(function (store) {
+      eq(store.state.data.hearts.balance, 6, '시작 잔액');
+      var targets = ['demo_chi', 'demo_suttle', 'demo_foot'];
+      targets.forEach(function (t) {
+        store.state.locks = {};
+        ok(store.actions.requestMatch(t, '같이 쳐요').ok, t + ' 신청');
+      });
+      eq(store.state.data.hearts.balance, 0, '전부 사용');
+      store.state.locks = {};
+      var blocked = store.actions.requestMatch('demo_drive', '');
+      eq(blocked.ok, false, '네 번째는 불가');
+      eq(blocked.reason, 'hearts', '이유: 하트 부족');
+      eq(blocked.need, 2, '부족 개수');
+    });
+  });
+
+  test('매칭: 같은 상대에게 중복 신청하지 않는다', function () {
+    return freshStore().then(function (store) {
+      store.actions.requestMatch('demo_chi', '');
+      store.state.locks = {};
+      var again = store.actions.requestMatch('demo_chi', '');
+      eq(again.ok, false, '중복 신청 차단');
+      eq(again.reason, 'already', '이유');
+    });
+  });
+
+  test('매칭: 받은 신청을 수락하면 상태가 바뀐다', function () {
+    return freshStore().then(function (store) {
+      var incoming = store.state.data.requests.filter(function (r) { return r.target === BM.seed.ME; })[0];
+      ok(incoming, '받은 신청 존재');
+      var res = store.actions.respondMatch(incoming.id, '수락');
+      ok(res.ok, '수락 처리');
+      var after = store.state.data.requests.filter(function (r) { return r.id === incoming.id; })[0];
+      eq(after.status, '수락', '상태 반영');
+      eq(store.state.queue.length, 1, '시트 수정 요청');
+    });
+  });
+
+  test('매칭: 수락한 상대는 다시 신청하지 않고 채팅으로 연결된다', function () {
+    return freshStore().then(function (store) {
+      var incoming = store.state.data.requests.filter(function (r) { return r.target === BM.seed.ME && r.status === '대기'; })[0];
+      store.actions.respondMatch(incoming.id, '수락');
+      var html = BM.views.matching.render(store.state);
+      includes(html, 'data-open-chat="' + incoming.id + '"', '수락한 상대의 채팅 버튼');
+      excludes(html, 'data-send-request="' + incoming.userKey + '"', '같은 상대에게 다시 요청 버튼 없음');
+    });
+  });
+
+  test('채팅: 보낸 메시지가 즉시 목록에 붙는다', function () {
+    return freshStore().then(function (store) {
+      var room = store.state.data.rooms[0];
+      ok(room, '방 존재');
+      var before = room.messages.length;
+      var res = store.actions.sendChat(room.roomId, room.other, '토요일 9시에 뵐게요');
+      ok(res.ok, '전송');
+      var after = store.state.data.rooms.filter(function (r) { return r.roomId === room.roomId; })[0];
+      eq(after.messages.length, before + 1, '메시지 수');
+      eq(after.messages[after.messages.length - 1].text, '토요일 9시에 뵐게요', '내용');
+      store.state.locks = {};
+      eq(store.actions.sendChat(room.roomId, room.other, '  ').ok, false, '빈 메시지 차단');
+    });
+  });
+
+  test('코치: 멘토 신청 승인/거절', function () {
+    return freshStore().then(function (store) {
+      var pending = store.state.data.coachApps.filter(function (a) { return a.status === '심사중'; })[0];
+      ok(pending, '심사중 신청 존재');
+      var res = store.actions.decideCoachApp(pending.id, '승인');
+      ok(res.ok, '승인 처리');
+      var after = store.state.data.coachApps.filter(function (a) { return a.id === pending.id; })[0];
+      eq(after.status, '승인', '상태 반영');
+      eq((store.state.queue[0] || {}).kind, 'update', '시트 수정 요청');
+      store.state.locks = {};
+      var reject = store.state.data.coachApps.filter(function (a) { return a.status === '심사중'; })[0];
+      if (reject) eq(store.actions.decideCoachApp(reject.id, '거절').ok, true, '거절 처리');
+    });
+  });
+
+  test('코치: 피드백 보내기', function () {
+    return freshStore().then(function (store) {
+      var res = store.actions.sendCoachFeedback({ playerKey: 'demo_drive', text: '타점을 몸 앞에서', rating: 4, drills: ['드라이브'] });
+      ok(res.ok, '전송');
+      var fb = store.state.data.feedback[0];
+      eq(fb.target, 'demo_drive', '대상');
+      eq(fb.payload.rating, 4, '별점');
+      eq(fb.payload.drills[0], '드라이브', '드릴');
+    });
+  });
+
+  test('하트: 광고는 하루 5회까지', function () {
+    var old = U.stamp(new Date(Date.now() - 120000));
+    var extra = [];
+    for (var i = 0; i < 5; i++) {
+      extra.push({ id: U.uid(), type: '광고하트', userKey: BM.seed.ME, date: U.ymd(), likes: 1, createdAt: old });
+    }
+    return freshStoreWith(extra).then(function (store) {
+      eq(store.state.data.hearts.adUsedToday, 5, '오늘 5회');
+      eq(store.state.data.hearts.adRemaining, 0, '남은 0');
+      var r = store.actions.watchAd();
+      eq(r.ok, false, '더 못 받음');
+      eq(r.reason, 'limit', '한도');
+    });
+  });
+
+  test('하트: 광고는 30초 간격 (연타 파밍 방지)', function () {
+    var recent = U.stamp(new Date(Date.now() - 5000));
+    return freshStoreWith([{ id: U.uid(), type: '광고하트', userKey: BM.seed.ME, date: U.ymd(), likes: 1, createdAt: recent }])
+      .then(function (store) {
+        var st = store.state.data.hearts;
+        eq(st.adUsedToday, 1, '오늘 1회');
+        ok(st.nextAdInSec > 20 && st.nextAdInSec <= 30, '대기 ' + st.nextAdInSec + '초');
+        eq(st.canWatchAd, false, '대기 중');
+        var r = store.actions.watchAd();
+        eq(r.reason, 'cooldown', '쿨다운 거절');
+        ok(r.retryAfter > 0, '남은 초');
+      });
+  });
+
+  test('하트: 간격이 지나면 광고를 다시 받을 수 있다', function () {
+    var past = U.stamp(new Date(Date.now() - 40000));
+    return freshStoreWith([{ id: U.uid(), type: '광고하트', userKey: BM.seed.ME, date: U.ymd(), likes: 1, createdAt: past }])
+      .then(function (store) {
+        eq(store.state.data.hearts.canWatchAd, true, '가능');
+        var before = store.state.data.hearts.balance;
+        var r = store.actions.watchAd({ verified: true });
+        eq(r.ok, true, '적립');
+        eq(r.gained, 1, '1개');
+        eq(r.remaining, 3, '오늘 2회 사용 → 3회 남음');
+        eq(store.state.data.hearts.balance, before + 1, '잔액 +1');
+      });
+  });
+
+  test('하트: 출석 체크는 하루 1회', function () {
+    return freshStore().then(function (store) {
+      eq(store.state.data.hearts.checkedInToday, false, '시작');
+      var r = store.actions.checkIn();
+      ok(r.ok, '출석 성공');
+      eq(r.gained, 1, '보상 1');
+      eq(store.state.data.hearts.balance, 7, '잔액 +1');
+      eq(store.state.data.hearts.checkedInToday, true, '완료 표시');
+      store.state.locks = {};
+      var again = store.actions.checkIn();
+      eq(again.ok, false, '두 번째 불가');
+      eq(again.reason, 'done', '이유');
+    });
+  });
+
+  test('하트: 선물은 보낸 사람 -1, 받은 사람 +1', function () {
+    return freshStore().then(function (store) {
+      var before = store.state.data.hearts.balance;
+      var r = store.actions.giftHeart('demo_chi', '좋은 경기였어요');
+      ok(r.ok, '선물 성공');
+      eq(r.spent, 1, '1개 사용');
+      eq(store.state.data.hearts.balance, before - 1, '보낸 사람 -1');
+      var target = D.heartStatus(store.state.idx, 'demo_chi');
+      var got = target.history.filter(function (h) { return h.kind === 'gift-in' && h.delta === 1; });
+      ok(got.length >= 1, '받은 사람 +1');
+      store.state.locks = {};
+      eq(store.actions.giftHeart(BM.seed.ME).reason, 'self', '나에게는 불가');
+      eq(store.actions.giftHeart('nobody').reason, 'no_target', '없는 사람');
+    });
+  });
+
+  test('하트: 유료 테마는 한 번만 차감된다', function () {
+    return freshStore().then(function (store) {
+      var before = store.state.data.hearts.balance;
+      var price = D.HEART_RULES.THEME_PRICES.th_court;
+      ok(price > 0, '유료 테마 가격');
+      var r1 = store.actions.setTheme('th_court');
+      ok(r1.ok, '구매+적용');
+      eq(r1.purchased, true, '구매함');
+      eq(store.state.data.hearts.balance, before - price, '가격만큼 차감');
+      eq(D.ownsTheme(store.state.idx, BM.seed.ME, 'th_court'), true, '소유');
+      store.state.locks = {};
+      var queued = store.state.queue.length;
+      var r2 = store.actions.setTheme('th_court');
+      ok(r2.ok, '재적용');
+      eq(r2.purchased, false, '추가 구매 없음');
+      eq(store.state.data.hearts.balance, before - price, '추가 차감 없음');
+      eq(store.state.queue.length, queued + 1, '프로필 행만 추가');
+    });
+  });
+
+  test('하트: 잔액이 모자라면 테마 구매가 막힌다', function () {
+    var spend = [];
+    for (var i = 0; i < 3; i++) {
+      spend.push({ id: U.uid(), type: '내하트사용', userKey: BM.seed.ME, date: U.ymd(), likes: 2, createdAt: U.stamp() });
+    }
+    return freshStoreWith(spend).then(function (store) {
+      var st = store.state.data.hearts;
+      ok(st.balance < D.HEART_RULES.THEME_PRICES.th_sakura, '잔액 부족: ' + st.balance);
+      var r = store.actions.setTheme('th_sakura');
+      eq(r.ok, false, '구매 불가');
+      eq(r.reason, 'hearts', '이유');
+      ok(r.need >= 1, '부족 개수');
+      eq(store.state.me.theme.theme === 'th_sakura', false, '적용되지 않음');
+    });
+  });
+
+  test('프로필/테마 변경이 즉시 반영된다', function () {
+    return freshStore().then(function (store) {
+      var res = store.actions.saveProfile({ nick: '새이름', bio: '소개 변경', avatar: '🐧' });
+      ok(res.ok, '프로필 저장');
+      eq(store.state.me.nick, '새이름', '상태 반영');
+      var p = store.state.data.idx.byType['프로필'].filter(function (x) { return x.userKey === BM.seed.ME; })
+        .sort(function (a, b) { return a.createdAt < b.createdAt ? -1 : 1; });
+      eq(p[p.length - 1].nick, '새이름', '프로필 행 추가');
+      store.state.locks = {};
+      var th = store.actions.setTheme('th_sakura');
+      ok(th.ok, '테마');
+      eq(store.state.me.theme.theme, 'th_sakura', '테마 반영');
+      eq(th.purchased, true, '유료 테마 구매');
+      eq(store.state.queue.length, 3, '프로필 + 구매 + 테마 프로필');
+    });
+  });
+
+  /* ================= 9. 화면 ================= */
+  test('화면: 일지 & AI 렌더', function () {
+    var state = stateOf();
+    var html = BM.views.log.render(state);
+    checkHtml(html, '일지');
+    includes(html, '오늘 일지', '제목');
+    includes(html, '저장하고 AI 분석', '저장 버튼');
+    includes(html, '아픈 부위', '입력 항목');
+  });
+
+  test('화면: 분석 카드 렌더 (undefined 없이)', function () {
+    var state = stateOf();
+    state.analysis = AI.analyze({ draft: state.drafts.log, records: state.data.records, level: '일반부', nick: '나래' });
+    var html = BM.views.log.render(state);
+    checkHtml(html, '분석');
+    includes(html, '추천 드릴', '드릴 제목');
+    includes(html, '맞춤 처방', '처방 제목');
+    includes(html, '이번 주 루틴', '루틴');
+  });
+
+  test('화면: 매칭 렌더 (궁합 점수 포함)', function () {
+    var state = stateOf();
+    var html = BM.views.matching.render(state);
+    checkHtml(html, '매칭');
+    includes(html, '플레이어 찾기', '목록');
+    includes(html, '궁합', '점수');
+    includes(html, '프로필 보고 요청하기', '요청 전 프로필 확인');
+    includes(html, 'data-value="자강"', '급수 필터');
+    includes(html, '주력', '주력 종목 표시');
+  });
+
+  test('화면: 채팅 오버레이 렌더', function () {
+    var state = stateOf();
+    var room = state.data.rooms[0];
+    state.ui.chatRoom = room.roomId;
+    var html = BM.views.matching.render(state);
+    checkHtml(html, '채팅');
+    includes(html, 'chat__input', '입력창');
+    includes(html, '네트앞여우', '상대 이름');
+  });
+
+  test('화면: 커뮤니티 렌더', function () {
+    var state = stateOf();
+    var html = BM.views.community.render(state);
+    checkHtml(html, '커뮤니티');
+    includes(html, '올리기', '글쓰기');
+    includes(html, '나래울 클럽', '시드 글');
+  });
+
+  test('화면: 코치 렌더 (피드백/심사)', function () {
+    var state = stateOf();
+    var feedback = BM.views.coach._render ? BM.views.coach._render(state) : null;
+    var html = BM.views.coach.render(state);
+    checkHtml(html, '코치-피드백');
+    includes(html, '선수 피드백', '탭');
+    state.ui.coachTab = 'approve';
+    var html2 = BM.views.coach.render(state);
+    checkHtml(html2, '코치-심사');
+    includes(html2, '멘토 신청 심사', '심사 탭');
+    includes(html2, '승인', '승인 버튼');
+    ok(feedback === null || true, 'noop');
+  });
+
+  test('화면: MY 렌더', function () {
+    var state = stateOf();
+    var html = BM.views.my.render(state);
+    checkHtml(html, 'MY');
+    includes(html, '하트', '하트');
+    includes(html, '광고 보고 받기', '보상형 광고 버튼');
+    includes(html, '출석 체크', '출석 버튼');
+    includes(html, '오늘 광고', '오늘 광고 한도');
+    includes(html, '꾸미기', '꾸미기');
+    includes(html, '체험 모드', '모드 표시');
+    includes(html, '총 기록', '통계');
+  });
+
+  test('화면: MY 하트 카드 — 광고 한도/쿨다운 표시', function () {
+    var old = U.stamp(new Date(Date.now() - 40000));
+    var rows = BM.seed.build();
+    for (var i = 0; i < 5; i++) {
+      rows.push(D.toRow({ id: U.uid(), type: '광고하트', userKey: BM.seed.ME, date: U.ymd(), likes: 1, createdAt: old }));
+    }
+    var state = stateOf(rows);
+    var html = BM.views.my.render(state);
+    checkHtml(html, 'MY-한도');
+    includes(html, '오늘 모두 받았어요', '한도 도달 문구');
+    includes(html, '5/5', '오늘 광고 5/5');
+
+    var rows2 = BM.seed.build();
+    rows2.push(D.toRow({ id: U.uid(), type: '광고하트', userKey: BM.seed.ME, date: U.ymd(), likes: 1, createdAt: U.stamp(new Date(Date.now() - 5000)) }));
+    var html2 = BM.views.my.render(stateOf(rows2));
+    checkHtml(html2, 'MY-쿨다운');
+    includes(html2, '초 후', '쿨다운 표시');
+    includes(html2, '1/5', '오늘 광고 1/5');
+  });
+
+  /* ================= 10. 시드/개인정보 ================= */
+  test('시드: 26칸 구조이고 개인정보(이메일·비밀번호)가 없다', function () {
+    var rows = BM.seed.build();
+    ok(rows.length > 50, '행 수: ' + rows.length);
+    var types = {};
+    rows.forEach(function (r) {
+      eq(r.length, 26, '칸 수');
+      eq(r[D.COL['비밀번호']], '', '비밀번호 칸');
+      types[r[D.COL['유형']]] = 1;
+      r.forEach(function (cell) { excludes(cell, '@', '이메일 흔적'); });
+    });
+    ['프로필', '기록', '소셜', '답글', '하트', '매칭프로필', '매칭신청', '매칭채팅', '코치신청', '출석하트', '광고하트', '선물하트', '내하트사용', '달력메모', '꾸미기구매']
+      .forEach(function (ty) { ok(types[ty], '유형 존재: ' + ty); });
+  });
+
+  test('시드 → 파생 데이터 (대화·신청·통계)', function () {
+    var data = BM.store.derive(BM.seed.build(), BM.seed.ME);
+    ok(data.posts.length >= 5, '글 수');
+    ok(data.matchProfiles.length >= 6, '매칭 프로필');
+    eq(data.rooms.length, 1, '대화방');
+    eq(data.requests.length, 2, '매칭 신청');
+    ok(data.hearts.balance >= 0, '하트');
+    ok(data.stats.count >= 10, '기록');
+    eq(data.posts.reduce(function (n, p) { return n + p.replies.length; }, 0), 4, '답글 수');
+  });
+
+  test('식별자: 15~16자리 숫자이고 서로 다르다', function () {
+    var seen = {};
+    for (var i = 0; i < 200; i++) {
+      var id = U.uid();
+      ok(/^\d{15,16}$/.test(id), '형식: ' + id);
+      ok(!seen[id], '중복 없음');
+      seen[id] = 1;
+    }
+    ok(/^c[0-9a-z]+$/.test(U.clientId()), 'clientId 형식');
+  });
+
+  /* ---------- 자동 실행 ---------- */
+  if (typeof process !== 'undefined' && process.argv && /run\.js$/.test(process.argv[1] || '')) {
+    BM.test.run().then(function (sum) {
+      sum.results.forEach(function (r) {
+        console.log((r.ok ? '  ✓ ' : '  ✗ ') + r.name + (r.error ? '\n      ' + r.error : ''));
+      });
+      console.log('\n' + sum.passed + '/' + sum.total + ' 통과' + (sum.failed ? ' · 실패 ' + sum.failed : ''));
+      process.exitCode = sum.failed ? 1 : 0;
+    });
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this);

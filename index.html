@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="th_night" style="background:#0b1220">
+<head>
+<meta charset="utf-8">
+<title>배드민턴 분석 앱</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<meta name="description" content="일지·AI 분석·1:1 매칭·커뮤니티·코치 피드백을 한 화면에 담은 모바일 배드민턴 앱">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="splash" class="splash">
+  <div class="splash__mark">🏸</div>
+  <p class="splash__t">배드민턴 분석 앱</p>
+  <p class="splash__s">오늘의 훈련을 준비하고 있어요</p>
+</div>
+
+<header class="hdr">
+  <div class="hdr__left">
+    <span class="hdr__logo">🏸</span>
+    <h1 id="hdrTitle">일지 &#38; AI</h1>
+  </div>
+  <div class="hdr__right">
+    <span id="syncDot" class="syncdot" title="동기화됨"></span>
+    <button id="hdrHearts" class="heartchip" aria-label="하트 잔액, MY로 이동"></button>
+  </div>
+</header>
+
+<main id="main" class="main" role="main">
+  <div class="skeleton">
+    <div class="sk sk--hero"></div>
+    <div class="sk sk--card"></div>
+    <div class="sk sk--card"></div>
+  </div>
+</main>
+
+<nav id="tabbar" class="tabbar" aria-label="주요 메뉴">
+  <button class="tab" data-tab="log" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/></svg>
+    <span>일지 & AI</span>
+  </button>
+  <button class="tab" data-tab="matching">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="8" r="2.4"/><path d="M16 14c3 0 5 2.2 5 5"/></svg>
+    <span>매칭</span>
+    <i class="nav__badge" hidden>0</i>
+  </button>
+  <button class="tab" data-tab="community">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-6.5A8 8 0 0 1 11 4h2a8 8 0 0 1 8 8z"/></svg>
+    <span>커뮤니티</span>
+  </button>
+  <button class="tab" data-tab="coach">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4a4 4 0 0 1 4 4v1h2a2 2 0 0 1 0 4h-1.2A6 6 0 0 1 6 13V7a3 3 0 0 1 3-3h4z"/><path d="M10 17v3"/></svg>
+    <span>코치</span>
+  </button>
+  <button class="tab" data-tab="my">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-4.1 3.4-7 7.5-7s7.5 2.9 7.5 7"/></svg>
+    <span>MY</span>
+  </button>
+</nav>
+
+<noscript><p style="padding:20px;color:#fff">이 앱은 자바스크립트가 필요합니다.</p></noscript>
+
+<!-- 로드 순서 중요: 도구 → 도메인 → AI → 시드 → 저장소 → 화면 → 시작 -->
+<script defer src="js/util.js"></script>
+<script defer src="js/domain.js"></script>
+<script defer src="js/ai.js"></script>
+<script defer src="js/seed.js"></script>
+<script defer src="js/api.js"></script>
+<script defer src="js/store.js"></script>
+<script defer src="js/ui.js"></script>
+<script defer src="js/views/log.js"></script>
+<script defer src="js/views/matching.js"></script>
+<script defer src="js/views/community.js"></script>
+<script defer src="js/views/coach.js"></script>
+<script defer src="js/views/my.js"></script>
+<script defer src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+/* ============================================================
+ * ui.js — 화면 공통 조각 (토스트, 바텀시트, 아이콘, 목록 그리기)
+ * 프레임워크 없이 필요한 만큼만 직접 만집니다.
+ * ============================================================ */
+(function (root) {
+  'use strict';
+  var BM = root.BM = root.BM || {};
+  var U = BM.util;
+
+  var hasDom = typeof document !== 'undefined';
+
+  function $(sel, el) { return (el || document).querySelector(sel); }
+  function $$(sel, el) { return Array.prototype.slice.call((el || document).querySelectorAll(sel)); }
+
+  var ICONS = {
+    log: '<path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/>',
+    match: '<circle cx="9" cy="7" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="8" r="2.4"/><path d="M16 14c3 0 5 2.2 5 5"/>',
+    community: '<path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-6.5A8 8 0 0 1 11 4h2a8 8 0 0 1 8 8z"/>',
+    coach: '<path d="M13 4a4 4 0 0 1 4 4v1h2a2 2 0 0 1 0 4h-1.2A6 6 0 0 1 6 13V7a3 3 0 0 1 3-3h4z"/><path d="M10 17v3"/>',
+    my: '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-4.1 3.4-7 7.5-7s7.5 2.9 7.5 7"/>',
+    heart: '<path d="M12 20s-7.5-4.6-7.5-9.4A4.1 4.1 0 0 1 12 7.4a4.1 4.1 0 0 1 7.5 3.2C19.5 15.4 12 20 12 20z"/>',
+    arrow: '<path d="M9 6l6 6-6 6"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    check: '<path d="M5 13l4 4L19 7"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 2"/>',
+    fire: '<path d="M12 3s4.5 4 4.5 8a4.5 4.5 0 0 1-9 0c0-1.6.7-3 1.5-4 .3 1.2 1 2 2 2 1.4 0 1-3 1-6z"/>',
+    spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
+    send: '<path d="M4 12l16-8-6 16-3-6z"/>',
+    alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>',
+    chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    edit: '<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z"/>'
+  };
+
+  function icon(name, cls) {
+    var body = ICONS[name] || ICONS.spark;
+    return '<svg class="ico ' + (cls || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + '</svg>';
+  }
+
+  function haptic(ms) { U.haptic(ms); }
+
+  /* ---------- 토스트 ---------- */
+  var toastTimer = null;
+  function toast(msg, kind) {
+    if (!hasDom) return;
+    var node = $('#toast');
+    if (!node) {
+      node = document.createElement('div');
+      node.id = 'toast';
+      node.className = 'toast';
+      node.setAttribute('role', 'status');
+      document.body.appendChild(node);
+    }
+    node.textContent = msg;
+    node.dataset.kind = kind || 'info';
+    node.classList.add('is-on');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { node.classList.remove('is-on'); }, kind === 'error' ? 3600 : 2400);
+  }
+
+  /* ---------- 바텀시트 ---------- */
+  function closeSheet() {
+    if (!hasDom) return;
+    var root = $('#sheet');
+    if (!root) return;
+    root.classList.remove('is-on');
+    document.body.classList.remove('no-scroll');
+    setTimeout(function () { if (root && root.parentNode) root.parentNode.removeChild(root); }, 220);
+  }
+
+  function openSheet(opts) {
+    if (!hasDom) return null;
+    closeSheet();
+    var wrap = document.createElement('div');
+    wrap.id = 'sheet';
+    wrap.className = 'sheet';
+    wrap.innerHTML =
+      '<div class="sheet__backdrop" data-close="1"></div>' +
+      '<div class="sheet__panel" role="dialog" aria-modal="true">' +
+      '<div class="sheet__grab"></div>' +
+      '<div class="sheet__head"><h2>' + U.esc(opts.title || '') + '</h2>' +
+      '<button class="iconbtn" data-close="1" aria-label="닫기">' + icon('close') + '</button></div>' +
+      '<div class="sheet__body">' + (opts.body || '') + '</div></div>';
+    document.body.appendChild(wrap);
+    document.body.classList.add('no-scroll');
+    requestAnimationFrame(function () { wrap.classList.add('is-on'); });
+    wrap.addEventListener('click', function (ev) {
+      if (ev.target.closest('[data-close]')) closeSheet();
+    });
+    if (typeof opts.onMount === 'function') opts.onMount(wrap);
+    return wrap;
+  }
+
+  function confirmSheet(message, okLabel) {
+    return new Promise(function (resolve) {
+      var wrap = openSheet({
+        title: '확인',
+        body: '<p class="sheet__text">' + U.esc(message) + '</p>' +
+          '<div class="row gap8 mt16"><button class="btn btn--ghost grow" data-act="no">취소</button>' +
+          '<button class="btn grow" data-act="yes">' + U.esc(okLabel || '확인') + '</button></div>'
+      });
+      if (!wrap) return resolve(false);
+      wrap.addEventListener('click', function (ev) {
+        var act = ev.target.closest('[data-act]');
+        if (!act) return;
+        closeSheet();
+        resolve(act.getAttribute('data-act') === 'yes');
+      });
+    });
+  }
+
+  /* ---------- 목록 다시 그리기 ---------- */
+  function paint(el, html) {
+    if (!el) return;
+    el.innerHTML = html;
+  }
+
+  /* ---------- 폼 도우미 ---------- */
+  function chips(name, options, selected, opts) {
+    opts = opts || {};
+    var set = {};
+    (selected || []).forEach(function (v) { set[v] = 1; });
+    return '<div class="chips" data-chipgroup="' + U.esc(name) + '"' + (opts.multi === false ? ' data-single="1"' : '') + '>' +
+      options.map(function (o) {
+        var value = typeof o === 'string' ? o : o.value;
+        var label = typeof o === 'string' ? o : o.label;
+        return '<button type="button" class="chip' + (set[value] ? ' is-on' : '') + '" data-chip="' + U.esc(value) + '"' +
+          ' aria-pressed="' + (set[value] ? 'true' : 'false') + '">' + U.esc(label) + '</button>';
+      }).join('') + '</div>';
+  }
+
+  function readChips(groupEl) {
+    if (!groupEl) return [];
+    return $$('.chip.is-on', groupEl).map(function (c) { return c.getAttribute('data-chip'); });
+  }
+
+  function toggleChip(chipEl) {
+    var group = chipEl.parentNode;
+    var single = group.getAttribute('data-single') === '1';
+    if (single) {
+      $$('.chip', group).forEach(function (c) {
+        c.classList.remove('is-on');
+        c.setAttribute('aria-pressed', 'false');
+      });
+    }
+    var on = !chipEl.classList.contains('is-on');
+    chipEl.classList.toggle('is-on', on);
+    chipEl.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function avatar(emoji, size) {
+    return '<span class="avatar" style="--av:' + (size || 40) + 'px">' + (emoji || '🏸') + '</span>';
+  }
+
+  function emptyState(iconName, title, sub, actionHtml) {
+    return '<div class="empty">' + icon(iconName || 'spark') +
+      '<p class="empty__t">' + U.esc(title) + '</p>' +
+      (sub ? '<p class="empty__s">' + U.esc(sub) + '</p>' : '') +
+      (actionHtml || '') + '</div>';
+  }
+
+  function stars(n, max) {
+    max = max || 5;
+    var out = '';
+    for (var i = 1; i <= max; i++) out += '<span class="' + (i <= n ? 'star is-on' : 'star') + '">★</span>';
+    return out;
+  }
+
+  BM.ui = {
+    $: $, $$: $$, icon: icon, toast: toast, haptic: haptic,
+    openSheet: openSheet, closeSheet: closeSheet, confirm: confirmSheet,
+    paint: paint, chips: chips, readChips: readChips, toggleChip: toggleChip,
+    avatar: avatar, emptyState: emptyState, stars: stars, hasDom: hasDom
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
