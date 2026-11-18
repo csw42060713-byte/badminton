@@ -205,15 +205,20 @@
       var state = ctx.store.state;
       var room = findThread(state, state.ui.chatRoom);
       var other = (room && room.other) || state.ui.chatOther || '';
-      var res = ctx.actions.sendChat(state.ui.chatRoom, other, input.value);
+      /* 전송 전에 입력창을 비웁니다. (화면을 다시 그릴 때 보낸 글이 남지 않게) */
+      var text = input.value;
+      input.value = '';
+      var res = ctx.actions.sendChat(state.ui.chatRoom, other, text);
       if (res.ok) {
-        input.value = '';
-        input.focus();
         UI.haptic(8);
       } else if (res.reason === 'locked') {
+        input.value = text;
         UI.toast('잠시만요, 보내는 중이에요');
       } else if (res.reason === 'not_allowed') {
+        input.value = text;
         UI.toast('친구이거나 매칭된 상대와만 대화할 수 있어요', 'error');
+      } else if (res.reason === 'empty') {
+        /* 빈 메시지는 그대로 둡니다 */
       }
     });
   }

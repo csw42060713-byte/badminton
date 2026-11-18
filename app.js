@@ -103,8 +103,8 @@
         host.hidden = true;
         host.innerHTML = '';
         host.dataset.sig = '';
+        document.body.classList.remove('no-scroll');
       }
-      document.body.classList.remove('no-scroll');
       return;
     }
     var active = document.activeElement;
@@ -232,6 +232,7 @@
     if (!on) {
       var dm = el('dm');
       if (dm) { dm.hidden = true; dm.innerHTML = ''; }
+      document.body.classList.remove('no-scroll');
     }
   }
 
