@@ -132,7 +132,7 @@
       ui: {
         tab: 'log',
         matchFilter: { level: '전체', gender: '전체', region: '전체', discipline: '전체', query: '' },
-        chatRoom: null, chatOpen: false, coachTab: '', coachPlayer: null, composer: '', replyTo: null
+        chatRoom: null, chatOther: '', chatOpen: false, coachTab: '', coachPlayer: null, composer: '', replyTo: null
       },
       analysis: null,
       queue: U.readJSON(QUEUE_KEY, []),
