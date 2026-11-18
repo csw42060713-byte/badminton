@@ -3,15 +3,19 @@
   'use strict';
   var params = new URLSearchParams(location.search);
   var screen = params.get('screen') || 'ai';
-  var scale = parseFloat(params.get('scale') || '1.5');
+  var scale = parseFloat(params.get('scale') || '1.3333');
   var frame = document.getElementById('frame');
   var mark = document.getElementById('mark');
 
-  frame.style.width = Math.round(360 * scale) + 'px';
-  frame.style.height = Math.round(640 * scale) + 'px';
+  /* 405×720 = 정확히 9:16. 화면 캡처 결과는 540×960 (Play 스토어 규격) */
+  var VW = 405, VH = 720;
+  frame.style.width = Math.round(VW * scale) + 'px';
+  frame.style.height = Math.round(VH * scale) + 'px';
 
   var app = document.createElement('iframe');
   app.id = 'app';
+  app.style.width = VW + 'px';
+  app.style.height = VH + 'px';
   app.style.transform = 'scale(' + scale + ')';
   frame.appendChild(app);
 
@@ -65,6 +69,12 @@
       var win = app.contentWindow;
       var doc = win.document;
 
+      /* 스토어 캡처에는 스크롤바가 보이지 않게 (레이아웃은 그대로) */
+      var st = doc.createElement('style');
+      st.textContent = '::-webkit-scrollbar{width:0!important;height:0!important}html,body{overflow-x:hidden!important;scrollbar-width:none!important}';
+      doc.head.appendChild(st);
+      await wait(200);
+
       if (screen === 'chat') {
         var hdr = doc.getElementById('hdrChat');
         if (hdr) hdr.click();
@@ -78,7 +88,7 @@
 
       if (screen === 'ai') {
         var btn = doc.querySelector("[data-act='save-log']");
-        if (btn) { btn.click(); await wait(1400); }
+        if (btn) { btn.click(); await wait(3400); }
         var an = doc.querySelector('[data-region="analysis"]');
         if (an) { an.scrollIntoView({ block: 'start' }); }
         var main = doc.getElementById('main');
