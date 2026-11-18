@@ -1039,7 +1039,7 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 .searchbar__clear[hidden] { display: none; }
 
 /* 필터 */
-.filters { display: grid; gap: 7px; margin: 12px 0 0; }
+.filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; margin: 12px 0 0; }
 .filter-line { display: flex; align-items: center; gap: 9px; min-height: 30px; }
 .filter-line__label {
   width: 26px; flex: none;
