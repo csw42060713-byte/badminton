@@ -855,6 +855,201 @@
     ok(/^c[0-9a-z]+$/.test(U.clientId()), 'clientId 형식');
   });
 
+  /* ================= 11. 시작화면·계정 연동 ================= */
+  function clearAuth() {
+    ['bm_auth_v1', 'bm_accounts_v1', 'bm_google_client_id_v1', 'bm_auth_profile_v1', 'bm_bridge_url_v1', 'bm_session_v1']
+      .forEach(function (k) { U.storage.removeItem(k); });
+    var s = BM.views.start.state();
+    s.screen = 'home'; s.mode = 'login'; s.error = '';
+    s.draft = { email: '', password: '', nick: '' };
+    s.onb = { nick: '', level: '', discipline: '', region: '', club: '' };
+  }
+
+  test('계정: 둘러보기 세션은 저장되고 로그아웃하면 사라진다', function () {
+    clearAuth();
+    eq(BM.auth.session(), null, '처음에는 세션 없음');
+    BM.auth.signInGuest();
+    var s = BM.auth.session();
+    eq(s.kind, 'guest', '체험 세션');
+    eq(BM.auth.kindLabel(s), '체험 모드', '표시 이름');
+    eq(BM.auth.needsOnboarding(s, null), false, '체험 모드는 온보딩 없음');
+    eq(BM.auth.rowsKeyFor(s), 'bm_rows_v1', '체험 데이터 키');
+    BM.auth.signOut();
+    eq(BM.auth.session(), null, '로그아웃 후 세션 없음');
+  });
+
+  test('계정: 이메일 가입 → 로그인 (비밀번호는 해시로만 저장)', function () {
+    clearAuth();
+    return BM.auth.signInEmail({ email: 'Player@Example.com', password: 'secret12', nick: '테스터', create: true })
+      .then(function (res) {
+        eq(res.ok, true, '가입 성공');
+        eq(res.session.kind, 'email', '이메일 세션');
+        eq(res.session.email, 'player@example.com', '소문자 정규화');
+        var acc = BM.auth.accountOf('player@example.com');
+        ok(acc, '계정 저장됨');
+        ok(/^(sha256|fnv)\$/.test(acc.hash), '해시 형식: ' + acc.hash);
+        excludes(JSON.stringify(acc), 'secret12', '평문 비밀번호 없음');
+        BM.auth.signOut();
+        return BM.auth.signInEmail({ email: 'player@example.com', password: 'secret12' });
+      })
+      .then(function (res) {
+        eq(res.ok, true, '로그인 성공');
+        eq(BM.auth.session().kind, 'email', '세션 종류');
+        return BM.auth.signInEmail({ email: 'player@example.com', password: 'wrong-pass' });
+      })
+      .then(function (res) {
+        eq(res.ok, false, '틀린 비밀번호는 거절');
+        eq(res.code, 'bad_password', '이유');
+        return BM.auth.signInEmail({ email: 'player@example.com', password: 'secret12', create: true });
+      })
+      .then(function (res) {
+        eq(res.ok, false, '같은 이메일 재가입 거절');
+        eq(res.code, 'exists', '이유');
+        return BM.auth.signInEmail({ email: 'nobody@example.com', password: 'secret12' });
+      })
+      .then(function (res) {
+        eq(res.ok, false, '없는 계정은 만들지 않음');
+        eq(res.code, 'no_user', '이유');
+      });
+  });
+
+  test('계정: 이메일·비밀번호 형식 검사', function () {
+    clearAuth();
+    return BM.auth.signInEmail({ email: 'not-an-email', password: 'secret12', create: true })
+      .then(function (res) {
+        eq(res.ok, false, '이메일 형식');
+        eq(res.code, 'bad_email', '이유');
+        return BM.auth.signInEmail({ email: 'a@b.co', password: '123', create: true });
+      })
+      .then(function (res) {
+        eq(res.ok, false, '짧은 비밀번호');
+        eq(res.code, 'weak_password', '이유');
+      });
+  });
+
+  test('온보딩: 가입 직후에는 필요하고, 완료하면 다시 묻지 않는다', function () {
+    clearAuth();
+    return BM.auth.signInEmail({ email: 'onb@example.com', password: 'secret12', nick: '온보', create: true })
+      .then(function () {
+        var s = BM.auth.session();
+        eq(BM.auth.needsOnboarding(s, { level: '', discipline: '' }), true, '가입 직후 온보딩 필요');
+        BM.auth.markOnboarded({ nick: '온보', level: 'B조', discipline: '복식', region: '서울', club: '테스트클럽' });
+        var s2 = BM.auth.session();
+        eq(BM.auth.needsOnboarding(s2, { level: '', discipline: '' }), false, '완료 후에는 아님');
+        ok(s2.onboardedAt, '완료 시각 저장');
+        eq(BM.auth.profileFor(s2).club, '테스트클럽', '클럽 저장');
+        eq(BM.auth.kindLabel(s2), '이메일 계정', '표시 이름');
+      });
+  });
+
+  test('계정: 로그인 계정은 체험 데이터와 다른 저장 키를 쓴다', function () {
+    clearAuth();
+    return BM.auth.signInEmail({ email: 'key@example.com', password: 'secret12', create: true }).then(function () {
+      var key = BM.auth.rowsKeyFor(BM.auth.session());
+      ok(key.indexOf('bm_rows_v1::') === 0, '계정별 키: ' + key);
+      ok(key.indexOf('key@example.com') > 0, '이메일 포함');
+      eq(key !== 'bm_rows_v1', true, '체험 키와 분리');
+      BM.auth.signOut();
+      BM.auth.signInGuest();
+      eq(BM.auth.rowsKeyFor(BM.auth.session()), 'bm_rows_v1', '체험 키');
+    });
+  });
+
+  test('계정: 데모 Google 계정과 잘못된 토큰 처리', function () {
+    clearAuth();
+    BM.auth.signInGoogle(BM.auth.DEMO_GOOGLE);
+    var s = BM.auth.session();
+    eq(s.kind, 'google', '구글 세션');
+    eq(s.email, 'demo.player@gmail.com', '이메일');
+    eq(s.demo, true, '데모 표시');
+    includes(BM.auth.kindLabel(s), 'Google', '표시 이름');
+    eq(BM.auth.decodeJwt('garbage'), null, '잘못된 토큰');
+    eq(BM.auth.decodeJwt('a.b.c'), null, '이메일 없는 payload');
+    t.throws(function () { BM.auth.signInGoogle({}); }, '이메일 없는 구글 로그인은 거절');
+  });
+
+  test('계정: Google Client ID 검증과 저장', function () {
+    clearAuth();
+    eq(BM.auth.googleClientId(), '', '처음에는 비어 있음');
+    eq(BM.auth.setGoogleClientId('not-a-client-id').ok, false, '형식 오류 거절');
+    var good = '1234567890-abcdefg.apps.googleusercontent.com';
+    eq(BM.auth.setGoogleClientId(good).ok, true, '정상 ID 저장');
+    eq(BM.auth.googleClientId(), good, '읽기');
+    BM.auth.setGoogleClientId('');
+    eq(BM.auth.googleClientId(), '', '지우기');
+  });
+
+  test('시작화면: Google·이메일·둘러보기 세 갈래가 한 화면에 있다', function () {
+    clearAuth();
+    var html = BM.views.start.render();
+    includes(html, 'Google로 계속하기', '구글 버튼');
+    includes(html, '이메일로 로그인', '이메일 버튼');
+    includes(html, '로그인 없이 둘러보기', '둘러보기 버튼');
+    includes(html, 'data-act="google"', '구글 액션');
+    includes(html, 'data-act="to-email"', '이메일 액션');
+    includes(html, 'data-act="guest"', '둘러보기 액션');
+    includes(html, 'start__title', '브랜드 제목');
+
+    var ui = BM.views.start.state();
+    ui.screen = 'email';
+    var form = BM.views.start.render();
+    includes(form, 'data-f="email"', '이메일 입력(로그인 모드)');
+    excludes(form, 'data-f="nick"', '가입 모드가 아니면 닉네임 칸 없음');
+    ui.mode = 'signup';
+    var signup = BM.views.start.render();
+    includes(signup, 'data-f="nick"', '가입 모드 닉네임 칸');
+    includes(signup, '가입하고 시작하기', '가입 버튼');
+    ui.screen = 'home';
+  });
+
+  test('온보딩 화면: 급수 7개와 종목 3개를 한 화면에서 고른다', function () {
+    clearAuth();
+    BM.auth.signInGoogle(BM.auth.DEMO_GOOGLE);
+    var html = BM.views.start.renderOnboarding(BM.auth.session());
+    D.GRADES.forEach(function (g) { includes(html, 'data-val="' + g + '"', '급수: ' + g); });
+    ['단식', '복식', '혼합복식'].forEach(function (d) { includes(html, 'data-val="' + d + '"', '종목: ' + d); });
+    includes(html, 'data-act="finish"', '시작하기 버튼');
+    includes(html, 'data-o="nick"', '닉네임 입력');
+    includes(html, '10초', '짧은 안내');
+    BM.auth.signOut();
+  });
+
+  test('MY 화면: 계정 카드에 상태·로그아웃·Client ID 설정이 있다', function () {
+    clearAuth();
+    var guest = BM.views.my.render(stateOf(BM.seed.build()));
+    includes(guest, 'data-region="account"', '계정 카드');
+    includes(guest, '체험 모드', '체험 표시');
+    includes(guest, 'data-act="account-login"', '로그인 버튼');
+    includes(guest, '고급 · Google Client ID', 'Client ID 설정');
+    return BM.auth.signInEmail({ email: 'my@example.com', password: 'secret12', nick: '마이', create: true }).then(function () {
+      var html = BM.views.my.render(stateOf(BM.seed.build()));
+      includes(html, '이메일 계정', '이메일 표시');
+      includes(html, 'data-act="logout"', '로그아웃 버튼');
+      includes(html, 'my@example.com', '이메일 주소');
+      BM.auth.signOut();
+    });
+  });
+
+  test('로컬 저장소: 계정별 데이터 키가 서로 섞이지 않는다', function () {
+    clearAuth();
+    U.storage.removeItem('bm_rows_v1');
+    U.storage.removeItem('bm_rows_v1::guest@example.com');
+    var guestApi = BM.api.createLocal({ latency: 0 });
+    var acctApi = BM.api.createLocal({ latency: 0, rowsKey: 'bm_rows_v1::guest@example.com', me: { nick: '새회원', level: '', discipline: '' } });
+    return guestApi.bootstrap().then(function (res) {
+      ok(res.rows.length > 50, '체험 데이터');
+      return acctApi.bootstrap();
+    }).then(function (res) {
+      ok(res.rows.length > 50, '계정도 첫 실행에 예시 데이터를 가짐');
+      eq(res.me.nick, '새회원', '계정 닉네임 적용');
+      eq(res.me.level, '', '급수는 비어 있음(온보딩 대상)');
+      eq(res.me.discipline, '', '종목은 비어 있음(온보딩 대상)');
+      ok(U.readJSON('bm_rows_v1', null), '체험 데이터 키 유지');
+      ok(U.readJSON('bm_rows_v1::guest@example.com', null), '계정 데이터 따로 저장');
+      U.storage.removeItem('bm_rows_v1::guest@example.com');
+    });
+  });
+
   /* ---------- 자동 실행 ---------- */
   if (typeof process !== 'undefined' && process.argv && /run\.js$/.test(process.argv[1] || '')) {
     BM.test.run().then(function (sum) {

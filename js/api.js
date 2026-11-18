@@ -31,13 +31,16 @@
   function createLocal(opts) {
     opts = opts || {};
     var latency = opts.latency == null ? 90 : opts.latency;
-    var rows = U.readJSON(ROWS_KEY, null);
+    /* rowsKey: 로그인 계정마다 데이터를 따로 보관할 때 씁니다 (체험 모드는 기본 키) */
+    var rowsKey = opts.rowsKey || ROWS_KEY;
+    var identity = opts.me || null;      /* {nick, level, discipline, region, club} */
+    var rows = U.readJSON(rowsKey, null);
     var dedupe = U.readJSON(DEDUPE_KEY, {});
     var meKey = U.readJSON('bm_me_v1', null) || BM.seed.ME;
     var listeners = [];
 
     function persist() {
-      U.writeJSON(ROWS_KEY, rows);
+      U.writeJSON(rowsKey, rows);
     }
 
     function ensure() {
@@ -52,12 +55,17 @@
     function meProfile() {
       var idx = D.index(rows.map(D.fromRow));
       var p = D.profileOf(idx, meKey);
+      var base = identity || {};
+      /* 로그인 사용자는 데모 기본값을 쓰지 않습니다(온보딩에서 본인이 고름) */
+      var signed = !!identity;
       return {
         key: meKey,
-        nick: p.nick || '나래',
-        level: p.level || '일반회원',
-        discipline: p.discipline || '복식',
-        bio: p.bio || '',
+        nick: p.nick || base.nick || (signed ? '회원' : '나래'),
+        level: p.level || base.level || (signed ? '' : '일반회원'),
+        discipline: p.discipline || base.discipline || (signed ? '' : '복식'),
+        bio: p.bio || base.bio || '',
+        region: base.region || '',
+        club: base.club || '',
         theme: p.theme || { theme: 'th_night' }
       };
     }
@@ -198,6 +206,16 @@
           token = data.token;
           U.writeJSON(SESSION_KEY, { token: token, url: url });
           return { me: data.me, token: token };
+        });
+      },
+      /* 회원가입: 브리지가 이미 있는 계정이면 code:'exists'로 거절합니다 */
+      register: function (cred) {
+        return request({
+          action: 'register', email: cred.email, password: cred.password, nick: cred.nick
+        }).then(function (data) {
+          token = data.token;
+          U.writeJSON(SESSION_KEY, { token: token, url: url });
+          return { me: data.me, token: token, created: !!data.created };
         });
       },
       logout: function () { return request({ action: 'logout', token: token }).catch(function () {}); },

@@ -1,5 +1,9 @@
 /* ============================================================
- * app.js — 앱 시작, 탭 이동, 화면 다시 그리기, 연결 전환
+ * app.js — 앱 시작, 인증 게이트(시작화면), 탭 이동, 화면 다시 그리기
+ *
+ *  첫 진입: 로그인 세션이 없으면 하단 탭바를 숨기고 시작화면(게이트)만 보여 줍니다.
+ *  로그인/가입/둘러보기 후: 저장소를 만들고 일지 & AI 화면으로 들어갑니다.
+ *  신규 가입자: 첫 로그인 직후 10초 온보딩(닉네임·급수·종목·지역)을 한 화면에서 받습니다.
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -19,6 +23,7 @@
   var currentTab = null;
   var painting = false;
   var pendingRepaint = false;
+  var gated = false;      /* 시작화면·온보딩 중에는 일반 화면 갱신을 멈춥니다 */
 
   function el(id) { return document.getElementById(id); }
 
@@ -70,7 +75,7 @@
   /* ---------- 화면 그리기 ---------- */
   function mountView(tabId) {
     var main = el('main');
-    if (!main || !store.state.ready) return;
+    if (!main || !store || !store.state.ready) return;
     var view = viewOf(tabId);
     painting = true;
     currentTab = tabId;
@@ -92,7 +97,7 @@
   }
 
   function onChange(state) {
-    if (!state.ready) return;
+    if (!state.ready || gated) return;
     paintChrome(state);
     if (painting) return;
     if (state.ui.tab !== currentTab) {
@@ -106,12 +111,14 @@
   }
 
   function repaint() {
+    if (gated) return;
     if (painting) { pendingRepaint = true; return; }
     mountView(currentTab || (store && store.state.ui.tab) || 'log');
   }
 
   /* ---------- 저장 버튼(연타 잠금 + 즉시 피드백) ---------- */
   function saveLogWithFeedback(btn) {
+    if (!store) return;
     if (!btn) { store.actions.saveLog(); return; }
     if (btn.dataset.busy === '1') return;         /* 손가락 연타: 즉시 무시 */
     btn.dataset.busy = '1';
@@ -145,6 +152,8 @@
   function connectSheets(url, email, password, nick) {
     var api = BM.api.createSheets({ url: url });
     return api.login({ email: email, password: password, nick: nick, create: true }).then(function (res) {
+      BM.auth.saveBridgeUrl(url);
+      if (BM.auth.session()) BM.auth.signInEmailAccount({ email: email, name: (res.me && res.me.nick) || nick, token: res.token, source: 'sheets' });
       store._replaceApi(api);
       U.writeJSON('bm_mode_v1', 'sheets');
       return store.actions.reload().then(function () {
@@ -155,15 +164,90 @@
     });
   }
 
-  /* ---------- 시작 ---------- */
-  function boot() {
-    var sess = BM.api.savedSession();
+  /* ---------- 시작화면(게이트) ---------- */
+  function hideSplash() {
+    var sp = el('splash');
+    if (sp) sp.classList.add('is-off');
+  }
+
+  function setNav(on) {
+    var nav = el('tabbar');
+    if (nav) nav.hidden = !on;
+  }
+
+  function showGate() {
+    gated = true;
+    currentTab = null;
+    document.body.classList.add('is-gate');
+    document.body.classList.remove('is-onboarding');
+    setNav(false);
+    hideSplash();
+    var host = el('main');
+    if (!host || !BM.views.start) return;
+    BM.views.start.reset();
+    BM.views.start.mount(host, {
+      onDone: function () {
+        var s = BM.auth.session();
+        if (s) enterApp(s);
+      }
+    });
+  }
+
+  function showOnboarding(session) {
+    gated = true;
+    document.body.classList.add('is-onboarding');
+    setNav(false);
+    var host = el('main');
+    if (!host) return;
+    BM.views.start.mountOnboarding(host, {
+      onComplete: function (patch) {
+        store.actions.saveProfile({
+          nick: patch.nick, level: patch.level, discipline: patch.discipline,
+          region: patch.region || '', club: patch.club || ''
+        });
+        store.actions.saveMatchProfile({
+          region: patch.region || '', level: patch.level, discipline: patch.discipline,
+          club: patch.club || '', availability: '', experience: '', bio: '', avatar: '🏸'
+        });
+        BM.auth.markOnboarded(patch);
+        document.body.classList.remove('is-onboarding');
+        setNav(true);
+        store.actions.setTab('log');
+        gated = false;
+        paintChrome(store.state);
+        mountView('log');
+        try { history.replaceState(null, '', '#/log'); } catch (e) { /* 무시 */ }
+        U.writeJSON('bm_seen_v1', true);
+        UI.haptic(16);
+        UI.toast(patch.nick + '님, 준비됐어요! 오늘 일지를 남겨 보세요.');
+      }
+    });
+  }
+
+  /* ---------- 앱 진입 ---------- */
+  function enterApp(session) {
+    gated = false;
+    document.body.classList.remove('is-gate');
+    document.body.classList.remove('is-onboarding');
+    setNav(true);
+    hideSplash();
+
+    var saved = BM.api.savedSession();
+    var sheets = !!(session && session.kind !== 'guest' && saved && saved.token && saved.url);
     var api;
-    if (sess && sess.token && sess.url) {
-      api = BM.api.createSheets({ url: sess.url, token: sess.token });
+    if (sheets) {
+      api = BM.api.createSheets({ url: saved.url, token: saved.token });
     } else {
-      api = BM.api.createLocal({ latency: 120 });
+      var ident = session && session.kind !== 'guest' ? {
+        nick: session.name || '',
+        level: (session.profile && session.profile.level) || '',
+        discipline: (session.profile && session.profile.discipline) || '',
+        region: (session.profile && session.profile.region) || '',
+        club: (session.profile && session.profile.club) || ''
+      } : null;
+      api = BM.api.createLocal({ latency: 120, rowsKey: BM.auth.rowsKeyFor(session), me: ident });
     }
+
     store = BM.store.createStore({ api: api });
     ctx = {
       store: store,
@@ -171,7 +255,9 @@
       saveLog: saveLogWithFeedback,
       connectSheets: connectSheets,
       repaint: repaint,
-      refresh: repaint
+      refresh: repaint,
+      signOut: signOut,
+      auth: BM.auth
     };
     BM.app.ctx = ctx;
     store.subscribe(onChange);
@@ -180,53 +266,55 @@
     if (!TABS.some(function (t) { return t.id === startTab; })) startTab = 'log';
     store.state.ui.tab = startTab;
 
-    var nav = el('tabbar');
-    if (nav) {
-      nav.addEventListener('click', function (ev) {
-        var btn = ev.target.closest('[data-tab]');
-        if (!btn) return;
-        var id = btn.getAttribute('data-tab');
-        UI.haptic(6);
-        store.actions.setTab(id);
-      });
-    }
-    var heartsBtn = el('hdrHearts');
-    if (heartsBtn) heartsBtn.addEventListener('click', function () { store.actions.setTab('my'); });
-
-    window.addEventListener('hashchange', function () {
-      var id = (location.hash || '').replace('#/', '');
-      if (TABS.some(function (t) { return t.id === id; })) store.actions.setTab(id);
-    });
-
     store.actions.init().then(function () {
-      var splash = el('splash');
-      if (splash) splash.classList.add('is-off');
+      if (!store) return;
       paintChrome(store.state);
+      var s = BM.auth.session();
+      if (BM.auth.needsOnboarding(s, store.state.me)) {
+        showOnboarding(s);
+        return;
+      }
       mountView(store.state.ui.tab);
       if (store.state.syncError) UI.toast(store.state.syncError, 'error');
       if (!U.readJSON('bm_seen_v1', false)) welcome();
     });
+  }
 
-    registerSW();
+  /* ---------- 계정 전환 ---------- */
+  function signOut() {
+    var sess = BM.auth.session();
+    if (sess && sess.kind !== 'guest') {
+      var saved = BM.api.savedSession();
+      if (saved && saved.url && saved.token) {
+        try { BM.api.createSheets({ url: saved.url, token: saved.token }).logout(); } catch (e) { /* 무시 */ }
+      }
+      U.storage.removeItem(BM.api.SESSION_KEY);
+    }
+    BM.auth.signOut();
+    store = null;
+    ctx = null;
+    BM.app.ctx = null;
+    showGate();
   }
 
   function welcome() {
     U.writeJSON('bm_seen_v1', true);
+    var sess = BM.auth.session();
+    var guest = !sess || sess.kind === 'guest';
     UI.openSheet({
       title: '환영합니다 🏸',
-      body: '<p class="sheet__text">구글 시트로 만들던 배드민턴 앱을 <b>빠른 모바일 앱</b>으로 옮긴 프로토타입이에요.</p>' +
+      body: '<p class="sheet__text">' + (guest
+          ? '지금은 <b>체험 모드</b>예요. 예시 인물과 기록으로 모든 기능을 먼저 써 볼 수 있어요.'
+          : '<b>' + U.esc((sess && sess.name) || '회원') + '</b>님, 준비가 끝났어요.') + '</p>' +
         '<ul class="bullets">' +
         '<li>일지를 저장하면 <b>AI가 드릴·처방·이번 주 루틴</b>을 만들어 줘요.</li>' +
         '<li>연타해도 <b>한 번만 저장</b>됩니다. 버튼을 두 번 눌러 확인해 보세요.</li>' +
-        '<li>지금은 <b>체험 모드</b>예요. MY에서 Apps Script 주소를 넣으면 실제 시트와 연결됩니다.</li>' +
+        '<li>계정과 시트 연결은 <b>MY</b>에서 언제든 바꿀 수 있어요.</li>' +
         '</ul><button class="btn btn--primary btn--big mt16" data-close>시작하기</button>'
     });
   }
 
-  /* 보상형 광고 결과 훅 (모바일 앱 WebView)
-   * 네이티브: window.BadmintonNative.showRewardedAd('heart_reward')
-   * 완료/스킵 시: BadmintonNative → JS: BM.app.onRewardAdResult(true|false, 'heart_reward')
-   */
+  /* 보상형 광고 결과 훅 (모바일 앱 WebView) */
   function onRewardAdResult(rewarded, adUnit) {
     var resolve = BM.app && BM.app.pendingRewardAd;
     if (BM.app) BM.app.pendingRewardAd = null;
@@ -243,7 +331,41 @@
     navigator.serviceWorker.register('sw.js').catch(function () { /* 오프라인 캐시는 없어도 동작 */ });
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null };
+  /* ---------- 하단 탭/해시 (한 번만 연결) ---------- */
+  function bindChrome() {
+    var nav = el('tabbar');
+    if (nav) {
+      nav.addEventListener('click', function (ev) {
+        var btn = ev.target.closest('[data-tab]');
+        if (!btn || !store || gated) return;
+        var id = btn.getAttribute('data-tab');
+        UI.haptic(6);
+        store.actions.setTab(id);
+      });
+    }
+    var heartsBtn = el('hdrHearts');
+    if (heartsBtn) heartsBtn.addEventListener('click', function () {
+      if (!store || gated) return;
+      store.actions.setTab('my');
+    });
+
+    window.addEventListener('hashchange', function () {
+      if (!store || gated) return;
+      var id = (location.hash || '').replace('#/', '');
+      if (TABS.some(function (t) { return t.id === id; })) store.actions.setTab(id);
+    });
+  }
+
+  /* ---------- 시작 ---------- */
+  function boot() {
+    bindChrome();
+    var sess = BM.auth.session();
+    if (sess) enterApp(sess);
+    else showGate();
+    registerSW();
+  }
+
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.1.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);
