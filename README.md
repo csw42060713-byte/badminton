@@ -116,7 +116,7 @@ badminton-app/
 │  ├─ util.js            날짜·숫자·ID·디바운스·저장소 등 작은 도구
 │  ├─ domain.js          ★ 시트 26칸 ↔ 앱 객체, 하트 계산, 통계, 궁합 점수, 채팅방
 │  ├─ ai.js              ★ 규칙 기반 '배드민턴 AI' (드릴 라이브러리·부위별 처방)
-│  ├─ seed.js            체험용 가상 데이터 (실제 회원 정보 아님)
+│  ├─ seed.js            초기 데이터 자리 (데모 인물·샘플 기록 없음 · 항상 빈 배열)
 │  ├─ api.js             데이터 통로: local(브라우저) / sheets(Apps Script)
 │  ├─ auth.js            ★ 로그인 상태(Google GIS·이메일·체험)·온보딩·Client ID
 │  ├─ store.js           ★ 상태 + 낙관적 업데이트 + 연타 잠금 + 동기화 큐

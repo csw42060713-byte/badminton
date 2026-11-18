@@ -48,7 +48,7 @@
       '<button type="button" class="start__guest" data-act="guest">로그인 없이 둘러보기</button>' +
       '</div>' +
       '<p class="start__note">처음이라면 <b>10초 설정</b>으로 프로필을 만들고 바로 시작해요.<br>' +
-      '체험 모드에서는 예시 인물과 기록으로 모든 기능을 써 볼 수 있어요.</p>' +
+      '체험 모드에서는 이 기기에만 저장되고, 남긴 기록으로 모든 기능을 써 볼 수 있어요.</p>' +
       '</div>';
   }
 
@@ -123,7 +123,7 @@
       '</div>' +
       '<div class="onb__block">' +
       '<label class="onb__label" for="onbClub">클럽 <i class="onb__opt">선택</i></label>' +
-      '<input id="onbClub" class="onb__input" type="text" maxlength="20" data-o="club" placeholder="예: 나래울" value="' + U.esc(o.club) + '">' +
+      '<input id="onbClub" class="onb__input" type="text" maxlength="20" data-o="club" placeholder="예: 우리 클럽" value="' + U.esc(o.club) + '">' +
       '</div>' +
       (ui.error ? '<p class="start__error">' + U.esc(ui.error) + '</p>' : '') +
       '<button type="button" class="btn btn--primary btn--big onb__go" data-act="finish">시작하기</button>' +
