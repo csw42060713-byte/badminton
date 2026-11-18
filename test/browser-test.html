@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>logic tests</title></head>
+<body>
+<script src="../js/util.js"></script>
+<script src="../js/domain.js"></script>
+<script src="../js/ai.js"></script>
+<script src="../js/seed.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/views/log.js"></script>
+<script src="../js/views/matching.js"></script>
+<script src="../js/views/community.js"></script>
+<script src="../js/views/coach.js"></script>
+<script src="../js/views/my.js"></script>
+<script src="../js/views/start.js"></script>
+<script src="harness.js"></script>
+<script src="fixtures.js"></script>
+<script src="logic.test.js"></script>
+<script>
+window.__done = false; window.__sum = null; window.__err = null;
+BM.test.run().then(function (s) {
+  window.__sum = { total: s.total, passed: s.passed, failed: s.failed,
+    fails: s.results.filter(function (r) { return !r.ok; }) };
+  window.__done = true;
+}).catch(function (e) { window.__err = String((e && e.message) || e); window.__done = true; });
+</script>
+</body></html>

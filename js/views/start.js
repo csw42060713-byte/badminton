@@ -123,7 +123,7 @@
       '</div>' +
       '<div class="onb__block">' +
       '<label class="onb__label" for="onbClub">클럽 <i class="onb__opt">선택</i></label>' +
-      '<input id="onbClub" class="onb__input" type="text" maxlength="20" data-o="club" placeholder="예: 나래울" value="' + U.esc(o.club) + '">' +
+      '<input id="onbClub" class="onb__input" type="text" maxlength="20" data-o="club" placeholder="예: 우리 클럽" value="' + U.esc(o.club) + '">' +
       '</div>' +
       (ui.error ? '<p class="start__error">' + U.esc(ui.error) + '</p>' : '') +
       '<button type="button" class="btn btn--primary btn--big onb__go" data-act="finish">시작하기</button>' +
@@ -181,17 +181,26 @@
     return wrap;
   }
 
-  /* ---------- 이벤트 ---------- */
+  /* ---------- 이벤트 ----------
+   * #main은 시작화면 → 온보딩으로 이어지므로, 다시 마운트할 때
+   * 이전에 붙인 리스너를 먼저 떼어 냅니다(같은 클릭이 두 번 처리되던 문제). */
+  var bound = null;
+
+  function unbind() {
+    if (!bound) return;
+    bound.handlers.forEach(function (h) { bound.host.removeEventListener(h.type, h.fn); });
+    bound = null;
+  }
+
+  function on(host, type, fn) {
+    host.addEventListener(type, fn);
+    if (bound) bound.handlers.push({ type: type, fn: fn });
+  }
+
   function mount(host, ctx) {
     ctx = ctx || {};
-    /* 시작화면 → 온보딩처럼 같은 host에 다시 그릴 때, 예전 리스너가 남아 있으면
-     * 한 번의 탭이 두 번 처리됩니다(온보딩 칩이 골라지지 않던 원인). 먼저 떼어 냅니다. */
-    if (host.__bmStartHandlers) {
-      Object.keys(host.__bmStartHandlers).forEach(function (type) {
-        host.removeEventListener(type, host.__bmStartHandlers[type]);
-      });
-    }
-    var handlers = host.__bmStartHandlers = {};
+    unbind();
+    bound = { host: host, handlers: [] };
     paint(host);
 
     function done() {
@@ -228,7 +237,7 @@
       BM.auth.loadGoogleScript().then(setupGsi).catch(function () { /* 직접 버튼으로 안내 */ });
     }
 
-    handlers.click = function (ev) {
+    on(host, 'click', function (ev) {
       var act = ev.target.closest('[data-act]');
       if (act) {
         var name = act.getAttribute('data-act');
@@ -333,6 +342,7 @@
       var pick = ev.target.closest('[data-pick]');
       if (pick) {
         ev.preventDefault();
+        clearError(host);
         var group = pick.getAttribute('data-pick');
         var val = pick.getAttribute('data-val');
         var box = pick.closest('[data-pick-group]');
@@ -351,30 +361,34 @@
         ui.error = '';
         UI.haptic(6);
       }
-    };
-    host.addEventListener('click', handlers.click);
+    });
 
-    handlers.input = function (ev) {
+    on(host, 'input', function (ev) {
+      clearError(host);
       var f = ev.target.closest('[data-f]');
       if (f) { ui.draft[f.getAttribute('data-f')] = f.value; return; }
       var o = ev.target.closest('[data-o]');
       if (o) { ui.onb[o.getAttribute('data-o')] = o.value; }
-    };
-    host.addEventListener('input', handlers.input);
+    });
 
-    handlers.keydown = function (ev) {
+    on(host, 'keydown', function (ev) {
       if (ev.key !== 'Enter') return;
       var field = ev.target.closest('[data-f]');
       if (!field || ui.screen !== 'email' || ui.busy) return;
       ev.preventDefault();
       var btn = host.querySelector('[data-act="submit"]');
       if (btn) btn.click();
-    };
-    host.addEventListener('keydown', handlers.keydown);
+    });
 
     if (ui.screen === 'home' && !BM.auth.googleClientId()) {
       /* Client ID가 없어도 버튼은 눌리게 두고, 눌렀을 때 안내합니다 */
     }
+  }
+
+  function clearError(host) {
+    ui.error = '';
+    var err = host.querySelector('.start__error');
+    if (err && err.parentNode) err.parentNode.removeChild(err);
   }
 
   function readDraft() {
@@ -414,6 +428,7 @@
       return '<div class="view view--start">' + onboardingHtml(session) + '</div>';
     },
     mountOnboarding: mountOnboarding,
+    unmount: unbind,
     reset: reset,
     state: function () { return ui; }
   };

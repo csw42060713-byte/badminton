@@ -60,6 +60,11 @@
   }
 
   /* ---------- 계정 카드 (로그인 상태 · 로그아웃 · Google Client ID) ---------- */
+  function isGuest() {
+    var s = BM.auth && BM.auth.session ? BM.auth.session() : null;
+    return !s || s.kind === 'guest';
+  }
+
   function accountCard(state) {
     var auth = BM.auth;
     var s = auth.session();
@@ -219,25 +224,25 @@
         themeSwatches(state) + '</section>' +
 
         '<section class="card"><header class="card__head"><h2>데이터 연결</h2>' +
-        '<span class="pill ' + (state.mode === 'sheets' ? 'pill--ok' : '') + '">' + (state.mode === 'sheets' ? '시트 연결됨' : '체험 모드') + '</span></header>' +
+        '<span class="pill ' + (state.mode === 'sheets' ? 'pill--ok' : '') + '">' + (state.mode === 'sheets' ? '시트 연결됨' : '기기 저장') + '</span></header>' +
         '<p class="hint">' + (state.mode === 'sheets'
           ? '구글 시트의 <b>출력결과</b> 탭과 실제로 연결되어 있어요. 저장하면 시트에 바로 쌓입니다.'
-          : '브라우저에만 저장되는 체험 모드예요. Apps Script 브리지를 배포하면 실제 시트와 연결됩니다.') + '</p>' +
+          : '이 기기 브라우저에 저장돼요. Apps Script 브리지를 연결하면 계정 기록이 시트에 쌓입니다.') + '</p>' +
         '<div class="row gap8 mt8">' +
         '<button class="btn btn--ghost grow" data-act="connect">' + UI.icon('edit') + '시트 연결</button>' +
         '<button class="btn btn--ghost grow" data-act="export">JSON 내보내기</button></div>' +
-        (state.mode === 'local' ? '<button class="linkbtn mt8" data-act="reset-demo">저장된 기록 모두 지우기</button>' : '') +
+        ((state.mode === 'local' && isGuest()) ? '<button class="linkbtn mt8" data-act="reset-demo">저장된 기록 모두 지우기</button>' : '') +
         '<p class="sync">마지막 동기화 ' + U.esc(state.lastSync || '—') +
         (state.syncState === 'syncing' ? ' · 보내는 중…' : state.syncState === 'error' ? ' · <b class="warn">재시도 대기</b>' : '') + '</p>' +
         (state.queue && state.queue.length ? '<button class="linkbtn" data-act="retry">대기 중인 저장 ' + state.queue.length + '건 지금 보내기</button>' : '') +
         '</section>' +
 
-        '<p class="version">배드민턴 분석 앱 · 프로토타입 v1.0 · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : 'localStorage') + '</p>';
+        '<p class="version">배드민턴 분석 앱 · 프로토타입 v1.1 · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : 'localStorage') + '</p>';
     },
 
     mount: function (root, ctx) {
       root.addEventListener('click', function (ev) {
-        var sw = ev.target.closest('[data-theme]');
+        var sw = ev.target.closest('.theme[data-theme]');   /* html[data-theme]까지 올라가지 않게 */
         if (sw) {
           ev.preventDefault();
           var id = sw.getAttribute('data-theme');
