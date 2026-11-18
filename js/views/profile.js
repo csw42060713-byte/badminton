@@ -22,7 +22,8 @@
   }
 
   /* 친구 상태에 맞는 버튼 묶음 */
-  function buttons(state, key) {
+  function buttons(state, key, opts) {
+    opts = opts || {};
     var me = state.me || {};
     if (!key || key === me.key) return '';
     var fs = D.friendState(state.data.idx, me.key, key);
@@ -47,7 +48,7 @@
     if (canChat && roomId) {
       out += '<button class="btn btn--primary btn--sm" data-friend-chat="' + U.esc(roomId) + '" data-other="' + U.esc(key) + '">' +
         UI.icon('community') + '채팅하기</button>';
-    } else if (!canChat) {
+    } else if (!canChat && !opts.noHint) {
       out += '<span class="pp__friendhint">친구가 되면 1:1 대화를 할 수 있어요</span>';
     }
     return out;

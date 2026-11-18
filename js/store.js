@@ -132,6 +132,9 @@
       ui: {
         tab: 'log',
         matchFilter: { level: '전체', gender: '전체', region: '전체', discipline: '전체', query: '' },
+        matchTab: 'find',        /* find · in(받은 요청) · out(보낸 요청) · chat(대화) */
+        matchSort: 'score',      /* score(궁합순) · recent(최근순) */
+        matchFilterOpen: '',     /* 펼친 필터 줄 (level · region · discipline · gender) */
         chatRoom: null, chatOther: '', chatOpen: false, coachTab: '', coachPlayer: null, composer: '', replyTo: null
       },
       analysis: null,
@@ -906,8 +909,28 @@
         emit();
       },
 
+      /* 매칭 화면: 찾기/받은 요청/보낸 요청/대화 탭 */
+      setMatchTab: function (tab) {
+        var allowed = { find: 1, 'in': 1, out: 1, chat: 1 };
+        state.ui.matchTab = allowed[tab] ? tab : 'find';
+        emit();
+      },
+
+      /* 매칭 정렬: 궁합순 / 최근순 */
+      setMatchSort: function (sort) {
+        state.ui.matchSort = sort === 'recent' ? 'recent' : 'score';
+        emit();
+      },
+
+      /* 필터 줄 펼치기/접기 (빈 값이면 모두 접힘) */
+      setFilterPanel: function (key) {
+        state.ui.matchFilterOpen = state.ui.matchFilterOpen === key ? '' : (key || '');
+        emit();
+      },
+
       resetMatchFilter: function () {
         state.ui.matchFilter = { level: '전체', gender: '전체', region: '전체', discipline: '전체', query: '' };
+        state.ui.matchFilterOpen = '';
         emit();
       },
 

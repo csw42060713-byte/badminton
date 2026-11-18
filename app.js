@@ -59,7 +59,12 @@
       var matchBtn = nav.querySelector('[data-tab="matching"]');
       if (matchBtn) {
         var badge = matchBtn.querySelector('.nav__badge');
-        var unread = state.data.unread || 0;
+        /* 매칭 탭 배지: 안 읽은 메시지 + 나에게 온 대기 중인 요청 */
+        var meKey = state.me && state.me.key;
+        var pendingReq = (state.data.requests || []).filter(function (r) {
+          return r.target === meKey && r.status === '대기';
+        }).length;
+        var unread = (state.data.unread || 0) + pendingReq;
         if (badge) {
           badge.textContent = unread > 9 ? '9+' : String(unread);
           badge.hidden = !unread;
