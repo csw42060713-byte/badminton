@@ -331,7 +331,7 @@ function login_(p) {
     /* 신규 가입: 프로필 행을 만들고 해시된 비밀번호를 저장 */
     var salt = newSalt_();
     var profileRow = {
-      id: recordId(), type: '프로필', createdAt: now_(), date: today_(),
+      id: recordId_(), type: '프로필', createdAt: now_(), date: today_(),
       nick: nick || email.split('@')[0], userKey: email,
       password: hashPassword_(password, salt)
     };
@@ -408,7 +408,7 @@ function setPasswordFor_(userKey, hash) {
   });
   if (!wrote) {
     /* 프로필 행이 없으면 하나 만듭니다 */
-    appendRow_({ id: recordId(), type: '프로필', createdAt: now_(), nick: String(userKey).split('@')[0], userKey: userKey, password: hash });
+    appendRow_({ id: recordId_(), type: '프로필', createdAt: now_(), nick: String(userKey).split('@')[0], userKey: userKey, password: hash });
   }
 }
 

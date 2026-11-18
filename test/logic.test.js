@@ -894,6 +894,16 @@
     s.onb = { nick: '', level: '', discipline: '', region: '', club: '' };
   }
 
+  test('브리지: 저장된 주소가 없으면 배포된 기본 시트 브리지로 연결한다', function () {
+    clearAuth();
+    ok(/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(BM.auth.bridgeUrl()), '기본 /exec 주소');
+    eq(BM.auth.bridgeUrl(), BM.auth.DEFAULT_BRIDGE_URL, '기본값=DEFAULT_BRIDGE_URL');
+    BM.auth.saveBridgeUrl('https://example.com/custom');
+    eq(BM.auth.bridgeUrl(), 'https://example.com/custom', '저장한 주소가 우선');
+    U.storage.removeItem('bm_bridge_url_v1');
+    eq(BM.auth.bridgeUrl(), BM.auth.DEFAULT_BRIDGE_URL, '저장값을 지우면 기본값');
+  });
+
   test('계정: 둘러보기 세션은 저장되고 로그아웃하면 사라진다', function () {
     clearAuth();
     eq(BM.auth.session(), null, '처음에는 세션 없음');
@@ -909,7 +919,7 @@
 
   test('계정: 이메일 가입 → 로그인 (비밀번호는 해시로만 저장)', function () {
     clearAuth();
-    return BM.auth.signInEmail({ email: 'Player@Example.com', password: 'secret12', nick: '테스터', create: true })
+    return BM.auth.signInEmail({ email: 'Player@Example.com', password: 'secret12', nick: '테스터', create: true, url: '' })
       .then(function (res) {
         eq(res.ok, true, '가입 성공');
         eq(res.session.kind, 'email', '이메일 세션');
@@ -919,22 +929,22 @@
         ok(/^(sha256|fnv)\$/.test(acc.hash), '해시 형식: ' + acc.hash);
         excludes(JSON.stringify(acc), 'secret12', '평문 비밀번호 없음');
         BM.auth.signOut();
-        return BM.auth.signInEmail({ email: 'player@example.com', password: 'secret12' });
+        return BM.auth.signInEmail({ email: 'player@example.com', password: 'secret12', url: '' });
       })
       .then(function (res) {
         eq(res.ok, true, '로그인 성공');
         eq(BM.auth.session().kind, 'email', '세션 종류');
-        return BM.auth.signInEmail({ email: 'player@example.com', password: 'wrong-pass' });
+        return BM.auth.signInEmail({ email: 'player@example.com', password: 'wrong-pass', url: '' });
       })
       .then(function (res) {
         eq(res.ok, false, '틀린 비밀번호는 거절');
         eq(res.code, 'bad_password', '이유');
-        return BM.auth.signInEmail({ email: 'player@example.com', password: 'secret12', create: true });
+        return BM.auth.signInEmail({ email: 'player@example.com', password: 'secret12', create: true, url: '' });
       })
       .then(function (res) {
         eq(res.ok, false, '같은 이메일 재가입 거절');
         eq(res.code, 'exists', '이유');
-        return BM.auth.signInEmail({ email: 'nobody@example.com', password: 'secret12' });
+        return BM.auth.signInEmail({ email: 'nobody@example.com', password: 'secret12', url: '' });
       })
       .then(function (res) {
         eq(res.ok, false, '없는 계정은 만들지 않음');
@@ -958,7 +968,7 @@
 
   test('온보딩: 가입 직후에는 필요하고, 완료하면 다시 묻지 않는다', function () {
     clearAuth();
-    return BM.auth.signInEmail({ email: 'onb@example.com', password: 'secret12', nick: '온보', create: true })
+    return BM.auth.signInEmail({ email: 'onb@example.com', password: 'secret12', nick: '온보', create: true, url: '' })
       .then(function () {
         var s = BM.auth.session();
         eq(BM.auth.needsOnboarding(s, { level: '', discipline: '' }), true, '가입 직후 온보딩 필요');
@@ -973,7 +983,7 @@
 
   test('계정: 로그인 계정은 체험 데이터와 다른 저장 키를 쓴다', function () {
     clearAuth();
-    return BM.auth.signInEmail({ email: 'key@example.com', password: 'secret12', create: true }).then(function () {
+    return BM.auth.signInEmail({ email: 'key@example.com', password: 'secret12', create: true, url: '' }).then(function () {
       var key = BM.auth.rowsKeyFor(BM.auth.session());
       ok(key.indexOf('bm_rows_v1::') === 0, '계정별 키: ' + key);
       ok(key.indexOf('key@example.com') > 0, '이메일 포함');
@@ -1053,7 +1063,7 @@
     includes(guest, '체험 모드', '체험 표시');
     includes(guest, 'data-act="account-login"', '로그인 버튼');
     includes(guest, '고급 · Google Client ID', 'Client ID 설정');
-    return BM.auth.signInEmail({ email: 'my@example.com', password: 'secret12', nick: '마이', create: true }).then(function () {
+    return BM.auth.signInEmail({ email: 'my@example.com', password: 'secret12', nick: '마이', create: true, url: '' }).then(function () {
       var html = BM.views.my.render(stateOf(BM.fixtures.demo()));
       includes(html, '이메일 계정', '이메일 표시');
       includes(html, 'data-act="logout"', '로그아웃 버튼');
