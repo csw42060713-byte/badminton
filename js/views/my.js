@@ -231,7 +231,7 @@
         '<div class="row gap8 mt8">' +
         '<button class="btn btn--ghost grow" data-act="connect">' + UI.icon('edit') + '시트 연결</button>' +
         '<button class="btn btn--ghost grow" data-act="export">JSON 내보내기</button></div>' +
-        ((state.mode === 'local' && isGuest()) ? '<button class="linkbtn mt8" data-act="reset-demo">체험 데이터 처음으로</button>' : '') +
+        ((state.mode === 'local' && isGuest()) ? '<button class="linkbtn mt8" data-act="reset-demo">저장된 기록 모두 지우기</button>' : '') +
         '<p class="sync">마지막 동기화 ' + U.esc(state.lastSync || '—') +
         (state.syncState === 'syncing' ? ' · 보내는 중…' : state.syncState === 'error' ? ' · <b class="warn">재시도 대기</b>' : '') + '</p>' +
         (state.queue && state.queue.length ? '<button class="linkbtn" data-act="retry">대기 중인 저장 ' + state.queue.length + '건 지금 보내기</button>' : '') +
@@ -310,9 +310,9 @@
         }
         if (ev.target.closest('[data-act="reset-demo"]')) {
           ev.preventDefault();
-          UI.confirm('체험 데이터를 처음 상태로 되돌릴까요? 저장한 기록이 사라집니다.').then(function (ok) {
+          UI.confirm('이 기기에 저장된 기록을 모두 지울까요? 되돌릴 수 없어요.').then(function (ok) {
             if (!ok) return;
-            ctx.actions.resetDemo().then(function () { UI.toast('체험 데이터를 초기화했어요'); });
+            ctx.actions.resetDemo().then(function () { UI.toast('저장된 기록을 모두 지웠어요'); });
           });
           return;
         }
