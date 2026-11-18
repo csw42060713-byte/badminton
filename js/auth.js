@@ -23,6 +23,9 @@
   var CLIENT_ID_KEY = 'bm_google_client_id_v1';
   var PROFILE_KEY = 'bm_auth_profile_v1';
   var BRIDGE_KEY = 'bm_bridge_url_v1';
+  /* 배포된 구글 시트 브리지(Apps Script 웹 앱) 주소.
+     MY > 시트 연결에서 저장한 주소가 있으면 그 값이 우선하고, 없을 때만 이 기본값을 씁니다. */
+  var DEFAULT_BRIDGE_URL = 'https://script.google.com/macros/s/AKfycbwr9EtmiKo6HT5sz_dsgKtLwkX1B-z_EA-B4u28HxN_09kv9S4tluejRtB4HkFEgwPo/exec';
   var GOOGLE_SRC = 'https://accounts.google.com/gsi/client';
 
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -354,7 +357,9 @@
     var direct = String(U.readJSON(BRIDGE_KEY, '') || '').trim();
     if (direct) return direct;
     var sess = BM.api ? BM.api.savedSession() : null;
-    return (sess && sess.url) || '';
+    if (sess && sess.url) return sess.url;
+    /* 저장된 주소가 없으면 배포된 기본 브리지로 연결합니다 */
+    return DEFAULT_BRIDGE_URL;
   }
 
   function saveBridgeUrl(url) {
@@ -438,6 +443,7 @@
   BM.auth = {
     SESSION_KEY: SESSION_KEY, ACCOUNTS_KEY: ACCOUNTS_KEY,
     CLIENT_ID_KEY: CLIENT_ID_KEY, PROFILE_KEY: PROFILE_KEY, BRIDGE_KEY: BRIDGE_KEY,
+    DEFAULT_BRIDGE_URL: DEFAULT_BRIDGE_URL,
     DEMO_GOOGLE: DEMO_GOOGLE,
     session: session, identityKey: identityKey, kindLabel: kindLabel, rowsKeyFor: rowsKeyFor, meKeyFor: meKeyFor,
     signInGuest: signInGuest, signInGoogle: signInGoogle, signInEmail: signInEmail,
