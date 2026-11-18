@@ -115,11 +115,11 @@
       '<header class="card__head"><h2>멘토 신청</h2><span class="muted sm">관리자 심사</span></header>' +
       '<p class="sectionnote">코치·멘토로 활동하려면 아래 조건을 적어 신청해 주세요. <b>관리자에게만 전달</b>되고, 다른 회원에게는 보이지 않습니다.</p>' +
       '<div class="form">' +
-      '<label class="flabel">활동 유형' +
+      '<div class="flabel"><span>활동 유형</span>' +
       '<div class="chips" data-mentor-type>' +
       ['선수 멘토', '코치', '클럽 운영'].map(function (t, i) {
         return '<button type="button" class="chip' + (i === 0 ? ' is-on' : '') + '" data-mtype="' + U.esc(t) + '">' + U.esc(t) + '</button>';
-      }).join('') + '</div></label>' +
+      }).join('') + '</div></div>' +
       '<label class="flabel">경력<input type="text" data-mentor-field="experience" maxlength="40" placeholder="예: 5년, A조 리그 3회 출전" value=""></label>' +
       '<label class="flabel">수상·자격<input type="text" data-mentor-field="awards" maxlength="60" placeholder="예: 시·군 대회 복식 3위, 생활체육지도자 2급" value=""></label>' +
       '<label class="flabel">지원 사유<textarea rows="3" data-mentor-field="reason" maxlength="300" placeholder="어떤 도움을 줄 수 있는지 적어 주세요"></textarea></label>' +
