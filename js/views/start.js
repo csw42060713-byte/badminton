@@ -181,9 +181,26 @@
     return wrap;
   }
 
-  /* ---------- 이벤트 ---------- */
+  /* ---------- 이벤트 ----------
+   * #main은 시작화면 → 온보딩으로 이어지므로, 다시 마운트할 때
+   * 이전에 붙인 리스너를 먼저 떼어 냅니다(같은 클릭이 두 번 처리되던 문제). */
+  var bound = null;
+
+  function unbind() {
+    if (!bound) return;
+    bound.handlers.forEach(function (h) { bound.host.removeEventListener(h.type, h.fn); });
+    bound = null;
+  }
+
+  function on(host, type, fn) {
+    host.addEventListener(type, fn);
+    if (bound) bound.handlers.push({ type: type, fn: fn });
+  }
+
   function mount(host, ctx) {
     ctx = ctx || {};
+    unbind();
+    bound = { host: host, handlers: [] };
     paint(host);
 
     function done() {
@@ -220,7 +237,7 @@
       BM.auth.loadGoogleScript().then(setupGsi).catch(function () { /* 직접 버튼으로 안내 */ });
     }
 
-    host.addEventListener('click', function (ev) {
+    on(host, 'click', function (ev) {
       var act = ev.target.closest('[data-act]');
       if (act) {
         var name = act.getAttribute('data-act');
@@ -325,6 +342,7 @@
       var pick = ev.target.closest('[data-pick]');
       if (pick) {
         ev.preventDefault();
+        clearError(host);
         var group = pick.getAttribute('data-pick');
         var val = pick.getAttribute('data-val');
         var box = pick.closest('[data-pick-group]');
@@ -345,14 +363,15 @@
       }
     });
 
-    host.addEventListener('input', function (ev) {
+    on(host, 'input', function (ev) {
+      clearError(host);
       var f = ev.target.closest('[data-f]');
       if (f) { ui.draft[f.getAttribute('data-f')] = f.value; return; }
       var o = ev.target.closest('[data-o]');
       if (o) { ui.onb[o.getAttribute('data-o')] = o.value; }
     });
 
-    host.addEventListener('keydown', function (ev) {
+    on(host, 'keydown', function (ev) {
       if (ev.key !== 'Enter') return;
       var field = ev.target.closest('[data-f]');
       if (!field || ui.screen !== 'email' || ui.busy) return;
@@ -364,6 +383,12 @@
     if (ui.screen === 'home' && !BM.auth.googleClientId()) {
       /* Client ID가 없어도 버튼은 눌리게 두고, 눌렀을 때 안내합니다 */
     }
+  }
+
+  function clearError(host) {
+    ui.error = '';
+    var err = host.querySelector('.start__error');
+    if (err && err.parentNode) err.parentNode.removeChild(err);
   }
 
   function readDraft() {
@@ -403,6 +428,7 @@
       return '<div class="view view--start">' + onboardingHtml(session) + '</div>';
     },
     mountOnboarding: mountOnboarding,
+    unmount: unbind,
     reset: reset,
     state: function () { return ui; }
   };

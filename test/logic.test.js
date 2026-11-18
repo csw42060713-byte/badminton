@@ -949,9 +949,12 @@
       ok(key.indexOf('bm_rows_v1::') === 0, '계정별 키: ' + key);
       ok(key.indexOf('key@example.com') > 0, '이메일 포함');
       eq(key !== 'bm_rows_v1', true, '체험 키와 분리');
+      var meKey = BM.auth.meKeyFor(BM.auth.session());
+      ok(meKey.indexOf('u_') === 0, '계정 사용자 키: ' + meKey);
       BM.auth.signOut();
       BM.auth.signInGuest();
       eq(BM.auth.rowsKeyFor(BM.auth.session()), 'bm_rows_v1', '체험 키');
+      eq(BM.auth.meKeyFor(BM.auth.session()), BM.seed.ME, '체험 사용자 키');
     });
   });
 
@@ -1035,13 +1038,14 @@
     U.storage.removeItem('bm_rows_v1');
     U.storage.removeItem('bm_rows_v1::guest@example.com');
     var guestApi = BM.api.createLocal({ latency: 0 });
-    var acctApi = BM.api.createLocal({ latency: 0, rowsKey: 'bm_rows_v1::guest@example.com', me: { nick: '새회원', level: '', discipline: '' } });
+    var acctApi = BM.api.createLocal({ latency: 0, rowsKey: 'bm_rows_v1::guest@example.com', meKey: 'u_test', me: { nick: '새회원', level: '', discipline: '' } });
     return guestApi.bootstrap().then(function (res) {
       ok(res.rows.length > 50, '체험 데이터');
       return acctApi.bootstrap();
     }).then(function (res) {
       ok(res.rows.length > 50, '계정도 첫 실행에 예시 데이터를 가짐');
       eq(res.me.nick, '새회원', '계정 닉네임 적용');
+      eq(res.me.key, 'u_test', '계정 전용 사용자 키');
       eq(res.me.level, '', '급수는 비어 있음(온보딩 대상)');
       eq(res.me.discipline, '', '종목은 비어 있음(온보딩 대상)');
       ok(U.readJSON('bm_rows_v1', null), '체험 데이터 키 유지');

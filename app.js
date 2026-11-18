@@ -182,6 +182,10 @@
     document.body.classList.remove('is-onboarding');
     setNav(false);
     hideSplash();
+    /* 시작화면은 특정 탭의 주소를 남기지 않습니다 */
+    if (location.hash && location.hash !== '#/') {
+      try { history.replaceState(null, '', '#/'); } catch (e) { /* 무시 */ }
+    }
     var host = el('main');
     if (!host || !BM.views.start) return;
     BM.views.start.reset();
@@ -231,6 +235,8 @@
     document.body.classList.remove('is-onboarding');
     setNav(true);
     hideSplash();
+    /* 시작화면/온보딩 리스너를 떼어 냅니다(본문 클릭과 겹치지 않게) */
+    if (BM.views.start && BM.views.start.unmount) BM.views.start.unmount();
 
     var saved = BM.api.savedSession();
     var sheets = !!(session && session.kind !== 'guest' && saved && saved.token && saved.url);
@@ -245,7 +251,7 @@
         region: (session.profile && session.profile.region) || '',
         club: (session.profile && session.profile.club) || ''
       } : null;
-      api = BM.api.createLocal({ latency: 120, rowsKey: BM.auth.rowsKeyFor(session), me: ident });
+      api = BM.api.createLocal({ latency: 120, rowsKey: BM.auth.rowsKeyFor(session), meKey: BM.auth.meKeyFor(session), me: ident });
     }
 
     store = BM.store.createStore({ api: api });

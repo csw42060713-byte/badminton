@@ -428,11 +428,18 @@
     return 'bm_rows_v1::' + identityKey(s);
   }
 
+  /* 계정별 사용자 키 — 체험 모드의 demo_me와 겹치지 않게 따로 둡니다 */
+  function meKeyFor(s) {
+    s = s || session();
+    if (!s || s.kind === 'guest') return BM.seed ? BM.seed.ME : 'demo_me';
+    return 'u_' + fnv(identityKey(s)).slice(0, 12);
+  }
+
   BM.auth = {
     SESSION_KEY: SESSION_KEY, ACCOUNTS_KEY: ACCOUNTS_KEY,
     CLIENT_ID_KEY: CLIENT_ID_KEY, PROFILE_KEY: PROFILE_KEY, BRIDGE_KEY: BRIDGE_KEY,
     DEMO_GOOGLE: DEMO_GOOGLE,
-    session: session, identityKey: identityKey, kindLabel: kindLabel, rowsKeyFor: rowsKeyFor,
+    session: session, identityKey: identityKey, kindLabel: kindLabel, rowsKeyFor: rowsKeyFor, meKeyFor: meKeyFor,
     signInGuest: signInGuest, signInGoogle: signInGoogle, signInEmail: signInEmail,
     signInEmailAccount: signInEmailAccount,
     signOut: signOut, signOutKeepAccounts: signOutKeepAccounts,
