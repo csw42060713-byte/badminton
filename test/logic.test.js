@@ -1012,13 +1012,17 @@
 
   test('계정: Google Client ID 검증과 저장', function () {
     clearAuth();
-    eq(BM.auth.googleClientId(), '', '처음에는 비어 있음');
+    /* 배포 기본값이 들어 있어, 저장 값이 없어도 실제 구글 로그인이 동작합니다. */
+    eq(BM.auth.googleClientId(), BM.auth.DEFAULT_GOOGLE_CLIENT_ID, '처음에는 배포 기본값');
+    eq(BM.auth.isGoogleClientId(BM.auth.googleClientId()), true, '기본값은 올바른 형식');
+    eq(BM.auth.isDefaultGoogleClientId(), true, '기본값 사용 중');
     eq(BM.auth.setGoogleClientId('not-a-client-id').ok, false, '형식 오류 거절');
     var good = '1234567890-abcdefg.apps.googleusercontent.com';
     eq(BM.auth.setGoogleClientId(good).ok, true, '정상 ID 저장');
-    eq(BM.auth.googleClientId(), good, '읽기');
+    eq(BM.auth.googleClientId(), good, '저장한 값이 기본값보다 우선');
+    eq(BM.auth.isDefaultGoogleClientId(), false, '직접 넣은 값 상태');
     BM.auth.setGoogleClientId('');
-    eq(BM.auth.googleClientId(), '', '지우기');
+    eq(BM.auth.googleClientId(), BM.auth.DEFAULT_GOOGLE_CLIENT_ID, '지우면 기본값으로 복귀');
   });
 
   test('시작화면: Google·이메일·둘러보기 세 갈래가 한 화면에 있다', function () {

@@ -117,8 +117,11 @@
       '<details class="adv">' +
       '<summary>고급 · Google Client ID</summary>' +
       '<div class="adv__body">' +
-      '<p class="hint">Google Cloud Console → OAuth 클라이언트 ID(웹 애플리케이션). 승인된 자바스크립트 원본에 ' +
-      U.esc(origin || '이 사이트 주소') + '를 추가하세요.</p>' +
+      '<p class="hint">' + (auth.isDefaultGoogleClientId
+        ? '기본으로 배드민턴 앱의 Google Client ID가 연결돼 있어 따로 넣지 않아도 구글 로그인이 돼요. '
+        : '이 기기에만 다른 Client ID가 저장돼 있어요(아래 지우기를 누르면 기본값으로 돌아갑니다). ') +
+      '다른 Google Cloud 프로젝트 것을 쓰려면 여기에 넣으세요. 승인된 자바스크립트 원본에는 ' +
+      U.esc(origin || '이 사이트 주소') + '가 있어야 합니다.</p>' +
       '<input class="adv__input" type="text" data-cid spellcheck="false" autocomplete="off" placeholder="0000-xxxx.apps.googleusercontent.com" value="' + U.esc(cid) + '">' +
       '<div class="row gap8 mt8"><button type="button" class="btn btn--primary grow btn--sm" data-act="save-client-id">저장</button>' +
       (cid ? '<button type="button" class="btn btn--ghost btn--sm" data-act="clear-client-id">지우기</button>' : '') +
@@ -437,14 +440,14 @@
           var input = root.querySelector('[data-cid]');
           var savedCid = BM.auth.setGoogleClientId(input ? input.value : '');
           if (!savedCid.ok) { UI.toast(savedCid.message, 'error'); return; }
-          UI.toast(savedCid.clientId ? 'Google Client ID를 저장했어요' : 'Client ID를 지웠어요');
+          UI.toast(savedCid.clientId ? 'Google Client ID를 저장했어요' : '저장 값을 지웠어요 · 기본 Client ID로 동작합니다');
           ctx.refresh();
           return;
         }
         if (ev.target.closest('[data-act="clear-client-id"]')) {
           ev.preventDefault();
           BM.auth.setGoogleClientId('');
-          UI.toast('Client ID를 지웠어요');
+          UI.toast('저장 값을 지웠어요 · 기본 Client ID로 동작합니다');
           ctx.refresh();
           return;
         }
