@@ -116,11 +116,11 @@
     p = p || {};
     var t = p.theme || {};
     return normalizeAvatar({
-      avatarPhoto: p.avatarPhoto || t.avatarPhoto,
-      avatar: p.avatar || t.avatar,
-      avatarFrame: p.avatarFrame || t.avatarFrame,
-      avatarBg: p.avatarBg || t.avatarBg,
-      avatarBadge: p.avatarBadge || t.avatarBadge
+      avatarPhoto: p.avatarPhoto || p.photo || t.avatarPhoto,
+      avatar: p.avatar || p.emoji || t.avatar,
+      avatarFrame: p.avatarFrame || p.frame || t.avatarFrame,
+      avatarBg: p.avatarBg || p.bg || t.avatarBg,
+      avatarBadge: p.avatarBadge || p.badge || t.avatarBadge
     });
   }
 
@@ -614,7 +614,8 @@
       var v = filter[k];
       if (v && v !== '전체') out.push({ key: k, value: v });
     });
-    if (filter.query) out.push({ key: 'query', value: filter.query });
+    var q = String(filter.query == null ? '' : filter.query).trim();
+    if (q) out.push({ key: 'query', value: q });
     return out;
   }
 

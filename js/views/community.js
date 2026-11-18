@@ -14,8 +14,8 @@
 
   function avatarFor(state, userKey) {
     var mp = (state.data.matchProfiles || []).filter(function (m) { return m.userKey === userKey; })[0];
-    if (mp && mp.avatar) return mp.avatar;
-    if (state.me && state.me.key === userKey && state.me.theme && state.me.theme.avatar) return state.me.theme.avatar;
+    if (mp) return mp;
+    if (state.me && state.me.key === userKey) return { theme: state.me.theme, avatar: (state.me.theme && state.me.theme.avatar) || '🏸' };
     return '🏸';
   }
 
@@ -23,7 +23,7 @@
     var open = !!openReplies[p.id];
     var me = (state.me && state.me.key) || '';
     return '<article class="post" data-post="' + U.esc(p.id) + '">' +
-      '<header class="post__head">' + UI.avatar(avatarFor(state, p.userKey), 36) +
+      '<header class="post__head">' + UI.avatar(avatarFor(state, p.userKey), 40) +
       '<div class="post__who"><strong>' + U.esc(p.nick) + '</strong>' +
       '<time>' + U.timeAgo(p.createdAt) + '</time></div></header>' +
       '<p class="post__text">' + U.esc(p.text).replace(/\n/g, '<br>') + '</p>' +
@@ -52,7 +52,7 @@
       if (sortMode === 'hot') posts.sort(function (a, b) { return (b.likes + b.replies.length) - (a.likes + a.replies.length); });
       return '' +
         '<section class="card card--composer">' +
-        '<div class="row">' + UI.avatar((state.me && state.me.theme && state.me.theme.avatar) || '🏸', 34) +
+        '<div class="row">' + UI.avatar({ theme: state.me && state.me.theme }, 36) +
         '<textarea rows="2" data-composer placeholder="오늘 경기 어땠어요? 한 줄 남겨보세요" maxlength="300">' + U.esc(state.ui.composer || '') + '</textarea></div>' +
         '<div class="row between mt8"><span class="muted sm">욕설·비방은 자제해 주세요</span>' +
         '<button class="btn btn--primary btn--sm" data-act="post">' + UI.icon('send') + '올리기</button></div>' +

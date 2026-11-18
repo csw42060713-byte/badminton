@@ -1078,6 +1078,193 @@
     });
   });
 
+  /* ================= 11. 매칭 검색 · 성별 필터 · 프로필 꾸미기 (v1.2) ================= */
+  test('성별: 표기를 하나로 정리한다', function () {
+    eq(D.normalizeGender('남성'), '남성', '남성');
+    eq(D.normalizeGender('남'), '남성', '남');
+    eq(D.normalizeGender('male'), '남성', 'male');
+    eq(D.normalizeGender('여'), '여성', '여');
+    eq(D.normalizeGender('Female'), '여성', 'Female');
+    eq(D.normalizeGender('비공개'), '비공개', '비공개');
+    eq(D.normalizeGender(''), '비공개', '빈 값 → 비공개');
+    eq(D.normalizeGender(null), '비공개', 'null → 비공개');
+    eq(D.VOCAB.genders.length, 3, '성별 3종');
+  });
+
+  test('검색: 닉네임·지역·클럽·소개 낱말로 찾는다', function () {
+    var state = stateOf();
+    function find(q) {
+      return D.filterPlayers(state.data.matchProfiles, { query: q }, { excludeKey: BM.seed.ME })
+        .map(function (p) { return p.nick; });
+    }
+    eq(find('콕집사').join(), '콕집사', '닉네임');
+    includes(find('나래울').join(), '콕집사', '클럽으로 찾기');
+    includes(find('강서').join(), '발놀림장인', '클럽 일부');
+    includes(find('풋워크').join(), '발놀림장인', '소개 낱말');
+    includes(find('경기').join(), '셔틀버스', '지역');
+    eq(find('없는사람').length, 0, '없는 낱말');
+    eq(find('').length, 8, '빈 검색어는 전부');
+    eq(find('콕집사 발놀림').length, 0, '여러 낱말은 모두 만족해야');
+  });
+
+  test('검색: 검색어는 공백을 무시하고, 대소문자도 구분하지 않는다', function () {
+    var players = [
+      { userKey: 'x1', nick: 'Smash Kim', region: '서울', club: '강서 SH', bio: 'fast drive' }
+    ];
+    eq(D.filterPlayers(players, { query: 'smash' }).length, 1, '소문자 검색');
+    eq(D.filterPlayers(players, { query: 'SMASH KIM' }).length, 1, '대문자+공백');
+    eq(D.filterPlayers(players, { query: '강서SH' }).length, 1, '붙여 쓴 클럽명');
+  });
+
+  test('필터: 성별을 고르면 그 성별만 남고 비공개는 빠진다', function () {
+    var state = stateOf();
+    var women = D.filterPlayers(state.data.matchProfiles, { gender: '여성' }, { excludeKey: BM.seed.ME });
+    var men = D.filterPlayers(state.data.matchProfiles, { gender: '남성' }, { excludeKey: BM.seed.ME });
+    ok(women.length >= 3, '여성 선수');
+    ok(men.length >= 3, '남성 선수');
+    women.forEach(function (p) { eq(p.gender, '여성', p.nick + ' 성별'); });
+    men.forEach(function (p) { eq(p.gender, '남성', p.nick + ' 성별'); });
+    eq(women.length + men.length <= state.data.matchProfiles.length - 1, true, '비공개는 필터에서 빠짐');
+    eq(D.filterPlayers([{ userKey: 'p', gender: '비공개', nick: '비밀' }], { gender: '여성' }).length, 0, '비공개 제외');
+  });
+
+  test('필터: 급수·성별·종목·지역을 함께 좁힌다', function () {
+    var state = stateOf();
+    var hit = D.filterPlayers(state.data.matchProfiles,
+      { level: 'B조', gender: '여성', discipline: '혼합복식', region: '서울' }, { excludeKey: BM.seed.ME });
+    eq(hit.length, 1, '조건 4개');
+    eq(hit[0].nick, '하늘클리어', '맞는 선수');
+    eq(D.activeFilters({ level: 'B조', gender: '전체', region: '경기', query: ' ' }).length, 2, '활성 조건 수');
+  });
+
+  test('매칭 화면: 검색창·성별 칩·결과 수·초기화가 있다', function () {
+    var state = stateOf();
+    var html = BM.views.matching.render(state);
+    includes(html, 'data-search-input', '검색 입력창');
+    includes(html, 'data-act="clear-search"', '검색어 지우기');
+    includes(html, 'data-filter="gender" data-value="남성"', '성별 필터(남성)');
+    includes(html, 'data-filter="gender" data-value="여성"', '성별 필터(여성)');
+    includes(html, '명 찾음', '결과 수');
+    includes(html, 'pill--gender', '카드의 성별 배지');
+  });
+
+  test('매칭 화면: 성별·검색 조건이 실제 목록에 적용된다', function () {
+    var state = stateOf();
+    state.ui.matchFilter.gender = '여성';
+    var html = BM.views.matching.render(state);
+    includes(html, '네트앞여우', '여성 선수 표시');
+    excludes(html, '콕집사', '남성 선수 제외');
+    includes(html, '조건 초기화', '조건이 있으면 초기화 버튼');
+
+    state.ui.matchFilter.gender = '전체';
+    state.ui.matchFilter.query = '풋워크';
+    var searched = BM.views.matching.render(state);
+    includes(searched, '발놀림장인', '소개로 찾은 선수');
+    excludes(searched, '셔틀버스', '검색에 맞지 않는 선수 제외');
+    includes(searched, '검색 결과', '검색 결과 안내');
+
+    state.ui.matchFilter.query = '';
+    eq(BM.views.matching.visiblePlayers(state).length, 8, '조건이 없으면 전부');
+  });
+
+  test('매칭 화면: 조건에 맞는 사람이 없으면 안내와 초기화를 보여 준다', function () {
+    var state = stateOf();
+    state.ui.matchFilter.query = '존재하지않는닉네임';
+    var html = BM.views.matching.render(state);
+    checkHtml(html, '검색 결과 없음');
+    includes(html, '조건에 맞는 플레이어가 없어요', '빈 결과 안내');
+    includes(html, 'data-act="reset-filter"', '초기화 버튼');
+    includes(html, '<b>0</b>명 찾음', '결과 0명');
+  });
+
+  test('프로필 꾸미기: 프레임·배경·배지를 정리하고 그린다', function () {
+    var spec = D.normalizeAvatar({ avatar: '🐧', avatarFrame: 'gold', avatarBg: 'mint', avatarBadge: '🥇' });
+    eq(spec.emoji, '🐧', '이모지');
+    eq(spec.frame, 'gold', '프레임');
+    eq(spec.bg, 'mint', '배경');
+    eq(spec.badge, '🥇', '배지');
+    eq(D.normalizeAvatar({ avatarFrame: 'nope', avatarBg: 'nope', avatarBadge: 'nope' }).frame, 'basic', '모르는 프레임 → 기본');
+    eq(D.normalizeAvatar({ avatarPhoto: 'javascript:alert(1)' }).photo, '', '이미지 data URL만 허용');
+    var photo = 'data:image/jpeg;base64,' + new Array(40).join('A');
+    eq(D.normalizeAvatar({ avatarPhoto: photo }).photo, photo, '사진 유지');
+    eq(D.normalizeAvatar({ avatarPhoto: 'data:image/jpeg;base64,' + new Array(70000).join('A') }).photo, '', '너무 큰 사진은 버림');
+
+    var html = BM.ui.avatar(spec, 48);
+    includes(html, 'avx--gold', '프레임 클래스');
+    includes(html, 'avx--bg-mint', '배경 클래스');
+    includes(html, 'avx__badge', '배지');
+    includes(html, '🐧', '이모지');
+    var withPhoto = BM.ui.avatar({ avatar: '🦊', avatarPhoto: photo, avatarFrame: 'neon' }, 40);
+    includes(withPhoto, '<img', '사진은 img로');
+    includes(withPhoto, 'avx--neon', '사진에도 프레임');
+  });
+
+  test('프로필 꾸미기: 저장하면 내 테마(꾸미기 칸)에 남는다', function () {
+    return freshStore().then(function (store) {
+      store.state.locks = {};
+      var res = store.actions.saveProfile({
+        avatar: '🦌', avatarFrame: 'royal', avatarBg: 'ocean', avatarBadge: '⭐', gender: '여성'
+      });
+      ok(res.ok, '저장');
+      eq(store.state.me.theme.avatarFrame, 'royal', '프레임 저장');
+      eq(store.state.me.theme.avatarBg, 'ocean', '배경 저장');
+      eq(store.state.me.theme.avatarBadge, '⭐', '배지 저장');
+      eq(store.state.me.gender, '여성', '성별 저장');
+      var me = store.state.me;
+      var html = BM.views.my.render(store.state);
+      includes(html, 'avx--royal', 'MY 카드에 프레임');
+      includes(html, 'avx--bg-ocean', 'MY 카드에 배경');
+      includes(html, me.nick, '내 닉네임');
+    });
+  });
+
+  test('프로필 꾸미기: 매칭 카드 JSON에도 사진·프레임이 들어간다', function () {
+    return freshStore().then(function (store) {
+      store.state.locks = {};
+      store.actions.saveMatchProfile({
+        region: '경기', level: 'C조', discipline: '복식', club: '나래울',
+        availability: '주말', experience: '2~5년', bio: '소개', gender: '여성',
+        avatar: '🐰', avatarFrame: 'sakura', avatarBg: 'grape', avatarBadge: '🔥'
+      });
+      var mp = store.state.data.matchProfiles.filter(function (m) { return m.userKey === BM.seed.ME; })[0];
+      eq(mp.gender, '여성', '성별');
+      eq(mp.avatarFrame, 'sakura', '프레임');
+      eq(mp.avatarBg, 'grape', '배경');
+      eq(mp.avatarBadge, '🔥', '배지');
+      var html = BM.views.matching.render(store.state);
+      includes(html, 'avx--sakura', '내 매칭 카드에 프레임');
+    });
+  });
+
+  test('MY 화면: 꾸미기 카드에 사진 올리기·프레임 고르기가 있다', function () {
+    var state = stateOf();
+    var html = BM.views.my.render(state);
+    includes(html, 'data-region="decor"', '꾸미기 카드');
+    includes(html, 'data-act="pick-photo"', '사진 올리기');
+    includes(html, 'data-act="decorate-avatar"', '꾸미기 시트 열기');
+    includes(html, 'data-pick-frame="gold"', '프레임 선택');
+    includes(html, '사진 · 프레임 꾸미기', '버튼 문구');
+    includes(html, '프로필 사진 꾸미기', '아바타 버튼 라벨');
+  });
+
+  test('온보딩: 성별도 함께 고르고, 프로필·매칭 카드에 저장한다', function () {
+    clearAuth();
+    BM.auth.signInGoogle(BM.auth.DEMO_GOOGLE);
+    var html = BM.views.start.renderOnboarding(BM.auth.session());
+    D.VOCAB.genders.forEach(function (g) { includes(html, 'data-val="' + g + '"', '성별: ' + g); });
+    includes(html, 'data-pick="gender"', '성별 그룹');
+    BM.auth.signOut();
+    return freshStore({ empty: true }).then(function (store) {
+      store.state.locks = {};
+      store.actions.saveProfile({ nick: '새회원', level: 'D조', discipline: '단식', gender: '남성' });
+      store.state.locks = {};
+      store.actions.saveMatchProfile({ region: '서울', level: 'D조', discipline: '단식', gender: '남성' });
+      var mp = store.state.data.matchProfiles.filter(function (m) { return m.userKey === BM.seed.ME; })[0];
+      eq(mp.gender, '남성', '매칭 카드 성별');
+      eq(store.state.me.gender, '남성', '프로필 성별');
+    });
+  });
+
   /* ---------- 자동 실행 ---------- */
   if (typeof process !== 'undefined' && process.argv && /run\.js$/.test(process.argv[1] || '')) {
     BM.test.run().then(function (sum) {

@@ -207,11 +207,13 @@
       onComplete: function (patch) {
         store.actions.saveProfile({
           nick: patch.nick, level: patch.level, discipline: patch.discipline,
+          gender: patch.gender || '비공개',
           region: patch.region || '', club: patch.club || ''
         });
         store.actions.saveMatchProfile({
           region: patch.region || '', level: patch.level, discipline: patch.discipline,
-          club: patch.club || '', availability: '', experience: '', bio: '', avatar: '🏸'
+          club: patch.club || '', availability: '', experience: '', bio: '', avatar: '🏸',
+          gender: patch.gender || '비공개'
         });
         BM.auth.markOnboarded(patch);
         document.body.classList.remove('is-onboarding');
@@ -371,7 +373,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.1.3' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.2.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

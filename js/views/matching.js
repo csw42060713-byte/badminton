@@ -146,20 +146,19 @@
     var f = filterOf(state);
     var reqs = (state.data.requests || []).map(function (r) { return r.id + ':' + r.status; }).join(',');
     var rooms = (state.data.rooms || []).map(function (r) { return r.roomId + ':' + r.unread; }).join(',');
-    return [f.level, f.gender, f.region, f.discipline, f.query,
+    return [f.level || '전체', f.gender || '전체', f.region || '전체', f.discipline || '전체', f.query || '',
       (state.data.matchProfiles || []).length, reqs, rooms,
-      (state.me && state.me.nick), (state.me && state.me.theme && state.me.theme.avatar)].join('|');
+      (state.me && state.me.nick) || '', (state.me && state.me.theme && state.me.theme.avatar) || ''].join('|');
   }
 
   function resultsHtml(state) {
     var players = visiblePlayers(state);
     var active = D.activeFilters(filterOf(state));
-    var q = filterOf(state).query || '';
-    var label = q
-      ? '“' + U.esc(q) + '” 검색 결과'
-      : '플레이어 찾기';
+    var q = String(filterOf(state).query || '').trim();
     return '<div class="resultbar">' +
-      '<p><b>' + players.length + '</b>명 찾음' +
+      '<p>' +
+      (q ? '<span class="resultbar__q">“' + U.esc(q) + '” 검색 결과</span><span class="resultbar__dot">·</span>' : '') +
+      '<b>' + players.length + '</b>명 찾음' +
       (active.length ? ' <span class="muted">· 조건 ' + active.length + '개</span>' : ' <span class="muted">· 궁합 높은 순</span>') +
       '</p>' +
       (active.length ? '<button type="button" class="linkbtn" data-act="reset-filter">조건 초기화</button>' : '') +
@@ -174,7 +173,7 @@
   function resultsBlock(state, label) {
     return '<section class="card" data-region="players" data-sig="' + U.esc(resultsSig(state)) + '">' +
       '<header class="card__head"><h2>' + U.esc(label || '플레이어 찾기') + '</h2>' +
-      '<span class="muted sm">' + visiblePlayers(state).length + '명</span></header>' +
+      '<span class="muted sm">급수 · 성별 · 종목</span></header>' +
       searchBar(state) + filterBar(state) +
       resultsHtml(state) +
       '</section>';
@@ -437,6 +436,7 @@
           if (box) box.value = '';
           ctx.actions.resetMatchFilter();
           UI.toast('조건을 초기화했어요');
+          if (ctx.refresh) ctx.refresh();
           return;
         }
 

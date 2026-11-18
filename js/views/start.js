@@ -16,7 +16,7 @@
     error: '',
     busy: false,
     draft: { email: '', password: '', nick: '' },
-    onb: { nick: '', level: '', discipline: '', region: '', club: '' }
+    onb: { nick: '', level: '', discipline: '', gender: '', region: '', club: '' }
   };
 
   function googleMark() {
@@ -118,6 +118,10 @@
       pickChips('discipline', D.VOCAB.disciplines, o.discipline) +
       '</div>' +
       '<div class="onb__block">' +
+      '<span class="onb__label">성별 <i class="onb__opt">선택 · 매칭 검색에 쓰여요</i></span>' +
+      pickChips('gender', D.VOCAB.genders, o.gender || '비공개') +
+      '</div>' +
+      '<div class="onb__block">' +
       '<span class="onb__label">지역 <i class="onb__opt">선택</i></span>' +
       pickChips('region', D.VOCAB.regions, o.region) +
       '</div>' +
@@ -144,7 +148,7 @@
     ui.error = '';
     ui.busy = false;
     ui.draft = { email: '', password: '', nick: '' };
-    ui.onb = { nick: '', level: '', discipline: '', region: '', club: '' };
+    ui.onb = { nick: '', level: '', discipline: '', gender: '', region: '', club: '' };
   }
 
   function paint(host) {
@@ -404,7 +408,11 @@
     if (!o.discipline) { ui.error = '주력 종목을 골라 주세요.'; paint(host); return; }
     ui.error = '';
     if (typeof ctx.onComplete === 'function') {
-      ctx.onComplete({ nick: nick, level: o.level, discipline: o.discipline, region: o.region || '', club: String(o.club || '').trim() });
+      ctx.onComplete({
+        nick: nick, level: o.level, discipline: o.discipline,
+        gender: o.gender || '비공개',
+        region: o.region || '', club: String(o.club || '').trim()
+      });
     }
   }
 

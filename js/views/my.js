@@ -262,7 +262,7 @@
         (state.queue && state.queue.length ? '<button class="linkbtn" data-act="retry">대기 중인 저장 ' + state.queue.length + '건 지금 보내기</button>' : '') +
         '</section>' +
 
-        '<p class="version">배드민턴 분석 앱 · 프로토타입 v1.1 · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : 'localStorage') + '</p>';
+        '<p class="version">배드민턴 · 프로토타입 v1.2 · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : 'localStorage') + '</p>';
     },
 
     mount: function (root, ctx) {
@@ -321,6 +321,44 @@
         if (ev.target.closest('[data-act="edit-profile"]')) {
           ev.preventDefault();
           openProfileSheet(root, ctx);
+          return;
+        }
+        if (ev.target.closest('[data-act="decorate-avatar"]')) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          openAvatarSheet(root, ctx);
+          return;
+        }
+        if (ev.target.closest('[data-act="pick-photo"]')) {
+          ev.preventDefault();
+          pickPhotoFile(function (url) {
+            var spec = myAvatar(ctx.store.state.me);
+            saveAvatar(ctx, {
+              photo: url, emoji: spec.emoji, frame: spec.frame, bg: spec.bg, badge: spec.badge
+            }).then(function (ok) {
+              if (ok) { UI.toast('프로필 사진을 바꿨어요'); UI.haptic(12); }
+              else UI.toast('잠시만요, 저장 중이에요');
+            });
+          }, function (msg) { UI.toast(msg, 'error'); });
+          return;
+        }
+        if (ev.target.closest('[data-act="clear-photo"]')) {
+          ev.preventDefault();
+          var specNow = myAvatar(ctx.store.state.me);
+          saveAvatar(ctx, {
+            photo: '', emoji: specNow.emoji, frame: specNow.frame, bg: specNow.bg, badge: specNow.badge
+          }).then(function (ok) {
+            if (ok) UI.toast('사진을 지웠어요');
+          });
+          return;
+        }
+        var frameBtn = ev.target.closest('[data-pick-frame]');
+        if (frameBtn) {
+          ev.preventDefault();
+          var fid = frameBtn.getAttribute('data-pick-frame');
+          var s2 = myAvatar(ctx.store.state.me);
+          saveAvatar(ctx, { photo: s2.photo, emoji: s2.emoji, frame: fid, bg: s2.bg, badge: s2.badge })
+            .then(function (ok) { if (ok) UI.toast('프레임 · ' + frameName(fid)); });
           return;
         }
         if (ev.target.closest('[data-act="connect"]')) {
@@ -613,8 +651,6 @@
     });
     if (!res.ok) return Promise.resolve(false);
     if (mp && mp.rowId) {
-      state.locks = state.locks || {};
-      delete state.locks['matchProfile'];
       ctx.actions.saveMatchProfile({
         region: mp.region || '', level: mp.level || me.level || '', discipline: mp.discipline || me.discipline || '',
         club: mp.club || '', availability: mp.availability || '', experience: mp.experience || '',
@@ -680,8 +716,6 @@
             if (res.ok) {
               var nowMp = myMatchProfile(ctx.store.state);
               if (nowMp && nowMp.rowId) {
-                ctx.store.state.locks = ctx.store.state.locks || {};
-                delete ctx.store.state.locks['matchProfile'];
                 ctx.actions.saveMatchProfile({
                   region: chosen.region, level: chosen.level, discipline: chosen.discipline,
                   club: nowMp.club || '', availability: nowMp.availability || '', experience: nowMp.experience || '',
