@@ -254,7 +254,8 @@
       act = '<button type="button" class="btn btn--ghost btn--sm" data-open-chat="' + U.esc(r.id) + '" data-other="' + U.esc(other) + '">' +
         '채팅하기</button>';
     } else {
-      act = '<span class="rq__status' + (status === '거절' ? ' is-off' : '') + '">' + U.esc(status) + '</span>';
+      act = '<span class="rq__status' + (status === '거절' ? ' is-off' : status === '수락' ? ' is-ok' : '') + '">' +
+        U.esc(status) + '</span>';
     }
     return '<li class="rq" data-open-profile="' + U.esc(other) + '">' + UI.avatar(p, 44) +
       '<div class="rq__mid">' +
@@ -592,7 +593,13 @@
   }
 
   /* ---------- 내 매칭 카드 ---------- */
-  function myCard(state) {
+  function myCardSig(state) {
+    var mp = myProfile(state);
+    return [state.data.hearts ? state.data.hearts.balance : 0, mp.level, mp.discipline,
+      mp.region, D.normalizeGender(mp.gender), (state.me && state.me.nick) || ''].join('|');
+  }
+
+  function myCardInner(state) {
     var mp = myProfile(state);
     var me = state.me || {};
     var hearts = state.data.hearts || { balance: 0 };
@@ -602,8 +609,7 @@
     var meta = [D.normalizeGender(mp.gender) === '비공개' ? '' : D.normalizeGender(mp.gender),
       mp.discipline, mp.region].filter(Boolean);
 
-    return '<section class="card card--match">' +
-      '<div class="mycard">' + UI.avatar(mp.rowId ? mp : me, 46) +
+    return '<div class="mycard">' + UI.avatar(mp.rowId ? mp : me, 46) +
       '<div class="mycard__id">' +
       '<div class="mycard__name">' + U.esc(me.nick || '회원') + (mp.level ? gradePill(mp) : '') + '</div>' +
       '<p class="mycard__meta">' + U.esc(meta.length ? meta.join(' · ') : '매칭 카드가 아직 없어요') + '</p></div>' +
@@ -612,7 +618,12 @@
         '<button type="button" class="linkbtn" data-act="edit-match">등록</button></p>') +
       '<div class="mycard__hearts">하트 <b>' + balance + '</b><span>신청 1회 ' + cost + '개</span>' +
       (balance < cost ? '<button type="button" class="linkbtn" data-act="charge-hearts">충전</button>' : '') +
-      '</div></section>';
+      '</div>';
+  }
+
+  function myCard(state) {
+    return '<section class="card card--match"><div data-region="mycard" data-sig="' +
+      U.esc(myCardSig(state)) + '">' + myCardInner(state) + '</div></section>';
   }
 
   /* ---------- 화면 ---------- */
@@ -761,6 +772,15 @@
     /* 필터·검색·신청 상태가 바뀌면 결과 영역만 다시 그립니다.
      * 검색창과 필터 줄은 건드리지 않아 입력 포커스와 펼친 상태가 유지됩니다. */
     update: function (root, state, ctx) {
+      var card = root.querySelector('[data-region="mycard"]');
+      if (card) {
+        var cs = myCardSig(state);
+        if (card.getAttribute('data-sig') !== cs) {
+          card.innerHTML = myCardInner(state);
+          card.setAttribute('data-sig', cs);
+        }
+      }
+
       var tabs = root.querySelector('[data-region="tabs"]');
       if (tabs) {
         var ts = tabsSig(state);
