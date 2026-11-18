@@ -127,6 +127,95 @@
     document.body.classList.add('no-scroll');
   }
 
+  /* ---------- 오프라인 · 동기화 안내 막대 ----------
+   * 기기 저장 모드에서는 저장 자체가 기기에서 이루어지므로 아무 말도 하지 않고,
+   * 보낼 것이 남았거나 연결이 끊겼을 때만 짧게 알려 줍니다. */
+  function netBarText(state) {
+    var queued = (state.queue && state.queue.length) || 0;
+    var offline = (typeof navigator !== 'undefined' && navigator.onLine === false);
+    /* 기기 저장 모드에서는 인터넷이 없어도 앱이 그대로 동작하므로 알리지 않습니다 */
+    var needsNet = state.mode === 'sheets';
+    if (offline && needsNet) {
+      return { kind: 'off', text: '오프라인 상태예요 · 기록은 기기에 저장되고, 연결되면 자동으로 보내요.', retry: queued > 0 };
+    }
+    if (state.syncState === 'error' && queued) {
+      return { kind: 'warn', text: '보내지 못한 저장 ' + queued + '건이 있어요. 잠시 뒤 자동으로 다시 시도합니다.', retry: true };
+    }
+    if (state.syncState === 'syncing' && queued) {
+      return { kind: 'busy', text: '저장 중… ' + queued + '건 남음', retry: false };
+    }
+    return null;
+  }
+
+  function paintNetBar(state) {
+    var bar = el('netbar');
+    if (!bar) return;
+    var info = state && state.ready && !gated ? netBarText(state) : null;
+    if (!info) {
+      if (!bar.hidden) {
+        bar.hidden = true;
+        bar.innerHTML = '';
+        bar.className = 'netbar';
+        if (document.body) document.body.classList.remove('has-netbar');
+      }
+      return;
+    }
+    var sig = info.kind + '|' + info.text + '|' + (info.retry ? 1 : 0);
+    if (bar.dataset.sig === sig) return;
+    bar.dataset.sig = sig;
+    bar.className = 'netbar netbar--' + info.kind;
+    bar.innerHTML = '<span class="netbar__t">' + U.esc(info.text) + '</span>' +
+      (info.retry ? '<button type="button" class="netbar__btn" data-net-retry>다시 시도</button>' : '');
+    bar.hidden = false;
+    if (document.body) document.body.classList.add('has-netbar');
+  }
+
+  function bindNetBar() {
+    var bar = el('netbar');
+    if (bar) {
+      bar.addEventListener('click', function (ev) {
+        if (!ev.target.closest('[data-net-retry]') || !store) return;
+        UI.haptic(6);
+        UI.toast('다시 보내는 중이에요');
+        store.actions.retrySync();
+      });
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', function () {
+        if (store) { paintNetBar(store.state); if (store.state.queue && store.state.queue.length) store.actions.retrySync(); }
+        UI.toast('다시 연결됐어요');
+      });
+      window.addEventListener('offline', function () { if (store) paintNetBar(store.state); });
+    }
+  }
+
+  /* ---------- 모바일 키보드: 입력창이 가려지지 않게 ----------
+   * 안드로이드 WebView/크롬에서 키보드가 올라오면 화면 높이가 줄어 입력창이 가려집니다.
+   * 포커스를 받은 입력 요소를 잠시 뒤 가운데로 스크롤하고, 하단 여백을 키보드 높이만큼 띄웁니다. */
+  function bindKeyboardScroll() {
+    if (typeof document === 'undefined') return;
+    document.addEventListener('focusin', function (ev) {
+      var t = ev.target;
+      if (!t || !t.tagName) return;
+      if (!/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      setTimeout(function () {
+        if (typeof t.scrollIntoView !== 'function') return;
+        try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { /* 구형 브라우저 */ }
+      }, 260);
+    });
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    var vv = window.visualViewport;
+    var apply = function () {
+      var gap = Math.max(0, Math.round((window.innerHeight || 0) - vv.height - (vv.offsetTop || 0)));
+      var open = gap > 80;
+      document.documentElement.style.setProperty('--kbd', open ? gap + 'px' : '0px');
+      if (document.body) document.body.classList.toggle('kb-open', open);
+    };
+    vv.addEventListener('resize', apply);
+    vv.addEventListener('scroll', apply);
+    apply();
+  }
+
   /* ---------- 화면 그리기 ---------- */
   function mountView(tabId) {
     var main = el('main');
@@ -152,8 +241,9 @@
   }
 
   function onChange(state) {
-    if (!state.ready || gated) return;
+    if (!state.ready || gated) { paintNetBar(state); return; }
     paintChrome(state);
+    paintNetBar(state);
     paintDm(state);
     if (painting) return;
     if (state.ui.tab !== currentTab) {
@@ -395,6 +485,7 @@
         return;
       }
       mountView(store.state.ui.tab);
+      paintNetBar(store.state);
       if (store.state.syncError) UI.toast(store.state.syncError, 'error');
       if (!U.readJSON('bm_seen_v1', false)) welcome();
     });
@@ -490,13 +581,15 @@
   /* ---------- 시작 ---------- */
   function boot() {
     bindChrome();
+    bindNetBar();
+    bindKeyboardScroll();
     var sess = BM.auth.session();
     if (sess) enterApp(sess);
     else showGate();
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.3.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.7.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

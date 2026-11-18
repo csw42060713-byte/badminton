@@ -25,9 +25,17 @@
       '<div><p class="insight__l">' + U.esc(it.label) + '</p><p class="insight__d">' + U.esc(it.detail) + '</p></div></li>';
   }
 
+  function bulletList(items) {
+    return '<ul class="bullets">' + (items || []).map(function (t) {
+      return '<li>' + U.esc(t) + '</li>';
+    }).join('') + '</ul>';
+  }
+
   function analysisCard(an) {
     if (!an) return '';
     var drills = (an.drills && an.drills.drills) || [];
+    var gp = an.gradePlan;
+    var pb = an.playbook;
     return '' +
       '<section class="card card--ai" data-region="analysis">' +
       '<header class="card__head">' +
@@ -49,15 +57,23 @@
       }).join('') + '</ol>' +
       '<h3 class="sec-title">' + UI.icon('heart') + '맞춤 처방</h3>' +
       '<div class="care">' +
-      '<div class="care__col"><h4>회복</h4><ul>' + an.care.rehab.map(function (t) { return '<li>' + U.esc(t) + '</li>'; }).join('') + '</ul></div>' +
-      '<div class="care__col"><h4>스트레칭</h4><ul>' + an.care.stretch.map(function (t) { return '<li>' + U.esc(t) + '</li>'; }).join('') + '</ul></div>' +
-      '<div class="care__col"><h4>마음</h4><ul>' + an.care.mental.map(function (t) { return '<li>' + U.esc(t) + '</li>'; }).join('') + '</ul></div>' +
+      (an.care.warmup && an.care.warmup.length
+        ? '<div class="care__col"><h4>웜업</h4>' + bulletList(an.care.warmup) + '</div>' : '') +
+      '<div class="care__col"><h4>회복</h4>' + bulletList(an.care.rehab) + '</div>' +
+      '<div class="care__col"><h4>스트레칭</h4>' + bulletList(an.care.stretch) + '</div>' +
+      '<div class="care__col"><h4>마음</h4>' + bulletList(an.care.mental) + '</div>' +
       '</div>' +
       '<h3 class="sec-title">' + UI.icon('chart') + '이번 주 루틴</h3>' +
       '<div class="week">' + an.week.map(function (w) {
         return '<div class="week__row"><span class="week__day">' + U.esc(w.day) + '</span>' +
           '<span class="week__focus">' + U.esc(w.focus) + '</span><span class="week__menu">' + U.esc(w.menu) + '</span></div>';
       }).join('') + '</div>' +
+      (gp ? '<h3 class="sec-title">' + UI.icon('shield') + U.esc(gp.grade) + ' 플랜</h3>' +
+        '<div class="planbox"><p class="planbox__t">' + U.esc(gp.focus) + '</p>' +
+        '<p class="planbox__v">' + U.esc(gp.volume) + '</p>' + bulletList(gp.rules) + '</div>' : '') +
+      (pb && pb.tips && pb.tips.length
+        ? '<h3 class="sec-title">' + UI.icon('pin') + '전술 노트 · ' + U.esc(pb.discipline) + '</h3>' +
+          '<div class="care__col">' + bulletList(pb.tips) + '</div>' : '') +
       '</section>';
   }
 
@@ -280,8 +296,9 @@
       return '<dt>' + U.esc(r[0]) + '</dt><dd>' + U.esc(r[1]) + '</dd>';
     }).join('') + '</dl>' +
       (care ? '<h3 class="sec-title">저장된 처방</h3><div class="care">' +
-        '<div class="care__col"><h4>회복</h4><ul>' + (care.rehab || []).map(function (t) { return '<li>' + U.esc(t) + '</li>'; }).join('') + '</ul></div>' +
-        '<div class="care__col"><h4>스트레칭</h4><ul>' + (care.stretch || []).map(function (t) { return '<li>' + U.esc(t) + '</li>'; }).join('') + '</ul></div>' +
+        (care.warmup && care.warmup.length ? '<div class="care__col"><h4>웜업</h4>' + bulletList(care.warmup) + '</div>' : '') +
+        '<div class="care__col"><h4>회복</h4>' + bulletList(care.rehab) + '</div>' +
+        '<div class="care__col"><h4>스트레칭</h4>' + bulletList(care.stretch) + '</div>' +
         '</div>' : '') +
       (rec.drills && rec.drills.drills ? '<h3 class="sec-title">추천드릴</h3><ul class="bullets">' +
         rec.drills.drills.map(function (d) { return '<li><b>' + U.esc(d.name) + '</b> · ' + U.esc(d.sets) + '</li>'; }).join('') + '</ul>' : '');

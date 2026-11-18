@@ -365,7 +365,9 @@
       analyze: function () {
         var d = state.drafts.log;
         state.analysis = BM.ai.analyze({
-          draft: d, records: state.data.records, level: (state.me && state.me.level) || d.level, nick: state.me && state.me.nick
+          draft: d, records: state.data.records, level: (state.me && state.me.level) || d.level,
+          discipline: (state.me && state.me.discipline) || d.discipline,
+          nick: state.me && state.me.nick
         });
         emit();
         return state.analysis;
@@ -375,7 +377,11 @@
         opts = opts || {};
         if (!tryLock('log', 1200)) return { ok: false, reason: 'locked' };
         var d = JSON.parse(JSON.stringify(state.drafts.log));
-        var an = BM.ai.analyze({ draft: d, records: state.data.records, level: (state.me && state.me.level) || d.level, nick: state.me && state.me.nick });
+        var an = BM.ai.analyze({
+          draft: d, records: state.data.records, level: (state.me && state.me.level) || d.level,
+          discipline: (state.me && state.me.discipline) || d.discipline,
+          nick: state.me && state.me.nick
+        });
         var entity = meEntity({
           type: '기록',
           date: d.date || U.ymd(),
