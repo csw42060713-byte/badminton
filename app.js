@@ -245,7 +245,7 @@
         region: (session.profile && session.profile.region) || '',
         club: (session.profile && session.profile.club) || ''
       } : null;
-      api = BM.api.createLocal({ latency: 120, rowsKey: BM.auth.rowsKeyFor(session), me: ident });
+      api = BM.api.createLocal({ latency: 120, rowsKey: BM.auth.rowsKeyFor(session), meKey: BM.auth.meKeyFor(session), me: ident });
     }
 
     store = BM.store.createStore({ api: api });

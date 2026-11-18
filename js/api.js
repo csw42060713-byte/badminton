@@ -36,7 +36,7 @@
     var identity = opts.me || null;      /* {nick, level, discipline, region, club} */
     var rows = U.readJSON(rowsKey, null);
     var dedupe = U.readJSON(DEDUPE_KEY, {});
-    var meKey = U.readJSON('bm_me_v1', null) || BM.seed.ME;
+    var meKey = opts.meKey || U.readJSON('bm_me_v1', null) || BM.seed.ME;
     var listeners = [];
 
     function persist() {
