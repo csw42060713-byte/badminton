@@ -5,6 +5,7 @@
 <title>배드민턴 · 일지 & 매칭</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#080b0a">
+<meta name="color-scheme" content="dark light">
 <meta name="description" content="일지·AI 분석·1:1 매칭·커뮤니티·코치 피드백을 한 화면에 담은 모바일 배드민턴 앱">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=20261118-5">
+<link rel="stylesheet" href="styles.css?v=20261119-1">
 <link rel="preconnect" href="https://accounts.google.com">
 <link rel="privacy-policy" href="privacy.html">
 </head>
@@ -40,6 +41,9 @@
     <button id="hdrHearts" class="heartchip" aria-label="하트 잔액, MY로 이동"></button>
   </div>
 </header>
+
+<!-- 오프라인·동기화 안내 (필요할 때만 보입니다) -->
+<div id="netbar" class="netbar" role="status" aria-live="polite" hidden></div>
 
 <main id="main" class="main" role="main">
   <div class="skeleton">

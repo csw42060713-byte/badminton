@@ -842,6 +842,8 @@ function heartRules() {
  *  7. 초기 설정 / 관리 메뉴
  * ============================================================ */
 function setup() {
+  /* 먼저 설정(스크립트 속성)이 제대로 들어갔는지 확인합니다 */
+  selfCheck();
   var sh = sheet_();
   /* 헤더 확인 */
   var header = sh.getRange(1, 1, 1, 26).getValues()[0];
@@ -857,6 +859,40 @@ function setup() {
   /* 비밀번호 열도 텍스트 */
   Logger.log('설정 완료: ' + ss_().getName() + ' / ' + CONFIG.TAB);
   return true;
+}
+
+/**
+ * 설정 자체 점검 — 편집기에서 한 번 실행해 로그를 보세요.
+ *  · SHEET_ID 가 스크립트 속성에 있는지 (코드에 시트 주소가 박히지 않게)
+ *  · AUTH_SECRET 가 설정됐는지 (공개 저장소의 기본값을 그대로 쓰면 토큰을 위조당할 수 있습니다)
+ *  · 시트 탭·헤더가 26칸 규칙과 맞는지
+ * 민감한 값을 로그에 찍지는 않습니다(설정됐는지 여부만).
+ */
+function selfCheck() {
+  var props = PropertiesService.getScriptProperties();
+  var sheetId = props.getProperty('SHEET_ID');
+  var secret = props.getProperty('AUTH_SECRET');
+  var lines = [];
+  lines.push(sheetId ? '[OK] SHEET_ID 설정됨' : '[주의] SHEET_ID 없음 — 스크립트 속성에 시트 ID를 넣으세요.');
+  if (secret && String(secret).length >= 20) {
+    lines.push('[OK] AUTH_SECRET 설정됨 (길이 ' + String(secret).length + ')');
+  } else if (secret) {
+    lines.push('[주의] AUTH_SECRET 이 너무 짧습니다 — 20자 이상 임의 문자열을 권장합니다.');
+  } else {
+    lines.push('[위험] AUTH_SECRET 없음 — 코드의 기본값이 쓰입니다. 공개 전에 반드시 설정하세요.');
+  }
+  try {
+    var sh = sheet_();
+    lines.push('[OK] 시트 연결: ' + ss_().getName() + ' / ' + CONFIG.TAB);
+    var header = sh.getRange(1, 1, 1, 26).getValues()[0];
+    var bad = [];
+    for (var i = 0; i < 26; i++) if (String(header[i]).trim() !== COLS[i]) bad.push(COLS[i]);
+    lines.push(bad.length ? '[주의] 헤더가 다른 칸: ' + bad.join(', ') + ' (setup() 실행으로 맞출 수 있습니다)' : '[OK] 26칸 헤더 일치');
+  } catch (err) {
+    lines.push('[주의] 시트를 열지 못했습니다: ' + String((err && err.message) || err));
+  }
+  lines.forEach(function (l) { Logger.log(l); });
+  return lines.join('\n');
 }
 
 /** 이미 깨진 ID(1.79229E+15)를 찾아 알려줍니다 */

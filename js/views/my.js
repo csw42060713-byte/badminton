@@ -87,7 +87,10 @@
     var cid = auth.googleClientId();
     var name = (s && s.name) || (state.me && state.me.nick) || '회원';
     var email = (s && s.email) || '';
-    var bridge = auth.bridgeUrl();
+    /* 실제 데이터 통로를 봅니다.
+     * 예전에는 bridgeUrl()(저장 값이 없으면 기본 주소를 돌려줌)로 판단해서
+     * 기기 저장(local) 모드에서도 '시트 브리지 계정'이라고 잘못 보였습니다. */
+    var live = (s && s.source === 'sheets') || state.mode === 'sheets';
     var origin = (typeof location !== 'undefined' && location.origin) || '';
     var pic = s && s.picture
       ? '<img class="acc__pic" src="' + U.esc(s.picture) + '" alt="">'
@@ -96,7 +99,9 @@
       ? '체험 모드 기록은 이 기기에만 저장돼요. 로그인하면 계정별로 따로 보관됩니다.'
       : kind === 'google'
         ? (s.demo ? '데모 Google 계정으로 미리보는 중이에요. 실제 계정은 Client ID를 넣으면 연결됩니다.' : 'Google 계정과 연결되어 있어요.')
-        : (bridge ? '구글 시트 브리지 계정으로 로그인했어요.' : '이 기기에 저장된 체험 계정이에요.');
+        : kind === 'google'
+          ? (s.demo ? '데모 Google 계정으로 미리보는 중이에요. 실제 계정은 Client ID를 넣으면 연결됩니다.' : 'Google 계정과 연결되어 있어요.')
+          : (live ? '구글 시트 브리지 계정으로 로그인했어요.' : '이 기기에 저장된 체험 계정이에요.');
     return '' +
       '<section class="card" data-region="account">' +
       '<header class="card__head"><h2>계정</h2>' +
@@ -128,7 +133,10 @@
     return '' +
       '<section class="card" data-region="legal">' +
       '<header class="card__head"><h2>개인정보 · 계정</h2></header>' +
-      '<a class="linkbtn legal__link" href="privacy.html" target="_blank" rel="noopener">개인정보처리방침 보기</a>' +
+      '<div class="row gap8 mt8 legal__row">' +
+      '<a class="linkbtn legal__link" href="privacy.html" target="_blank" rel="noopener">' + UI.icon('shield') + '개인정보처리방침</a>' +
+      '<button type="button" class="linkbtn legal__link" data-act="help">' + UI.icon('doc') + '이용안내</button>' +
+      '</div>' +
       (guest
         ? '<p class="hint">체험 모드에는 계정이 없어요. 지금 남긴 기록은 <b>이 기기에만</b> 저장되고, 위의 ‘저장된 기록 모두 지우기’로 언제든 지울 수 있어요.</p>'
         : '<p class="hint">탈퇴하면 프로필·일지·채팅·매칭 신청 등 <b>계정의 모든 기록</b>이 삭제되고 되돌릴 수 없어요.</p>' +
@@ -279,7 +287,7 @@
 
         legalCard(state) +
 
-        '<p class="version">배드민턴 · 프로토타입 v1.2 · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : 'localStorage') + '</p>';
+        '<p class="version">배드민턴 · v1.7 · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : 'localStorage') + '</p>';
     },
 
     mount: function (root, ctx) {
@@ -386,6 +394,11 @@
         if (ev.target.closest('[data-act="export"]')) {
           ev.preventDefault();
           exportJson(ctx);
+          return;
+        }
+        if (ev.target.closest('[data-act="help"]')) {
+          ev.preventDefault();
+          openHelpSheet(ctx);
           return;
         }
         if (ev.target.closest('[data-act="delete-account"]')) {
@@ -752,6 +765,35 @@
           }
         });
       }
+    });
+  }
+
+  function openHelpSheet(ctx) {
+    UI.openSheet({
+      title: '이용안내',
+      body: '<p class="sheet__text">일지 한 줄이면 AI가 <b>드릴·처방·이번 주 루틴</b>을 만들어 주는 배드민턴 앱이에요.</p>' +
+        '<h3 class="sec-title">' + UI.icon('log') + '기록하기</h3>' +
+        '<ul class="bullets">' +
+        '<li>일지 & AI 탭에서 컨디션·강도·시간을 고르고 <b>저장하고 AI 분석</b>을 누르면 분석이 바로 보여요.</li>' +
+        '<li>아픈 부위를 고르면 그 부위에 맞는 <b>관리·스트레칭·복귀 수칙</b>이 함께 나와요.</li>' +
+        '<li>급수(초심~자강)에 따라 드릴 세트 수와 이번 주 루틴이 달라집니다.</li>' +
+        '</ul>' +
+        '<h3 class="sec-title">' + UI.icon('match') + '매칭 · 대화</h3>' +
+        '<ul class="bullets">' +
+        '<li>매칭 카드를 만들면 급수·종목·지역이 맞는 상대를 보여 줘요.</li>' +
+        '<li>요청을 보낼 때 하트 2개를 쓰고, 수락되면 1:1 대화를 할 수 있어요.</li>' +
+        '<li>친구가 되거나 매칭된 상대와만 대화할 수 있어요(안전을 위한 제한).</li>' +
+        '</ul>' +
+        '<h3 class="sec-title">' + UI.icon('shield') + '데이터 · 계정</h3>' +
+        '<ul class="bullets">' +
+        '<li>로그인하지 않으면 기록은 <b>이 기기에만</b> 저장돼요.</li>' +
+        '<li>로그인하고 시트를 연결하면 계정별로 보관되고 다른 기기에서도 이어져요.</li>' +
+        '<li>연결이 끊겨도 기록은 기기에 남고, 연결되면 자동으로 다시 보내요.</li>' +
+        '<li>MY &gt; 개인정보 · 계정에서 <b>언제든 탈퇴(모든 기록 삭제)</b>할 수 있어요.</li>' +
+        '</ul>' +
+        '<div class="row gap8 mt16">' +
+        '<a class="btn btn--ghost grow" href="privacy.html" target="_blank" rel="noopener">개인정보처리방침</a>' +
+        '<button type="button" class="btn grow" data-close>확인</button></div>'
     });
   }
 
