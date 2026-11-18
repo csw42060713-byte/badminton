@@ -15,7 +15,7 @@
  *      시트 ID는 코드에 넣지 않습니다. 값 = 시트 주소의 /d/ 와 /edit 사이 문자열)
  *   3) 편집기에서 setup() 한 번 실행 (권한 승인)
  *   4) [배포 > 새 배포 > 웹 앱] 실행 사용자: 나, 액세스: 모든 사용자
- *   5) 나온 /exec 주소를 앱 MY > 시트 연결에 붙여넣기
+ *   5) 나온 /exec 주소를 앱 시작화면 또는 MY > 시트 연결에 넣기
  * ============================================================
  */
 
@@ -56,6 +56,17 @@ var COLS = [
 var COL = {};
 for (var _i = 0; _i < COLS.length; _i++) COL[COLS[_i]] = _i;
 
+/* 객체로 행을 추가할 때 쓰는 영문 키 → 실제 헤더 이름 */
+var OBJ_KEYS = {
+  id: 'ID', type: '유형', createdAt: '작성일시', date: '날짜',
+  nick: '닉네임', level: '실력', discipline: '주력종목',
+  userKey: '사용자ID', password: '비밀번호', bio: '자기소개', theme: '꾸미기',
+  plan: '훈련계획', cond: '컨디션', intensity: '훈련강도', minutes: '운동시간(분)',
+  done: '완료훈련', score: '게임점수', result: '승패', pain: '아픈부위',
+  prescription: '맞춤처방', weakness: '약점기술', drills: '추천드릴',
+  text: '소셜글', likes: '좋아요', target: '대상', team: '팀'
+};
+
 var WRITABLE_TYPES = [
   '프로필', '기록', '경기', '계획', '약점', '소셜', '답글', '채팅', '채팅읽음',
   '매칭프로필', '매칭신청', '매칭채팅', '코치신청', '코치피드백', '하트', '광고하트',
@@ -68,7 +79,7 @@ var WRITABLE_TYPES = [
 function doGet(e) {
   var action = (e && e.parameter && e.parameter.action) || 'ping';
   if (action === 'ping') {
-    return json_({ ok: true, message: '배드민턴 브리지가 살아 있어요.', time: now_(), version: 'v1.0' });
+    return json_({ ok: true, message: '배드민턴 브리지가 살아 있어요.', time: now_(), version: 'v1.1' });
   }
   return json_({ ok: false, code: 'method', message: 'GET은 ping만 지원합니다. 데이터는 POST로 주세요.' });
 }
@@ -91,6 +102,7 @@ function route_(p) {
   var action = p.action;
   if (action === 'ping') return { ok: true, time: now_() };
   if (action === 'login') return login_(p);
+  if (action === 'register') return register_(p);
   if (action === 'logout') return logout_(p);
 
   var session = requireSession_(p.token);
@@ -293,11 +305,15 @@ function login_(p) {
     if (p.create === false) return { ok: false, code: 'no_user', message: '등록된 사용자가 없습니다.' };
     /* 신규 가입: 프로필 행을 만들고 해시된 비밀번호를 저장 */
     var salt = newSalt_();
-    appendRow_({
+    var profileRow = {
       id: recordId(), type: '프로필', createdAt: now_(), date: today_(),
       nick: nick || email.split('@')[0], userKey: email,
       password: hashPassword_(password, salt)
-    });
+    };
+    /* 시작화면 온보딩에서 고른 값이 함께 오면 프로필에 바로 넣습니다 */
+    if (p.level) profileRow.level = p.level;
+    if (p.discipline) profileRow.discipline = p.discipline;
+    appendRow_(profileRow);
     return { ok: true, token: createSession_(email), me: meOf_(email), created: true };
   }
 
@@ -325,6 +341,30 @@ function login_(p) {
     setPasswordFor_(email, hashPassword_(password, salt3));
   }
   return { ok: true, token: createSession_(email), me: meOf_(email) };
+}
+
+/**
+ * 회원가입 전용 입구 (앱의 '회원가입' 버튼).
+ * 이미 있는 이메일이면 code:'exists'로 거절합니다. login은 create:false로 부르면
+ * 없는 계정을 만들지 않으므로, 로그인/가입을 앱에서 분명히 나눌 수 있습니다.
+ */
+function register_(p) {
+  var email = String(p.email || '').trim();
+  var password = String(p.password || '');
+  if (!email || !password) {
+    return { ok: false, code: 'missing', message: '이메일과 비밀번호를 입력해 주세요.' };
+  }
+  if (password.length < 6) {
+    return { ok: false, code: 'weak_password', message: '비밀번호는 6자 이상으로 정해 주세요.' };
+  }
+  var data = readRows_();
+  var exists = data.rows.some(function (r) {
+    return String(r.cells[COL['사용자ID']]).toLowerCase() === email.toLowerCase();
+  });
+  if (exists) {
+    return { ok: false, code: 'exists', message: '이미 가입된 이메일입니다. 로그인해 주세요.' };
+  }
+  return login_({ email: email, password: password, nick: String(p.nick || '').trim(), create: true });
 }
 
 /** 사용자의 모든 행 중 비밀번호가 있던 자리에 해시를 씁니다 */
@@ -477,8 +517,9 @@ function appendRow_(objOrCells) {
     cells = [];
     for (var i = 0; i < 26; i++) cells.push('');
     Object.keys(objOrCells).forEach(function (k) {
-      var col = COL[k] !== undefined ? COL[k] : null;
-      if (col !== null) cells[col] = objOrCells[k] === undefined || objOrCells[k] === null ? '' : String(objOrCells[k]);
+      var name = COL[k] !== undefined ? k : (OBJ_KEYS[k] || null);
+      var col = name !== null ? COL[name] : null;
+      if (col !== undefined && col !== null) cells[col] = objOrCells[k] === undefined || objOrCells[k] === null ? '' : String(objOrCells[k]);
     });
   }
   while (cells.length < 26) cells.push('');

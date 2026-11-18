@@ -4,7 +4,7 @@
  * 서비스워커가 건드리지 않습니다.
  * 파일을 수정하면 VERSION을 올리면 새로 받습니다.
  * ============================================================ */
-var VERSION = 'bm-v1.0.0';
+var VERSION = 'bm-v1.1.0';
 var SHELL = [
   './',
   './index.html',
@@ -16,6 +16,7 @@ var SHELL = [
   './js/ai.js',
   './js/seed.js',
   './js/api.js',
+  './js/auth.js',
   './js/store.js',
   './js/ui.js',
   './js/views/log.js',
@@ -23,6 +24,7 @@ var SHELL = [
   './js/views/community.js',
   './js/views/coach.js',
   './js/views/my.js',
+  './js/views/start.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/favicon.svg'

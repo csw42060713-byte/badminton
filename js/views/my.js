@@ -59,6 +59,48 @@
       '</section>';
   }
 
+  /* ---------- 계정 카드 (로그인 상태 · 로그아웃 · Google Client ID) ---------- */
+  function accountCard(state) {
+    var auth = BM.auth;
+    var s = auth.session();
+    var kind = s ? s.kind : 'guest';
+    var cid = auth.googleClientId();
+    var name = (s && s.name) || (state.me && state.me.nick) || '회원';
+    var email = (s && s.email) || '';
+    var bridge = auth.bridgeUrl();
+    var origin = (typeof location !== 'undefined' && location.origin) || '';
+    var pic = s && s.picture
+      ? '<img class="acc__pic" src="' + U.esc(s.picture) + '" alt="">'
+      : '<span class="acc__pic acc__pic--emoji">' + (kind === 'google' ? 'G' : kind === 'email' ? '✉' : '🏸') + '</span>';
+    var hint = kind === 'guest'
+      ? '체험 모드 기록은 이 기기에만 저장돼요. 로그인하면 계정별로 따로 보관됩니다.'
+      : kind === 'google'
+        ? (s.demo ? '데모 Google 계정으로 미리보는 중이에요. 실제 계정은 Client ID를 넣으면 연결됩니다.' : 'Google 계정과 연결되어 있어요.')
+        : (bridge ? '구글 시트 브리지 계정으로 로그인했어요.' : '이 기기에 저장된 체험 계정이에요.');
+    return '' +
+      '<section class="card" data-region="account">' +
+      '<header class="card__head"><h2>계정</h2>' +
+      '<span class="pill ' + (kind === 'guest' ? 'pill--ghost' : 'pill--ok') + '">' + U.esc(auth.kindLabel(s)) + '</span></header>' +
+      '<div class="acc">' + pic +
+      '<div class="acc__id"><strong>' + U.esc(name) + '</strong>' +
+      '<span>' + U.esc(email || (kind === 'guest' ? '로그인 없이 둘러보는 중' : '')) + '</span></div>' +
+      (kind === 'guest'
+        ? '<button type="button" class="btn btn--ghost btn--sm" data-act="account-login">로그인</button>'
+        : '<button type="button" class="btn btn--ghost btn--sm" data-act="logout">로그아웃</button>') +
+      '</div>' +
+      '<p class="hint">' + hint + '</p>' +
+      '<details class="adv">' +
+      '<summary>고급 · Google Client ID</summary>' +
+      '<div class="adv__body">' +
+      '<p class="hint">Google Cloud Console → OAuth 클라이언트 ID(웹 애플리케이션). 승인된 자바스크립트 원본에 ' +
+      U.esc(origin || '이 사이트 주소') + '를 추가하세요.</p>' +
+      '<input class="adv__input" type="text" data-cid spellcheck="false" autocomplete="off" placeholder="0000-xxxx.apps.googleusercontent.com" value="' + U.esc(cid) + '">' +
+      '<div class="row gap8 mt8"><button type="button" class="btn btn--primary grow btn--sm" data-act="save-client-id">저장</button>' +
+      (cid ? '<button type="button" class="btn btn--ghost btn--sm" data-act="clear-client-id">지우기</button>' : '') +
+      '</div></div></details>' +
+      '</section>';
+  }
+
   function ledgerRow(h) {
     var iconName = h.delta > 0 ? 'plus' : 'arrow';
     var note = h.note ? ' · ' + h.note : '';
@@ -169,6 +211,8 @@
         '<div class="stat"><strong>' + (s.sessions14 || 0) + '</strong><span>최근 2주</span></div>' +
         '</div></section>' +
 
+        accountCard(state) +
+
         heartCard(hearts) +
 
         '<section class="card"><header class="card__head"><h2>꾸미기</h2><span class="muted sm">탭하면 바로 적용</span></header>' +
@@ -270,6 +314,35 @@
         if (ev.target.closest('[data-act="retry"]')) {
           ev.preventDefault();
           ctx.actions.retrySync();
+          return;
+        }
+        if (ev.target.closest('[data-act="logout"]')) {
+          ev.preventDefault();
+          UI.confirm('로그아웃할까요? 기록은 계정에 그대로 남아 있어요.', '로그아웃').then(function (ok) {
+            if (!ok) return;
+            if (ctx.signOut) ctx.signOut();
+          });
+          return;
+        }
+        if (ev.target.closest('[data-act="account-login"]')) {
+          ev.preventDefault();
+          if (ctx.signOut) ctx.signOut();
+          return;
+        }
+        if (ev.target.closest('[data-act="save-client-id"]')) {
+          ev.preventDefault();
+          var input = root.querySelector('[data-cid]');
+          var savedCid = BM.auth.setGoogleClientId(input ? input.value : '');
+          if (!savedCid.ok) { UI.toast(savedCid.message, 'error'); return; }
+          UI.toast(savedCid.clientId ? 'Google Client ID를 저장했어요' : 'Client ID를 지웠어요');
+          ctx.refresh();
+          return;
+        }
+        if (ev.target.closest('[data-act="clear-client-id"]')) {
+          ev.preventDefault();
+          BM.auth.setGoogleClientId('');
+          UI.toast('Client ID를 지웠어요');
+          ctx.refresh();
           return;
         }
       });
