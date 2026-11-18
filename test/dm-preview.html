@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko" data-theme="th_night" style="background:#0b1220">
+<head>
+<meta charset="utf-8">
+<title>채팅(DM) 화면 미리보기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html, body { margin: 0; background: #0b1220; }
+  body { display: flex; justify-content: center; }
+  .dm {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    max-width: 430px;
+    height: 100dvh;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+</style>
+</head>
+<body>
+<div id="dm" class="dm"></div>
+
+<script src="../js/util.js"></script>
+<script src="../js/domain.js"></script>
+<script src="../js/seed.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/views/profile.js"></script>
+<script src="../js/views/chat.js"></script>
+<script src="fixtures.js"></script>
+<script>
+/* 테스트용 사람들로 채팅 목록/대화방 화면을 그려 보는 미리보기입니다.
+ * (앱 번들에는 포함되지 않고, gh-pages 배포에서도 제외됩니다.) */
+(function () {
+  var BM = window.BM, U = BM.util, D = BM.domain;
+  var rows = BM.fixtures.demo();
+  var now = new Date();
+  function at(minAgo) {
+    return U.stamp(new Date(now.getTime() - minAgo * 60000));
+  }
+  var ROOM = '900000000000002';
+
+  /* 친구: 나래 ↔ 콕집사 (친구수락 행 ID가 대화방 ID) */
+  rows.push(D.toRow({ id: '900000000000001', type: '친구요청', createdAt: at(300), date: U.ymd(), nick: '나래', userKey: BM.seed.ME, target: 'demo_chi' }));
+  rows.push(D.toRow({ id: ROOM, type: '친구수락', createdAt: at(295), date: U.ymd(), nick: '콕집사', userKey: 'demo_chi', target: BM.seed.ME }));
+  /* 아직 수락하지 않은 친구 요청 */
+  rows.push(D.toRow({ id: '900000000000003', type: '친구요청', createdAt: at(42), date: U.ymd(), nick: '발놀림장인', userKey: 'demo_foot', target: BM.seed.ME }));
+
+  /* 친구와 주고받은 메시지 */
+  [
+    ['demo_me', 'demo_chi', 280, '안녕하세요! 프로필 보고 연락드렸어요. 주말 오전에 같이 치실 수 있을까요?'],
+    ['demo_chi', 'demo_me', 275, '안녕하세요 :) 토요일 9시 나래울 괜찮으세요?'],
+    ['demo_me', 'demo_chi', 270, '좋아요! 9시에 뵐게요. 혼복도 가능하실까요?'],
+    ['demo_chi', 'demo_me', 40, '네, 혼복 좋습니다. 그날 헤어핀 같이 봐드릴게요 👍']
+  ].forEach(function (m, i) {
+    rows.push(D.toRow({
+      id: '900000000001' + (10 + i), type: '매칭채팅', createdAt: at(m[2]), date: U.ymd(),
+      nick: m[0] === 'demo_me' ? '나래' : '콕집사',
+      userKey: m[0] === 'demo_me' ? BM.seed.ME : m[0],
+      target: m[1] === 'demo_me' ? BM.seed.ME : m[1],
+      team: ROOM, text: m[3]
+    }));
+  });
+
+  var me = { key: BM.seed.ME, nick: '나래', level: 'C조', discipline: '복식', theme: { theme: 'th_night', avatar: '🦋' } };
+  var data = BM.store.derive(rows, me.key, me);
+  var view = /view=room/.test(location.search) ? ROOM : null;
+  var state = { me: me, data: data, ui: { chatRoom: view, chatOther: 'demo_chi' } };
+  document.getElementById('dm').innerHTML = '<div class="dm__panel">' +
+    (view ? BM.views.chat.roomHtml(state) : BM.views.chat.listHtml(state)) + '</div>';
+  var scroll = document.querySelector('[data-dm-scroll]');
+  if (scroll) scroll.scrollTop = scroll.scrollHeight;
+  document.title = view ? '채팅 대화방 미리보기' : '채팅 목록 미리보기';
+})();
+</script>
+</body>
+</html>
