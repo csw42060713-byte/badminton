@@ -62,6 +62,10 @@
   store.state.ui.tab = 'matching';
 
   function paint() {
+    /* 다시 그릴 때는 새 노드에 붙여야 클릭 리스너가 겹치지 않습니다 */
+    var fresh = host.cloneNode(false);
+    host.parentNode.replaceChild(fresh, host);
+    host = fresh;
     host.innerHTML = BM.views.matching.render(store.state);
     BM.views.matching.mount(host, ctx);
     lastTab = store.state.ui.matchTab;
