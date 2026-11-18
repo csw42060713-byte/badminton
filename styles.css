@@ -1107,7 +1107,7 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
   color: var(--muted);
   transition: transform 80ms, background 120ms, color 120ms;
 }
-.sortseg__b.is-on { background: var(--card-2); color: var(--text); }
+.sortseg__b.is-on { background: var(--card); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
 .sortseg__b:active { transform: scale(0.96); }
 
 /* 목록: 카드 더미 대신 구분선이 있는 한 줄 목록 */
@@ -1135,7 +1135,7 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
   overflow: hidden;
 }
 .pcard__why { font-size: 11.5px; color: var(--text-2); margin-top: 6px; }
-.pcard__act { margin-top: 10px; }
+.pcard__act { display: flex; justify-content: flex-end; margin-top: 10px; }
 .pcard__act .btn { min-height: 36px; font-size: 12.5px; }
 .pcard__state { display: inline-block; padding: 7px 0; font-size: 12px; color: var(--muted); }
 .fit { flex: none; text-align: right; min-width: 40px; }
@@ -1198,7 +1198,8 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 .rq__meta { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
 .rq__act { display: flex; gap: 6px; flex: none; }
 .rq__act .btn { min-height: 34px; }
-.rq__status { font-size: 11.5px; font-weight: 800; color: var(--accent-2); }
+.rq__status { font-size: 11.5px; font-weight: 800; color: var(--text-2); }
+.rq__status.is-ok { color: var(--accent-2); }
 .rq__status.is-off { color: var(--muted); }
 
 .eventchip {
