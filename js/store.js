@@ -44,11 +44,18 @@
     var matchProfiles = [];
     (idx.byType['매칭프로필'] || []).forEach(function (m) {
     if (!m.payload) return;
+    var pl = m.payload;
+    var av = D.normalizeAvatar({
+      avatarPhoto: pl.avatarPhoto, avatar: pl.avatar,
+      avatarFrame: pl.avatarFrame, avatarBg: pl.avatarBg, avatarBadge: pl.avatarBadge
+    });
     matchProfiles.push({
       rowId: m.id, userKey: m.userKey, nick: m.nick || D.displayName(idx, m.userKey),
-      region: m.payload.region || '', level: D.normalizeGrade(m.payload.level), discipline: m.payload.discipline || '',
-      club: m.payload.club || '', availability: m.payload.availability || '',
-      experience: m.payload.experience || '', bio: m.payload.bio || '', avatar: m.payload.avatar || '🏸',
+      region: pl.region || '', level: D.normalizeGrade(pl.level), discipline: pl.discipline || '',
+      club: pl.club || '', availability: pl.availability || '',
+      experience: pl.experience || '', bio: pl.bio || '', avatar: av.emoji,
+      gender: D.normalizeGender(pl.gender),
+      avatarPhoto: av.photo, avatarFrame: av.frame, avatarBg: av.bg, avatarBadge: av.badge,
       createdAt: m.createdAt
     });
     });
@@ -109,7 +116,8 @@
       data: derive([], null),
       drafts: { log: defaultDraft() },
       ui: {
-        tab: 'log', matchFilter: { level: '전체', region: '전체', discipline: '전체' },
+        tab: 'log',
+        matchFilter: { level: '전체', gender: '전체', region: '전체', discipline: '전체', query: '' },
         chatRoom: null, coachTab: 'feedback', coachPlayer: null, composer: '', replyTo: null
       },
       analysis: null,
@@ -406,9 +414,26 @@
           club: patch.club != null ? patch.club : (me.club || ''),
           availability: patch.availability != null ? patch.availability : (me.availability || ''),
           experience: patch.experience != null ? patch.experience : (me.experience || ''),
-          avatar: patch.avatar || (me.theme && me.theme.avatar) || '🏸'
+          avatar: patch.avatar || (me.theme && me.theme.avatar) || '🏸',
+          gender: patch.gender != null ? D.normalizeGender(patch.gender) : D.normalizeGender(me.gender)
         };
-        var theme = { theme: (me.theme && me.theme.theme) || 'th_night', avatar: merged.avatar };
+        /* 꾸미기: 테마 + 아바타(사진·프레임·배경·배지). 넘기지 않은 값은 지금 것을 유지합니다. */
+        var cur = D.avatarOf({ theme: me.theme });
+        var deco = D.normalizeAvatar({
+          avatarPhoto: patch.avatarPhoto != null ? patch.avatarPhoto : cur.photo,
+          avatar: merged.avatar,
+          avatarFrame: patch.avatarFrame != null ? patch.avatarFrame : cur.frame,
+          avatarBg: patch.avatarBg != null ? patch.avatarBg : cur.bg,
+          avatarBadge: patch.avatarBadge != null ? patch.avatarBadge : cur.badge
+        });
+        var theme = {
+          theme: (me.theme && me.theme.theme) || 'th_night',
+          avatar: deco.emoji,
+          avatarPhoto: deco.photo,
+          avatarFrame: deco.frame,
+          avatarBg: deco.bg,
+          avatarBadge: deco.badge
+        };
         var entity = {
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
           nick: merged.nick, level: merged.level, discipline: merged.discipline,
@@ -417,7 +442,7 @@
         pushRow(entity);
         state.me = {
           key: me.key, nick: merged.nick, level: merged.level, discipline: merged.discipline,
-          bio: merged.bio, region: merged.region, club: merged.club,
+          bio: merged.bio, region: merged.region, club: merged.club, gender: merged.gender,
           availability: merged.availability, experience: merged.experience, theme: theme
         };
         commit();
@@ -654,6 +679,16 @@
 
       setFilter: function (patch) {
         Object.keys(patch).forEach(function (k) { state.ui.matchFilter[k] = patch[k]; });
+        emit();
+      },
+
+      setMatchQuery: function (query) {
+        state.ui.matchFilter.query = String(query == null ? '' : query);
+        emit();
+      },
+
+      resetMatchFilter: function () {
+        state.ui.matchFilter = { level: '전체', gender: '전체', region: '전체', discipline: '전체', query: '' };
         emit();
       },
 

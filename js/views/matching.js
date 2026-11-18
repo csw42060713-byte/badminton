@@ -1,8 +1,10 @@
 /* ============================================================
- * views/matching.js — 1:1 매칭 (급수 기반) + 채팅
+ * views/matching.js — 1:1 매칭 (검색 · 급수/성별/종목/지역 필터) + 채팅
  *
- * 흐름: 카드에서 '프로필 보기' → 상대의 급수·주력 종목·지역·소개 확인
- *      → '요청 보내기'(하트 2) 또는 '닫기'. 확인 없이 바로 신청되지 않습니다.
+ * 흐름: 위쪽 검색창에 닉네임·지역·클럽·소개를 치면 바로 걸러지고,
+ *      급수·성별·종목·지역 칩으로 좁힙니다. 카드를 누르면 상대 프로필
+ *      (꾸민 사진·성별·급수·종목·지역·소개)을 확인한 뒤
+ *      '요청 보내기'(하트 2) 또는 '닫기'. 확인 없이 바로 신청되지 않습니다.
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -39,20 +41,46 @@
     };
   }
 
+  /* ---------- 필터 ---------- */
+  function filterOf(state) {
+    return state.ui.matchFilter || {};
+  }
+
   function filterBar(state) {
-    var f = state.ui.matchFilter;
+    var f = filterOf(state);
+    var genders = D.VOCAB.genderFilter || ['전체', '남성', '여성'];
     function line(kr, key, options) {
+      var current = f[key] || '전체';
       return '<div class="filter-line"><span class="filter-line__label">' + kr + '</span><div class="scrollx">' +
         ['전체'].concat(options).map(function (o) {
-          return '<button type="button" class="chip chip--sm' + (f[key] === o ? ' is-on' : '') + '"' +
-            ' data-filter="' + key + '" data-value="' + U.esc(o) + '">' + U.esc(o) + '</button>';
+          return '<button type="button" class="chip chip--sm' + (current === o ? ' is-on' : '') + '"' +
+            ' data-filter="' + key + '" data-value="' + U.esc(o) + '"' +
+            ' aria-pressed="' + (current === o ? 'true' : 'false') + '">' + U.esc(o) + '</button>';
         }).join('') + '</div></div>';
     }
     return '<div class="filters">' +
       line('급수', 'level', D.VOCAB.grades) +
-      line('지역', 'region', D.VOCAB.regions) +
+      line('성별', 'gender', genders.slice(1)) +
       line('종목', 'discipline', D.VOCAB.disciplines) +
+      line('지역', 'region', D.VOCAB.regions) +
       '</div>';
+  }
+
+  function searchBar(state) {
+    var q = filterOf(state).query || '';
+    return '<div class="searchbar' + (q ? ' is-filled' : '') + '">' +
+      '<span class="searchbar__ico">' + UI.icon('search') + '</span>' +
+      '<input type="search" data-search-input enterkeyhint="search" autocomplete="off" spellcheck="false"' +
+      ' placeholder="닉네임 · 지역 · 클럽 · 소개 검색" aria-label="플레이어 검색" value="' + U.esc(q) + '">' +
+      '<button type="button" class="searchbar__clear" data-act="clear-search" aria-label="검색어 지우기"' +
+      (q ? '' : ' hidden') + '>' + UI.icon('close') + '</button>' +
+      '</div>';
+  }
+
+  function genderPill(p) {
+    var g = D.normalizeGender(p.gender);
+    if (!g || g === '비공개') return '';
+    return '<span class="pill pill--gender pill--' + (g === '여성' ? 'f' : 'm') + '">' + U.esc(g) + '</span>';
   }
 
   function eventName(p) {
@@ -86,8 +114,9 @@
     }
 
     return '<article class="pcard" data-player="' + key + '" data-open-profile="' + key + '">' +
-      '<div class="pcard__top">' + UI.avatar(p.avatar, 46) +
+      '<div class="pcard__top">' + UI.avatar(p, 52) +
       '<div class="pcard__id"><div class="pcard__name">' + U.esc(p.nick) +
+      genderPill(p) +
       '<span class="pill pill--grade">' + U.esc(p.level || '급수 미입력') + '</span></div>' +
       '<p class="pcard__meta">' + U.esc([p.region, p.club, p.availability].filter(Boolean).join(' · ')) + '</p></div>' +
       '<div class="matchbadge"><strong>' + scored.score + '</strong><span>궁합</span></div></div>' +
@@ -101,6 +130,53 @@
       '<div class="tags">' + (p.experience ? '<span class="tag">' + U.esc(p.experience) + '</span>' : '') +
       (scored.reasons.length ? '<span class="tag tag--soft">' + U.esc(scored.reasons.slice(0, 2).join(' · ')) + '</span>' : '') + '</div>' +
       '<div class="pcard__act">' + action + '</div></article>';
+  }
+
+  /* ---------- 결과 계산 ---------- */
+  function visiblePlayers(state) {
+    var me = state.me || {};
+    var mp = myProfile(state);
+    return D.filterPlayers(state.data.matchProfiles || [], filterOf(state), { excludeKey: me.key })
+      .map(function (p) { return { p: p, s: D.matchScore(mp, p, mp).score }; })
+      .sort(function (a, b) { return b.s - a.s; })
+      .map(function (x) { return x.p; });
+  }
+
+  function resultsSig(state) {
+    var f = filterOf(state);
+    var reqs = (state.data.requests || []).map(function (r) { return r.id + ':' + r.status; }).join(',');
+    var rooms = (state.data.rooms || []).map(function (r) { return r.roomId + ':' + r.unread; }).join(',');
+    return [f.level || '전체', f.gender || '전체', f.region || '전체', f.discipline || '전체', f.query || '',
+      (state.data.matchProfiles || []).length, reqs, rooms,
+      (state.me && state.me.nick) || '', (state.me && state.me.theme && state.me.theme.avatar) || ''].join('|');
+  }
+
+  function resultsHtml(state) {
+    var players = visiblePlayers(state);
+    var active = D.activeFilters(filterOf(state));
+    var q = String(filterOf(state).query || '').trim();
+    return '<div class="resultbar">' +
+      '<p>' +
+      (q ? '<span class="resultbar__q">“' + U.esc(q) + '” 검색 결과</span><span class="resultbar__dot">·</span>' : '') +
+      '<b>' + players.length + '</b>명 찾음' +
+      (active.length ? ' <span class="muted">· 조건 ' + active.length + '개</span>' : ' <span class="muted">· 궁합 높은 순</span>') +
+      '</p>' +
+      (active.length ? '<button type="button" class="linkbtn" data-act="reset-filter">조건 초기화</button>' : '') +
+      '</div>' +
+      (players.length
+        ? '<div class="pcards">' + players.map(function (p) { return playerCard(p, state); }).join('') + '</div>'
+        : UI.emptyState('search', '조건에 맞는 플레이어가 없어요',
+          q ? '다른 낱말로 찾아보거나 필터를 풀어 보세요.' : '급수·성별·지역 필터를 바꿔 보세요.',
+          '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="reset-filter">조건 초기화</button>'));
+  }
+
+  function resultsBlock(state, label) {
+    return '<section class="card" data-region="players" data-sig="' + U.esc(resultsSig(state)) + '">' +
+      '<header class="card__head"><h2>' + U.esc(label || '플레이어 찾기') + '</h2>' +
+      '<span class="muted sm">급수 · 성별 · 종목</span></header>' +
+      searchBar(state) + filterBar(state) +
+      resultsHtml(state) +
+      '</section>';
   }
 
   /* ---------- 프로필 시트(요청 전 확인) ---------- */
@@ -139,9 +215,11 @@
     }
 
     return '<div class="pp" data-profile="' + key + '">' +
-      '<div class="pp__head">' + UI.avatar(p.avatar, 62) +
-      '<div class="pp__id"><div class="pp__name">' + U.esc(p.nick) +
-      '<span class="pill pill--grade">' + U.esc(p.level || '급수 미입력') + '</span></div>' +
+      '<div class="pp__head">' + UI.avatar(p, 78) +
+      '<div class="pp__id"><div class="pp__name">' + U.esc(p.nick) + '</div>' +
+      '<div class="pp__pills">' + genderPill(p) +
+      '<span class="pill pill--grade">' + U.esc(p.level || '급수 미입력') + '</span>' +
+      (p.discipline ? '<span class="pill pill--ghost">' + U.esc(p.discipline) + '</span>' : '') + '</div>' +
       '<p class="pp__meta">' + U.esc([p.region, p.club].filter(Boolean).join(' · ')) + '</p>' +
       '<p class="pp__match">' + matchLine(scored) + '</p></div></div>' +
 
@@ -156,6 +234,7 @@
       }).join('') + '</div>' +
 
       '<dl class="kv kv--tight">' +
+      '<dt>성별</dt><dd>' + U.esc(D.normalizeGender(p.gender)) + '</dd>' +
       '<dt>가능 시간</dt><dd>' + U.esc(p.availability || '—') + '</dd>' +
       '<dt>경력</dt><dd>' + U.esc(p.experience || '—') + '</dd>' +
       '<dt>지역</dt><dd>' + U.esc(p.region || '—') + '</dd>' +
@@ -244,7 +323,7 @@
     return '<div class="chat is-on" data-chat data-room="' + U.esc(roomId) + '" data-other="' + U.esc(other) + '">' +
       '<header class="chat__head">' +
       '<button class="iconbtn" data-act="chat-close" aria-label="닫기">' + UI.icon('arrow') + '</button>' +
-      '<div class="chat__who">' + UI.avatar(mp.avatar || '🏸', 32) +
+      '<div class="chat__who">' + UI.avatar(mp, 34) +
       '<div><strong>' + U.esc(mp.nick || '상대') + '</strong>' +
       '<span>' + U.esc([mp.level, mp.discipline, mp.club].filter(Boolean).join(' · ')) + '</span></div></div></header>' +
       '<div class="chat__body" data-chat-msgs>' +
@@ -277,44 +356,40 @@
     });
   }
 
+  /* ---------- 내 매칭 카드 ---------- */
+  function myCard(state) {
+    var mp = myProfile(state);
+    var hearts = state.data.hearts || { balance: 0 };
+    var meta = [mp.region, mp.level, mp.discipline].filter(Boolean);
+    var gender = mp.gender && mp.gender !== '비공개' ? mp.gender : '';
+    return '<section class="card card--match">' +
+      '<div class="mycard">' + UI.avatar(mp, 56) +
+      '<div class="mycard__id"><span class="eyebrow">내 매칭 카드</span>' +
+      '<div class="mycard__name">' + U.esc((state.me && state.me.nick) || '회원') +
+      (gender ? '<span class="pill pill--gender pill--' + (gender === '여성' ? 'f' : 'm') + '">' + U.esc(gender) + '</span>' : '') + '</div>' +
+      '<p class="mycard__meta">' + (meta.length ? U.esc(meta.join(' · ')) : '카드를 만들면 급수·종목이 맞는 상대를 찾아드려요') + '</p></div>' +
+      '<button class="btn btn--ghost btn--sm" data-act="edit-match">' + UI.icon('edit') + (mp.region ? '수정' : '만들기') + '</button></div>' +
+      '<div class="heart-chip">' + UI.icon('heart') + '하트 <strong>' + hearts.balance + '</strong>' +
+      '<span class="muted sm">매칭 1회 ' + D.HEART_RULES.MATCH_COST + '개</span></div>' +
+      '</section>';
+  }
+
   /* ---------- 화면 ---------- */
   var view = {
     title: '1:1 매칭',
 
     render: function (state) {
-      var me = state.me || {};
-      var mp = myProfile(state);
-      var f = state.ui.matchFilter;
-      var players = (state.data.matchProfiles || []).filter(function (p) {
-        if (p.userKey === me.key) return false;
-        if (f.level !== '전체' && p.level !== f.level) return false;
-        if (f.region !== '전체' && p.region !== f.region) return false;
-        if (f.discipline !== '전체' && p.discipline !== f.discipline) return false;
-        return true;
-      }).map(function (p) {
-        return { p: p, s: D.matchScore(mp, p, mp).score };
-      }).sort(function (a, b) { return b.s - a.s; }).map(function (x) { return x.p; });
-
       var rooms = state.data.rooms || [];
 
       return '' +
-        '<section class="card card--match">' +
-        '<div class="row between">' +
-        '<div><h2 class="card__title">내 매칭 카드</h2>' +
-        '<p class="muted sm">' + (mp.region || mp.level
-          ? U.esc([mp.region, mp.level, mp.discipline].filter(Boolean).join(' · '))
-          : '카드를 만들면 급수·종목이 맞는 상대를 찾아드려요') + '</p></div>' +
-        '<button class="btn btn--ghost btn--sm" data-act="edit-match">' + UI.icon('edit') + (mp.region ? '수정' : '만들기') + '</button></div>' +
-        '<div class="heart-chip">' + UI.icon('heart') + '하트 <strong>' + state.data.hearts.balance + '</strong>' +
-        '<span class="muted sm">매칭 1회 ' + D.HEART_RULES.MATCH_COST + '개</span></div>' +
-        '</section>' +
+        myCard(state) +
 
         (rooms.length ? '<section class="card"><header class="card__head"><h2>내 대화</h2>' +
           (state.data.unread ? '<span class="badge">' + state.data.unread + ' 새 메시지</span>' : '') + '</header>' +
           '<ul class="roomlist">' + rooms.map(function (r) {
             var rp = state.data.matchProfiles.filter(function (m) { return m.userKey === r.other; })[0] || {};
             return '<li class="room" data-open-chat="' + U.esc(r.roomId) + '" data-other="' + U.esc(r.other) + '">' +
-              UI.avatar(rp.avatar || '🏸', 40) +
+              UI.avatar(rp, 42) +
               '<div class="room__mid"><strong>' + U.esc(rp.nick || '상대') +
               (rp.level ? ' <span class="pill pill--grade">' + U.esc(rp.level) + '</span>' : '') + '</strong>' +
               '<p>' + U.esc(U.truncate((r.last && r.last.text) || '대화를 시작해 보세요', 34)) + '</p></div>' +
@@ -322,12 +397,7 @@
               (r.unread ? '<span class="badge">' + r.unread + '</span>' : '') + '</div></li>';
           }).join('') + '</ul></section>' : '') +
 
-        '<section class="card"><header class="card__head"><h2>플레이어 찾기</h2>' +
-        '<span class="muted sm">' + players.length + '명 · 급수순</span></header>' +
-        filterBar(state) +
-        (players.length ? '<div class="pcards">' + players.map(function (p) { return playerCard(p, state); }).join('') + '</div>'
-          : UI.emptyState('match', '조건에 맞는 플레이어가 없어요', '급수·지역 필터를 바꿔 보세요.')) +
-        '</section>' +
+        resultsBlock(state) +
 
         chatOverlay(state);
     },
@@ -339,8 +409,34 @@
           ev.preventDefault();
           var patch = {};
           patch[chip.getAttribute('data-filter')] = chip.getAttribute('data-value');
+          var group = chip.parentNode;
+          Array.prototype.forEach.call(group.querySelectorAll('[data-filter]'), function (c) {
+            c.classList.remove('is-on');
+            c.setAttribute('aria-pressed', 'false');
+          });
+          chip.classList.add('is-on');
+          chip.setAttribute('aria-pressed', 'true');
           ctx.actions.setFilter(patch);
           UI.haptic(6);
+          return;
+        }
+
+        if (ev.target.closest('[data-act="clear-search"]')) {
+          ev.preventDefault();
+          var input = root.querySelector('[data-search-input]');
+          if (input) input.value = '';
+          ctx.actions.setMatchQuery('');
+          UI.haptic(6);
+          return;
+        }
+
+        if (ev.target.closest('[data-act="reset-filter"]')) {
+          ev.preventDefault();
+          var box = root.querySelector('[data-search-input]');
+          if (box) box.value = '';
+          ctx.actions.resetMatchFilter();
+          UI.toast('조건을 초기화했어요');
+          if (ctx.refresh) ctx.refresh();
           return;
         }
 
@@ -354,8 +450,8 @@
           ctx.actions.openChat(roomId);
           if (other) ctx.actions.markChatRead(roomId, other);
           setTimeout(function () {
-            var box = root.querySelector('[data-chat-msgs]');
-            if (box) box.scrollTop = box.scrollHeight;
+            var box2 = root.querySelector('[data-chat-msgs]');
+            if (box2) box2.scrollTop = box2.scrollHeight;
           }, 60);
           UI.haptic(8);
           return;
@@ -379,8 +475,8 @@
         var quick = ev.target.closest('[data-quick]');
         if (quick) {
           ev.preventDefault();
-          var input = root.querySelector('[data-chat-text]');
-          if (input) { input.value = quick.getAttribute('data-quick'); input.focus(); }
+          var qInput = root.querySelector('[data-chat-text]');
+          if (qInput) { qInput.value = quick.getAttribute('data-quick'); qInput.focus(); }
           return;
         }
 
@@ -391,10 +487,38 @@
         }
       });
 
+      /* 검색은 한 글자씩 바로 반영합니다 (입력창은 다시 그리지 않아 포커스가 유지됩니다) */
+      var search = root.querySelector('[data-search-input]');
+      if (search) {
+        var syncClear = function () {
+          var clearBtn = root.querySelector('[data-act="clear-search"]');
+          var wrap = search.parentNode;
+          if (clearBtn) clearBtn.hidden = !search.value;
+          if (wrap) wrap.classList.toggle('is-filled', !!search.value);
+        };
+        search.addEventListener('input', function () {
+          syncClear();
+          ctx.actions.setMatchQuery(search.value);
+        }, { passive: true });
+        search.addEventListener('search', function () {
+          syncClear();
+          ctx.actions.setMatchQuery(search.value);
+        });
+      }
+
       bindChat(root, ctx);
     },
 
     update: function (root, state, ctx) {
+      /* 필터·검색·신청 상태가 바뀌면 결과 영역만 다시 그립니다 */
+      var region = root.querySelector('[data-region="players"]');
+      if (region) {
+        var sig = resultsSig(state);
+        if (region.getAttribute('data-sig') !== sig) {
+          region.innerHTML = resultsHtml(state);
+          region.setAttribute('data-sig', sig);
+        }
+      }
       var chat = root.querySelector('[data-chat]');
       if (state.ui.chatRoom && !chat) {
         root.insertAdjacentHTML('beforeend', chatOverlay(state));
@@ -420,7 +544,9 @@
     /* 테스트/다른 화면에서 재사용 */
     profileBody: profileBody,
     playerCard: playerCard,
-    statusOf: statusOf
+    statusOf: statusOf,
+    resultsHtml: resultsHtml,
+    visiblePlayers: visiblePlayers
   };
 
   /* ---------- 내 매칭 카드 편집 ---------- */
@@ -431,13 +557,18 @@
       region: myMp.region || '경기',
       level: myMp.level || me.level || 'C조',
       discipline: myMp.discipline || me.discipline || '복식',
+      gender: myMp.gender || '비공개',
       availability: myMp.availability || '주말',
       experience: myMp.experience || '2~5년',
       club: myMp.club || '',
       bio: myMp.bio || '',
-      avatar: myMp.avatar || (me.theme && me.theme.avatar) || '🏸'
+      avatar: myMp.avatar || (me.theme && me.theme.avatar) || '🏸',
+      avatarPhoto: myMp.avatarPhoto || '',
+      avatarFrame: myMp.avatarFrame || 'basic',
+      avatarBg: myMp.avatarBg || 'plain',
+      avatarBadge: myMp.avatarBadge || ''
     };
-    function chips(key, values, large) {
+    function chips(key, values) {
       return '<div class="scrollx">' + values.map(function (v) {
         return '<button type="button" class="chip chip--sm' + (payload[key] === v ? ' is-on' : '') + '"' +
           ' data-mp="' + key + '" data-v="' + U.esc(v) + '">' + U.esc(v) + '</button>';
@@ -445,7 +576,11 @@
     }
     UI.openSheet({
       title: '내 매칭 카드',
-      body: '<div class="form">' +
+      body: '<div class="sheethero">' + UI.avatar(payload, 64) +
+        '<div><strong>' + U.esc(me.nick || '회원') + '</strong>' +
+        '<p class="hint">사진·프레임은 MY &gt; 프로필 꾸미기에서 바꿀 수 있어요.</p></div></div>' +
+        '<div class="form">' +
+        '<label class="flabel">성별' + chips('gender', D.VOCAB.genders) + '</label>' +
         '<label class="flabel">급수' + chips('level', D.VOCAB.grades) + '</label>' +
         '<label class="flabel">주력 종목' + chips('discipline', D.VOCAB.disciplines) + '</label>' +
         '<label class="flabel">지역' + chips('region', D.VOCAB.regions) + '</label>' +
@@ -468,10 +603,16 @@
           }
           if (ev.target.closest('[data-act="save-mp"]')) {
             ev.preventDefault();
-            wrap.querySelectorAll('[data-mp-text]').forEach(function (inp) {
+            Array.prototype.forEach.call(wrap.querySelectorAll('[data-mp-text]'), function (inp) {
               payload[inp.getAttribute('data-mp-text')] = inp.value.trim();
             });
             ctx.actions.saveMatchProfile(payload);
+            /* 성별·지역은 프로필에도 같이 남겨 MY 화면과 어긋나지 않게 합니다 */
+            ctx.actions.saveProfile({
+              gender: payload.gender, region: payload.region,
+              level: payload.level, discipline: payload.discipline,
+              bio: payload.bio, club: payload.club
+            });
             UI.closeSheet();
             UI.toast('매칭 카드를 저장했어요.');
           }

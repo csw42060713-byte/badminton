@@ -23,6 +23,8 @@
       var mp = (state.data.matchProfiles || []).filter(function (m) { return m.userKey === k; })[0] || {};
       return {
         key: k, nick: list[0].nick || mp.nick || '선수', avatar: mp.avatar || '🏸',
+        avatarPhoto: mp.avatarPhoto || '', avatarFrame: mp.avatarFrame || 'basic',
+        avatarBg: mp.avatarBg || 'plain', avatarBadge: mp.avatarBadge || '',
         records: list, level: list[0].level || mp.level || '',
         last: (list[0] && list[0].date) || ''
       };
@@ -34,7 +36,7 @@
     var last = p.records[0] || {};
     var openRec = state.ui.coachPlayer === p.key;
     return '<article class="card card--player' + (openRec ? ' is-open' : '') + '" data-player="' + U.esc(p.key) + '">' +
-      '<header class="pcard__top">' + UI.avatar(p.avatar, 44) +
+      '<header class="pcard__top">' + UI.avatar(p, 46) +
       '<div class="pcard__id"><div class="pcard__name">' + U.esc(p.nick) + '<span class="pill">' + U.esc(p.level) + '</span></div>' +
       '<p class="pcard__meta">최근 30일 ' + sum.sessions + '회 · ' + sum.minutes + '분 · 승률 ' + (sum.winRate == null ? '—' : sum.winRate + '%') + '</p></div>' +
       '<button class="btn btn--ghost btn--sm" data-pick="' + U.esc(p.key) + '">' + (openRec ? '접기' : '자세히') + '</button></header>' +

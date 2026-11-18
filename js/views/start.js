@@ -16,7 +16,7 @@
     error: '',
     busy: false,
     draft: { email: '', password: '', nick: '' },
-    onb: { nick: '', level: '', discipline: '', region: '', club: '' }
+    onb: { nick: '', level: '', discipline: '', gender: '', region: '', club: '' }
   };
 
   function googleMark() {
@@ -48,7 +48,7 @@
       '<button type="button" class="start__guest" data-act="guest">로그인 없이 둘러보기</button>' +
       '</div>' +
       '<p class="start__note">처음이라면 <b>10초 설정</b>으로 프로필을 만들고 바로 시작해요.<br>' +
-      '체험 모드에서는 예시 인물과 기록으로 모든 기능을 써 볼 수 있어요.</p>' +
+      '체험 모드에서는 이 기기에만 저장되고, 남긴 기록으로 모든 기능을 써 볼 수 있어요.</p>' +
       '</div>';
   }
 
@@ -118,12 +118,16 @@
       pickChips('discipline', D.VOCAB.disciplines, o.discipline) +
       '</div>' +
       '<div class="onb__block">' +
+      '<span class="onb__label">성별 <i class="onb__opt">선택 · 매칭 검색에 쓰여요</i></span>' +
+      pickChips('gender', D.VOCAB.genders, o.gender || '비공개') +
+      '</div>' +
+      '<div class="onb__block">' +
       '<span class="onb__label">지역 <i class="onb__opt">선택</i></span>' +
       pickChips('region', D.VOCAB.regions, o.region) +
       '</div>' +
       '<div class="onb__block">' +
       '<label class="onb__label" for="onbClub">클럽 <i class="onb__opt">선택</i></label>' +
-      '<input id="onbClub" class="onb__input" type="text" maxlength="20" data-o="club" placeholder="예: 나래울" value="' + U.esc(o.club) + '">' +
+      '<input id="onbClub" class="onb__input" type="text" maxlength="20" data-o="club" placeholder="예: 우리 클럽" value="' + U.esc(o.club) + '">' +
       '</div>' +
       (ui.error ? '<p class="start__error">' + U.esc(ui.error) + '</p>' : '') +
       '<button type="button" class="btn btn--primary btn--big onb__go" data-act="finish">시작하기</button>' +
@@ -144,7 +148,7 @@
     ui.error = '';
     ui.busy = false;
     ui.draft = { email: '', password: '', nick: '' };
-    ui.onb = { nick: '', level: '', discipline: '', region: '', club: '' };
+    ui.onb = { nick: '', level: '', discipline: '', gender: '', region: '', club: '' };
   }
 
   function paint(host) {
@@ -404,7 +408,11 @@
     if (!o.discipline) { ui.error = '주력 종목을 골라 주세요.'; paint(host); return; }
     ui.error = '';
     if (typeof ctx.onComplete === 'function') {
-      ctx.onComplete({ nick: nick, level: o.level, discipline: o.discipline, region: o.region || '', club: String(o.club || '').trim() });
+      ctx.onComplete({
+        nick: nick, level: o.level, discipline: o.discipline,
+        gender: o.gender || '비공개',
+        region: o.region || '', club: String(o.club || '').trim()
+      });
     }
   }
 

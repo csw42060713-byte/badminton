@@ -207,11 +207,13 @@
       onComplete: function (patch) {
         store.actions.saveProfile({
           nick: patch.nick, level: patch.level, discipline: patch.discipline,
+          gender: patch.gender || '비공개',
           region: patch.region || '', club: patch.club || ''
         });
         store.actions.saveMatchProfile({
           region: patch.region || '', level: patch.level, discipline: patch.discipline,
-          club: patch.club || '', availability: '', experience: '', bio: '', avatar: '🏸'
+          club: patch.club || '', availability: '', experience: '', bio: '', avatar: '🏸',
+          gender: patch.gender || '비공개'
         });
         BM.auth.markOnboarded(patch);
         document.body.classList.remove('is-onboarding');
@@ -310,7 +312,7 @@
     UI.openSheet({
       title: '환영합니다 🏸',
       body: '<p class="sheet__text">' + (guest
-          ? '지금은 <b>체험 모드</b>예요. 예시 인물과 기록으로 모든 기능을 먼저 써 볼 수 있어요.'
+          ? '지금은 <b>체험 모드</b>예요. 이 기기에만 저장되고, 남긴 기록으로 모든 기능을 써 볼 수 있어요.'
           : '<b>' + U.esc((sess && sess.name) || '회원') + '</b>님, 준비가 끝났어요.') + '</p>' +
         '<ul class="bullets">' +
         '<li>일지를 저장하면 <b>AI가 드릴·처방·이번 주 루틴</b>을 만들어 줘요.</li>' +
@@ -371,7 +373,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.1.2' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.2.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);
