@@ -124,11 +124,12 @@
       '<div class="pcard__event"><span class="pcard__event-k">주력</span>' +
       '<div class="pcard__events">' + D.VOCAB.disciplines.map(function (ev) {
         return '<span class="eventchip' + (p.discipline === ev ? ' is-on' : '') + '">' + U.esc(ev) + '</span>';
-      }).join('') + '</div></div>' +
+      }).join('') + '</div>' +
+      (p.experience ? '<span class="tag">' + U.esc(p.experience) + '</span>' : '') +
+      '</div>' +
 
       (p.bio ? '<p class="pcard__bio">' + U.esc(p.bio) + '</p>' : '') +
-      '<div class="tags">' + (p.experience ? '<span class="tag">' + U.esc(p.experience) + '</span>' : '') +
-      (scored.reasons.length ? '<span class="tag tag--soft">' + U.esc(scored.reasons.slice(0, 2).join(' · ')) + '</span>' : '') + '</div>' +
+      (scored.reasons.length ? '<p class="pcard__why">' + UI.icon('spark') + U.esc(scored.reasons.slice(0, 2).join(' · ')) + '</p>' : '') +
       '<div class="pcard__act">' + action + '</div></article>';
   }
 
