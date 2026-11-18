@@ -517,14 +517,14 @@
     me = me || {}; other = other || {};
     var score = 30, reasons = [];   /* 0~90 사이로 퍼지게 설계 */
     var gap = levelGap(me.level, other.level);
-    if (gap === 0) { score += 24; reasons.push('급수가 같아요'); }
-    else if (gap === 1) { score += 12; reasons.push('급수가 한 단계 차이'); }
+    if (gap === 0) { score += 24; reasons.push('같은 급수'); }
+    else if (gap === 1) { score += 12; reasons.push('급수 한 단계 차이'); }
     else { score += 2; }
-    if (me.region && me.region === other.region) { score += 16; reasons.push(other.region + ' 같은 지역'); }
+    if (me.region && me.region === other.region) { score += 16; reasons.push('같은 지역'); }
     else if (other.region) { score += 3; }
     if (me.discipline && me.discipline === other.discipline) { score += 6; reasons.push(other.discipline + ' 선호'); }
     if (me.availability && other.availability && (me.availability === other.availability || me.availability === '무관' || other.availability === '무관')) {
-      score += 5; reasons.push('시간대가 맞아요');
+      score += 5; reasons.push('시간대가 맞음');
     }
     if (me.experience && other.experience) {
       var ex = VOCAB.experience.indexOf(me.experience), ox = VOCAB.experience.indexOf(other.experience);

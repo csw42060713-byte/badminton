@@ -919,4 +919,5 @@
   }
 
   BM.views.my = view;
+  BM.views.my.playRewardAd = playRewardAd;   /* 매칭 화면의 하트 충전 시트도 같은 광고 흐름을 씁니다 */
 })(typeof globalThis !== 'undefined' ? globalThis : this);

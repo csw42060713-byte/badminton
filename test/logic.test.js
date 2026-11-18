@@ -760,7 +760,7 @@
     includes(html, '궁합', '점수');
     includes(html, '프로필 보고 요청하기', '요청 전 프로필 확인');
     includes(html, 'data-value="자강"', '급수 필터');
-    includes(html, '주력', '주력 종목 표시');
+    includes(html, 'eventchip is-on', '카드의 주력 종목 칩');
   });
 
   test('화면: 1:1 대화방 렌더', function () {
@@ -1195,6 +1195,111 @@
     includes(html, '조건에 맞는 플레이어가 없어요', '빈 결과 안내');
     includes(html, 'data-act="reset-filter"', '초기화 버튼');
     includes(html, '<b>0</b>명 찾음', '결과 0명');
+  });
+
+  /* ================= 11-b. 1:1 매칭 상태 탭 · 정렬 · 충전 안내 ================= */
+  test('매칭: 찾기·받은 요청·보낸 요청·대화 탭과 건수가 보인다', function () {
+    var state = stateOf();
+    var html = BM.views.matching.render(state);
+    checkHtml(html, '매칭 탭');
+    includes(html, 'data-match-tab="find"', '찾기 탭');
+    includes(html, 'data-match-tab="in"', '받은 요청 탭');
+    includes(html, 'data-match-tab="out"', '보낸 요청 탭');
+    includes(html, 'data-match-tab="chat"', '대화 탭');
+    includes(html, 'mtab__n', '건수 배지');
+    eq(BM.views.matching.pendingIncoming(state).length, 1, '받은 요청(대기) 1건');
+    eq(BM.views.matching.sentRequests(state).length, 1, '보낸 요청 1건');
+  });
+
+  test('매칭: 받은 요청 탭에서 바로 수락·거절하고 상대 한마디를 본다', function () {
+    var state = stateOf();
+    state.ui.matchTab = 'in';
+    var html = BM.views.matching.render(state);
+    checkHtml(html, '받은 요청 탭');
+    includes(html, '셔틀버스', '보낸 사람');
+    includes(html, '평일 저녁 어때요?', '상대 한마디');
+    includes(html, 'data-accept=', '수락 버튼');
+    includes(html, 'data-decline=', '거절 버튼');
+    excludes(html, '프로필 보고 요청하기', '찾기 목록은 보이지 않음');
+  });
+
+  test('매칭: 보낸 요청 탭은 상태를 그대로 보여 주고 수락이면 채팅으로 연결한다', function () {
+    var state = stateOf();
+    state.ui.matchTab = 'out';
+    var html = BM.views.matching.render(state);
+    checkHtml(html, '보낸 요청 탭');
+    includes(html, '보낸 요청', '탭 제목');
+    includes(html, '주말 오전 가능하실까요?', '내가 쓴 한마디');
+    includes(html, 'data-open-chat=', '수락한 상대는 채팅 버튼');
+  });
+
+  test('매칭: 대화 탭에 대화방이 뜨고, 없으면 찾기로 안내한다', function () {
+    var state = stateOf();
+    state.ui.matchTab = 'chat';
+    var html = BM.views.matching.render(state);
+    checkHtml(html, '대화 탭');
+    includes(html, 'data-open-chat=', '대화방');
+
+    state.data.threads = [];
+    var empty = BM.views.matching.render(state);
+    includes(empty, '대화가 없어요', '빈 안내');
+    includes(empty, 'data-match-tab="find"', '찾기로 가는 버튼');
+  });
+
+  test('매칭: 최근순 정렬은 최근에 만든 카드부터 보여 준다', function () {
+    var state = stateOf();
+    var byScore = BM.views.matching.visiblePlayers(state).map(function (p) { return p.nick; });
+    state.ui.matchSort = 'recent';
+    var recent = BM.views.matching.visiblePlayers(state);
+    eq(recent.length, byScore.length, '같은 인원');
+    for (var i = 1; i < recent.length; i++) {
+      ok((recent[i - 1].createdAt || '') >= (recent[i].createdAt || ''), '최근 등록 순서');
+    }
+    includes(BM.views.matching.resultsHtml(state), 'sortseg__b is-on', '정렬 버튼 표시');
+  });
+
+  test('매칭: 필터 버튼을 누르면 칩 줄이 펼쳐지고 선택값이 버튼에 남는다', function () {
+    var state = stateOf();
+    state.ui.matchFilterOpen = 'level';
+    state.ui.matchFilter.level = 'A조';
+    var html = BM.views.matching.render(state);
+    includes(html, 'fpanel is-open', '필터 줄 펼침');
+    includes(html, '급수<b>A조</b>', '펼친 버튼에 선택값');
+    includes(html, 'filter-line is-active', '펼친 줄 강조');
+    includes(html, 'data-filter="level" data-value="A조"', '급수 칩');
+  });
+
+  test('매칭: 결과 영역은 검색창·필터와 분리되어 있다 (갱신해도 입력이 살아 있게)', function () {
+    var html = BM.views.matching.render(stateOf());
+    var resultsAt = html.indexOf('data-region="results"');
+    var filtersAt = html.indexOf('data-region="filters"');
+    ok(filtersAt > 0 && resultsAt > filtersAt, '필터 다음에 결과');
+    includes(html.slice(0, resultsAt), 'data-search-input', '검색창은 결과 영역 밖');
+  });
+
+  test('매칭: 하트가 부족하면 요청 버튼 대신 충전으로 안내한다', function () {
+    var state = stateOf();
+    state.data.hearts.balance = 1;
+    var p = state.data.matchProfiles.filter(function (m) { return m.userKey === 'demo_foot'; })[0];
+    var html = BM.views.matching.profileBody(state, p);
+    checkHtml(html, '하트 부족 시트');
+    includes(html, '한마디 남기기', '한마디 입력');
+    includes(html, '1개 부족', '부족 개수 안내');
+    includes(html, 'data-charge-hearts', '충전 버튼');
+    excludes(html, 'data-send-request', '눌러도 안 되는 요청 버튼은 두지 않음');
+  });
+
+  test('매칭: 수락하면 그 요청이 곧바로 대화방이 된다', function () {
+    return freshStore().then(function (store) {
+      var incoming = store.state.data.requests.filter(function (r) {
+        return r.target === BM.seed.ME && r.status === '대기';
+      })[0];
+      var res = store.actions.respondMatch(incoming.id, '수락');
+      ok(res.ok, '수락');
+      store.actions.openChat(res.roomId, incoming.userKey);
+      eq(store.state.ui.chatOpen, true, '채팅이 열림');
+      eq(store.state.ui.chatRoom, incoming.id, '수락한 요청이 대화방 ID');
+    });
   });
 
   test('프로필 꾸미기: 프레임·배경·배지를 정리하고 그린다', function () {
