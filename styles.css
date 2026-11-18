@@ -1622,6 +1622,8 @@ body.is-onboarding .main { padding: calc(var(--safe-t) + 10px) 18px calc(var(--s
 
 .gsi { display: flex; justify-content: center; }
 .gsi[hidden] { display: none; }
+/* .btn은 display:inline-flex라 hidden 속성만으로는 숨지 않습니다 (GIS 버튼과 겹쳐 보이던 문제) */
+.btn[hidden] { display: none; }
 .gmark { width: 19px; height: 19px; flex: none; }
 
 .start--form { padding-top: 2vh; gap: 18px; min-height: auto; }

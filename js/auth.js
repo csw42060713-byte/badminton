@@ -313,7 +313,9 @@
     }
   }
 
-  /* GIS 기본 버튼이 안 뜰 때를 위한 직접 호출 */
+  /* GIS 기본 버튼이 안 뜰 때를 위한 직접 호출
+     계정 선택 창을 닫거나 취소했을 때만 null로 끝냅니다(예전에는 2.6초 뒤 무조건 null이라
+     계정을 고르는 데 3초만 걸려도 이미 받은 로그인 응답을 버렸습니다). */
   function requestGoogleSignIn(clientId) {
     var cid = clientId || googleClientId();
     if (!cid) return Promise.reject(new Error('Google Client ID가 설정되지 않았어요.'));
@@ -321,6 +323,7 @@
       return new Promise(function (resolve, reject) {
         var settled = false;
         function done(info) { if (!settled) { settled = true; resolve(info); } }
+        function giveUp() { if (!settled) { settled = true; resolve(null); } }
         root.google.accounts.id.initialize({
           client_id: cid,
           callback: function (resp) {
@@ -329,8 +332,18 @@
             else reject(new Error('구글 로그인 응답을 읽지 못했어요.'));
           }
         });
-        try { root.google.accounts.id.prompt(); } catch (e) { /* 버튼으로 안내 */ }
-        setTimeout(function () { if (!settled) { settled = true; resolve(null); } }, 2600);
+        try {
+          root.google.accounts.id.prompt(function (notification) {
+            if (!notification) return;
+            if (typeof notification.isNotDisplayed === 'function' && notification.isNotDisplayed()) giveUp();
+            if (typeof notification.isDismissedMoment === 'function' && notification.isDismissedMoment()) {
+              var why = typeof notification.getDismissedReason === 'function' ? notification.getDismissedReason() : '';
+              if (why !== 'credential_returned') giveUp();
+            }
+          });
+        } catch (e) { /* 버튼으로 안내 */ }
+        /* 창이 아무 신호도 주지 않을 때를 대비한 안전장치 */
+        setTimeout(giveUp, 120000);
       });
     });
   }
