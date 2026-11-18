@@ -2,9 +2,10 @@
  * js/auth.js — 시작화면(인증 게이트)의 계정 상태
  *
  *  1) Google 로그인 : Google Identity Services(GIS) 훅.
- *     - MY > 계정 > 고급 설정(또는 이 화면)에서 OAuth Client ID를 넣으면
+ *     - 기본 Client ID(DEFAULT_GOOGLE_CLIENT_ID)가 들어 있어 별도 설정 없이
  *       실제 구글 계정(이메일·이름·사진)으로 로그인/자동 가입됩니다.
- *     - Client ID가 없으면 '데모 Google 계정'으로 미리보기만 합니다.
+ *     - MY > 계정 > 고급에서 다른 OAuth Client ID를 넣으면 그 값이 우선합니다.
+ *     - Client ID가 비어 있으면 '데모 Google 계정'으로 미리보기만 합니다.
  *  2) 이메일 로그인 / 회원가입
  *     - 시트 브리지 주소가 저장돼 있으면 브리지의 login / register를 씁니다.
  *     - 없으면 이 기기에만 저장하는 체험 계정으로 동작합니다.
@@ -26,6 +27,10 @@
   /* 배포된 구글 시트 브리지(Apps Script 웹 앱) 주소.
      MY > 시트 연결에서 저장한 주소가 있으면 그 값이 우선하고, 없을 때만 이 기본값을 씁니다. */
   var DEFAULT_BRIDGE_URL = 'https://script.google.com/macros/s/AKfycbwr9EtmiKo6HT5sz_dsgKtLwkX1B-z_EA-B4u28HxN_09kv9S4tluejRtB4HkFEgwPo/exec';
+  /* 배포된 Google OAuth 웹 클라이언트 ID(공개 식별자 — 비밀번호가 아닙니다).
+     MY > 계정 > 고급에서 저장한 값이 있으면 그 값이 우선하고, 없을 때 이 기본값으로 실제 구글 로그인이 동작합니다.
+     승인된 JavaScript 원본: https://csw42060713-byte.github.io */
+  var DEFAULT_GOOGLE_CLIENT_ID = '156445399633-egfhbi1jh5k40lqh26sfbuofja6k8ai5.apps.googleusercontent.com';
   var GOOGLE_SRC = 'https://accounts.google.com/gsi/client';
 
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -191,9 +196,16 @@
   }
 
   /* ---------- Google Client ID ---------- */
+  /* 저장 값(사용자가 넣은 다른 프로젝트 ID)이 없으면 배포 기본값을 씁니다. */
   function googleClientId() {
-    var v = U.readJSON(CLIENT_ID_KEY, '');
-    return String(v == null ? '' : v).trim();
+    var v = String(U.readJSON(CLIENT_ID_KEY, '') || '').trim();
+    if (v) return v;
+    return isGoogleClientId(DEFAULT_GOOGLE_CLIENT_ID) ? DEFAULT_GOOGLE_CLIENT_ID : '';
+  }
+
+  /* 화면에서 '기본값 사용 중'을 표시할 때 씁니다. */
+  function isDefaultGoogleClientId() {
+    return String(U.readJSON(CLIENT_ID_KEY, '') || '').trim() === '';
   }
 
   function setGoogleClientId(id) {
@@ -451,6 +463,7 @@
     signOut: signOut, signOutKeepAccounts: signOutKeepAccounts,
     needsOnboarding: needsOnboarding, markOnboarded: markOnboarded, profileFor: profileFor,
     googleClientId: googleClientId, setGoogleClientId: setGoogleClientId, isGoogleClientId: isGoogleClientId,
+    isDefaultGoogleClientId: isDefaultGoogleClientId, DEFAULT_GOOGLE_CLIENT_ID: DEFAULT_GOOGLE_CLIENT_ID,
     loadGoogleScript: loadGoogleScript, googleReady: googleReady,
     renderGoogleButton: renderGoogleButton, requestGoogleSignIn: requestGoogleSignIn,
     decodeJwt: decodeJwt, hashPassword: hashPassword, verifyHash: verifyHash,
