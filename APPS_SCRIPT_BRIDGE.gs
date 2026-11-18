@@ -487,6 +487,9 @@ function append_(session, p) {
     if (!friendTarget) {
       return { ok: false, code: 'bad_target', message: '친구 대상을 정해 주세요.' };
     }
+    if (!looksLikeUserKey_(friendTarget)) {
+      return { ok: false, code: 'bad_target', message: '친구 대상이 올바르지 않습니다.' };
+    }
     if (friendTarget.toLowerCase() === String(session.userKey).toLowerCase()) {
       return { ok: false, code: 'bad_target', message: '자기 자신에게는 친구 요청을 보낼 수 없습니다.' };
     }
