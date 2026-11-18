@@ -11,7 +11,8 @@
  *
  *  설치 순서 (자세한 설명은 README.md)
  *   1) 이 파일 전체를 시트의 [확장 프로그램 > Apps Script]에 붙여넣기
- *   2) CONFIG.SHEET_ID 확인 → 저장
+ *   2) [프로젝트 설정 > 스크립트 속성]에 SHEET_ID 추가 (공개 저장소 보호를 위해
+ *      시트 ID는 코드에 넣지 않습니다. 값 = 시트 주소의 /d/ 와 /edit 사이 문자열)
  *   3) 편집기에서 setup() 한 번 실행 (권한 승인)
  *   4) [배포 > 새 배포 > 웹 앱] 실행 사용자: 나, 액세스: 모든 사용자
  *   5) 나온 /exec 주소를 앱 MY > 시트 연결에 붙여넣기
@@ -19,8 +20,10 @@
  */
 
 var CONFIG = {
-  // 시트 ID (주소창의 /d/ 와 /edit 사이 문자열)
-  SHEET_ID: '1sqxAM6eskBYS03s-rxXCkKEdEINI2toL4pCAQA5YCHs',
+  // 시트 ID는 코드에 하드코딩하지 않습니다(공개 저장소 노출 방지).
+  // [프로젝트 설정 > 스크립트 속성]에서 SHEET_ID 값을 넣어 주세요.
+  // 값 = 시트 주소창의 /d/ 와 /edit 사이 문자열
+  SHEET_ID: PropertiesService.getScriptProperties().getProperty('SHEET_ID') || '여기에_구글시트_ID',
   TAB: '출력결과',
   TIMEZONE: 'Asia/Seoul',
 
