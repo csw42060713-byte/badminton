@@ -823,11 +823,7 @@
   function canChatWith(idx, meKey, otherKey) {
     if (!meKey || !otherKey || meKey === otherKey) return false;
     if (friendState(idx, meKey, otherKey).state === 'friends') return true;
-    if (matchBetween(idx, meKey, otherKey).accepted) return true;
-    return (idx.byType['매칭채팅'] || []).some(function (m) {
-      return (m.userKey === meKey && m.target === otherKey) ||
-        (m.userKey === otherKey && m.target === meKey);
-    });
+    return matchBetween(idx, meKey, otherKey).accepted;
   }
 
   /* 대화 목록: 메시지가 있는 방 + 친구 + 매칭 성사 상대(첫 대화 전 포함) */
