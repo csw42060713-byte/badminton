@@ -135,7 +135,10 @@
         chatRoom: null, chatOther: '', chatOpen: false, coachTab: '', coachPlayer: null, composer: '', replyTo: null
       },
       analysis: null,
-      queue: U.readJSON(QUEUE_KEY, []),
+      /* 전송 대기열은 시트(서버) 모드에서만 씁니다.
+       * 기기 저장(체험·게스트) 모드에서 예전 버전이 남긴 대기열을 그대로 읽으면
+       * '저장 중… 35건 남음'처럼 보이거나 실패만 반복합니다. */
+      queue: (api && api.mode === 'sheets') ? (U.readJSON(QUEUE_KEY, []) || []) : [],
       locks: {},
       syncError: null,
       syncState: 'idle',
@@ -146,10 +149,21 @@
     var flushing = false;
     var apiRef = api;
 
+    /* 예전 버전(v1.0)을 쓰던 기기에 남은 전송 대기열 정리.
+     * 기기 저장 모드에는 보낼 서버가 없으므로 대기열 자체를 지웁니다. */
+    if ((api && api.mode) !== 'sheets') U.storage.removeItem(QUEUE_KEY);
+
+    function isSheets() { return !!(apiRef && apiRef.mode === 'sheets'); }
+
     function defaultDraft() {
+      /* 아무것도 미리 채우지 않습니다. (예전에는 60분·21:18·'승'이 채워져 있어
+       * 이미 입력을 마친 것처럼 보였습니다.) */
       return {
-        date: U.ymd(), cond: 6, intensity: 6, minutes: 60,
-        done: ['스트록', '게임'], score: { a: 21, b: 18 }, result: '승',
+        date: U.ymd(), cond: null, intensity: null, minutes: null,
+        done: [],
+        gameMode: 21,
+        games: [{ a: '', b: '' }],
+        score: null, result: '',
         pain: [], weakness: [], note: ''
       };
     }
@@ -180,7 +194,11 @@
     }
 
     /* ---------- 큐 ---------- */
-    function persistQueue() { U.writeJSON(QUEUE_KEY, state.queue); }
+    function persistQueue() {
+      /* 기기 저장 모드: 대기열을 localStorage에 남기지 않습니다 */
+      if (!isSheets()) return;
+      U.writeJSON(QUEUE_KEY, state.queue);
+    }
 
     function enqueue(op) {
       op.ts = op.ts || Date.now();
@@ -227,6 +245,15 @@
           op.attempts = (op.attempts || 0) + 1;
           op.lastError = err && err.message;
           state.stats.failed++;
+          if (!isSheets()) {
+            /* 기기 저장 모드에는 다시 보낼 서버가 없습니다.
+             * 실패한 요청은 버리고 다음 요청으로 넘어갑니다(무한 재시도·대기 표시 없음). */
+            state.queue.shift();
+            state.syncState = 'idle';
+            persistQueue();
+            emit();
+            return step();
+          }
           state.syncError = (err && err.message) || '동기화에 실패했어요.';
           persistQueue();
           flushing = false;
@@ -377,8 +404,20 @@
         opts = opts || {};
         if (!tryLock('log', 1200)) return { ok: false, reason: 'locked' };
         var d = JSON.parse(JSON.stringify(state.drafts.log));
+        /* 게임 점수: 한 일지에 여러 경기를 남길 수 있습니다.
+         * 점수가 비어 있는 게임은 저장하지 않고, 예전처럼 한 경기만 넣어도 됩니다. */
+        var games = D.cleanGames(d.games);
+        if (!games.length && d.score) games = D.cleanGames([d.score]);
+        var gsum = D.gamesSummary(games);
+        var score = gsum.first;
+        var result = gsum.result || d.result || '';
+        var scoreRaw = games.length ? D.formatGames(games, d.gameMode) : '';
+        var draftForAi = JSON.parse(JSON.stringify(d));
+        draftForAi.games = games;
+        draftForAi.score = score;
+        draftForAi.result = result;
         var an = BM.ai.analyze({
-          draft: d, records: state.data.records, level: (state.me && state.me.level) || d.level,
+          draft: draftForAi, records: state.data.records, level: (state.me && state.me.level) || d.level,
           discipline: (state.me && state.me.discipline) || d.discipline,
           nick: state.me && state.me.nick
         });
@@ -388,8 +427,8 @@
           id: U.uid(),
           clientId: U.clientId(),
           cond: d.cond, intensity: d.intensity, minutes: d.minutes,
-          done: d.done, score: d.score,
-          result: d.result || D.resultFromScore(d.score),
+          done: d.done, score: score, scoreRaw: scoreRaw, games: games, gameMode: d.gameMode,
+          result: result,
           pain: d.pain, weakness: d.weakness,
           prescription: an.care, drills: an.drills
         });

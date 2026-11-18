@@ -130,7 +130,8 @@
     genders: GENDERS,
     legacyLevels: ['초보용', '일반부', '상급', '선수부'],
     disciplines: ['복식', '단식', '혼합복식'],
-    done: ['스트록', '벽치기', '런닝', '코어', '풋워크', '스매시', '게임', '웨이트', '21점제'],
+    done: ['스트록', '벽치기', '런닝', '코어', '풋워크', '스매시', '게임', '웨이트'],
+    gameModes: [21, 25],            /* 게임 점수 입력의 점수제 */
     weakness: ['드라이브', '헤어핀', '드롭', '클리어', '스매시', '풋워크', '서브', '리시브'],
     pain: ['목', '어깨', '허리', '팔꿈치', '무릎', '손목', '아킬레스건', '발목'],
     regions: ['서울', '경기', '인천', '부산', '대구', '광주', '대전', '기타'],
@@ -195,6 +196,58 @@
     return { a: parseInt(m[1], 10), b: parseInt(m[2], 10) };
   }
 
+  /* --- 게임 점수: 한 일지에 여러 게임을 남길 수 있습니다 ---
+   * 시트에는 '게임점수' 한 칸에 "21:18, 18:21"처럼 적고, 25점제는 앞에
+   * "25점제 "를 붙입니다. 예전 기록("21:18")은 그대로 21점제 한 경기로 읽힙니다.
+   * (칸을 늘리지 않아 기존 시트·브리지와 그대로 호환됩니다.) */
+  function parseGames(v) {
+    var s = String(v == null ? '' : v);
+    var mode = /25\s*점/.test(s) ? 25 : 21;
+    var out = [];
+    var re = /(\d{1,2})\s*[:：\-]\s*(\d{1,2})/g;
+    var m;
+    while ((m = re.exec(s))) out.push({ a: parseInt(m[1], 10), b: parseInt(m[2], 10), mode: mode });
+    return out;
+  }
+
+  /* 입력칸에서 온 값 정리 — 두 점수가 다 들어온 게임만 남깁니다 */
+  function cleanGames(list) {
+    var out = [];
+    (list || []).forEach(function (g) {
+      if (!g) return;
+      if (g.a === '' || g.a == null || g.b === '' || g.b == null) return;
+      var a = Number(g.a), b = Number(g.b);
+      if (!isFinite(a) || !isFinite(b)) return;
+      out.push({ a: U.clamp(Math.round(a), 0, 99), b: U.clamp(Math.round(b), 0, 99) });
+    });
+    return out;
+  }
+
+  /* 여러 게임의 승/패 요약 — 시트 '승패' 칸에는 이 결과 하나만 적습니다 */
+  function gamesSummary(games) {
+    var list = games || [];
+    var wins = 0, losses = 0, draws = 0;
+    list.forEach(function (g) {
+      var r = resultFromScore(g);
+      if (r === '승') wins++;
+      else if (r === '패') losses++;
+      else draws++;
+    });
+    var result = !list.length ? '' : wins > losses ? '승' : losses > wins ? '패' : '무';
+    return {
+      count: list.length, wins: wins, losses: losses, draws: draws, result: result,
+      first: list.length ? { a: list[0].a, b: list[0].b } : null
+    };
+  }
+
+  /* 여러 게임 → 시트 한 칸 (25점제는 앞에 표시) */
+  function formatGames(games, mode) {
+    var list = games || [];
+    if (!list.length) return '';
+    var body = list.map(function (g) { return g.a + ':' + g.b; }).join(', ');
+    return Number(mode) === 25 ? '25점제 ' + body : body;
+  }
+
   function resultFromScore(score, mine) {
     if (!score) return '';
     if (score.a === score.b) return '무';
@@ -224,6 +277,7 @@
       done: splitList(c[COL['완료훈련']]),
       score: parseScore(c[COL['게임점수']]),
       scoreRaw: c[COL['게임점수']],
+      games: parseGames(c[COL['게임점수']]),
       result: c[COL['승패']],
       pain: splitList(c[COL['아픈부위']]),
       prescription: U.jsonParse(c[COL['맞춤처방']], null),
@@ -265,8 +319,9 @@
     set('훈련강도', e.intensity);
     set('운동시간(분)', e.minutes);
     if (e.done && e.done.length) set('완료훈련', e.done.join(','));
-    if (e.score) set('게임점수', e.score.a + ':' + e.score.b);
-    else if (e.scoreRaw) set('게임점수', e.scoreRaw);
+    if (e.scoreRaw) set('게임점수', e.scoreRaw);
+    else if (e.score) set('게임점수', e.score.a + ':' + e.score.b);
+    else if (e.games && e.games.length) set('게임점수', formatGames(e.games, e.gameMode));
     set('승패', e.status && e.type === '매칭신청' ? e.status : e.result);
     if (e.pain && e.pain.length) set('아픈부위', e.pain.join(','));
     if (e.prescription) set('맞춤처방', JSON.stringify(e.prescription));
@@ -915,7 +970,9 @@
     BASE_HEARTS: BASE_HEARTS, HEART_COST_MATCH: HEART_COST_MATCH,
     JSON_TYPES: JSON_TYPES,
     fromRow: fromRow, toRow: toRow, asCells: asCells,
-    parseScore: parseScore, resultFromScore: resultFromScore, splitList: splitList,
+    parseScore: parseScore, parseGames: parseGames, cleanGames: cleanGames,
+    gamesSummary: gamesSummary, formatGames: formatGames,
+    resultFromScore: resultFromScore, splitList: splitList,
     index: index, profileOf: profileOf, displayName: displayName, latestPerUser: latestPerUser,
     heartLedger: heartLedger, heartStatus: heartStatus,
     ownsTheme: ownsTheme, themeById: themeById, themePrice: themePrice,

@@ -129,13 +129,14 @@
 
   /* ---------- 오프라인 · 동기화 안내 막대 ----------
    * 기기 저장 모드에서는 저장 자체가 기기에서 이루어지므로 아무 말도 하지 않고,
-   * 보낼 것이 남았거나 연결이 끊겼을 때만 짧게 알려 줍니다. */
+   * 시트(서버) 모드에서 보낼 것이 남았거나 연결이 끊겼을 때만 짧게 알려 줍니다.
+   * (체험·게스트 모드에 '저장 중… N건 남음'이 뜨던 문제의 원인) */
   function netBarText(state) {
+    var needsNet = state.mode === 'sheets';
+    if (!needsNet) return null;
     var queued = (state.queue && state.queue.length) || 0;
     var offline = (typeof navigator !== 'undefined' && navigator.onLine === false);
-    /* 기기 저장 모드에서는 인터넷이 없어도 앱이 그대로 동작하므로 알리지 않습니다 */
-    var needsNet = state.mode === 'sheets';
-    if (offline && needsNet) {
+    if (offline) {
       return { kind: 'off', text: '오프라인 상태예요 · 기록은 기기에 저장되고, 연결되면 자동으로 보내요.', retry: queued > 0 };
     }
     if (state.syncState === 'error' && queued) {
@@ -542,10 +543,51 @@
     }
   }
 
+  /* ---------- 서비스워커 ----------
+   * 새 버전이 활성화되면 한 번만 새로고침합니다(무한 반복 방지).
+   * 입력 중에는 새로고침하지 않고, 다음에 앱을 열 때 새 화면을 보여 줍니다. */
+  var swReloaded = false;
+  function reloadForNewVersion() {
+    if (swReloaded) return;
+    var active = document.activeElement;
+    if (active && active.tagName && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return;
+    var last = 0;
+    try { last = Number(sessionStorage.getItem('bm_sw_reloaded_at') || 0); } catch (e) { last = 0; }
+    if (Date.now() - last < 10000) return;      /* 10초 안에 이미 새로고침했으면 그대로 둔다 */
+    swReloaded = true;
+    try { sessionStorage.setItem('bm_sw_reloaded_at', String(Date.now())); } catch (e) { /* 무시 */ }
+    location.reload();
+  }
+
   function registerSW() {
     if (!('serviceWorker' in navigator)) return;
     if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
-    navigator.serviceWorker.register('sw.js').catch(function () { /* 오프라인 캐시는 없어도 동작 */ });
+    var hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      /* 첫 설치 때는 제어자가 없었다가 생기는 것뿐이므로 새로고침하지 않습니다 */
+      if (!hadController) { hadController = true; return; }
+      reloadForNewVersion();
+    });
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      function activate(worker) {
+        if (!worker) return;
+        try { worker.postMessage({ type: 'SKIP_WAITING' }); } catch (e) { /* 무시 */ }
+      }
+      /* 이미 대기 중인 새 버전이 있으면 바로 넘깁니다 */
+      if (reg.waiting && navigator.serviceWorker.controller) activate(reg.waiting);
+      reg.addEventListener('updatefound', function () {
+        var next = reg.installing;
+        if (!next) return;
+        next.addEventListener('statechange', function () {
+          if (next.state === 'installed' && navigator.serviceWorker.controller) activate(next);
+        });
+      });
+      /* 앱으로 돌아올 때마다 새 버전을 확인합니다 */
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState !== 'visible') return;
+        try { reg.update(); } catch (e) { /* 무시 */ }
+      });
+    }).catch(function () { /* 오프라인 캐시는 없어도 동작 */ });
   }
 
   /* ---------- 하단 탭/해시 (한 번만 연결) ---------- */
@@ -593,7 +635,8 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.7.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.7.2' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);
+window.__probe=1;

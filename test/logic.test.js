@@ -1505,6 +1505,175 @@
     excludes(html2, '조건 확인 후 수락', '남의 신청을 승인할 수 없음');
   });
 
+  /* ================= 15. 사용성 개선 (v1.7.2) ================= */
+
+  test('게임 점수: 여러 게임을 한 칸에 저장하고 다시 읽는다', function () {
+    var games = [{ a: 21, b: 18 }, { a: 18, b: 21 }];
+    eq(D.formatGames(games, 21), '21:18, 18:21', '21점제 두 경기');
+    eq(D.formatGames([{ a: 25, b: 23 }], 25), '25점제 25:23', '25점제 표시');
+    var parsed = D.parseGames('25점제 25:23, 21:19');
+    eq(parsed.length, 2, '두 경기');
+    eq(parsed[0].a, 25, '첫 경기 내 점수');
+    eq(parsed[1].mode, 25, '25점제 표시 유지');
+    var old = D.parseGames('21:18');
+    eq(old.length, 1, '예전 한 경기 기록');
+    eq(old[0].mode, 21, '기본 21점제');
+  });
+
+  test('게임 점수: 승패는 여러 경기를 합쳐 계산한다', function () {
+    var sum = D.gamesSummary([{ a: 21, b: 18 }, { a: 21, b: 15 }, { a: 15, b: 21 }]);
+    eq(sum.count, 3, '경기 수');
+    eq(sum.wins, 2, '승');
+    eq(sum.losses, 1, '패');
+    eq(sum.result, '승', '합산 결과');
+    eq(D.gamesSummary([{ a: 3, b: 3 }]).result, '무', '무승부');
+    eq(D.gamesSummary([]).result, '', '경기 없음');
+    eq(D.cleanGames([{ a: '', b: '' }, { a: 21, b: 18 }]).length, 1, '빈 게임은 버린다');
+  });
+
+  test('게임 점수: 26칸 시트 행으로 저장해도 그대로 (25점제)', function () {
+    var row = D.toRow({ id: 'x1', type: '기록', scoreRaw: '25점제 25:23, 21:19', result: '승' });
+    eq(row.length, 26, '칸 수');
+    eq(row[D.COL['게임점수']], '25점제 25:23, 21:19', '게임점수 칸');
+    var e = D.fromRow(row);
+    eq(e.games.length, 2, '두 경기로 읽힘');
+    eq(e.score.a, 25, '첫 경기 점수');
+    eq(e.games[0].mode, 25, '25점제');
+  });
+
+  test('AI: 여러 경기 결과가 분석에 들어간다', function () {
+    var an = AI.analyze({
+      draft: {
+        date: U.ymd(), cond: 6, intensity: 6, minutes: 90, gameMode: 21,
+        games: [{ a: 21, b: 18 }, { a: 21, b: 15 }, { a: 18, b: 21 }]
+      },
+      records: [], level: 'C조'
+    });
+    ok(an.insights.some(function (it) { return it.label.indexOf('3경기') >= 0; }), '경기 수 안내');
+    includes(JSON.stringify(an), '2승 1패', '승패 요약');
+  });
+
+  test('저장: 여러 게임을 한 일지로 저장한다', function () {
+    return freshStore({ empty: true }).then(function (store) {
+      store.actions.setDraft({ gameMode: 25, games: [{ a: 25, b: 23 }, { a: 21, b: 19 }] });
+      var res = store.actions.saveLog();
+      ok(res.ok, '저장');
+      var rec = store.state.data.records[0];
+      eq(rec.games.length, 2, '두 경기');
+      eq(rec.result, '승', '합산 승');
+      eq(rec.scoreRaw, '25점제 25:23, 21:19', '시트 칸 표기');
+      return store.flush();
+    }).then(function () {
+      return BM.api.createLocal({ latency: 0 }).bootstrap();
+    }).then(function (res) {
+      var row = (res.rows || []).filter(function (r) { return r[D.COL['유형']] === '기록'; })[0];
+      ok(row, '저장된 기록 행');
+      eq(row[D.COL['게임점수']], '25점제 25:23, 21:19', '시트에 남은 점수');
+      eq(row[D.COL['승패']], '승', '시트 승패');
+    });
+  });
+
+  test('저장: 예전 한 경기 점수 입력도 그대로 저장된다', function () {
+    return freshStore({ empty: true }).then(function (store) {
+      store.actions.setDraft({ score: { a: 21, b: 18 }, games: undefined });
+      var res = store.actions.saveLog();
+      ok(res.ok, '저장');
+      var rec = store.state.data.records[0];
+      eq(rec.scoreRaw, '21:18', '한 경기 표기');
+      eq(rec.result, '승', '승패');
+    });
+  });
+
+  test('일지: 저장 전 기본값이 입력 완료처럼 보이지 않는다', function () {
+    return freshStore({ empty: true }).then(function (store) {
+      var d = store.state.drafts.log;
+      eq(d.minutes, null, '운동 시간 비어 있음');
+      eq(d.score, null, '점수 비어 있음');
+      eq(d.result, '', '결과 비어 있음');
+      eq(d.cond, null, '컨디션 비어 있음');
+      eq((d.games || []).length, 1, '게임 한 줄');
+      eq(d.games[0].a, '', '점수 칸 비어 있음');
+      var html = BM.views.log.render(store.state);
+      includes(html, '미입력', '미입력 표시');
+      excludes(html, '21:18', '예전 기본 점수 없음');
+      excludes(html, 'value="60"', '예전 기본 시간 없음');
+    });
+  });
+
+  test('일지: 게임 추가·21/25점제 버튼이 있다', function () {
+    var state = stateOf();
+    state.drafts.log = {
+      date: U.ymd(), cond: null, intensity: null, minutes: null, done: [],
+      gameMode: 21, games: [{ a: 21, b: 18 }, { a: 18, b: 21 }],
+      score: null, result: '', pain: [], weakness: [], note: ''
+    };
+    var html = BM.views.log.render(state);
+    includes(html, 'data-act="add-game"', '게임 추가 버튼');
+    includes(html, 'data-gamemode-val="25"', '25점제 선택');
+    includes(html, 'data-gamemode-val="21"', '21점제 선택');
+    includes(html, '2경기', '경기 수 요약');
+    checkHtml(html, '일지 화면');
+  });
+
+  test('체험 모드: 예전 대기열(저장 중… 35건)을 읽지 않고 지운다', function () {
+    clearStorage();
+    U.writeJSON('bm_rows_v1', BM.fixtures.demo());
+    var legacy = [];
+    for (var i = 0; i < 35; i++) legacy.push({ kind: 'append', row: ['legacy' + i], clientId: 'c' + i });
+    U.writeJSON('bm_queue_v1', legacy);
+    var store = BM.store.createStore({ api: BM.api.createLocal({ latency: 0 }) });
+    eq(store.state.queue.length, 0, '처음부터 대기 0건');
+    eq(U.storage.getItem('bm_queue_v1'), null, '예전 대기열 삭제');
+    return store.actions.init().then(function () {
+      var r = store.actions.createPost('오늘 21:18로 이겼다');
+      ok(r.ok, '글쓰기');
+      return store.flush();
+    }).then(function () {
+      eq(store.state.queue.length, 0, '전송 완료');
+      eq(U.storage.getItem('bm_queue_v1'), null, '기기 저장 모드에서는 대기열을 남기지 않는다');
+      eq(store.state.syncState, 'idle', '동기화 표시 없음');
+    });
+  });
+
+  test('체험 모드: 예전 데모 인물·기록을 한 번 걷어 낸다', function () {
+    clearStorage();
+    var rows = [];
+    rows.push(D.toRow({ id: 'legacy-post', type: '소셜', userKey: 'demo_chi', nick: '콕집사', text: BM.seed.SAMPLE_POSTS[2] }));
+    rows.push(D.toRow({ id: 'legacy-rec', type: '기록', userKey: 'demo_chi', nick: '콕집사', date: U.ymd(), cond: 6, score: { a: 21, b: 18 } }));
+    rows.push(D.toRow({ id: 'my-rec', type: '기록', userKey: BM.seed.ME, nick: '나', date: U.ymd(), minutes: 40 }));
+    U.writeJSON('bm_rows_v1', rows);
+    return BM.api.createLocal({ latency: 0 }).bootstrap().then(function (res) {
+      var keys = res.rows.map(function (r) { return r[D.COL['사용자ID']]; });
+      ok(keys.indexOf('demo_chi') < 0, '데모 인물 기록 삭제');
+      ok(keys.indexOf(BM.seed.ME) >= 0, '내 기록 유지');
+      eq(res.rows.length, 1, '내 기록만 남는다');
+    });
+  });
+
+  test('코치: 기본 화면은 선수용 코치 찾기·피드백이다', function () {
+    var state = stateOf();
+    state.ui.coachTab = '';
+    var html = BM.views.coach.render(state);
+    includes(html, '코치 찾기 · 피드백', '선수용 탭 이름');
+    includes(html, 'data-coachtab="apply"', '멘토 신청은 두 번째 탭');
+    includes(html, '코치에게 피드백 받기', '선수 안내 카드');
+    excludes(html, '멘토 신청 심사', '심사 탭 없음');
+    checkHtml(html, '코치 화면');
+  });
+
+  test('코치: 승인된 코치는 선수 화면에 보인다', function () {
+    var rows = BM.fixtures.demo();
+    rows.push(D.toRow({
+      id: 'mentor-ok', type: '멘토신청', createdAt: U.stamp(), date: U.ymd(),
+      nick: '코치님', userKey: 'demo_coach9', target: D.ADMIN_TARGET,
+      payload: { status: '승인', level: 'B조', discipline: '복식', region: '경기', club: '나래울', reason: '지도' }
+    }));
+    var state = stateOf(rows);
+    state.ui.coachTab = '';
+    var html = BM.views.coach.render(state);
+    includes(html, '코치님', '승인 코치 표시');
+  });
+
   /* ---------- 자동 실행 ---------- */
   if (typeof process !== 'undefined' && process.argv && /run\.js$/.test(process.argv[1] || '')) {
     BM.test.run().then(function (sum) {
