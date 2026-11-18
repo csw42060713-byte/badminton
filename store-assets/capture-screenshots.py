@@ -5,7 +5,9 @@ store-assets/capture-screenshots.py — 플레이 스토어용 모바일 스크�
   python3 store-assets/capture-screenshots.py
 
   · 로컬 저장소(repo 루트)를 이 스크립트 안에서만 HTTP로 띄웁니다(별도 서버 실행 불필요).
-  · 360×640 CSS 픽셀, 배율 3 → 실제 파일 1080×1920 (Play 스토어 9:16 규격).
+  · 405×720 CSS 픽셀(정확히 9:16), 배율 2.667 → 실제 파일 1080×1920.
+  · 이 저장소에 들어 있는 PNG는 같은 화면을 540×960으로 찍은 것입니다
+    (Chromium이 없는 환경에서는 배포 사이트에서 촬영했습니다). 규격만 9:16이면 됩니다.
   · 로그인 세션과 테스트 픽스처(test/fixtures.js)를 심어 실제 화면처럼 채운 뒤 찍습니다.
   · 결과: store-assets/screenshot-1-matching.png, -2-chat, -3-ai, -4-my
 """
@@ -95,8 +97,8 @@ def main():
                 args=["--force-color-profile=srgb", "--font-render-hinting=none", "--headless=new"],
             )
             ctx = browser.new_context(
-                viewport={"width": 360, "height": 640},
-                device_scale_factor=3,
+                viewport={"width": 405, "height": 720},
+                device_scale_factor=2.6667,
                 is_mobile=True,
                 has_touch=True,
                 locale="ko-KR",
@@ -116,6 +118,7 @@ def main():
             print("심은 행:", info["count"], "| meKey:", info["me"])
             page.reload()
             app_ready(page)
+            page.add_style_tag(content="::-webkit-scrollbar{width:0;height:0}html,body{overflow-x:hidden}")
             settle(page, 900)
 
             # 2) 매칭
