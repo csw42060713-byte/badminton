@@ -257,17 +257,22 @@
         if (key && BM.views.profile) BM.views.profile.open(key, ctx);
         return;
       }
-      /* 받은 매칭 요청(편지지) — 여기서 바로 수락/거절 */
+      /* 받은 매칭 요청(편지지) — 카드를 누르면 상세 편지지, 여기서는 바로 수락/거절 */
       var mAccept = ev.target.closest('[data-accept]');
       if (mAccept) {
         ev.preventDefault();
         var mres = ctx.actions.respondMatch(mAccept.getAttribute('data-accept'), '수락');
         if (!mres || !mres.ok) { UI.toast(mres && mres.reason === 'done' ? '이미 처리한 요청이에요' : '처리하지 못했어요', 'error'); return; }
         UI.haptic(12);
+        var mFrom = mAccept.closest('[data-from]');
+        var mOther = (mFrom && mFrom.getAttribute('data-from')) || '';
         if (mres.short > 0) UI.toast('수락했어요 · 보낸 분 하트가 ' + mres.charged + '개뿐이라 ' + mres.charged + '개만 차감했어요.');
         else if (mres.charged > 0) UI.toast('수락했어요 · 보낸 분 하트 ' + mres.charged + '개 차감');
         else UI.toast('수락했어요. 대화를 시작해 보세요.');
-        if (mres.roomId) ctx.actions.openChat(mres.roomId, mAccept.getAttribute('data-from') || '');
+        if (mres.roomId) {
+          ctx.actions.openChat(mres.roomId, mOther);
+          if (mOther) ctx.actions.markChatRead(mres.roomId, mOther);
+        }
         return;
       }
       var mDecline = ev.target.closest('[data-decline]');
@@ -275,6 +280,15 @@
         ev.preventDefault();
         var dres = ctx.actions.respondMatch(mDecline.getAttribute('data-decline'), '거절');
         UI.toast(dres && dres.ok ? '요청을 거절했어요' : '처리하지 못했어요');
+        return;
+      }
+      /* 편지지 카드는 어디를 눌러도 상세 편지지로 들어갑니다 */
+      var openLetter = ev.target.closest('[data-open-letter]');
+      if (openLetter) {
+        ev.preventDefault();
+        if (BM.views.matching && BM.views.matching.openLetterSheet) {
+          BM.views.matching.openLetterSheet(ctx, openLetter.getAttribute('data-open-letter'));
+        }
         return;
       }
       var openProf = ev.target.closest('[data-open-profile]');

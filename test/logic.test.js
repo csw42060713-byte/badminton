@@ -565,6 +565,8 @@
     return freshStore().then(function (store) {
       var incoming = store.state.data.requests.filter(function (r) { return r.target === BM.seed.ME && r.status === '대기'; })[0];
       store.actions.respondMatch(incoming.id, '수락');
+      /* 찾기 탭은 처음엔 안내 화면이라, '전체'를 눌러 목록을 보이게 한 뒤 확인합니다 */
+      store.actions.resetMatchFilter();
       var html = BM.views.matching.render(store.state);
       includes(html, 'data-open-chat="' + incoming.id + '"', '수락한 상대의 채팅 버튼');
       excludes(html, 'data-send-request="' + incoming.userKey + '"', '같은 상대에게 다시 요청 버튼 없음');

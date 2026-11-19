@@ -75,6 +75,14 @@
     }), function (r) { return r.createdAt || ''; }, true);
   }
 
+  /* 수락한 지 얼마 안 된 편지 — 목록에서 사라지지 않고 '1:1 대화하기'로 이어 줍니다 */
+  function acceptedIncoming(state, limit) {
+    var me = meKey(state);
+    return U.sortBy((state.data.requests || []).filter(function (r) {
+      return r.target === me && r.status === '수락';
+    }), function (r) { return r.createdAt || ''; }, true).slice(0, limit || 3);
+  }
+
   function sentRequests(state) {
     var me = meKey(state);
     return U.sortBy((state.data.requests || []).filter(function (r) { return r.userKey === me; }),
@@ -88,6 +96,12 @@
 
   function activeFilterCount(state) {
     return D.activeFilters(filterOf(state)).length;
+  }
+
+  /* 처음 들어오면 아무 조건도 고르지 않은 '안내' 상태입니다.
+   * 급수·지역·종목·성별을 고르거나 검색어를 넣거나 '전체'를 누르면 목록이 나옵니다. */
+  function searchStarted(state) {
+    return D.matchSearchActive(filterOf(state), state.ui.matchStarted);
   }
 
   function sortOf(state) {
@@ -112,8 +126,8 @@
 
   function filterSig(state) {
     var f = filterOf(state);
-    return [f.level || '전체', f.gender || '전체', f.region || '전체', f.discipline || '전체',
-      state.ui.matchFilterOpen || ''].join('|');
+    return [f.level || '', f.gender || '', f.region || '', f.discipline || '',
+      state.ui.matchFilterOpen || '', searchStarted(state) ? '1' : '0'].join('|');
   }
 
   function searchBar(state) {
@@ -212,12 +226,24 @@
     var f = filterOf(state);
     var reqs = (state.data.requests || []).map(function (r) { return r.id + ':' + r.status; }).join(',');
     var rooms = (state.data.rooms || []).map(function (r) { return r.roomId + ':' + r.unread; }).join(',');
-    return [f.level || '전체', f.gender || '전체', f.region || '전체', f.discipline || '전체', f.query || '',
+    return [f.level || '', f.gender || '', f.region || '', f.discipline || '', f.query || '',
+      searchStarted(state) ? '1' : '0',
       sortOf(state), (state.data.matchProfiles || []).length, reqs, rooms,
       (state.me && state.me.nick) || '', (state.me && state.me.theme && state.me.theme.avatar) || ''].join('|');
   }
 
+  /* 조건을 고르기 전에 보여 주는 첫 화면 — 목록 대신 짧은 안내 카드 */
+  function introHtml() {
+    return '<div class="matchintro">' +
+      '<span class="matchintro__ico">' + UI.icon('search') + '</span>' +
+      '<p class="matchintro__t">원하는 급수·조건이나 <b>전체</b>를 눌러 선수를 찾아보세요</p>' +
+      '<p class="matchintro__d">급수·지역·종목·성별 중 하나를 고르거나 검색어를 입력하면 조건에 맞는 선수가 나타나요.</p>' +
+      '<button type="button" class="btn btn--primary btn--sm matchintro__btn" data-act="show-all">' +
+      UI.icon('check') + '전체 선수 보기</button></div>';
+  }
+
   function resultsHtml(state) {
+    if (!searchStarted(state)) return introHtml();
     var players = visiblePlayers(state);
     var active = D.activeFilters(filterOf(state));
     var q = String(filterOf(state).query || '').trim();
@@ -273,9 +299,25 @@
     var note = (r.payload && r.payload.note) || '';
     var meta = [p.region, p.club].filter(Boolean).join(' · ');
     var spec = [p.discipline, p.availability].filter(Boolean).join(' · ');
-    var cost = D.HEART_RULES.MATCH_COST;
-    return '<article class="letter' + (opts.compact ? ' letter--compact' : '') + '"' +
-      ' data-letter="' + U.esc(r.id) + '" data-open-profile="' + U.esc(other) + '"' +
+    var cost = Number(r.payload && r.payload.heartCost) || D.HEART_RULES.MATCH_COST;
+    var status = r.status || '대기';
+    var accepted = status === '수락';
+    var acts;
+    if (accepted) {
+      /* 수락한 편지는 그 자리에서 1:1 대화방으로 이어 줍니다 */
+      acts = '<div class="letter__acts">' +
+        '<button type="button" class="btn btn--primary btn--sm" data-open-chat="' + U.esc(r.id) + '"' +
+        ' data-other="' + U.esc(other) + '">1:1 대화하기</button></div>';
+    } else if (status !== '대기') {
+      acts = '<div class="letter__acts"><span class="rq__status is-off">' + U.esc(status) + '</span></div>';
+    } else {
+      acts = '<div class="letter__acts">' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-decline="' + U.esc(r.id) + '">거절</button>' +
+        '<button type="button" class="btn btn--primary btn--sm" data-accept="' + U.esc(r.id) + '">수락</button>' +
+        '</div>';
+    }
+    return '<article class="letter' + (opts.compact ? ' letter--compact' : '') + (accepted ? ' letter--done' : '') + '"' +
+      ' data-letter="' + U.esc(r.id) + '" data-open-letter="' + U.esc(r.id) + '"' +
       ' data-from="' + U.esc(other) + '">' +
       '<div class="letter__top">' +
       '<span class="letter__av">' + UI.avatar(p, opts.compact ? 44 : 52) + '</span>' +
@@ -283,16 +325,16 @@
       '<div class="letter__name">' + U.esc(p.nick) + gradePill(p) + genderPill(p) + '</div>' +
       '<p class="letter__meta">' + U.esc(meta || '지역 미입력') +
       (spec ? ' · ' + U.esc(spec) : '') + '</p></div>' +
-      '<span class="letter__stamp">매칭 요청</span></div>' +
+      '<span class="letter__stamp">' + (accepted ? '수락함' : '매칭 요청') + '</span></div>' +
       (note
         ? '<p class="letter__note">' + U.esc(note) + '</p>'
         : '<p class="letter__note letter__note--empty">한마디 없이 보낸 요청이에요.</p>') +
-      '<p class="letter__rule">' + UI.icon('heart') +
-      '수락하면 보낸 분의 하트 ' + cost + '개가 차감되고 1:1 대화가 열려요.</p>' +
-      '<div class="letter__acts">' +
-      '<button type="button" class="btn btn--ghost btn--sm" data-decline="' + U.esc(r.id) + '">거절</button>' +
-      '<button type="button" class="btn btn--primary btn--sm" data-accept="' + U.esc(r.id) + '">수락</button>' +
-      '</div></article>';
+      (accepted ? '' : '<p class="letter__rule">' + UI.icon('heart') +
+        '수락하면 보낸 분의 하트 ' + cost + '개가 차감되고 1:1 대화가 열려요.</p>') +
+      acts +
+      '<button type="button" class="letter__open" data-open-letter="' + U.esc(r.id) + '">' +
+      '눌러서 편지지 열기' + UI.icon('arrow', 'letter__arrow') + '</button>' +
+      '</article>';
   }
 
   function reqRow(state, r, kind) {
@@ -325,15 +367,25 @@
     var list = kind === 'in' ? pendingIncoming(state) : sentRequests(state);
     if (!list.length) {
       return kind === 'in'
-        ? UI.emptyState('community', '받은 요청이 없어요', '요청을 보내면 상대가 수락할 때 대화가 열려요.',
+        ? acceptedBlock(state) || UI.emptyState('community', '받은 요청이 없어요', '요청을 보내면 상대가 수락할 때 대화가 열려요.',
           '<button type="button" class="btn btn--ghost btn--sm mt8" data-match-tab="find">플레이어 찾기</button>')
         : UI.emptyState('send', '보낸 요청이 없어요', '마음에 드는 상대의 프로필을 보고 요청을 보내보세요.',
           '<button type="button" class="btn btn--ghost btn--sm mt8" data-match-tab="find">플레이어 찾기</button>');
     }
     if (kind === 'in') {
-      return '<div class="letters">' + list.map(function (r) { return letterHtml(state, r); }).join('') + '</div>';
+      return '<div class="letters">' + list.map(function (r) { return letterHtml(state, r); }).join('') + '</div>' +
+        acceptedBlock(state);
     }
     return '<ul class="rqlist">' + list.map(function (r) { return reqRow(state, r, kind); }).join('') + '</ul>';
+  }
+
+  /* 수락한 편지 묶음 — 누르면 편지지가 열리고, 버튼으로 바로 대화방에 들어갑니다 */
+  function acceptedBlock(state) {
+    var list = acceptedIncoming(state);
+    if (!list.length) return '';
+    return '<div class="letters letters--done">' +
+      '<p class="letters__cap">' + UI.icon('check') + '수락한 요청</p>' +
+      list.map(function (r) { return letterHtml(state, r); }).join('') + '</div>';
   }
 
   function reqTab(state, kind) {
@@ -570,6 +622,109 @@
     });
   }
 
+  /* ---------- 편지지 상세 ----------
+   * 목록의 편지지 카드를 누르면 열리는 풀 카드 뷰.
+   * 보낸 사람 프로필·플레이 스타일·주 체육관·한마디 전문과 수락/거절을 한 화면에 담습니다. */
+  function letterBody(state, r) {
+    var p = personOf(state, r.userKey);
+    var note = (r.payload && r.payload.note) || '';
+    var cost = Number(r.payload && r.payload.heartCost) || D.HEART_RULES.MATCH_COST;
+    var status = r.status || '대기';
+    var accepted = status === '수락';
+    var key = U.esc(p.userKey);
+
+    var footer;
+    if (accepted) {
+      footer = '<div class="pp__note pp__note--ok">' + UI.icon('check') +
+        '<span>수락한 요청이에요. 바로 1:1 대화를 할 수 있어요.</span></div>' +
+        '<button class="btn btn--primary btn--big mt8" data-open-chat="' + U.esc(r.id) + '" data-other="' + key + '">1:1 대화방 열기</button>';
+    } else if (status !== '대기') {
+      footer = '<div class="pp__note">' + UI.icon('clock') + '<span>이미 ' + U.esc(status) + '한 요청이에요.</span></div>';
+    } else {
+      footer = '<div class="pp__note pp__note--info">' + UI.icon('heart') +
+        '<span>수락하면 보낸 분 하트 <b>' + cost + '개 차감</b> · 바로 1:1 대화가 열려요.</span></div>' +
+        '<div class="row gap8 mt8">' +
+        '<button class="btn btn--ghost grow" data-decline="' + U.esc(r.id) + '">거절</button>' +
+        '<button class="btn btn--primary grow" data-accept="' + U.esc(r.id) + '">수락하고 대화하기</button></div>';
+    }
+
+    return '<div class="lettermail" data-letter-sheet="' + U.esc(r.id) + '">' +
+      '<div class="lettermail__top">' + UI.avatar(p, 64) +
+      '<div class="lettermail__who">' +
+      '<div class="lettermail__name">' + U.esc(p.nick) + gradePill(p) + genderPill(p) + '</div>' +
+      '<p class="lettermail__meta">' + U.esc([p.region, p.club].filter(Boolean).join(' · ') || '지역 미입력') + '</p>' +
+      '<span class="lettermail__stamp">' + (accepted ? '수락한 편지' : '매칭 요청 편지') + '</span></div></div>' +
+      '<div class="lettermail__note">' +
+      (note ? U.esc(note) : '<span class="muted">한마디 없이 보낸 요청이에요.</span>') + '</div>' +
+      '<p class="lettermail__cap">보낸 분 정보</p>' +
+      '<dl class="pp__spec">' +
+      '<div><dt>급수</dt><dd>' + U.esc(p.level || '미입력') + '</dd></div>' +
+      '<div><dt>주력 종목</dt><dd>' + (p.discipline
+        ? '<span class="eventchip eventchip--lg is-on">' + U.esc(p.discipline) + '</span>'
+        : '<span class="muted">미입력</span>') + '</dd></div>' +
+      '<div><dt>플레이 스타일</dt><dd>' + (p.style
+        ? '<span class="pill pill--style">' + U.esc(p.style) + '</span>'
+        : '<span class="muted">미입력</span>') + '</dd></div>' +
+      '<div><dt>주 체육관</dt><dd>' + U.esc(p.club || '미입력') + '</dd></div>' +
+      '<div><dt>가능 시간</dt><dd>' + U.esc(p.availability || '미입력') + '</dd></div>' +
+      '<div><dt>경력</dt><dd>' + U.esc(p.experience || '미입력') + '</dd></div>' +
+      '</dl>' +
+      (p.bio ? '<p class="pp__bio">' + U.esc(p.bio) + '</p>' : '') +
+      (U.timeAgo(r.createdAt)
+        ? '<p class="lettermail__at">' + UI.icon('clock') + U.esc(U.timeAgo(r.createdAt)) + ' 도착</p>'
+        : '') +
+      '<div class="lettermail__foot">' + footer + '</div>' +
+      '<button type="button" class="linkbtn lettermail__more" data-open-profile="' + key + '">프로필 자세히 보기</button>' +
+      '</div>';
+  }
+
+  function openLetterSheet(ctx, reqId) {
+    var state = ctx.store.state;
+    var r = (state.data.requests || []).filter(function (x) { return String(x.id) === String(reqId); })[0];
+    if (!r) { UI.toast('요청을 찾지 못했어요', 'error'); return; }
+    UI.openSheet({
+      title: '받은 편지지',
+      body: letterBody(state, r),
+      onMount: function (wrap) {
+        wrap.addEventListener('click', function (ev) {
+          var accept = ev.target.closest('[data-accept]');
+          if (accept) {
+            ev.preventDefault();
+            UI.closeSheet();
+            acceptRequest(ctx, accept.getAttribute('data-accept'));
+            return;
+          }
+          var decline = ev.target.closest('[data-decline]');
+          if (decline) {
+            ev.preventDefault();
+            UI.closeSheet();
+            declineRequest(ctx, decline.getAttribute('data-decline'));
+            return;
+          }
+          var chat = ev.target.closest('[data-open-chat]');
+          if (chat) {
+            ev.preventDefault();
+            UI.closeSheet();
+            var roomId = chat.getAttribute('data-open-chat');
+            var other = chat.getAttribute('data-other');
+            if (!roomId) return;
+            ctx.actions.openChat(roomId, other);
+            if (other) ctx.actions.markChatRead(roomId, other);
+            return;
+          }
+          var prof = ev.target.closest('[data-open-profile]');
+          if (prof) {
+            ev.preventDefault();
+            var p = personOf(ctx.store.state, prof.getAttribute('data-open-profile'));
+            UI.closeSheet();
+            if (p) openProfile(p, ctx);
+            return;
+          }
+        });
+      }
+    });
+  }
+
   /* ---------- 수락/거절 ---------- */
   function acceptRequest(ctx, reqId) {
     var req = (ctx.store.state.data.requests || []).filter(function (r) { return r.id === reqId; })[0] || {};
@@ -760,10 +915,12 @@
         if (ev.target.closest('[data-act="show-all"]')) {
           ev.preventDefault();
           var had = activeFilterCount(ctx.store.state);
+          var wasStarted = searchStarted(ctx.store.state);
           var search = root.querySelector('[data-search-input]');
           if (search) search.value = '';
           ctx.actions.resetMatchFilter();
-          if (had) { UI.toast('조건을 모두 풀었어요'); UI.haptic(6); }
+          UI.toast(had ? '조건을 모두 풀었어요' : '전체 선수를 보여드릴게요');
+          if (had || !wasStarted) UI.haptic(6);
           return;
         }
 
@@ -802,7 +959,7 @@
           ev.preventDefault();
           var box = root.querySelector('[data-search-input]');
           if (box) box.value = '';
-          ctx.actions.resetMatchFilter();
+          ctx.actions.clearMatchFilter();
           UI.toast('조건을 초기화했어요');
           UI.haptic(6);
           return;
@@ -838,6 +995,14 @@
           ctx.actions.openChat(roomId, other);
           if (other) ctx.actions.markChatRead(roomId, other);
           UI.haptic(8);
+          return;
+        }
+
+        /* 편지지 카드는 어디를 눌러도 상세 편지지로 들어갑니다 (내부 버튼은 위에서 먼저 처리) */
+        var letter = ev.target.closest('[data-open-letter]');
+        if (letter) {
+          ev.preventDefault();
+          openLetterSheet(ctx, letter.getAttribute('data-open-letter'));
           return;
         }
 
@@ -967,13 +1132,17 @@
     },
 
     /* 테스트/다른 화면에서 재사용 */
+    /* 프로필 시트 본문 */
     profileBody: profileBody,
     playerCard: playerCard,
     letterHtml: letterHtml,
+    letterBody: letterBody,
+    openLetterSheet: openLetterSheet,
     statusOf: statusOf,
     resultsHtml: resultsHtml,
     visiblePlayers: visiblePlayers,
     pendingIncoming: pendingIncoming,
+    acceptedIncoming: acceptedIncoming,
     sentRequests: sentRequests
   };
 
@@ -981,6 +1150,7 @@
     var f = filterOf(state);
     var open = state.ui.matchFilterOpen || '';
     var active = D.activeFilters(f);
+    var started = searchStarted(state);
     function button(key, label) {
       var v = valueOf(f, key);
       /* 값이 없으면 이름만 — 버튼 네 개가 한 줄에 다 들어가고 화면이 덜 빽빽합니다 */
@@ -990,12 +1160,14 @@
         label + (v ? '<b>' + U.esc(v) + '</b>' : '') + UI.icon('arrow', 'fbtn__car') + '</button>';
     }
     function line(kr, key, options) {
-      var current = f[key] || '전체';
+      var cur = f[key] || '';
+      var none = !cur || cur === '전체';
       return '<div class="filter-line' + (open === key ? ' is-active' : '') + '" data-key="' + key + '">' +
         '<span class="filter-line__label">' + kr + '</span><div class="scrollx">' +
         ['전체'].concat(options).map(function (o) {
-          var on = current === o;
           var all = o === '전체';
+          /* 조건을 고르기 전에는 아무것도 선택되지 않은 상태로 둡니다 */
+          var on = all ? (started && none) : cur === o;
           /* '전체'는 조건을 고른 것이 아니라 '모든 조건 풀기' 상태라 색을 달리해 한눈에 구분합니다 */
           return '<button type="button" class="chip chip--sm' + (all ? ' chip--all' : '') + (on ? ' is-on' : '') + '"' +
             ' data-filter="' + key + '" data-value="' + U.esc(o) + '"' +
@@ -1004,9 +1176,9 @@
         }).join('') + '</div></div>';
     }
     return '<div class="fbar" data-fbar>' +
-      '<button type="button" class="fall' + (active.length ? '' : ' is-on') + '" data-act="show-all"' +
+      '<button type="button" class="fall' + (started && !active.length ? ' is-on' : '') + '" data-act="show-all"' +
       ' aria-label="' + (active.length ? '조건을 모두 풀고 전체 선수 보기' : '전체 선수 보기') + '">' +
-      UI.icon(active.length ? 'refresh' : 'check') + '<span>전체</span></button>' +
+      UI.icon(started && !active.length ? 'check' : 'refresh') + '<span>전체</span></button>' +
       button('level', '급수') + button('region', '지역') + button('discipline', '종목') + button('gender', '성별') +
       '</div>' +
       '<div class="fpanel' + (open ? ' is-open' : '') + '">' +

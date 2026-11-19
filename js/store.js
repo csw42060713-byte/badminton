@@ -140,7 +140,10 @@
       routine: {},
       ui: {
         tab: 'log',
-        matchFilter: { level: '전체', gender: '전체', region: '전체', discipline: '전체', query: '' },
+        /* 매칭 찾기: 처음에는 아무 조건도 고르지 않은 상태(안내 카드만 보임).
+         * 급수·지역·종목·성별을 고르거나 검색어를 넣거나 '전체'를 누르면 목록이 나옵니다. */
+        matchFilter: { level: '', gender: '', region: '', discipline: '', query: '' },
+        matchStarted: false,     /* 조건·전체를 골라 선수 목록을 보여 주는 중인지 */
         matchTab: 'find',        /* find · in(받은 요청) · out(보낸 요청) · chat(대화) */
         matchSort: 'score',      /* score(궁합순) · recent(최근순) */
         matchFilterOpen: '',     /* 펼친 필터 줄 (level · region · discipline · gender) */
@@ -1162,11 +1165,16 @@
 
       setFilter: function (patch) {
         Object.keys(patch).forEach(function (k) { state.ui.matchFilter[k] = patch[k]; });
+        /* 한 조건이라도 고르면 그 순간부터 선수 목록을 보여 줍니다 */
+        state.ui.matchStarted = true;
         emit();
       },
 
       setMatchQuery: function (query) {
-        state.ui.matchFilter.query = String(query == null ? '' : query);
+        var q = String(query == null ? '' : query);
+        state.ui.matchFilter.query = q;
+        if (q.trim()) state.ui.matchStarted = true;
+        else if (!D.activeFilters(state.ui.matchFilter).length) state.ui.matchStarted = false;
         emit();
       },
 
@@ -1189,8 +1197,18 @@
         emit();
       },
 
+      /* '전체' — 조건은 모두 풀고, 전체가 선택된 상태로 모든 선수를 보여 줍니다 */
       resetMatchFilter: function () {
-        state.ui.matchFilter = { level: '전체', gender: '전체', region: '전체', discipline: '전체', query: '' };
+        state.ui.matchFilter = { level: '', gender: '', region: '', discipline: '', query: '' };
+        state.ui.matchStarted = true;
+        state.ui.matchFilterOpen = '';
+        emit();
+      },
+
+      /* 조건 초기화 — 다시 '아무것도 고르지 않은' 처음 화면으로 돌아갑니다 */
+      clearMatchFilter: function () {
+        state.ui.matchFilter = { level: '', gender: '', region: '', discipline: '', query: '' };
+        state.ui.matchStarted = false;
         state.ui.matchFilterOpen = '';
         emit();
       },

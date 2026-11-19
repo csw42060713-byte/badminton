@@ -189,11 +189,12 @@
       includes(html, 'data-filter="gender" data-value="전체"', '성별 줄 전체 칩');
       includes(html, 'data-act="show-all"', '전체 보기 버튼');
       includes(html, '모두', '전체 안내 문구');
-      /* 앱이 전체를 눌렀을 때 하는 일과 같은 동작 */
+      /* 앱이 전체를 눌렀을 때 하는 일과 같은 동작 — 조건은 비고, '전체'가 선택된 상태 */
       store.actions.resetMatchFilter();
       var f = store.state.ui.matchFilter;
-      eq(f.level, '전체'); eq(f.gender, '전체'); eq(f.region, '전체');
-      eq(f.discipline, '전체'); eq(f.query, '', '검색어도 함께 초기화');
+      eq(f.level, ''); eq(f.gender, ''); eq(f.region, '');
+      eq(f.discipline, ''); eq(f.query, '', '검색어도 함께 초기화');
+      eq(store.state.ui.matchStarted, true, '전체가 선택된 상태');
       eq(store.state.ui.matchFilterOpen, '', '필터 접힘');
     });
   });
@@ -237,9 +238,9 @@
   test('v1.13 버전: sw·app·화면 캐시가 함께 올라간다', function () {
     if (!hasNode()) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
-    includes(sw, "var VERSION = 'bm-v1.13.0'", 'sw.js');
-    includes(app, "version: 'v1.13.0'", 'app.js');
-    includes(index, 'styles.css?v=20261119-22', '스타일 캐시 갱신');
+    includes(sw, "var VERSION = 'bm-v1.14.0'", 'sw.js');
+    includes(app, "version: 'v1.14.0'", 'app.js');
+    includes(index, 'styles.css?v=20261119-23', '스타일 캐시 갱신');
     includes(app, 'BM.views.my', 'MY 화면 유지');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
