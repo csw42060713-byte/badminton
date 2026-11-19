@@ -129,7 +129,7 @@
     opts = opts || {};
     var set = {};
     (selected || []).forEach(function (v) { set[v] = 1; });
-    return '<div class="chips" data-chipgroup="' + U.esc(name) + '"' + (opts.multi === false ? ' data-single="1"' : '') + '>' +
+    return '<div class="chips' + (opts.scroll ? ' chips--scroll' : '') + '" data-chipgroup="' + U.esc(name) + '"' + (opts.multi === false ? ' data-single="1"' : '') + '>' +
       options.map(function (o) {
         var value = typeof o === 'string' ? o : o.value;
         var label = typeof o === 'string' ? o : o.label;

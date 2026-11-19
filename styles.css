@@ -2209,3 +2209,214 @@ body.kb-open .dm__composer { padding-bottom: calc(10px + var(--safe-b)); }
 .planbox .bullets { margin-top: 4px; }
 .legal__row { flex-wrap: wrap; gap: 14px; align-items: center; }
 .legal__row .linkbtn { min-height: 32px; }
+
+/* ============================================================
+ * 16. 네이티브 감각 · 사용 편의 (2026-11-19, bm-v1.9.4)
+ *
+ *  · 손가락: 탭 하이라이트 제거, 길게 눌러 선택/복사 금지, 스크롤 튕김 억제
+ *  · 화면 전환: 탭을 바꿀 때만 짧게 올라오는 모션 (다시 그릴 때는 정지)
+ *  · 일지: 두 슬라이더 한 줄, 게임 점수 접기, 저장 버튼은 엄지 위치에 고정
+ *  · MY: 카드를 늘어놓지 않고 접었다 펴는 목록으로
+ * ============================================================ */
+
+/* 1) 손가락 조작 기본값 */
+html { overscroll-behavior-y: none; }
+body { overscroll-behavior-y: contain; -webkit-user-select: none; user-select: none; }
+input, textarea, select, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
+button, summary, a, .tab, .chip, .seg__btn, .fbtn, .mtab, .sortseg__b, .react, .pcard, .logrow, .post {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+button, summary, .tab { -webkit-tap-highlight-color: transparent; }
+.main, .dm__panel, .fpanel, .scrollx, .chips { -webkit-overflow-scrolling: touch; }
+.scrollx, .fbar, .chips--scroll { scroll-behavior: smooth; scrollbar-width: none; }
+.scrollx::-webkit-scrollbar, .fbar::-webkit-scrollbar, .chips--scroll::-webkit-scrollbar { display: none; }
+
+/* 2) 화면 전환 모션 — 탭을 바꿀 때만 */
+.view { animation: none; }
+.view.is-enter { animation: viewIn 200ms cubic-bezier(0.22, 0.8, 0.3, 1); }
+@keyframes viewIn { from { opacity: 0.35; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+
+/* 3) 상단바·탭바 — 안전 영역에 딱 붙게 */
+.hdr { box-shadow: 0 1px 0 var(--line); }
+.tabbar { bottom: calc(8px + var(--safe-b)); }
+body.kb-open .savebar { display: none; }
+
+/* 4) 일지: 컨디션·훈련강도를 한 줄에 (세로 길이 절반) */
+.fieldgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
+.fieldgrid .field { margin-top: 0; min-width: 0; }
+.fieldgrid .field__label { font-size: 12px; margin-bottom: 4px; }
+.fieldgrid .field__label b { font-size: 14px; }
+.fieldgrid .field__label b.is-unset { font-size: 11.5px; }
+.fieldgrid .range { height: 34px; }
+.fieldgrid .range::-webkit-slider-thumb { width: 22px; height: 22px; margin-top: -8px; }
+.fieldgrid .range__ends { font-size: 10px; margin-top: 0; }
+
+/* 완료 훈련·아픈 부위·약점 기술 — 한 줄 스크롤로 접어 세로 길이를 줄입니다 */
+.chips--scroll {
+  display: flex; flex-wrap: nowrap; gap: 6px;
+  overflow-x: auto; padding-bottom: 4px; padding-right: 26px;
+  -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, #000 88%, transparent);
+}
+
+/* 게임 점수 접기 */
+.fold { margin-top: 14px; border-top: 1px solid var(--line); }
+.fold__sum {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 50px;
+  list-style: none; cursor: pointer;
+  font-size: 13.5px; font-weight: 800; color: var(--text-2);
+  letter-spacing: -0.2px;
+}
+.fold__sum::-webkit-details-marker { display: none; }
+.fold__sum small { margin-left: 5px; font-size: 11px; font-weight: 700; color: var(--muted); }
+.fold__val { margin-left: auto; font-style: normal; font-size: 11.5px; font-weight: 800; color: var(--accent); letter-spacing: -0.1px; }
+.fold__val:empty { display: none; }
+.fold__car { width: 15px; height: 15px; color: var(--muted); transform: rotate(90deg); transition: transform 160ms ease; }
+.fold[open] .fold__car { transform: rotate(-90deg); }
+.fold__body { animation: viewIn 160ms ease-out; padding-bottom: 2px; }
+.fold__body .field { margin-top: 4px; }
+.fold__body .field:first-child { margin-top: 0; }
+
+/* 저장 버튼 — 폼을 채우는 동안 엄지 바로 위에 붙어 있습니다 */
+.submit-wrap.savebar {
+  position: sticky;
+  bottom: calc(var(--nav-h) + var(--safe-b) + 12px);
+  z-index: 6;
+  margin: 18px -18px -18px;
+  padding: 12px 18px calc(12px + var(--safe-b) * 0.2);
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  text-align: left;
+  box-shadow: 0 -10px 22px color-mix(in srgb, var(--bg) 62%, transparent);
+}
+.savebar .btn { width: 100%; }
+.savebar .hint { margin-top: 7px; font-size: 11px; text-align: center; }
+
+/* 최근 기록 — 한 줄에 담백하게 */
+.logrow { padding: 12px 0; gap: 10px; }
+.logrow__date { width: 42px; }
+.logrow__title { font-size: 13.5px; font-weight: 700; letter-spacing: -0.2px; }
+.logrow__sub { margin-top: 2px; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logrow__score { flex: none; min-width: 46px; }
+.logrow__score .score { font-size: 13.5px; }
+
+/* 5) 매칭 — 필터는 값이 없으면 이름만, 상태 탭은 상단에 붙임 */
+.fbtn { padding: 0 11px; }
+.fbar { -webkit-mask-image: linear-gradient(90deg, #000 94%, transparent); mask-image: linear-gradient(90deg, #000 94%, transparent); padding-right: 8px; }
+.mtabs {
+  position: sticky;
+  top: calc(var(--hdr-h) + var(--safe-t) + 6px);
+  z-index: 9;
+  margin-top: 0;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  border-color: var(--line-2);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--bg) 70%, transparent);
+}
+.card--match { padding: 14px 16px; }
+.mycard__hearts { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.mycard { gap: 11px; }
+
+/* 6) 커뮤니티 — 입력은 한 줄, 글은 여백 있게 */
+.card--composer { padding: 14px 16px; }
+.card--composer .row { gap: 10px; }
+.post { padding: 15px 16px; }
+.post__text { font-size: 14.5px; line-height: 1.62; margin-top: 9px; }
+.post__foot { margin-top: 10px; gap: 6px; }
+.react { min-height: 40px; padding: 0 12px; }
+.react .ico { width: 17px; height: 17px; }
+.post__who strong { font-size: 14px; }
+
+/* 7) MY — 접었다 펴는 목록 (카드 더미 대신) */
+.group {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.group__sum {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 56px; padding: 0 16px;
+  list-style: none; cursor: pointer;
+}
+.group__sum::-webkit-details-marker { display: none; }
+.group__sum .ico { width: 18px; height: 18px; color: var(--accent); flex: none; }
+.group__t { font-size: 14.5px; font-weight: 800; letter-spacing: -0.3px; }
+.group__v { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.group__car { width: 15px; height: 15px; color: var(--muted); transform: rotate(90deg); transition: transform 160ms ease; flex: none; }
+.group[open] .group__car { transform: rotate(-90deg); }
+.group__sum:active { background: color-mix(in srgb, var(--text) 4%, transparent); }
+.group__body { padding: 0 16px 16px; border-top: 1px solid var(--line); animation: viewIn 160ms ease-out; }
+.group__body .card__head { margin-top: 12px; }
+.group__body > .hint:first-child { margin-top: 12px; }
+
+/* MY 프로필 카드 — 사진 크기와 여백을 줄여 첫 화면에 요약이 다 보이게 */
+.card--profile { padding: 16px; }
+.profile { gap: 12px; align-items: center; }
+.profile__bio { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.profile .stats { margin-top: 14px; }
+.profile .stat strong { font-size: 15px; }
+.profile .stat span { font-size: 10px; }
+
+/* 8) 시작화면 — 버튼을 엄지가 닿는 아래쪽으로 */
+.start { padding-top: 5vh; gap: 22px; }
+.start__actions { margin-top: auto; }
+.start__note { margin-top: 16px; font-size: 11px; line-height: 1.55; }
+.start__guest { min-height: 44px; }
+
+/* 9) 코치 — 빈 화면 안내는 짧게, 행동 버튼은 크게 */
+.coachintro { font-size: 12.5px; line-height: 1.55; color: var(--text-2); }
+.coachsteps { display: grid; gap: 6px; margin-top: 12px; }
+.coachsteps li { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; color: var(--text-2); }
+.coachsteps b { color: var(--accent); font-size: 11px; font-weight: 800; }
+
+/* 10) 다듬기 — 위 조정 뒤에 남은 자잘한 것들 */
+.linkbtn { display: inline-flex; align-items: center; gap: 6px; }
+.linkbtn .ico { width: 15px; height: 15px; }
+.fbar { -webkit-mask-image: none; mask-image: none; padding-right: 0; }
+.fbar .fbtn:last-child { margin-right: 4px; }
+.coachflow {
+  margin-top: 12px;
+  font-size: 12.5px; font-weight: 700; color: var(--text-2);
+}
+.coachflow i { font-style: normal; color: var(--muted); margin: 0 4px; }
+.submit-wrap.savebar { background: var(--card); }
+.card--profile .stats { display: grid; grid-template-columns: repeat(3, 1fr); }
+
+/* 시작화면 — 브랜드는 가운데, 버튼은 엄지 자리 */
+.start { gap: 0; }
+.start__brand { margin-top: auto; }
+.start__actions { margin-top: 26px; }
+.start__note { margin-top: auto; padding-top: 26px; }
+
+/* 11) 스크롤할 때 겹치는 부분은 배경을 확실히 (비침 방지) */
+.mtabs { background: var(--bg); }
+.submit-wrap.savebar { position: sticky; }
+.savebar::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: -20px; height: 20px;
+  background: linear-gradient(180deg, transparent, var(--card));
+  pointer-events: none;
+}
+.card--hero { padding: 16px; }
+.hero__hi { font-size: 18px; }
+.stat-strip { margin-top: 12px; padding-top: 12px; }
+.fold--ai { margin-top: 18px; }
+.fold--ai + .fold--ai { margin-top: 0; }
+
+/* details 기본 삼각형(마커)이 한 줄 더 그려지지 않게 */
+.fold__sum, .group__sum { list-style: none; }
+.fold__sum::marker, .group__sum::marker { content: ""; font-size: 0; }
+.fold__sum::-webkit-details-marker, .group__sum::-webkit-details-marker { display: none; }
+summary { display: list-item; }
+.fold__sum, .group__sum { display: flex; }
+.card--composer textarea { min-height: 44px; padding: 12px 0; }
+.card--composer .row.between { margin-top: 4px; }

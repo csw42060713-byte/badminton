@@ -55,8 +55,8 @@
       if (sortMode === 'hot') posts.sort(function (a, b) { return (b.likes + b.replies.length) - (a.likes + a.replies.length); });
       return '' +
         '<section class="card card--composer">' +
-        '<div class="row">' + UI.avatar({ theme: state.me && state.me.theme }, 36) +
-        '<textarea rows="2" data-composer placeholder="오늘 경기 어땠어요? 한 줄 남겨보세요" maxlength="300">' + U.esc(state.ui.composer || '') + '</textarea></div>' +
+        '<div class="row">' + UI.avatar({ theme: state.me && state.me.theme }, 34) +
+        '<textarea rows="1" data-composer placeholder="오늘 경기 어땠어요? 한 줄 남겨보세요" maxlength="300">' + U.esc(state.ui.composer || '') + '</textarea></div>' +
         '<div class="row between mt8"><span class="muted sm">욕설·비방은 자제해 주세요</span>' +
         '<button class="btn btn--primary btn--sm" data-act="post">' + UI.icon('send') + '올리기</button></div>' +
         '</section>' +

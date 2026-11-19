@@ -23,6 +23,7 @@
   var currentTab = null;
   var painting = false;
   var pendingRepaint = false;
+  var lastMountedTab = null;   /* 탭이 바뀔 때만 화면 전환 모션을 켭니다 */
   var gated = false;      /* 시작화면·온보딩 중에는 일반 화면 갱신을 멈춥니다 */
 
   function el(id) { return document.getElementById(id); }
@@ -233,7 +234,9 @@
     var view = viewOf(tabId);
     painting = true;
     currentTab = tabId;
-    main.innerHTML = '<div class="view" data-view="' + tabId + '">' + view.render(store.state) + '</div>';
+    var enter = tabId !== lastMountedTab;
+    lastMountedTab = tabId;
+    main.innerHTML = '<div class="view' + (enter ? ' is-enter' : '') + '" data-view="' + tabId + '">' + view.render(store.state) + '</div>';
     var host = main.querySelector('[data-view]');
     if (view.mount) view.mount(host, ctx);
     painting = false;
@@ -532,15 +535,11 @@
     var sess = BM.auth.session();
     var guest = !sess || sess.kind === 'guest';
     UI.openSheet({
-      title: '환영합니다 🏸',
+      title: (guest ? '체험 모드로 시작해요' : '준비가 끝났어요') + ' 🏸',
       body: '<p class="sheet__text">' + (guest
-          ? '지금은 <b>체험 모드</b>예요. 이 기기에만 저장되고, 남긴 기록으로 모든 기능을 써 볼 수 있어요.'
-          : '<b>' + U.esc((sess && sess.name) || '회원') + '</b>님, 준비가 끝났어요.') + '</p>' +
-        '<ul class="bullets">' +
-        '<li>일지를 저장하면 <b>AI가 드릴·처방·이번 주 루틴</b>을 만들어 줘요.</li>' +
-        '<li>연타해도 <b>한 번만 저장</b>됩니다. 버튼을 두 번 눌러 확인해 보세요.</li>' +
-        '<li>계정과 시트 연결은 <b>MY</b>에서 언제든 바꿀 수 있어요.</li>' +
-        '</ul><button class="btn btn--primary btn--big mt16" data-close>시작하기</button>'
+          ? '이 기기에만 저장돼요. 일지를 저장하면 <b>AI가 드릴과 이번 주 루틴</b>을 만들어 줘요.'
+          : '<b>' + U.esc((sess && sess.name) || '회원') + '</b>님, 오늘 일지부터 남겨 보세요.') + '</p>' +
+        '<button class="btn btn--primary btn--big mt16" data-close>일지 쓰러 가기</button>'
     });
   }
 
@@ -647,7 +646,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.9.3' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.9.4' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);
