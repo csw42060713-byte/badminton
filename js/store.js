@@ -730,8 +730,12 @@
         var me = state.me && state.me.key;
         if (!me) return { ok: false, reason: 'no_login' };
         if (!coachKey || coachKey === me) return { ok: false, reason: 'no_target' };
+        /* 이미 친구·매칭으로 대화방이 있으면 그 방을 그대로 씁니다(같은 사람과 방 두 개 방지) */
+        var existing = (state.data.threads || []).filter(function (t) {
+          return t.other === coachKey && t.kind !== 'coach';
+        })[0];
         state.ui.chatOpen = true;
-        state.ui.chatRoom = D.coachRoomId(me, coachKey);
+        state.ui.chatRoom = existing ? existing.roomId : D.coachRoomId(me, coachKey);
         state.ui.chatOther = coachKey;
         state.ui.chatDraft = draft || '';
         emit();

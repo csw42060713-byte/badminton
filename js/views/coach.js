@@ -258,10 +258,8 @@
     var key = U.esc(c.key);
     var meta = [c.level, c.discipline, [c.region, c.club].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
     var p = UI.person(state, c.key);
-    var room = D.coachRoomId((state.me && state.me.key) || '', c.key);
-    var thread = (state.data.threads || []).filter(function (t) {
-      return String(t.roomId) === room;
-    })[0];
+    /* 친구·매칭 방이 이미 있으면 그 방을, 없으면 코치 방을 씁니다 */
+    var thread = (state.data.threads || []).filter(function (t) { return t.other === c.key; })[0];
     var canChat = D.canChatWith(state.data.idx, state.me && state.me.key, c.key);
     return '<li class="coachcard" data-coach="' + key + '">' +
       '<div class="coachcard__top">' + UI.avatar(p, 42) +
