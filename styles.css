@@ -2242,7 +2242,8 @@ button, summary, .tab { -webkit-tap-highlight-color: transparent; }
 /* 3) 상단바·탭바 — 안전 영역에 딱 붙게 */
 .hdr { box-shadow: 0 1px 0 var(--line); }
 .tabbar { bottom: calc(8px + var(--safe-b)); }
-body.kb-open .savebar { display: none; }
+/* 키보드가 올라오면 저장 버튼이 키보드 바로 위로 올라갑니다 (엄지로 바로 저장) */
+body.kb-open .savebar { bottom: calc(var(--kbd, 0px) + 10px); }
 
 /* 4) 일지: 컨디션·훈련강도를 한 줄에 (세로 길이 절반) */
 .fieldgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
