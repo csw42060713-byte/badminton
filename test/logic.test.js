@@ -1662,6 +1662,111 @@
     includes(JSON.stringify(an), '2승 1패', '승패 요약');
   });
 
+  /* ================= 2-1. 경기 흐름 · 주간 부하 (2026-11-19) ================= */
+
+  test('AI: 접전이 많은 날은 후반 운영을 짚어 준다', function () {
+    var an = AI.analyze({
+      draft: { cond: 6, intensity: 7, minutes: 90, games: [{ a: 21, b: 19 }, { a: 22, b: 20 }, { a: 18, b: 21 }] },
+      records: [], level: 'B조', discipline: '복식'
+    });
+    eq(an.flow.count, 3, '경기 수');
+    eq(an.flow.wins, 2, '승');
+    eq(an.flow.deuce, 2, '마지막까지 간 경기');
+    eq(an.flow.close, 3, '3점차 이내');
+    ok(an.flow.tips.length >= 1 && an.flow.tips.length <= 3, '문구 1~3개');
+    var text = an.flow.tips.join(' ');
+    includes(text, '마지막 2~3점', '후반 운영');
+    includes(text, '서브 실점', '복식 서브·리시브 실점');
+    excludes(text, 'undefined', '빈 값 없음');
+  });
+
+  test('AI: 마지막 경기에서 점수차가 벌어지면 후반 피로를 짚는다', function () {
+    var an = AI.analyze({
+      draft: { cond: 6, intensity: 7, minutes: 110, games: [{ a: 21, b: 15 }, { a: 18, b: 21 }, { a: 11, b: 21 }] },
+      records: [], level: 'C조', discipline: '단식'
+    });
+    eq(an.flow.fade, true, '후반 흐름 악화');
+    eq(an.flow.lastMargin, -10, '마지막 경기 점수차');
+    includes(an.flow.tips.join(' '), '60~90초', '경기 사이 회복');
+    includes(an.flow.tips.join(' '), '11점 전·후', '단식은 점수 구간으로 기록');
+    excludes(an.flow.tips.join(' '), '서브 실점과 리시브 실점만', '단식에 복식 문구 없음');
+  });
+
+  test('AI: 흐름이 좋아지는 날은 후반 피로로 말하지 않는다', function () {
+    var an = AI.analyze({
+      draft: { cond: 7, intensity: 6, minutes: 80, games: [{ a: 14, b: 21 }, { a: 21, b: 16 }, { a: 21, b: 18 }] },
+      records: [], level: 'C조'
+    });
+    eq(an.flow.fade, false, '후반 피로 아님');
+    excludes(an.flow.tips.join(' '), '60~90초', '회복 문구 없음');
+  });
+
+  test('AI: 21점제와 25점제를 구분해 접전을 센다', function () {
+    var g = [{ a: 23, b: 21 }];
+    var a21 = AI.analyze({ draft: { cond: 6, intensity: 6, minutes: 60, gameMode: 21, games: g }, records: [], level: 'C조' });
+    var a25 = AI.analyze({ draft: { cond: 6, intensity: 6, minutes: 60, gameMode: 25, games: g }, records: [], level: 'C조' });
+    eq(a21.flow.mode, 21, '21점제');
+    eq(a25.flow.mode, 25, '25점제');
+    eq(a21.flow.deuce, 1, '21점제 23:21은 마지막까지 간 경기');
+    eq(a25.flow.deuce, 0, '25점제 23:21은 막판 승부가 아님');
+    includes(a25.flow.tips.join(' '), '25점제', '점수제 표기');
+  });
+
+  test('AI: 주간 부하가 급증한 주는 경고한다', function () {
+    var history = [];
+    [8, 11, 15, 19, 22, 26].forEach(function (d) { history.push(rec(-d, { minutes: 60, intensity: 5 })); });
+    var an = AI.analyze({
+      draft: { cond: 7, intensity: 8, minutes: 120, games: [] },
+      records: history.concat([
+        rec(-1, { minutes: 120, intensity: 8 }),
+        rec(-2, { minutes: 120, intensity: 8 }),
+        rec(-4, { minutes: 110, intensity: 8 })
+      ]),
+      level: 'B조'
+    });
+    eq(an.load.zone, 'spike', '급증');
+    ok(an.load.ratio >= 1.5, '비율: ' + an.load.ratio);
+    includes(an.load.tips.join(' '), '10%', '다음 주 10% 이내');
+    ok(an.risk.some(function (r) { return r.level === 'warn' && r.text.indexOf('부하') >= 0; }), '경고에 부하');
+    ok(an.insights.some(function (it) { return it.label.indexOf('주간 부하') >= 0; }), '진단에 부하');
+  });
+
+  test('AI: 평소와 비슷한 주는 부하 적정으로 말한다', function () {
+    var history = [];
+    [-1, -4, -7, -10, -13, -14, -17, -20, -21, -24, -27, -28, -31, -34].forEach(function (d) {
+      history.push(rec(d, { minutes: 60, intensity: 5 }));
+    });
+    var an = AI.analyze({ draft: { cond: 6, intensity: 5, minutes: 60 }, records: history, level: 'C조' });
+    eq(an.load.zone, 'ok', '적정 구간');
+    ok(an.load.ratio >= 0.8 && an.load.ratio <= 1.3, '비율: ' + an.load.ratio);
+    ok(an.load.tips.length >= 1, '문구');
+  });
+
+  test('AI: 부하 기록이 모자라면 부하 점검을 하지 않는다', function () {
+    var an = AI.analyze({ draft: { cond: 6, intensity: 6, minutes: 60 }, records: [rec(-2)], level: 'C조' });
+    eq(an.load.zone, '', '점검 안 함');
+    eq(an.load.tips.length, 0, '문구 없음');
+    eq(an.load.ratio, 0, '비율 0');
+    excludes(JSON.stringify(an), 'NaN', 'NaN 없음');
+  });
+
+  test('화면: 경기 흐름·부하 점검이 분석 카드에 나온다', function () {
+    var history = [];
+    [8, 11, 15, 19, 22, 26].forEach(function (d) { history.push(rec(-d, { minutes: 60, intensity: 5 })); });
+    var state = stateOf();
+    state.drafts.log = {
+      date: U.ymd(), cond: 6, intensity: 7, minutes: 90, discipline: '복식',
+      games: [{ a: 21, b: 19 }, { a: 18, b: 21 }, { a: 12, b: 21 }], pain: [], weakness: ['리시브']
+    };
+    state.data.records = history;
+    state.analysis = AI.analyze({ draft: state.drafts.log, records: history, level: 'B조', discipline: '복식' });
+    var html = BM.views.log.render(state);
+    checkHtml(html, '흐름·부하 카드');
+    includes(html, '경기 흐름', '경기 흐름 제목');
+    includes(html, '21점제', '점수제 표기');
+    includes(html, '부하 점검', '부하 제목');
+  });
+
   test('저장: 여러 게임을 한 일지로 저장한다', function () {
     return freshStore({ empty: true }).then(function (store) {
       store.actions.setDraft({ gameMode: 25, games: [{ a: 25, b: 23 }, { a: 21, b: 19 }] });

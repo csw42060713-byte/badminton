@@ -80,6 +80,23 @@
     }).join('') + '</ul>';
   }
 
+  /* 경기 흐름 한 줄 — 점수만 보고 셀 수 있는 값만 */
+  function flowLine(flow) {
+    if (!flow || !flow.count) return '';
+    var parts = [flow.count + '경기 ' + flow.wins + '승 ' + flow.losses + '패' + (flow.count - flow.wins - flow.losses > 0 ? ' ' + (flow.count - flow.wins - flow.losses) + '무' : '')];
+    parts.push('평균 ' + flow.avgMargin + '점차');
+    if (flow.deuce) parts.push('끝까지 간 경기 ' + flow.deuce);
+    else if (flow.close) parts.push('3점차 이내 ' + flow.close);
+    if (flow.fade) parts.push('마지막 경기 점수차 확대');
+    return parts.join(' · ');
+  }
+
+  function loadLine(load) {
+    if (!load || !load.zone) return '';
+    var zone = load.zone === 'spike' ? '급증' : load.zone === 'watch' ? '조금 높음' : load.zone === 'low' ? '적음' : '적정';
+    return '최근 7일 부하 ' + load.ratio + '배 · ' + zone;
+  }
+
   function analysisCard(an, state) {
     if (!an) return '';
     var drills = (an.drills && an.drills.drills) || [];
@@ -112,6 +129,15 @@
       '<div class="care__col"><h4>스트레칭</h4>' + bulletList(an.care.stretch) + '</div>' +
       '<div class="care__col"><h4>마음</h4>' + bulletList(an.care.mental) + '</div>' +
       '</div>' +
+      (an.flow && an.flow.count && an.flow.tips && an.flow.tips.length
+        ? '<h3 class="sec-title">' + UI.icon('chart') + '경기 흐름 · ' + U.esc(an.flow.mode + '점제') + '</h3>' +
+          '<div class="planbox"><p class="planbox__t">' + U.esc(flowLine(an.flow)) + '</p>' +
+          bulletList(an.flow.tips) + '</div>' : '') +
+      (an.load && an.load.zone
+        ? '<h3 class="sec-title">' + UI.icon('clock') + '부하 점검</h3>' +
+          '<div class="planbox"><p class="planbox__t">' + U.esc(loadLine(an.load)) + '</p>' +
+          '<p class="planbox__v">운동 시간 × 강도로 계산한 내부 부하예요. 직전 4주 평균과 비교합니다.</p>' +
+          bulletList(an.load.tips) + '</div>' : '') +
       '<h3 class="sec-title">' + UI.icon('chart') + '이번 주 루틴</h3>' +
       '<div class="week">' + an.week.map(function (w) {
         return '<div class="week__row"><span class="week__day">' + U.esc(w.day) + '</span>' +
