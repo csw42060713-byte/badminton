@@ -86,7 +86,7 @@
     var adPct = hearts.adLimit ? Math.round((hearts.adUsedToday / hearts.adLimit) * 100) : 0;
     var adDisabled = !hearts.canWatchAd ? ' disabled' : '';
     var checkDisabled = !hearts.canCheckIn ? ' disabled' : '';
-    var recent = (hearts.history || []).slice(0, 6);
+    var recent = (hearts.history || []).slice(0, 3);
     return '<section class="card card--heart" data-region="heart">' +
       '<header class="card__head"><h2>' + UI.icon('heart') + '하트</h2>' +
       '<span class="heartchip">' + hearts.balance + '</span></header>' +
@@ -110,10 +110,10 @@
 
       (recent.length ? '<ul class="ledger">' + recent.map(ledgerRow).join('') + '</ul>'
         : '<p class="hint">아직 하트 내역이 없어요. 출석 체크로 시작해 보세요.</p>') +
-      (hearts.history && hearts.history.length > 6
+      (hearts.history && hearts.history.length > 3
         ? '<button class="linkbtn" data-act="history">전체 내역 ' + hearts.history.length + '건 보기</button>' : '') +
-      '<p class="hint">출석 하루 1회 · 광고 하루 ' + hearts.adLimit + '회(' + hearts.adCooldownSec + '초 간격) · ' +
-      '매칭 ' + hearts.matchCost + ' · 유료 테마 ' + D.HEART_RULES.THEME_PRICES.th_court + ' · 선물 ' + hearts.giftCost + '</p>' +
+      '<p class="hint">광고는 ' + hearts.adCooldownSec + '초 간격 · 매칭 ' + hearts.matchCost + ' · 테마 ' +
+      D.HEART_RULES.THEME_PRICES.th_court + ' · 선물 ' + hearts.giftCost + '</p>' +
       '</section>';
   }
 
@@ -244,6 +244,36 @@
     return Promise.resolve({ rewarded: false, adUnit: 'heart_reward', source: 'none', reason: 'no_adapter' });
   }
 
+  /* 접었다 펴는 설정 묶음 — MY는 카드를 쌓지 않고 목록으로 둡니다 */
+  var openGroups = {};
+  function group(id, iconName, title, value, body, region) {
+    return '<details class="group" data-group="' + id + '"' + (openGroups[id] ? ' open' : '') + '>' +
+      '<summary class="group__sum">' + UI.icon(iconName) +
+      '<span class="group__t">' + U.esc(title) + '</span>' +
+      (value ? '<span class="group__v">' + U.esc(value) + '</span>' : '') +
+      UI.icon('arrow', 'group__car') + '</summary>' +
+      '<div class="group__body"' + (region ? ' data-region="' + region + '"' : '') + '>' + body + '</div></details>';
+  }
+
+  function themeName(id) {
+    var t = (D.themeById && D.themeById(id)) || null;
+    return (t && t.name) || '기본 코트';
+  }
+
+  /* 데이터 연결 — 안내 문구는 짧게, 버튼은 크게 */
+  function dataPanel(state) {
+    return '<p class="hint">' + (state.mode === 'sheets'
+      ? '구글 시트의 <b>출력결과</b> 탭과 연결되어 있어요. 저장하면 시트에 바로 쌓입니다.'
+      : '이 기기 브라우저에 저장돼요. 시트를 연결하면 계정 기록이 시트에도 쌓입니다.') + '</p>' +
+      '<div class="row gap8 mt8">' +
+      '<button class="btn btn--ghost grow" data-act="connect">' + UI.icon('edit') + '시트 연결</button>' +
+      '<button class="btn btn--ghost grow" data-act="export">JSON 내보내기</button></div>' +
+      ((state.mode === 'local' && isGuest()) ? '<button class="linkbtn mt8" data-act="reset-demo">저장된 기록 모두 지우기</button>' : '') +
+      '<p class="sync">마지막 동기화 ' + U.esc(state.lastSync || '—') +
+      (state.syncState === 'syncing' ? ' · 보내는 중…' : state.syncState === 'error' ? ' · <b class="warn">재시도 대기</b>' : '') + '</p>' +
+      (state.queue && state.queue.length ? '<button class="linkbtn" data-act="retry">대기 중인 저장 ' + state.queue.length + '건 지금 보내기</button>' : '');
+  }
+
   var view = {
     title: 'MY',
     render: function (state) {
@@ -259,7 +289,7 @@
         '<section class="card card--profile">' +
         '<div class="profile">' +
         '<button type="button" class="profile__av" data-act="decorate-avatar" aria-label="프로필 사진 꾸미기">' +
-        UI.avatar(myAvatar(me), 88) +
+        UI.avatar(myAvatar(me), 64) +
         '<span class="profile__avcam">' + UI.icon('camera') + '</span></button>' +
         '<div class="profile__id"><div class="profile__name">' + U.esc(me.nick || '회원') +
         genderPillOf(mp.gender || me.gender) +
@@ -267,49 +297,32 @@
         '<p class="profile__meta">' + U.esc([me.level, me.discipline, me.region, me.club].filter(Boolean).join(' · ')) + '</p>' +
         (me.bio ? '<p class="profile__bio">' + U.esc(me.bio) + '</p>' : '') + '</div>' +
         '<button class="iconbtn" data-act="edit-profile" aria-label="프로필 수정">' + UI.icon('edit') + '</button></div>' +
-        '<button type="button" class="btn btn--ghost btn--big profile__deco" data-act="decorate-avatar">' +
-        UI.icon('camera') + '내 사진 · 프레임 꾸미기</button>' +
         (pendingApp ? '<p class="notice">멘토 신청이 <b>심사중</b>이에요. 승인되면 코치 기능을 쓸 수 있어요.</p>' : '') +
         '<div class="stats">' +
         '<div class="stat"><strong>' + (s.count || 0) + '</strong><span>총 기록</span></div>' +
         '<div class="stat"><strong>' + (s.minutesMonth || 0) + '</strong><span>이번 달(분)</span></div>' +
         '<div class="stat"><strong>' + (s.winRate == null ? '—' : s.winRate + '%') + '</strong><span>승률</span></div>' +
-        '<div class="stat"><strong>' + (s.streak || 0) + '</strong><span>연속 기록</span></div>' +
-        '<div class="stat"><strong>' + (s.avgCond == null ? '—' : s.avgCond) + '</strong><span>평균 컨디션</span></div>' +
-        '<div class="stat"><strong>' + (s.sessions14 || 0) + '</strong><span>최근 2주</span></div>' +
         '</div></section>' +
-
-        accountCard(state) +
 
         heartCard(hearts) +
 
-        '<section class="card" data-region="decor"><header class="card__head"><h2>프로필 꾸미기</h2>' +
-        '<button type="button" class="linkbtn" data-act="decorate-avatar">사진 · 배경</button></header>' +
-        decoratePanel(me, state) + '</section>' +
+        accountCard(state) +
 
-        '<section class="card"><header class="card__head"><h2>테마</h2><span class="muted sm">탭해서 적용</span></header>' +
-        themeSwatches(state) + '</section>' +
-
-        '<section class="card"><header class="card__head"><h2>데이터 연결</h2>' +
-        '<span class="pill ' + (state.mode === 'sheets' ? 'pill--ok' : '') + '">' + (state.mode === 'sheets' ? '시트 연결됨' : '기기 저장') + '</span></header>' +
-        '<p class="hint">' + (state.mode === 'sheets'
-          ? '구글 시트의 <b>출력결과</b> 탭과 실제로 연결되어 있어요. 저장하면 시트에 바로 쌓입니다.'
-          : '이 기기 브라우저에 저장돼요. Apps Script 브리지를 연결하면 계정 기록이 시트에 쌓입니다.') + '</p>' +
-        '<div class="row gap8 mt8">' +
-        '<button class="btn btn--ghost grow" data-act="connect">' + UI.icon('edit') + '시트 연결</button>' +
-        '<button class="btn btn--ghost grow" data-act="export">JSON 내보내기</button></div>' +
-        ((state.mode === 'local' && isGuest()) ? '<button class="linkbtn mt8" data-act="reset-demo">저장된 기록 모두 지우기</button>' : '') +
-        '<p class="sync">마지막 동기화 ' + U.esc(state.lastSync || '—') +
-        (state.syncState === 'syncing' ? ' · 보내는 중…' : state.syncState === 'error' ? ' · <b class="warn">재시도 대기</b>' : '') + '</p>' +
-        (state.queue && state.queue.length ? '<button class="linkbtn" data-act="retry">대기 중인 저장 ' + state.queue.length + '건 지금 보내기</button>' : '') +
-        '</section>' +
-
-        legalCard(state) +
+        group('decor', 'camera', '프로필 꾸미기', '사진 · 프레임 꾸미기', decoratePanel(me, state), 'decor') +
+        group('theme', 'palette', '테마', themeName(theme), themeSwatches(state)) +
+        group('data', 'chart', '데이터 연결', '시트 연결 · 내보내기', dataPanel(state)) +
+        group('legal', 'shield', '개인정보 · 계정', '', legalCard(state)) +
 
         '<p class="version">배드민턴 · ' + U.esc((BM.app && BM.app.version) || 'v1.9.1') + ' · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : 'localStorage') + '</p>';
     },
 
     mount: function (root, ctx) {
+      /* 접힌 묶음의 상태를 기억합니다 (테마를 바꿔 다시 그려도 펼친 채로) */
+      Array.prototype.forEach.call(root.querySelectorAll('details.group'), function (d) {
+        d.addEventListener('toggle', function () {
+          openGroups[d.getAttribute('data-group')] = d.open;
+        });
+      });
       root.addEventListener('click', function (ev) {
         var sw = ev.target.closest('.theme[data-theme]');   /* html[data-theme]까지 올라가지 않게 */
         if (sw) {

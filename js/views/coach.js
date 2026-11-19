@@ -256,19 +256,18 @@
   function playerCoachView(state) {
     var coaches = coachesOf(state);
     return '<section class="card">' +
-      '<header class="card__head"><h2>' + UI.icon('coach') + '코치에게 피드백 받기</h2></header>' +
-      '<p class="sectionnote">일지에 남긴 기록을 코치가 보고 <b>한 줄 피드백과 추천 드릴</b>을 남겨 줍니다. 받은 피드백은 이 화면 위에 쌓여요.</p>' +
+      '<header class="card__head"><h2>' + UI.icon('coach') + '코치에게 피드백 받기</h2>' +
+      (coaches.length ? '<span class="muted sm">코치 ' + coaches.length + '명</span>' : '') + '</header>' +
+      '<p class="coachintro">일지를 남기면 코치가 한 줄 피드백과 추천 드릴을 붙여 줍니다.</p>' +
+      '<p class="coachflow">일지 남기기 <i>→</i> 코치 확인 <i>→</i> 피드백</p>' +
+      '<button class="btn btn--primary btn--big mt16" data-act="go-log">' + UI.icon('log') + '오늘 일지 남기기</button>' +
       (coaches.length
-        ? '<ul class="bullets">' + coaches.slice(0, 5).map(function (c) {
+        ? '<ul class="bullets mt16">' + coaches.slice(0, 4).map(function (c) {
             var meta = [c.level, c.discipline, [c.region, c.club].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
             return '<li><b>' + U.esc(c.nick) + '</b>' + (meta ? ' — ' + U.esc(meta) : '') + '</li>';
           }).join('') + '</ul>'
-        : '<p class="approw__done">아직 활동 중인 코치가 없어요. 내가 먼저 코치로 신청할 수 있어요.</p>') +
-      '<div class="row gap8 mt16">' +
-      '<button class="btn btn--primary grow" data-act="go-log">' + UI.icon('log') + '오늘 일지 남기기</button>' +
-      '<button class="btn btn--ghost grow" data-coachtab="apply">' + UI.icon('coach') + '멘토 신청</button>' +
-      '</div>' +
-      '<p class="hint">기록이 있어야 코치가 봐 줄 수 있어요. 한 줄만 남겨도 됩니다.</p>' +
+        : '<p class="hint">아직 활동 중인 코치가 없어요. 내가 먼저 멘토로 신청할 수 있어요.</p>') +
+      '<button class="linkbtn mt8" data-coachtab="apply">' + UI.icon('coach') + ' 멘토로 신청하기</button>' +
       '</section>';
   }
 
@@ -308,7 +307,9 @@
                 var pl = f.payload || {};
                 return '<li><b>' + U.esc(f.nick ? '보낸 피드백' : '피드백') + '</b> · ' + U.esc(U.truncate(pl.feedback || '', 40)) + '</li>';
               }).join('') + '</ul></section>' : '')
-          : playerCoachView(state));
+          : playerCoachView(state) +
+            (myFeedback.length ? '' : '<section class="card">' +
+              UI.emptyState('spark', '받은 피드백이 아직 없어요', '일지를 남기면 코치가 여기에 한 줄 남겨요.') + '</section>'));
 
       return '' +
         mentorBanner(state) +

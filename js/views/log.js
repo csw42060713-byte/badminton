@@ -61,6 +61,22 @@
       '</div>';
   }
 
+  /* 게임 점수는 '선택' 입력 — 기본은 접어 두고, 점수가 있으면 펼칩니다 */
+  function hasGames(d) {
+    var games = (d && d.games) || [];
+    return games.some(function (g) { return (g && g.a !== '' && g.a != null) || (g && g.b !== '' && g.b != null); });
+  }
+
+  function gamesFold(d) {
+    var open = hasGames(d);
+    var sum = D.gamesSummary(D.cleanGames(draftGames(d)));
+    var val = sum.count ? sum.count + '경기 ' + sum.wins + '승 ' + sum.losses + '패' : '';
+    return '<details class="fold" data-fold="games"' + (open ? ' open' : '') + '>' +
+      '<summary class="fold__sum"><span>경기 점수 <small>선택</small></span>' +
+      '<i class="fold__val">' + U.esc(val) + '</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' + gamesField(d) + '</div></details>';
+  }
+
   function scoreRing(score) {
     var tone = score >= 75 ? 'good' : score >= 50 ? 'mid' : 'low';
     return '<div class="ring ring--' + tone + '" style="--p:' + score + '">' +
@@ -121,14 +137,15 @@
           '<p class="drill__method">' + U.esc(d.method) + '</p>' +
           '<p class="drill__point">포인트 · ' + U.esc(d.point) + '</p></div></li>';
       }).join('') + '</ol>' +
-      '<h3 class="sec-title">' + UI.icon('heart') + '맞춤 처방</h3>' +
-      '<div class="care">' +
+      '<details class="fold fold--ai" data-fold="care">' +
+      '<summary class="fold__sum"><span>맞춤 처방 <small>웜업 · 회복 · 스트레칭</small></span>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body"><div class="care">' +
       (an.care.warmup && an.care.warmup.length
         ? '<div class="care__col"><h4>웜업</h4>' + bulletList(an.care.warmup) + '</div>' : '') +
       '<div class="care__col"><h4>회복</h4>' + bulletList(an.care.rehab) + '</div>' +
       '<div class="care__col"><h4>스트레칭</h4>' + bulletList(an.care.stretch) + '</div>' +
       '<div class="care__col"><h4>마음</h4>' + bulletList(an.care.mental) + '</div>' +
-      '</div>' +
+      '</div></div></details>' +
       (an.flow && an.flow.count && an.flow.tips && an.flow.tips.length
         ? '<h3 class="sec-title">' + UI.icon('chart') + '경기 흐름 · ' + U.esc(an.flow.mode + '점제') + '</h3>' +
           '<div class="planbox"><p class="planbox__t">' + U.esc(flowLine(an.flow)) + '</p>' +
@@ -143,12 +160,16 @@
         return '<div class="week__row"><span class="week__day">' + U.esc(w.day) + '</span>' +
           '<span class="week__focus">' + U.esc(w.focus) + '</span><span class="week__menu">' + U.esc(w.menu) + '</span></div>';
       }).join('') + '</div>' +
-      (gp ? '<h3 class="sec-title">' + UI.icon('shield') + U.esc(gp.grade) + ' 플랜</h3>' +
-        '<div class="planbox"><p class="planbox__t">' + U.esc(gp.focus) + '</p>' +
-        '<p class="planbox__v">' + U.esc(gp.volume) + '</p>' + bulletList(gp.rules) + '</div>' : '') +
-      (pb && pb.tips && pb.tips.length
-        ? '<h3 class="sec-title">' + UI.icon('pin') + '전술 노트 · ' + U.esc(pb.discipline) + '</h3>' +
-          '<div class="care__col">' + bulletList(pb.tips) + '</div>' : '') +
+      ((gp || (pb && pb.tips && pb.tips.length))
+        ? '<details class="fold fold--ai" data-fold="extra">' +
+          '<summary class="fold__sum"><span>더 보기 <small>급수 플랜 · 전술 노트</small></span>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+          '<div class="fold__body">' +
+          (gp ? '<div class="planbox"><p class="planbox__t">' + U.esc(gp.grade) + ' 플랜 · ' + U.esc(gp.focus) + '</p>' +
+            '<p class="planbox__v">' + U.esc(gp.volume) + '</p>' + bulletList(gp.rules) + '</div>' : '') +
+          (pb && pb.tips && pb.tips.length
+            ? '<div class="care__col mt8"><h4>전술 노트 · ' + U.esc(pb.discipline) + '</h4>' + bulletList(pb.tips) + '</div>' : '') +
+          '</div></details>'
+        : '') +
 
       /* 저장 직후에만 보이는 "커뮤니티에 공유" 스트립 */
       (state && state.ui && state.ui.lastSavedLog
@@ -176,17 +197,19 @@
     var scoreTxt = games.length
       ? (games.length > 1 ? games.length + '경기' : games[0].a + ':' + games[0].b)
       : '';
-    var tags = [].concat(r.pain || [], r.weakness || []).slice(0, 3);
+    var tagTxt = [].concat(r.pain || [], r.weakness || []).slice(0, 2).join(' · ');
+    var doneTxt = (r.done || []).slice(0, 3).join('·');
+    var sub = [tagTxt, doneTxt].filter(Boolean).join(' · ');
     return '<li class="logrow" data-record="' + U.esc(r.id) + '">' +
       '<div class="logrow__date"><strong>' + U.shortDay(r.date) + '</strong><span>' + U.relDay(r.date) + '</span></div>' +
       '<div class="logrow__mid"><p class="logrow__title">' + (r.cond != null ? '컨디션 ' + r.cond : '훈련') +
       (r.minutes ? ' · ' + r.minutes + '분' : '') + '</p>' +
-      '<div class="tags">' + tags.map(function (t) { return '<span class="tag">' + U.esc(t) + '</span>'; }).join('') +
-      (r.done && r.done.length ? '<span class="tag tag--soft">' + U.esc(r.done.slice(0, 3).join('·')) + '</span>' : '') + '</div></div>' +
-      '<div class="logrow__score">' + (scoreTxt
-        ? '<span class="score ' + (win === '승' ? 'is-win' : win === '패' ? 'is-loss' : '') + '">' + U.esc(scoreTxt) + '</span>' +
-          (win ? '<span class="score__res">' + U.esc(win) + '</span>' : '')
-        : '<span class="score__res">' + (r.minutes ? r.minutes + '분' : '') + '</span>') + '</div></li>';
+      (sub ? '<p class="logrow__sub">' + U.esc(sub) + '</p>' : '') +
+      '</div>' +
+      (scoreTxt
+        ? '<div class="logrow__score"><span class="score ' + (win === '승' ? 'is-win' : win === '패' ? 'is-loss' : '') + '">' + U.esc(scoreTxt) + '</span>' +
+          (win ? '<span class="score__res">' + U.esc(win) + '</span>' : '') + '</div>'
+        : '') + '</li>';
   }
 
   var view = {
@@ -211,6 +234,7 @@
         '<header class="card__head"><h2>오늘 일지</h2>' +
         '<label class="datepick"><input type="date" data-field="date" value="' + U.esc(d.date) + '"></label></header>' +
 
+        '<div class="fieldgrid">' +
         '<div class="field"><div class="field__label"><span>컨디션</span><b data-out="cond"' + (d.cond == null ? ' class="is-unset"' : '') + '>' + (d.cond == null ? '미입력' : d.cond) + '</b></div>' +
         '<input type="range" min="1" max="10" step="1" value="' + (d.cond == null ? 5 : d.cond) + '" data-field="cond" class="range" style="--fill:' + fillOf(d.cond) + '%' + '" aria-label="컨디션 1에서 10">' +
         '<div class="range__ends"><span>무거움</span><span>가벼움</span></div></div>' +
@@ -218,6 +242,7 @@
         '<div class="field"><div class="field__label"><span>훈련강도</span><b data-out="intensity"' + (d.intensity == null ? ' class="is-unset"' : '') + '>' + (d.intensity == null ? '미입력' : d.intensity) + '</b></div>' +
         '<input type="range" min="1" max="10" step="1" value="' + (d.intensity == null ? 5 : d.intensity) + '" data-field="intensity" class="range" style="--fill:' + fillOf(d.intensity) + '%' + '" aria-label="훈련 강도 1에서 10">' +
         '<div class="range__ends"><span>가볍게</span><span>전력</span></div></div>' +
+        '</div>' +
 
         '<div class="field"><div class="field__label"><span>운동 시간</span><b data-out="minutes"' + (d.minutes == null ? ' class="is-unset"' : '') + '>' + (d.minutes == null ? '미입력' : d.minutes + '분') + '</b></div>' +
         '<div class="stepper"><button type="button" class="step" data-step="-5" aria-label="5분 줄이기">−</button>' +
@@ -225,23 +250,23 @@
         '<button type="button" class="step" data-step="5" aria-label="5분 늘리기">+</button></div></div>' +
 
         '<div class="field"><div class="field__label"><span>완료 훈련</span><small>여러 개 선택</small></div>' +
-        UI.chips('done', D.VOCAB.done, d.done) + '</div>' +
+        UI.chips('done', D.VOCAB.done, d.done, { scroll: true }) + '</div>' +
 
-        gamesField(d) +
+        gamesFold(d) +
 
         '<div class="field"><div class="field__label"><span>아픈 부위</span><small>없으면 그대로</small></div>' +
-        UI.chips('pain', D.VOCAB.pain, d.pain) + '</div>' +
+        UI.chips('pain', D.VOCAB.pain, d.pain, { scroll: true }) + '</div>' +
 
         '<div class="field"><div class="field__label"><span>약점 기술</span><small>오늘 아쉬웠던 것</small></div>' +
-        UI.chips('weakness', D.VOCAB.weakness, d.weakness) + '</div>' +
+        UI.chips('weakness', D.VOCAB.weakness, d.weakness, { scroll: true }) + '</div>' +
 
         '<div class="field"><div class="field__label"><span>메모</span><small>선택</small></div>' +
         '<textarea rows="2" data-field="note" placeholder="오늘 느낀 점 한 줄">' + U.esc(d.note || '') + '</textarea></div>' +
 
-        '<div class="submit-wrap">' +
+        '<div class="submit-wrap savebar">' +
         '<button class="btn btn--primary btn--big" data-act="save-log">' +
         UI.icon('check') + '<span>저장하고 AI 분석</span></button>' +
-        '<p class="hint">입력하지 않은 항목은 비워서 저장돼요 · 연타해도 한 번만 저장됩니다</p></div>' +
+        '<p class="hint">비워 둔 항목은 저장하지 않아요</p></div>' +
         '</section>' +
 
         analysisCard(an, state) +

@@ -210,9 +210,13 @@
     var anyGender = (state.data.matchProfiles || []).some(function (p) {
       return D.normalizeGender(p.gender) !== '비공개';
     });
-    var emptySub = f.gender && f.gender !== '전체' && !anyGender
-      ? '아직 성별을 공개한 플레이어가 없어요. 상대가 프로필에서 성별을 공개하면 여기에 보여요.'
-      : (q ? '다른 낱말로 찾아보거나 조건을 풀어 보세요.' : '급수·지역 조건을 바꿔 보세요.');
+    /* 아직 아무도 없을 때는 '조건' 문제가 아니므로 첫 행동을 알려 줍니다 */
+    var nobody = !(state.data.matchProfiles || []).some(function (p) { return p.userKey !== meKey(state); });
+    var emptySub = nobody
+      ? '첫 번째 선수가 되어 보세요. 내 카드를 만들면 여기에 상대가 나타나요.'
+      : (f.gender && f.gender !== '전체' && !anyGender
+        ? '아직 성별을 공개한 플레이어가 없어요. 상대가 프로필에서 성별을 공개하면 여기에 보여요.'
+        : (q ? '다른 낱말로 찾아보거나 조건을 풀어 보세요.' : '급수·지역 조건을 바꿔 보세요.'));
 
     return '<div class="resultbar">' +
       '<p>' +
@@ -226,8 +230,10 @@
       '</div></div>' +
       (players.length
         ? '<div class="pcards">' + players.map(function (p) { return playerCard(p, state); }).join('') + '</div>'
-        : UI.emptyState('search', '조건에 맞는 플레이어가 없어요', emptySub,
-          '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="reset-filter">조건 초기화</button>'));
+        : UI.emptyState('search', nobody ? '아직 등록된 선수가 없어요' : '조건에 맞는 플레이어가 없어요', emptySub,
+          nobody
+            ? '<button type="button" class="btn btn--primary btn--sm mt8" data-act="edit-match">내 매칭 카드 만들기</button>'
+            : '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="reset-filter">조건 초기화</button>'));
   }
 
   /* ---------- 찾기 탭 ---------- */
@@ -617,9 +623,8 @@
       '<div class="mycard__name">' + U.esc(me.nick || '회원') + (mp.level ? gradePill(mp) : '') + '</div>' +
       '<p class="mycard__meta">' + U.esc(meta.length ? meta.join(' · ') : '매칭 카드가 아직 없어요') + '</p></div>' +
       '<button type="button" class="btn btn--ghost btn--sm" data-act="edit-match">' + (mp.level || mp.region ? '수정' : '만들기') + '</button></div>' +
-      (ready ? '' : '<p class="mycard__hint">급수·종목·지역을 등록하면 맞는 상대부터 보여드려요. ' +
-        '<button type="button" class="linkbtn" data-act="edit-match">등록</button></p>') +
-      '<div class="mycard__hearts">하트 <b>' + balance + '</b><span>신청 1회 ' + cost + '개</span>' +
+      (ready ? '' : '<p class="mycard__hint">급수·종목·지역을 등록하면 맞는 상대부터 보여드려요.</p>') +
+      '<div class="mycard__hearts">하트 <b>' + balance + '</b><span>· 신청 1회 ' + cost + '개</span>' +
       (balance < cost ? '<button type="button" class="linkbtn" data-act="charge-hearts">충전</button>' : '') +
       '</div>';
   }
@@ -846,9 +851,11 @@
     var active = D.activeFilters(f);
     function button(key, label) {
       var v = valueOf(f, key);
+      /* 값이 없으면 이름만 — 버튼 네 개가 한 줄에 다 들어가고 화면이 덜 빽빽합니다 */
       return '<button type="button" class="fbtn' + (v ? ' is-on' : '') + (open === key ? ' is-open' : '') + '"' +
-        ' data-filter-open="' + key + '" aria-expanded="' + (open === key ? 'true' : 'false') + '">' +
-        label + '<b>' + U.esc(v || '전체') + '</b>' + UI.icon('arrow', 'fbtn__car') + '</button>';
+        ' data-filter-open="' + key + '" aria-expanded="' + (open === key ? 'true' : 'false') + '"' +
+        ' aria-label="' + label + ' 필터' + (v ? ' · ' + U.esc(v) : '') + '">' +
+        label + (v ? '<b>' + U.esc(v) + '</b>' : '') + UI.icon('arrow', 'fbtn__car') + '</button>';
     }
     function line(kr, key, options) {
       var current = f[key] || '전체';
