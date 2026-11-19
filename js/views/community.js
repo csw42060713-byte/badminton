@@ -38,6 +38,7 @@
       (open ? '<div class="replies">' +
         (p.replies.length ? '<ul>' + p.replies.map(function (r) {
           return '<li><div class="replies__who"><strong>' + U.esc(r.nick) + '</strong>' +
+            (r.mentor ? '<span class="pill pill--ok replies__mentor">멘토 조언</span>' : '') +
             '<time>' + U.timeAgo(r.createdAt) + '</time></div><p>' + U.esc(r.text) + '</p></li>';
         }).join('') + '</ul>' : '<p class="muted sm">첫 답글을 남겨 보세요.</p>') +
         '<form class="replyform" data-reply-form="' + U.esc(p.id) + '">' +

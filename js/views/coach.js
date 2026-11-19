@@ -226,13 +226,60 @@
     });
   }
 
+  /* ---------- 선수 화면: 코치 찾기 · 피드백 받기 ----------
+   * 승인된 코치(멘토) 목록을 보여 줍니다. 코치가 없으면 멘토 신청을 권합니다. */
+  function coachesOf(state) {
+    var me = (state.me && state.me.key) || '';
+    var idx = state.data.idx || { byType: {} };
+    var seen = {}, out = [];
+    ['멘토신청', '코치신청'].forEach(function (type) {
+      (idx.byType[type] || []).forEach(function (a) {
+        var status = a.status || (a.payload && a.payload.status) || '심사중';
+        if (status !== '승인' || !a.userKey || a.userKey === me || seen[a.userKey]) return;
+        seen[a.userKey] = 1;
+        var p = D.profileOf(idx, a.userKey) || {};
+        var mp = D.matchProfileOf(idx, a.userKey) || {};
+        var pl = a.payload || {};
+        out.push({
+          key: a.userKey,
+          nick: p.nick || a.nick || '코치',
+          level: pl.level || p.level || mp.level || '',
+          discipline: pl.discipline || mp.discipline || p.discipline || '',
+          region: pl.region || mp.region || '',
+          club: pl.club || mp.club || ''
+        });
+      });
+    });
+    return out;
+  }
+
+  function playerCoachView(state) {
+    var coaches = coachesOf(state);
+    return '<section class="card">' +
+      '<header class="card__head"><h2>' + UI.icon('coach') + '코치에게 피드백 받기</h2></header>' +
+      '<p class="sectionnote">일지에 남긴 기록을 코치가 보고 <b>한 줄 피드백과 추천 드릴</b>을 남겨 줍니다. 받은 피드백은 이 화면 위에 쌓여요.</p>' +
+      (coaches.length
+        ? '<ul class="bullets">' + coaches.slice(0, 5).map(function (c) {
+            var meta = [c.level, c.discipline, [c.region, c.club].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+            return '<li><b>' + U.esc(c.nick) + '</b>' + (meta ? ' — ' + U.esc(meta) : '') + '</li>';
+          }).join('') + '</ul>'
+        : '<p class="approw__done">아직 활동 중인 코치가 없어요. 내가 먼저 코치로 신청할 수 있어요.</p>') +
+      '<div class="row gap8 mt16">' +
+      '<button class="btn btn--primary grow" data-act="go-log">' + UI.icon('log') + '오늘 일지 남기기</button>' +
+      '<button class="btn btn--ghost grow" data-coachtab="apply">' + UI.icon('coach') + '멘토 신청</button>' +
+      '</div>' +
+      '<p class="hint">기록이 있어야 코치가 봐 줄 수 있어요. 한 줄만 남겨도 됩니다.</p>' +
+      '</section>';
+  }
+
   var view = {
     title: '코치',
     render: function (state) {
       var admin = isAdmin(state);
       var canCoach = admin || D.isCoach(state.data.idx, state.me && state.me.key);
-      var tab = state.ui.coachTab || (canCoach ? 'feedback' : 'apply');
-      if (!admin && tab === 'approve') tab = 'apply';
+      /* 기본 화면은 선수(코치 찾기·피드백)입니다. 멘토 신청은 두 번째 탭으로 옮겼습니다. */
+      var tab = state.ui.coachTab || 'feedback';
+      if (!admin && tab === 'approve') tab = 'feedback';
       if (admin && tab === 'apply') tab = 'approve';
       var players = playersWithLogs(state);
       var myFeedback = (state.data.feedback || []).filter(function (f) {
@@ -243,40 +290,50 @@
       });
       var pendingCount = mentorAppsOf(state).filter(function (a) { return a.status === '심사중'; }).length;
 
+      var feedbackHtml = '' +
+        (myFeedback.length ? '<section class="card card--fb"><header class="card__head"><h2>' + UI.icon('spark') + '내가 받은 피드백</h2></header>' +
+          myFeedback.slice(0, 3).map(function (f) {
+            var pl = f.payload || {};
+            return '<div class="fb"><div class="fb__top"><strong>' + U.esc(pl.coach || f.nick) + '</strong>' +
+              '<span class="stars stars--sm">' + UI.stars(pl.rating || 0) + '</span></div>' +
+              '<p>' + U.esc(pl.feedback || '') + '</p>' +
+              '<div class="tags">' + (pl.drills || []).map(function (d) { return '<span class="tag">' + U.esc(d) + '</span>'; }).join('') + '</div></div>';
+          }).join('') + '</section>' : '') +
+        (canCoach
+          ? '<p class="sectionnote">코치는 선수 기록을 보고 한 줄 피드백과 추천 드릴을 남길 수 있어요. 내 기록은 <b>일지 & AI</b>에서 확인합니다.</p>' +
+            (players.length ? players.map(function (p) { return playerBlock(p, state, canCoach); }).join('')
+              : '<section class="card">' + UI.emptyState('coach', '선수 기록이 아직 없어요', '다른 회원이 일지를 저장하면 여기에 나타납니다.') + '</section>') +
+            (sent.length ? '<section class="card"><header class="card__head"><h2>내가 보낸 피드백</h2><span class="muted sm">' + sent.length + '건</span></header>' +
+              '<ul class="bullets">' + sent.slice(0, 5).map(function (f) {
+                var pl = f.payload || {};
+                return '<li><b>' + U.esc(f.nick ? '보낸 피드백' : '피드백') + '</b> · ' + U.esc(U.truncate(pl.feedback || '', 40)) + '</li>';
+              }).join('') + '</ul></section>' : '')
+          : playerCoachView(state));
+
       return '' +
         mentorBanner(state) +
         '<div class="seg seg--wide" data-coachtabs>' +
-        '<button class="seg__btn' + (tab === 'feedback' ? ' is-on' : '') + '" data-coachtab="feedback">선수 피드백</button>' +
+        '<button class="seg__btn' + (tab === 'feedback' ? ' is-on' : '') + '" data-coachtab="feedback">' +
+          (canCoach ? '선수 피드백' : '코치 찾기 · 피드백') + '</button>' +
         (admin
           ? '<button class="seg__btn' + (tab === 'approve' ? ' is-on' : '') + '" data-coachtab="approve">멘토 심사' +
             (pendingCount ? ' <i class="badge">' + pendingCount + '</i>' : '') + '</button>'
           : '<button class="seg__btn' + (tab === 'apply' ? ' is-on' : '') + '" data-coachtab="apply">멘토 신청</button>') +
         '</div>' +
-
-        (tab === 'feedback' ?
-          (myFeedback.length ? '<section class="card card--fb"><header class="card__head"><h2>' + UI.icon('spark') + '내가 받은 피드백</h2></header>' +
-            myFeedback.slice(0, 3).map(function (f) {
-              var pl = f.payload || {};
-              return '<div class="fb"><div class="fb__top"><strong>' + U.esc(pl.coach || f.nick) + '</strong>' +
-                '<span class="stars stars--sm">' + UI.stars(pl.rating || 0) + '</span></div>' +
-                '<p>' + U.esc(pl.feedback || '') + '</p>' +
-                '<div class="tags">' + (pl.drills || []).map(function (d) { return '<span class="tag">' + U.esc(d) + '</span>'; }).join('') + '</div></div>';
-            }).join('') + '</section>' : '') +
-          '<p class="sectionnote">코치는 선수 기록을 보고 한 줄 피드백과 추천 드릴을 남길 수 있어요. 내 기록은 <b>일지 & AI</b>에서 확인합니다.</p>' +
-          (players.length ? players.map(function (p) { return playerBlock(p, state, canCoach); }).join('')
-            : '<section class="card">' + UI.emptyState('coach', '선수 기록이 아직 없어요', '다른 회원이 일지를 저장하면 여기에 나타납니다.') + '</section>') +
-          (sent.length ? '<section class="card"><header class="card__head"><h2>내가 보낸 피드백</h2><span class="muted sm">' + sent.length + '건</span></header>' +
-            '<ul class="bullets">' + sent.slice(0, 5).map(function (f) {
-              var pl = f.payload || {};
-              return '<li><b>' + U.esc(f.nick ? '보낸 피드백' : '피드백') + '</b> · ' + U.esc(U.truncate(pl.feedback || '', 40)) + '</li>';
-            }).join('') + '</ul></section>' : '')
-          : (admin ? mentorAdminBlock(state) : myApplicationBlock(state)));
+        (tab === 'feedback' ? feedbackHtml : (admin ? mentorAdminBlock(state) : myApplicationBlock(state)));
     },
 
     mount: function (root, ctx) {
       root.addEventListener('click', function (ev) {
         var t = ev.target.closest('[data-coachtab]');
         if (t) { ev.preventDefault(); ctx.actions.setCoachTab(t.getAttribute('data-coachtab')); return; }
+
+        if (ev.target.closest('[data-act="go-log"]')) {
+          ev.preventDefault();
+          ctx.actions.setTab('log');
+          UI.haptic(6);
+          return;
+        }
 
         if (ev.target.closest('[data-act="open-mentor"]')) {
           ev.preventDefault();

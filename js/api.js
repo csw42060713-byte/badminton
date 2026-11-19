@@ -28,6 +28,26 @@
   /* =========================================================
    * 1) 체험 모드 (localStorage) — 시트와 같은 26칸 행 배열을 그대로 보관
    * ========================================================= */
+  /* 예전 버전(v1.0)의 체험용 가상 인물·기록 정리.
+   * 그때 커뮤니티에 자동으로 들어갔던 샘플 글이 남아 있는 기기만 대상으로 하므로,
+   * 사용자가 직접 남긴 기록(demo_me)은 건드리지 않습니다. */
+  function dropLegacyDemoRows(list) {
+    if (!list || !list.length) return list;
+    var seed = BM.seed || {};
+    var legacy = false;
+    list.forEach(function (r) {
+      var type = String((r && r[D.COL['유형']]) || '');
+      var text = (r && r[D.COL['소셜글']]) || '';
+      if ((type === '소셜' || type === '답글') && seed.isSampleText && seed.isSampleText(text)) legacy = true;
+    });
+    if (!legacy) return list;
+    var meKey = BM.seed ? BM.seed.ME : 'demo_me';
+    return list.filter(function (r) {
+      var key = String((r && r[D.COL['사용자ID']]) || '');
+      return !(key.indexOf('demo_') === 0 && key !== meKey);
+    });
+  }
+
   function createLocal(opts) {
     opts = opts || {};
     var latency = opts.latency == null ? 90 : opts.latency;
@@ -38,6 +58,10 @@
     var dedupe = U.readJSON(DEDUPE_KEY, {});
     var meKey = opts.meKey || U.readJSON('bm_me_v1', null) || BM.seed.ME;
     var listeners = [];
+
+    /* 예전 데모 데이터가 남은 기기면 한 번 걷어 냅니다 */
+    var cleaned = dropLegacyDemoRows(rows);
+    if (cleaned !== rows) { rows = cleaned; persist(); }
 
     function persist() {
       U.writeJSON(rowsKey, rows);

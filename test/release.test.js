@@ -306,6 +306,18 @@
     includes(sw, "'./icons/icon-maskable-512.png'", 'maskable 아이콘');
   });
 
+  test('PWA: 보상형 광고 어댑터가 앱·캐시에 들어 있다', function () {
+    var index = readRepo('index.html');
+    var sw = readRepo('sw.js');
+    var ads = readRepo('js/ads.js');
+    includes(index, 'js/ads.js', 'index.html 스크립트');
+    includes(sw, "'./js/ads.js'", 'sw.js 캐시');
+    includes(ads, 'showRewardedAd', '네이티브 브리지');
+    includes(ads, 'onRewardAdResult', '웹뷰 콜백');
+    includes(ads, 'reason', '지급 판정');
+    excludes(ads, 'ca-app-pub-1234', '광고 단위 하드코딩 없음');
+  });
+
   test('PWA: 스타일 캐시 키가 갱신되어 있다', function () {
     var html = readRepo('index.html');
     var m = html.match(/styles\.css\?v=(\d{8}-\d+)/);

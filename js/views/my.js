@@ -40,6 +40,14 @@
     return '+' + hearts.adReward + ' · 남은 ' + hearts.adRemaining + '회';
   }
 
+  /* 연속 출석 안내 — 하트 카드 · 꾸미기 패널이 함께 씁니다 */
+  function streakLine(hearts) {
+    var days = hearts.checkinStreak || 0;
+    var next = hearts.streakNext;
+    if (!days) return '출석을 이어 가면 3일·7일·14일에 꾸미기가 무료로 열려요';
+    return days + '일 연속 출석 중' + (next ? ' · ' + next.days + '일까지 ' + next.left + '일' : ' · 해금 가능한 꾸미기를 모두 받았어요');
+  }
+
   function heartCard(hearts) {
     var adPct = hearts.adLimit ? Math.round((hearts.adUsedToday / hearts.adLimit) * 100) : 0;
     var adDisabled = !hearts.canWatchAd ? ' disabled' : '';
@@ -64,6 +72,7 @@
       '<span class="heartact__s" data-ad-sub>' + U.esc(adLabel(hearts)) + '</span></button>' +
       '</div>' +
       '<div class="adbar" aria-hidden="true"><i style="width:' + adPct + '%"></i></div>' +
+      '<p class="streakline">' + UI.icon('check') + '<span>' + U.esc(streakLine(hearts)) + '</span></p>' +
 
       (recent.length ? '<ul class="ledger">' + recent.map(ledgerRow).join('') + '</ul>'
         : '<p class="hint">아직 하트 내역이 없어요. 출석 체크로 시작해 보세요.</p>') +
@@ -189,43 +198,16 @@
   }
 
   /* 보상형 광고 재생
-   * 1) 네이티브 앱(WebView) 브리지가 있으면 그쪽에 위임하고, 결과는
-   *    BM.app.onRewardAdResult(true) 로 돌아옵니다. (AdMob 등)
-   * 2) 웹/프로토타입에서는 3초짜리 모의 광고를 재생합니다.
+   *  실제 재생·결과 판정은 js/ads.js(BM.ads)가 맡습니다.
+   *  1) 네이티브 앱(WebView) 브리지가 있으면 그쪽에 위임하고, 결과는
+   *     BM.app.onRewardAdResult(true) 로 돌아옵니다. (AdMob 등)
+   *  2) 웹/PWA에서는 3초 미리보기 시트를 쓰고, 중간에 닫으면 지급하지 않습니다.
    */
-  function playRewardAd() {
-    return new Promise(function (resolve) {
-      var bridge = (typeof window !== 'undefined') && (window.BadmintonNative || window.AndroidBridge);
-      if (bridge && typeof bridge.showRewardedAd === 'function') {
-        try {
-          BM.app.pendingRewardAd = resolve;
-          bridge.showRewardedAd('heart_reward');
-          return;
-        } catch (e) { /* 실패하면 모의 광고로 진행 */ }
-      }
-      var wrap = UI.openSheet({
-        title: '보상형 광고',
-        body: '<div class="ad-sim">' +
-          '<div class="ad-sim__badge">AD</div>' +
-          '<p class="ad-sim__t">광고를 보는 중이에요</p>' +
-          '<p class="ad-sim__s">끝까지 보면 하트 ' + D.HEART_RULES.AD_REWARD + '개 · <b data-ad-count>3</b>초</p>' +
-          '<div class="adbar adbar--lg"><i data-ad-progress style="width:0%"></i></div>' +
-          '<p class="hint">실제 앱에서는 이 자리에 AdMob 광고가 재생됩니다.</p></div>'
-      });
-      var left = 3;
-      var tick = setInterval(function () {
-        left -= 1;
-        var c = wrap && wrap.querySelector('[data-ad-count]');
-        var p = wrap && wrap.querySelector('[data-ad-progress]');
-        if (c) c.textContent = String(Math.max(0, left));
-        if (p) p.style.width = Math.round(((3 - left) / 3) * 100) + '%';
-        if (left <= 0) {
-          clearInterval(tick);
-          UI.closeSheet();
-          resolve({ rewarded: true, adUnit: 'heart_reward' });
-        }
-      }, 1000);
-    });
+  function playRewardAd(opts) {
+    if (BM.ads && typeof BM.ads.showRewarded === 'function') {
+      return BM.ads.showRewarded({ unit: (opts && opts.unit) || 'heart_reward' });
+    }
+    return Promise.resolve({ rewarded: false, adUnit: 'heart_reward', source: 'none', reason: 'no_adapter' });
   }
 
   var view = {
@@ -269,7 +251,7 @@
 
         '<section class="card" data-region="decor"><header class="card__head"><h2>프로필 꾸미기</h2>' +
         '<button type="button" class="linkbtn" data-act="decorate-avatar">사진 · 배경</button></header>' +
-        decoratePanel(me) + '</section>' +
+        decoratePanel(me, state) + '</section>' +
 
         '<section class="card"><header class="card__head"><h2>테마</h2><span class="muted sm">탭하면 바로 적용</span></header>' +
         themeSwatches(state) + '</section>' +
@@ -385,8 +367,11 @@
           ev.preventDefault();
           var fid = frameBtn.getAttribute('data-pick-frame');
           var s2 = myAvatar(ctx.store.state.me);
-          saveAvatar(ctx, { photo: s2.photo, emoji: s2.emoji, frame: fid, bg: s2.bg, badge: s2.badge })
-            .then(function (ok) { if (ok) UI.toast('프레임 · ' + frameName(fid)); });
+          unlockDeco(ctx, 'frame', fid, function (res) {
+            if (!res || !res.ok) { if (res && res.cancelled) UI.toast('그대로 두었어요'); return; }
+            saveAvatar(ctx, { photo: s2.photo, emoji: s2.emoji, frame: fid, bg: s2.bg, badge: s2.badge })
+              .then(function (ok) { if (ok) { UI.toast('프레임 · ' + frameName(fid)); ctx.refresh(); } });
+          });
           return;
         }
         if (ev.target.closest('[data-act="connect"]')) {
@@ -467,7 +452,48 @@
   function bgs() { return (D.AVATAR && D.AVATAR.bgs) || [{ id: 'plain', name: '담백' }]; }
   function badges() { return (D.AVATAR && D.AVATAR.badges) || ['']; }
 
-  function decoratePanel(me) {
+  /* 꾸미기 소유 상태 — 무료·이미 산 것·연속 출석 해금은 바로 적용 */
+  function decoOf(state, kind, value) {
+    var id = D.decoId(kind, value);
+    var hearts = (state.data && state.data.hearts) || {};
+    var meKey = (state.me && state.me.key) || '';
+    var idx = state.idx || (state.data && state.data.idx) || { byType: {} };
+    return {
+      id: id, price: D.decoPrice(id),
+      owned: !id || D.ownsDeco(idx, meKey, id, hearts.checkinStreak || 0)
+    };
+  }
+
+  /* 잠긴 꾸미기: 하트로 열지 한 번 묻고, 열면 그대로 이어서 적용합니다 */
+  function unlockDeco(ctx, kind, value, onDone) {
+    var state = ctx.store.state;
+    var d = decoOf(state, kind, value);
+    if (!d.id) { UI.toast('알 수 없는 꾸미기예요', 'error'); return; }
+    if (d.owned) { onDone({ ok: true, purchased: false }); return; }
+    var balance = (state.data.hearts && state.data.hearts.balance) || 0;
+    UI.confirm(D.decoName(d.id) + ' — 하트 ' + d.price + '개로 열까요? 한 번 열면 계속 써요. 지금 하트 ' + balance + '개.', '열기')
+      .then(function (yes) {
+        if (!yes) { onDone({ ok: false, cancelled: true }); return; }
+        var res = ctx.actions.buyDeco(kind, value);
+        if (res.ok) {
+          UI.toast(res.purchased ? '하트 ' + res.price + '개로 열었어요' : '이미 열려 있어요');
+          UI.haptic(12);
+        } else if (res.reason === 'hearts') {
+          UI.toast('하트가 ' + res.need + '개 부족해요');
+        } else if (res.reason === 'locked') {
+          UI.toast('잠시만요, 처리 중이에요');
+        } else {
+          UI.toast('열지 못했어요', 'error');
+        }
+        onDone(res);
+      });
+  }
+
+  function lockTag(d) {
+    return d.owned ? '' : '<span class="decolock">하트 ' + d.price + '</span>';
+  }
+
+  function decoratePanel(me, state) {
     var spec = myAvatar(me);
     return '<div class="decor">' +
       '<div class="decor__preview">' + UI.avatar(spec, 76) + '</div>' +
@@ -479,11 +505,13 @@
       (spec.photo ? '<button type="button" class="btn btn--ghost btn--sm" data-act="clear-photo">지우기</button>' : '') +
       '</div></div></div>' +
       '<div class="framestrip">' + frames().map(function (f) {
-        return '<button type="button" class="framepick' + (spec.frame === f.id ? ' is-on' : '') + '"' +
-          ' data-pick-frame="' + U.esc(f.id) + '" title="' + U.esc(f.name) + '">' +
+        var d = decoOf(state, 'frame', f.id);
+        return '<button type="button" class="framepick' + (spec.frame === f.id ? ' is-on' : '') + (d.owned ? '' : ' is-locked') + '"' +
+          ' data-pick-frame="' + U.esc(f.id) + '" title="' + U.esc(f.name + (d.owned ? '' : ' · 하트 ' + d.price + '개로 해금')) + '">' +
           '<span class="framepick__dot framepick__dot--' + U.esc(f.id) + '"></span>' +
-          '<span class="framepick__name">' + U.esc(f.name) + '</span></button>';
-      }).join('') + '</div>';
+          '<span class="framepick__name">' + U.esc(f.name) + '</span>' + lockTag(d) + '</button>';
+      }).join('') + '</div>' +
+      '<p class="hint">' + U.esc(streakLine((state.data && state.data.hearts) || {})) + '</p>';
   }
 
   /* 사진 → 256×256 정사각형으로 잘라 JPEG로 압축 (localStorage·시트 한 칸 보호) */
@@ -555,9 +583,12 @@
     });
   }
 
-  function openAvatarSheet(root, ctx) {
+  function openAvatarSheet(root, ctx, initialDraft) {
     var me = ctx.store.state.me || {};
-    var draft = myAvatar(me);
+    var state = ctx.store.state;
+    var draft = initialDraft
+      ? { photo: initialDraft.photo, emoji: initialDraft.emoji, frame: initialDraft.frame, bg: initialDraft.bg, badge: initialDraft.badge }
+      : myAvatar(me);
 
     var wrap = UI.openSheet({
       title: '프로필 꾸미기',
@@ -572,10 +603,12 @@
 
         '<h4 class="avstudio__label">프레임</h4>' +
         '<div class="pickgrid pickgrid--frame">' + frames().map(function (f) {
-          return '<button type="button" class="framepick' + (draft.frame === f.id ? ' is-on' : '') + '"' +
-            ' data-pick-frame="' + U.esc(f.id) + '" aria-pressed="' + (draft.frame === f.id ? 'true' : 'false') + '">' +
+          var df = decoOf(state, 'frame', f.id);
+          return '<button type="button" class="framepick' + (draft.frame === f.id ? ' is-on' : '') + (df.owned ? '' : ' is-locked') + '"' +
+            ' data-pick-frame="' + U.esc(f.id) + '" aria-pressed="' + (draft.frame === f.id ? 'true' : 'false') + '"' +
+            ' title="' + U.esc(f.name + (df.owned ? '' : ' · 하트 ' + df.price + '개로 해금')) + '">' +
             '<span class="framepick__dot framepick__dot--' + U.esc(f.id) + '"></span>' +
-            '<span class="framepick__name">' + U.esc(f.name) + '</span></button>';
+            '<span class="framepick__name">' + U.esc(f.name) + '</span>' + lockTag(df) + '</button>';
         }).join('') + '</div>' +
 
         '<h4 class="avstudio__label">배경</h4>' +
@@ -594,11 +627,15 @@
 
         '<h4 class="avstudio__label">배지</h4>' +
         '<div class="pickgrid pickgrid--badge">' + badges().map(function (b) {
-          return '<button type="button" class="badgeopt' + (draft.badge === b ? ' is-on' : '') + '" data-pick-badge="' + U.esc(b) + '"' +
-            ' aria-pressed="' + (draft.badge === b ? 'true' : 'false') + '">' + (b ? U.esc(b) : '없음') + '</button>';
+          var db = decoOf(state, 'badge', b);
+          return '<button type="button" class="badgeopt' + (draft.badge === b ? ' is-on' : '') + (db.owned ? '' : ' is-locked') + '"' +
+            ' data-pick-badge="' + U.esc(b) + '" aria-pressed="' + (draft.badge === b ? 'true' : 'false') + '"' +
+            ' title="' + U.esc((b ? D.decoName(db.id) : '배지 없음') + (db.owned ? '' : ' · 하트 ' + db.price + '개로 해금')) + '">' +
+            (b ? U.esc(b) : '없음') + lockTag(db) + '</button>';
         }).join('') + '</div></div>' +
         '<button class="btn btn--primary btn--big mt16" data-act="studio-save">저장</button>' +
-        '<p class="hint">사진은 기기에 256×256 JPEG로 저장되고, MY·1:1 매칭·커뮤니티에 같은 모습으로 보여요.</p>',
+        '<p class="hint">사진은 기기에 256×256 JPEG로 저장되고, MY·1:1 매칭·커뮤니티에 같은 모습으로 보여요.</p>' +
+        '<p class="hint">' + U.esc(streakLine((state.data && state.data.hearts) || {})) + '</p>',
       onMount: function (node) {
         function repaintPreview() {
           var box = node.querySelector('[data-preview]');
@@ -613,7 +650,16 @@
           var f = ev.target.closest('[data-pick-frame]');
           if (f) {
             ev.preventDefault();
-            draft.frame = f.getAttribute('data-pick-frame');
+            var fidPick = f.getAttribute('data-pick-frame');
+            var dfPick = decoOf(ctx.store.state, 'frame', fidPick);
+            if (!dfPick.owned) {
+              unlockDeco(ctx, 'frame', fidPick, function (res) {
+                if (res && res.ok) draft.frame = fidPick;
+                openAvatarSheet(root, ctx, draft);   /* 고르던 다른 값은 그대로 두고 다시 엽니다 */
+              });
+              return;
+            }
+            draft.frame = fidPick;
             togglePick(node, 'data-pick-frame', draft.frame);
             repaintPreview(); UI.haptic(6);
             return;
@@ -637,7 +683,16 @@
           var bd = ev.target.closest('[data-pick-badge]');
           if (bd) {
             ev.preventDefault();
-            draft.badge = bd.getAttribute('data-pick-badge');
+            var badgePick = bd.getAttribute('data-pick-badge');
+            var dbPick = decoOf(ctx.store.state, 'badge', badgePick);
+            if (!dbPick.owned) {
+              unlockDeco(ctx, 'badge', badgePick, function (res) {
+                if (res && res.ok) draft.badge = badgePick;
+                openAvatarSheet(root, ctx, draft);
+              });
+              return;
+            }
+            draft.badge = badgePick;
             togglePick(node, 'data-pick-badge', draft.badge);
             repaintPreview(); UI.haptic(6);
             return;

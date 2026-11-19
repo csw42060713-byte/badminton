@@ -1614,6 +1614,329 @@
     excludes(html2, '조건 확인 후 수락', '남의 신청을 승인할 수 없음');
   });
 
+  /* ================= 15. 사용성 개선 (v1.7.2) ================= */
+
+  test('게임 점수: 여러 게임을 한 칸에 저장하고 다시 읽는다', function () {
+    var games = [{ a: 21, b: 18 }, { a: 18, b: 21 }];
+    eq(D.formatGames(games, 21), '21:18, 18:21', '21점제 두 경기');
+    eq(D.formatGames([{ a: 25, b: 23 }], 25), '25점제 25:23', '25점제 표시');
+    var parsed = D.parseGames('25점제 25:23, 21:19');
+    eq(parsed.length, 2, '두 경기');
+    eq(parsed[0].a, 25, '첫 경기 내 점수');
+    eq(parsed[1].mode, 25, '25점제 표시 유지');
+    var old = D.parseGames('21:18');
+    eq(old.length, 1, '예전 한 경기 기록');
+    eq(old[0].mode, 21, '기본 21점제');
+  });
+
+  test('게임 점수: 승패는 여러 경기를 합쳐 계산한다', function () {
+    var sum = D.gamesSummary([{ a: 21, b: 18 }, { a: 21, b: 15 }, { a: 15, b: 21 }]);
+    eq(sum.count, 3, '경기 수');
+    eq(sum.wins, 2, '승');
+    eq(sum.losses, 1, '패');
+    eq(sum.result, '승', '합산 결과');
+    eq(D.gamesSummary([{ a: 3, b: 3 }]).result, '무', '무승부');
+    eq(D.gamesSummary([]).result, '', '경기 없음');
+    eq(D.cleanGames([{ a: '', b: '' }, { a: 21, b: 18 }]).length, 1, '빈 게임은 버린다');
+  });
+
+  test('게임 점수: 26칸 시트 행으로 저장해도 그대로 (25점제)', function () {
+    var row = D.toRow({ id: 'x1', type: '기록', scoreRaw: '25점제 25:23, 21:19', result: '승' });
+    eq(row.length, 26, '칸 수');
+    eq(row[D.COL['게임점수']], '25점제 25:23, 21:19', '게임점수 칸');
+    var e = D.fromRow(row);
+    eq(e.games.length, 2, '두 경기로 읽힘');
+    eq(e.score.a, 25, '첫 경기 점수');
+    eq(e.games[0].mode, 25, '25점제');
+  });
+
+  test('AI: 여러 경기 결과가 분석에 들어간다', function () {
+    var an = AI.analyze({
+      draft: {
+        date: U.ymd(), cond: 6, intensity: 6, minutes: 90, gameMode: 21,
+        games: [{ a: 21, b: 18 }, { a: 21, b: 15 }, { a: 18, b: 21 }]
+      },
+      records: [], level: 'C조'
+    });
+    ok(an.insights.some(function (it) { return it.label.indexOf('3경기') >= 0; }), '경기 수 안내');
+    includes(JSON.stringify(an), '2승 1패', '승패 요약');
+  });
+
+  test('저장: 여러 게임을 한 일지로 저장한다', function () {
+    return freshStore({ empty: true }).then(function (store) {
+      store.actions.setDraft({ gameMode: 25, games: [{ a: 25, b: 23 }, { a: 21, b: 19 }] });
+      var res = store.actions.saveLog();
+      ok(res.ok, '저장');
+      var rec = store.state.data.records[0];
+      eq(rec.games.length, 2, '두 경기');
+      eq(rec.result, '승', '합산 승');
+      eq(rec.scoreRaw, '25점제 25:23, 21:19', '시트 칸 표기');
+      return store.flush();
+    }).then(function () {
+      return BM.api.createLocal({ latency: 0 }).bootstrap();
+    }).then(function (res) {
+      var row = (res.rows || []).filter(function (r) { return r[D.COL['유형']] === '기록'; })[0];
+      ok(row, '저장된 기록 행');
+      eq(row[D.COL['게임점수']], '25점제 25:23, 21:19', '시트에 남은 점수');
+      eq(row[D.COL['승패']], '승', '시트 승패');
+    });
+  });
+
+  test('저장: 예전 한 경기 점수 입력도 그대로 저장된다', function () {
+    return freshStore({ empty: true }).then(function (store) {
+      store.actions.setDraft({ score: { a: 21, b: 18 }, games: undefined });
+      var res = store.actions.saveLog();
+      ok(res.ok, '저장');
+      var rec = store.state.data.records[0];
+      eq(rec.scoreRaw, '21:18', '한 경기 표기');
+      eq(rec.result, '승', '승패');
+    });
+  });
+
+  test('일지: 저장 전 기본값이 입력 완료처럼 보이지 않는다', function () {
+    return freshStore({ empty: true }).then(function (store) {
+      var d = store.state.drafts.log;
+      eq(d.minutes, null, '운동 시간 비어 있음');
+      eq(d.score, null, '점수 비어 있음');
+      eq(d.result, '', '결과 비어 있음');
+      eq(d.cond, null, '컨디션 비어 있음');
+      eq((d.games || []).length, 1, '게임 한 줄');
+      eq(d.games[0].a, '', '점수 칸 비어 있음');
+      var html = BM.views.log.render(store.state);
+      includes(html, '미입력', '미입력 표시');
+      excludes(html, '21:18', '예전 기본 점수 없음');
+      excludes(html, 'value="60"', '예전 기본 시간 없음');
+    });
+  });
+
+  test('일지: 게임 추가·21/25점제 버튼이 있다', function () {
+    var state = stateOf();
+    state.drafts.log = {
+      date: U.ymd(), cond: null, intensity: null, minutes: null, done: [],
+      gameMode: 21, games: [{ a: 21, b: 18 }, { a: 18, b: 21 }],
+      score: null, result: '', pain: [], weakness: [], note: ''
+    };
+    var html = BM.views.log.render(state);
+    includes(html, 'data-act="add-game"', '게임 추가 버튼');
+    includes(html, 'data-gamemode-val="25"', '25점제 선택');
+    includes(html, 'data-gamemode-val="21"', '21점제 선택');
+    includes(html, '2경기', '경기 수 요약');
+    checkHtml(html, '일지 화면');
+  });
+
+  test('체험 모드: 예전 대기열(저장 중… 35건)을 읽지 않고 지운다', function () {
+    clearStorage();
+    U.writeJSON('bm_rows_v1', BM.fixtures.demo());
+    var legacy = [];
+    for (var i = 0; i < 35; i++) legacy.push({ kind: 'append', row: ['legacy' + i], clientId: 'c' + i });
+    U.writeJSON('bm_queue_v1', legacy);
+    var store = BM.store.createStore({ api: BM.api.createLocal({ latency: 0 }) });
+    eq(store.state.queue.length, 0, '처음부터 대기 0건');
+    eq(U.storage.getItem('bm_queue_v1'), null, '예전 대기열 삭제');
+    return store.actions.init().then(function () {
+      var r = store.actions.createPost('오늘 21:18로 이겼다');
+      ok(r.ok, '글쓰기');
+      return store.flush();
+    }).then(function () {
+      eq(store.state.queue.length, 0, '전송 완료');
+      eq(U.storage.getItem('bm_queue_v1'), null, '기기 저장 모드에서는 대기열을 남기지 않는다');
+      eq(store.state.syncState, 'idle', '동기화 표시 없음');
+    });
+  });
+
+  test('체험 모드: 예전 데모 인물·기록을 한 번 걷어 낸다', function () {
+    clearStorage();
+    var rows = [];
+    rows.push(D.toRow({ id: 'legacy-post', type: '소셜', userKey: 'demo_chi', nick: '콕집사', text: BM.seed.SAMPLE_POSTS[2] }));
+    rows.push(D.toRow({ id: 'legacy-rec', type: '기록', userKey: 'demo_chi', nick: '콕집사', date: U.ymd(), cond: 6, score: { a: 21, b: 18 } }));
+    rows.push(D.toRow({ id: 'my-rec', type: '기록', userKey: BM.seed.ME, nick: '나', date: U.ymd(), minutes: 40 }));
+    U.writeJSON('bm_rows_v1', rows);
+    return BM.api.createLocal({ latency: 0 }).bootstrap().then(function (res) {
+      var keys = res.rows.map(function (r) { return r[D.COL['사용자ID']]; });
+      ok(keys.indexOf('demo_chi') < 0, '데모 인물 기록 삭제');
+      ok(keys.indexOf(BM.seed.ME) >= 0, '내 기록 유지');
+      eq(res.rows.length, 1, '내 기록만 남는다');
+    });
+  });
+
+  test('코치: 기본 화면은 선수용 코치 찾기·피드백이다', function () {
+    var state = stateOf();
+    state.ui.coachTab = '';
+    var html = BM.views.coach.render(state);
+    includes(html, '코치 찾기 · 피드백', '선수용 탭 이름');
+    includes(html, 'data-coachtab="apply"', '멘토 신청은 두 번째 탭');
+    includes(html, '코치에게 피드백 받기', '선수 안내 카드');
+    excludes(html, '멘토 신청 심사', '심사 탭 없음');
+    checkHtml(html, '코치 화면');
+  });
+
+  test('코치: 승인된 코치는 선수 화면에 보인다', function () {
+    var rows = BM.fixtures.demo();
+    rows.push(D.toRow({
+      id: 'mentor-ok', type: '멘토신청', createdAt: U.stamp(), date: U.ymd(),
+      nick: '코치님', userKey: 'demo_coach9', target: D.ADMIN_TARGET,
+      payload: { status: '승인', level: 'B조', discipline: '복식', region: '경기', club: '나래울', reason: '지도' }
+    }));
+    var state = stateOf(rows);
+    state.ui.coachTab = '';
+    var html = BM.views.coach.render(state);
+    includes(html, '코치님', '승인 코치 표시');
+  });
+
+  /* ================= 11. 꾸미기 해금 · 연속 출석 · 일지 공유 ================= */
+
+  test('꾸미기: 잠긴 프레임은 하트를 한 번만 차감한다', function () {
+    return freshStore().then(function (store) {
+      var before = store.state.data.hearts.balance;
+      var r1 = store.actions.buyDeco('frame', 'gold');
+      ok(r1.ok, '해금 성공');
+      eq(r1.purchased, true, '처음에는 산다');
+      eq(r1.price, 2, '골드 프레임은 하트 2개');
+      eq(store.state.data.hearts.balance, before - 2, '하트 차감');
+
+      store.state.locks = {};      /* 연타 잠금은 테스트에서 바로 풉니다 */
+      var r2 = store.actions.buyDeco('frame', 'gold');
+      ok(r2.ok, '두 번째도 성공(적용만)');      eq(r2.purchased, false, '이미 산 것은 다시 사지 않는다');
+      eq(store.state.data.hearts.balance, before - 2, '잔액 그대로');
+
+      /* 남은 하트를 다 쓰고 나면 다음 해금은 막힌다 */
+      ['neon', 'royal', 'sakura'].forEach(function (id) {
+        store.state.locks = {};
+        ok(store.actions.buyDeco('frame', id).ok, '해금: ' + id);
+      });
+      eq(store.state.data.hearts.balance, 0, '잔액 0');
+      store.state.locks = {};
+      var r3 = store.actions.buyDeco('badge', '🔥');
+      eq(r3.ok, false, '하트가 모자라면 막힌다');
+      eq(r3.reason, 'hearts', '이유: 하트 부족');
+      eq(r3.need, 1, '부족한 개수');
+    });
+  });
+
+  test('꾸미기: 무료·연속 출석 해금은 하트를 쓰지 않는다', function () {
+    var rows = [];
+    for (var i = 0; i < 3; i++) {
+      rows.push({ id: U.uid(), type: '출석하트', userKey: BM.seed.ME, date: U.ymd(U.addDays(new Date(), -i)), likes: 1, createdAt: U.stamp() });
+    }
+    return freshStoreWith(rows).then(function (store) {
+      var free = store.actions.buyDeco('frame', 'court');
+      eq(free.ok, true, '무료 프레임');
+      eq(free.purchased, false, '무료는 결제 없음');
+
+      var before = store.state.data.hearts.balance;
+      var star = store.actions.buyDeco('badge', '⭐');
+      eq(star.ok, true, '3일 연속 출석 배지');
+      eq(star.purchased, false, '연속 출석은 무료');
+      eq(store.state.data.hearts.balance, before, '하트 그대로');
+    });
+  });
+
+  test('연속 출석: 오늘까지 이어진 날 수만 센다', function () {
+    function row(offset) {
+      return { id: U.uid(), type: '출석하트', userKey: 'u1', date: U.ymd(U.addDays(new Date(), offset)), likes: 1 };
+    }
+    var idx = D.index([row(0), row(-1), row(-2), row(-5)]);
+    eq(D.checkinStreak(idx, 'u1'), 3, '사흘 연속');
+    eq(D.nextStreakMilestone(3).days, 7, '다음 목표는 7일');
+    eq(D.nextStreakMilestone(2).left, 1, '3일까지 1일');
+    var old = D.index([row(-3), row(-4)]);
+    eq(D.checkinStreak(old, 'u1'), 0, '사흘 비면 끊긴다');
+    eq(D.checkinStreak(D.index([]), 'u1'), 0, '기록 없음');
+    eq(D.streakUnlocked(7).indexOf('badge:medal') >= 0, true, '7일이면 메달 배지');
+  });
+
+  test('테마를 바꿔도 사진·프레임·배지가 남는다', function () {
+    return freshStore().then(function (store) {
+      store.actions.saveProfile({ avatar: '🦊', avatarFrame: 'gold', avatarBadge: '⭐', avatarBg: 'mint' });
+      var r = store.actions.setTheme('th_court');
+      ok(r.ok, '테마 적용');
+      var th = store.state.me.theme;
+      eq(th.theme, 'th_court', '테마 바뀜');
+      eq(th.avatarFrame, 'gold', '프레임 유지');
+      eq(th.avatarBadge, '⭐', '배지 유지');
+      eq(th.avatarBg, 'mint', '배경 유지');
+      eq(th.avatar, '🦊', '이모지 유지');
+    });
+  });
+
+  test('일지 공유: 저장한 일지를 커뮤니티에 한 번만 올린다', function () {
+    return freshStore().then(function (store) {
+      store.actions.setDraft({ minutes: 60, done: ['스트록'], cond: 7, games: [{ a: 21, b: 18 }, { a: 18, b: 21 }] });
+      var saved = store.actions.saveLog();
+      ok(saved.ok, '일지 저장');
+
+      var postCount = store.state.data.posts.length;
+      var r = store.actions.shareLogToCommunity();
+      ok(r.ok, '공유 성공');
+      ok(r.text.indexOf('2경기 1승 1패') >= 0, '전적이 들어간다: ' + r.text);
+      eq(store.state.data.posts.length, postCount + 1, '글이 하나 늘어난다');
+      eq(store.state.ui.lastSavedLog, null, '공유 뒤 카드는 접힌다');
+
+      store.state.locks = {};
+      var again = store.actions.shareLogToCommunity(saved.entity.id);
+      eq(again.ok, false, '같은 일지는 다시 올리지 않는다');
+      eq(again.reason, 'already', '이유: 이미 공유');
+      eq(store.state.data.posts.length, postCount + 1, '글 수 그대로');
+    });
+  });
+
+  test('일지 화면: 저장 직후에만 공유 버튼이 보인다', function () {
+    var state = stateOf();
+    state.analysis = BM.ai.analyze({ draft: state.drafts.log, records: state.data.records, level: 'C조', nick: '나래' });
+    var plain = BM.views.log.render(state);
+    excludes(plain, '커뮤니티에 오늘 운동 공유', '저장 전에는 없다');
+
+    state.ui.lastSavedLog = { id: 'log-1', date: U.ymd(), minutes: 60, done: ['스트록'], games: [{ a: 21, b: 18 }], cond: 7 };
+    var html = BM.views.log.render(state);
+    includes(html, '커뮤니티에 오늘 운동 공유', '공유 버튼');
+    includes(html, 'data-act="share-log"', '버튼 동작');
+    includes(html, '1경기 1승 0패', '미리보기 전적');
+    checkHtml(html, '공유 카드');
+  });
+
+  test('MY 화면: 연속 출석과 잠긴 꾸미기를 보여 준다', function () {
+    var rows = BM.fixtures.demo();
+    for (var i = 0; i < 2; i++) {
+      rows.push(D.toRow({ id: U.uid(), type: '출석하트', userKey: BM.seed.ME, date: U.ymd(U.addDays(new Date(), -i)), likes: 1, createdAt: U.stamp() }));
+    }
+    var html = BM.views.my.render(stateOf(rows));
+    var streak = stateOf(rows).data.hearts.checkinStreak;
+    ok(streak >= 2, '연속 출석 계산: ' + streak);
+    includes(html, streak + '일 연속 출석 중', '연속 출석 표시');
+    includes(html, '일까지', '다음 목표');
+    includes(html, 'is-locked', '잠긴 꾸미기 표시');
+    includes(html, 'decolock', '해금 가격 표시');
+    checkHtml(html, 'MY-꾸미기');
+  });
+
+  test('커뮤니티: 승인된 멘토의 답글에만 멘토 조언 배지가 붙는다', function () {
+    var rows = BM.fixtures.demo();
+    rows.push(D.toRow({ id: 'share-1', type: '소셜', createdAt: U.stamp(), date: U.ymd(), nick: '나래', userKey: BM.seed.ME, text: '오늘 60분 스트록' }));
+    rows.push(D.toRow({ id: 'r1', type: '답글', createdAt: U.stamp(), date: U.ymd(), nick: '코치님', userKey: 'demo_coach9', target: 'share-1', text: '풋워크를 먼저 잡아 보세요.' }));
+    rows.push(D.toRow({ id: 'r2', type: '답글', createdAt: U.stamp(), date: U.ymd(), nick: '나래', userKey: BM.seed.ME, target: 'share-1', text: '감사합니다.' }));
+    rows.push(D.toRow({
+      id: 'mentor-ok', type: '멘토신청', createdAt: U.stamp(), date: U.ymd(),
+      nick: '코치님', userKey: 'demo_coach9', target: D.ADMIN_TARGET,
+      payload: { status: '승인', level: 'B조', discipline: '복식', region: '경기', reason: '지도' }
+    }));
+    var state = stateOf(rows);
+    var replies = state.data.posts.filter(function (p) { return p.id === 'share-1'; })[0].replies;
+    eq(replies.filter(function (r) { return r.mentor; }).length, 1, '멘토 답글 1개');
+    BM.views.community._openReplies['share-1'] = true;
+    var html = BM.views.community.render(state);
+    includes(html, '멘토 조언', '배지 표시');
+    checkHtml(html, '커뮤니티-멘토');
+  });
+
+  test('광고 어댑터: 화면이 없으면 보상을 지급하지 않는다', function () {
+    ok(BM.ads && typeof BM.ads.showRewarded === 'function', 'BM.ads가 있다');
+    eq(typeof BM.ads.bridge(), 'object', '브리지 조회(없으면 null)');
+    return BM.ads.showRewarded({ unit: 'heart_reward' }).then(function (r) {
+      eq(r.rewarded, false, '화면 없는 환경에서는 지급 없음');
+      eq(r.reason, 'no_dom', '이유: 화면 없음');
+    });
+  });
+
   /* ---------- 자동 실행 ---------- */
   if (typeof process !== 'undefined' && process.argv && /run\.js$/.test(process.argv[1] || '')) {
     BM.test.run().then(function (sum) {
