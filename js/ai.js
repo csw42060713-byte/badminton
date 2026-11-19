@@ -719,6 +719,22 @@
     return seen || 21;
   }
 
+  /* 일지에서 고른 점수제(21·25) — 고른 값이 먼저, 없으면 가장 최근에 남긴 점수제를 잇습니다.
+   * (예전에는 '이번 주 루틴'이 21점제로 고정돼 25점제로 치는 선수에게도 21점제를 권했습니다.) */
+  function scoreModeOf(draft, records) {
+    var m = Number(draft && draft.gameMode);
+    if (m === 21 || m === 25) return m;
+    var list = U.sortBy((records || []).filter(function (r) {
+      return r && r.games && r.games.length;
+    }), function (r) { return (r.date || '') + (r.createdAt || ''); }, true);
+    if (list.length) {
+      var g = list[0].games[0];
+      var mm = Number(g && g.mode);
+      if (mm === 21 || mm === 25) return mm;
+    }
+    return 21;
+  }
+
   function gameFlow(games, explicitMode, discipline) {
     var list = [];
     (games || []).forEach(function (g) {
@@ -899,6 +915,8 @@
      * (예전 한 경기 기록은 그대로 한 경기로 읽힙니다.) */
     var games = BM.domain.cleanGames(draft.games);
     var gsum = BM.domain.gamesSummary(games);
+    /* 점수제: 일지에서 고른 21·25점제를 따릅니다(없으면 최근 기록의 점수제) */
+    var scoreMode = scoreModeOf(draft, records);
     var flow = gameFlow(draft.games, draft.gameMode, discipline);
     var todayEntry = {
       date: today,
@@ -1092,7 +1110,7 @@
     var week = [
       { day: '다음 훈련', focus: weakSkills[0], menu: drills[0] ? drills[0].name : '기본 스트록' },
       { day: '2회차', focus: weakSkills[1] || '풋워크', menu: drills[1] ? drills[1].name : '육각 풋워크' },
-      { day: '3회차', focus: '실전', menu: '21점제 게임 2~3경기 + 기록 남기기' }
+      { day: '3회차', focus: '실전', menu: scoreMode + '점제 게임 2~3경기 + 기록 남기기' }
     ];
     /* 급수 플랜의 볼륨이 주 4회 이상이면 네 번째 회차를 전술 연습으로 채웁니다 */
     if (gradeOf(level) && GRADE_TIER[gradeOf(level)] >= 3) {
@@ -1122,6 +1140,7 @@
       gradePlan: gp,
       playbook: playbook(discipline, level),
       flow: flow,
+      gameMode: scoreMode,
       load: load,
       drills: { drills: drills },
       care: care,
@@ -1158,7 +1177,7 @@
     GRADE_PLANS: GRADE_PLANS, TACTICS: TACTICS, WARMUP: WARMUP,
     GRADES: GRADES, gradeOf: gradeOf, tierOf: tierOf, setsFor: setsFor,
     gradePlan: gradePlan, playbook: playbook,
-    gameFlow: gameFlow, loadIndex: loadIndex,
+    gameFlow: gameFlow, loadIndex: loadIndex, scoreModeOf: scoreModeOf,
     /* 논문 기준값 — 화면 문구와 같은 숫자 */
     SPLIT_STEP: SPLIT_STEP, DOUBLES_SERVE: DOUBLES_SERVE, DOUBLES_RECEIVE: DOUBLES_RECEIVE
   };
