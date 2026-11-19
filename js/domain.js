@@ -124,13 +124,112 @@
     });
   }
 
+  /* ---------- 꾸미기 해금 (하트 소모처) ----------
+   * 프레임·배지 일부는 하트로 영구 해금합니다. 무료(0)는 지금처럼 바로 씁니다.
+   * 해금 기록은 기존 '꾸미기구매' 행을 그대로 재사용하고, '대상' 칸에
+   * frame:gold · badge:star 처럼 남깁니다(테마는 예전처럼 th_court 같은 테마 ID). */
+  var DECO_PRICES = {
+    'frame:court': 0, 'frame:royal': 1, 'frame:sakura': 1, 'frame:gold': 2, 'frame:neon': 2,
+    'badge:racket': 0, 'badge:butterfly': 0, 'badge:fire': 1, 'badge:star': 1, 'badge:medal': 2, 'badge:crown': 2
+  };
+  var BADGE_IDS = { '': '', '🏸': 'racket', '🦋': 'butterfly', '🔥': 'fire', '⭐': 'star', '🥇': 'medal', '👑': 'crown' };
+  var BADGE_BY_ID = { racket: '🏸', butterfly: '🦋', fire: '🔥', star: '⭐', medal: '🥇', crown: '👑' };
+
+  /* 연속 출석으로 무료 해금되는 꾸미기 — 매일 돌아올 이유(하트를 쓰지 않아도 됨) */
+  var STREAK_UNLOCKS = [
+    { days: 3, id: 'badge:star', label: '3일 연속 출석 배지' },
+    { days: 7, id: 'badge:medal', label: '7일 연속 출석 배지' },
+    { days: 14, id: 'frame:gold', label: '14일 연속 금빛 프레임' }
+  ];
+
+  function frameById(id) {
+    return AVATAR.frames.filter(function (f) { return f.id === id; })[0] || null;
+  }
+
+  function frameName(id) {
+    var f = frameById(id);
+    return f ? f.name : '';
+  }
+
+  /* 화면 값(프레임 ID · 배지 이모지) → 저장·해금에 쓰는 꾸미기 ID */
+  function decoId(kind, value) {
+    if (kind === 'frame') return frameById(value) ? 'frame:' + value : '';
+    if (kind === 'badge') {
+      var id = BADGE_IDS[String(value == null ? '' : value)];
+      return id ? 'badge:' + id : '';
+    }
+    return '';
+  }
+
+  function decoPrice(id) {
+    return DECO_PRICES[String(id || '')] || 0;
+  }
+
+  function badgeEmoji(id) {
+    return BADGE_BY_ID[String(id || '')] || '';
+  }
+
+  function badgeLabel(id) {
+    var names = { racket: '라켓', butterfly: '나비', fire: '불꽃', star: '별', medal: '메달', crown: '왕관' };
+    return names[String(id || '')] || '';
+  }
+
+  function decoName(id) {
+    var s = String(id || '');
+    if (s.indexOf('frame:') === 0) return '프레임 · ' + frameName(s.slice(6));
+    if (s.indexOf('badge:') === 0) return '배지 · ' + badgeLabel(s.slice(6));
+    return s;
+  }
+
+  /* 연속 출석으로 무료 해금된 꾸미기 ID 목록 */
+  function streakUnlocked(days) {
+    var d = Math.max(0, Number(days) || 0);
+    return STREAK_UNLOCKS.filter(function (m) { return d >= m.days; }).map(function (m) { return m.id; });
+  }
+
+  /* 꾸미기 소유 여부: 무료 · 이미 샀음 · 연속 출석 해금 */
+  function ownsDeco(idx, userKey, id, streakDays) {
+    var target = String(id || '');
+    if (!target) return true;
+    if (decoPrice(target) <= 0) return true;
+    if (streakUnlocked(streakDays).indexOf(target) >= 0) return true;
+    return listOf(idx, '꾸미기구매', userKey).some(function (h) { return String(h.target || '') === target; });
+  }
+
+  /* 연속 출석 일수 — 오늘(또는 어제)까지 이어진 날 수 */
+  function checkinStreak(idx, userKey, nowMs) {
+    var days = U.uniq(listOf(idx, '출석하트', userKey).map(dateKeyOf)).sort().reverse();
+    if (!days.length) return 0;
+    var today = U.ymd(new Date(nowMs || Date.now()));
+    var gap = Math.round((U.parseYmd(today) - U.parseYmd(days[0])) / 86400000);
+    if (gap > 1) return 0;
+    var n = 1;
+    for (var i = 1; i < days.length; i++) {
+      if (Math.round((U.parseYmd(days[i - 1]) - U.parseYmd(days[i])) / 86400000) === 1) n++;
+      else break;
+    }
+    return n;
+  }
+
+  /* 다음 연속 출석 목표 — 하트 카드에 "3일까지 1일" 처럼 보여 줍니다 */
+  function nextStreakMilestone(days) {
+    var d = Math.max(0, Number(days) || 0);
+    for (var i = 0; i < STREAK_UNLOCKS.length; i++) {
+      if (d < STREAK_UNLOCKS[i].days) {
+        return { days: STREAK_UNLOCKS[i].days, left: STREAK_UNLOCKS[i].days - d, label: STREAK_UNLOCKS[i].label };
+      }
+    }
+    return null;
+  }
+
   var VOCAB = {
     grades: GRADES,
     levels: GRADES,                 /* 예전 이름 호환 */
     genders: GENDERS,
     legacyLevels: ['초보용', '일반부', '상급', '선수부'],
     disciplines: ['복식', '단식', '혼합복식'],
-    done: ['스트록', '벽치기', '런닝', '코어', '풋워크', '스매시', '게임', '웨이트', '21점제'],
+    done: ['스트록', '벽치기', '런닝', '코어', '풋워크', '스매시', '게임', '웨이트'],
+    gameModes: [21, 25],            /* 게임 점수 입력의 점수제 */
     weakness: ['드라이브', '헤어핀', '드롭', '클리어', '스매시', '풋워크', '서브', '리시브'],
     pain: ['목', '어깨', '허리', '팔꿈치', '무릎', '손목', '아킬레스건', '발목'],
     regions: ['서울', '경기', '인천', '부산', '대구', '광주', '대전', '기타'],
@@ -195,6 +294,58 @@
     return { a: parseInt(m[1], 10), b: parseInt(m[2], 10) };
   }
 
+  /* --- 게임 점수: 한 일지에 여러 게임을 남길 수 있습니다 ---
+   * 시트에는 '게임점수' 한 칸에 "21:18, 18:21"처럼 적고, 25점제는 앞에
+   * "25점제 "를 붙입니다. 예전 기록("21:18")은 그대로 21점제 한 경기로 읽힙니다.
+   * (칸을 늘리지 않아 기존 시트·브리지와 그대로 호환됩니다.) */
+  function parseGames(v) {
+    var s = String(v == null ? '' : v);
+    var mode = /25\s*점/.test(s) ? 25 : 21;
+    var out = [];
+    var re = /(\d{1,2})\s*[:：\-]\s*(\d{1,2})/g;
+    var m;
+    while ((m = re.exec(s))) out.push({ a: parseInt(m[1], 10), b: parseInt(m[2], 10), mode: mode });
+    return out;
+  }
+
+  /* 입력칸에서 온 값 정리 — 두 점수가 다 들어온 게임만 남깁니다 */
+  function cleanGames(list) {
+    var out = [];
+    (list || []).forEach(function (g) {
+      if (!g) return;
+      if (g.a === '' || g.a == null || g.b === '' || g.b == null) return;
+      var a = Number(g.a), b = Number(g.b);
+      if (!isFinite(a) || !isFinite(b)) return;
+      out.push({ a: U.clamp(Math.round(a), 0, 99), b: U.clamp(Math.round(b), 0, 99) });
+    });
+    return out;
+  }
+
+  /* 여러 게임의 승/패 요약 — 시트 '승패' 칸에는 이 결과 하나만 적습니다 */
+  function gamesSummary(games) {
+    var list = games || [];
+    var wins = 0, losses = 0, draws = 0;
+    list.forEach(function (g) {
+      var r = resultFromScore(g);
+      if (r === '승') wins++;
+      else if (r === '패') losses++;
+      else draws++;
+    });
+    var result = !list.length ? '' : wins > losses ? '승' : losses > wins ? '패' : '무';
+    return {
+      count: list.length, wins: wins, losses: losses, draws: draws, result: result,
+      first: list.length ? { a: list[0].a, b: list[0].b } : null
+    };
+  }
+
+  /* 여러 게임 → 시트 한 칸 (25점제는 앞에 표시) */
+  function formatGames(games, mode) {
+    var list = games || [];
+    if (!list.length) return '';
+    var body = list.map(function (g) { return g.a + ':' + g.b; }).join(', ');
+    return Number(mode) === 25 ? '25점제 ' + body : body;
+  }
+
   function resultFromScore(score, mine) {
     if (!score) return '';
     if (score.a === score.b) return '무';
@@ -224,6 +375,7 @@
       done: splitList(c[COL['완료훈련']]),
       score: parseScore(c[COL['게임점수']]),
       scoreRaw: c[COL['게임점수']],
+      games: parseGames(c[COL['게임점수']]),
       result: c[COL['승패']],
       pain: splitList(c[COL['아픈부위']]),
       prescription: U.jsonParse(c[COL['맞춤처방']], null),
@@ -265,8 +417,9 @@
     set('훈련강도', e.intensity);
     set('운동시간(분)', e.minutes);
     if (e.done && e.done.length) set('완료훈련', e.done.join(','));
-    if (e.score) set('게임점수', e.score.a + ':' + e.score.b);
-    else if (e.scoreRaw) set('게임점수', e.scoreRaw);
+    if (e.scoreRaw) set('게임점수', e.scoreRaw);
+    else if (e.score) set('게임점수', e.score.a + ':' + e.score.b);
+    else if (e.games && e.games.length) set('게임점수', formatGames(e.games, e.gameMode));
     set('승패', e.status && e.type === '매칭신청' ? e.status : e.result);
     if (e.pain && e.pain.length) set('아픈부위', e.pain.join(','));
     if (e.prescription) set('맞춤처방', JSON.stringify(e.prescription));
@@ -373,10 +526,13 @@
       add('match', '매칭 신청', -(h.likes || R.MATCH_COST), h, nickOf(idx, h.target));
     });
     listOf(idx, '꾸미기구매', userKey).forEach(function (h) {
-      var price = h.likes || R.THEME_PRICES[h.target] || 0;
-      if (price <= 0) return;                 /* 무료 테마 구매 기록은 원장에서 제외 */
-      var theme = THEMES.filter(function (t) { return t.id === h.target; })[0];
-      add('theme', '꾸미기 구매', -price, h, theme ? theme.name : h.target);
+      var target = String(h.target || '');
+      var price = h.likes || decoPrice(target) || R.THEME_PRICES[target] || 0;
+      if (price <= 0) return;                 /* 무료 테마·무료 꾸미기 구매 기록은 원장에서 제외 */
+      if (target.indexOf('frame:') === 0) { add('deco-frame', '프레임 해금', -price, h, frameName(target.slice(6))); return; }
+      if (target.indexOf('badge:') === 0) { add('deco-badge', '배지 해금', -price, h, badgeLabel(target.slice(6))); return; }
+      var theme = THEMES.filter(function (t) { return t.id === target; })[0];
+      add('theme', '꾸미기 구매', -price, h, theme ? theme.name : target);
     });
 
     return {
@@ -411,6 +567,8 @@
       if (h.delta > 0) todayEarned += h.delta; else todaySpent += -h.delta;
     });
 
+    var streak = checkinStreak(idx, userKey, now);
+
     return {
       base: ledger.base,
       earned: ledger.earned,
@@ -432,6 +590,10 @@
 
       matchCost: R.MATCH_COST,
       giftCost: R.GIFT_COST,
+
+      checkinStreak: streak,
+      streakNext: nextStreakMilestone(streak),
+      streakUnlocks: streakUnlocked(streak),
 
       todayEarned: todayEarned,
       todaySpent: todaySpent
@@ -910,12 +1072,18 @@
     COLS: COLS, COL: COL, VOCAB: VOCAB, GRADES: GRADES, GENDERS: GENDERS, THEMES: THEMES, AVATAR: AVATAR,
     normalizeGrade: normalizeGrade, normalizeGender: normalizeGender,
     normalizeAvatar: normalizeAvatar, avatarOf: avatarOf,
+    DECO_PRICES: DECO_PRICES, STREAK_UNLOCKS: STREAK_UNLOCKS,
+    decoId: decoId, decoPrice: decoPrice, decoName: decoName, ownsDeco: ownsDeco,
+    frameById: frameById, frameName: frameName, badgeEmoji: badgeEmoji, badgeLabel: badgeLabel,
+    streakUnlocked: streakUnlocked, checkinStreak: checkinStreak, nextStreakMilestone: nextStreakMilestone,
     searchText: searchText, matchesQuery: matchesQuery, filterPlayers: filterPlayers, activeFilters: activeFilters,
     HEART_RULES: HEART_RULES,
     BASE_HEARTS: BASE_HEARTS, HEART_COST_MATCH: HEART_COST_MATCH,
     JSON_TYPES: JSON_TYPES,
     fromRow: fromRow, toRow: toRow, asCells: asCells,
-    parseScore: parseScore, resultFromScore: resultFromScore, splitList: splitList,
+    parseScore: parseScore, parseGames: parseGames, cleanGames: cleanGames,
+    gamesSummary: gamesSummary, formatGames: formatGames,
+    resultFromScore: resultFromScore, splitList: splitList,
     index: index, profileOf: profileOf, displayName: displayName, latestPerUser: latestPerUser,
     heartLedger: heartLedger, heartStatus: heartStatus,
     ownsTheme: ownsTheme, themeById: themeById, themePrice: themePrice,

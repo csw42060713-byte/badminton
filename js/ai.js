@@ -667,10 +667,15 @@
 
     /* 오늘 일지(아직 저장 전)도 분석 대상에 포함 */
     var today = draft.date || U.ymd();
+    /* 게임 점수: 여러 경기를 남겼으면 점수·승패를 합쳐서 봅니다.
+     * (예전 한 경기 기록은 그대로 한 경기로 읽힙니다.) */
+    var games = BM.domain.cleanGames(draft.games);
+    var gsum = BM.domain.gamesSummary(games);
     var todayEntry = {
       date: today,
       cond: draft.cond, intensity: draft.intensity, minutes: draft.minutes,
-      done: draft.done || [], score: draft.score || null, result: draft.result || '',
+      done: draft.done || [], score: gsum.first || draft.score || null,
+      games: games, result: gsum.result || draft.result || '',
       pain: draft.pain || [], weakness: draft.weakness || [], userKey: draft.userKey
     };
     var history = records.filter(function (r) { return r.date !== today || r.cond !== draft.cond; });
@@ -715,7 +720,10 @@
     if (cond != null) scoreIdx += cond >= 7 ? 10 : cond <= 4 ? -12 : 3;
     if (intensity != null) scoreIdx += intensity >= 5 && intensity <= 8 ? 8 : intensity >= 9 ? -6 : 0;
     if (minutes != null) scoreIdx += minutes >= 45 ? 8 : minutes < 30 ? -8 : 3;
-    if (draft.score) scoreIdx += (draft.result || BM.domain.resultFromScore(draft.score)) === '승' ? 8 : (draft.result === '무' ? 2 : -4);
+    var gameResult = gsum.count ? gsum.result
+      : (draft.score ? (draft.result || BM.domain.resultFromScore(draft.score)) : '');
+    if (draft.score || gsum.count) scoreIdx += gameResult === '승' ? 8 : gameResult === '무' ? 2 : -4;
+    if (gsum.count > 2) scoreIdx += 3;            // 여러 경기를 치른 날은 볼륨 보너스
     scoreIdx -= Math.min(18, painToday.length * 6);
     if (done.indexOf('코어') >= 0 || done.indexOf('런닝') >= 0) scoreIdx += 4;
     if (painToday.length && (intensity || 0) >= 8) scoreIdx -= 5;
@@ -731,6 +739,15 @@
         detail: ws.rate >= 60 ? '흐름이 좋아요. 지금 쓰는 패턴을 유지하세요.'
           : ws.rate >= 40 ? '반반 승부예요. 결정구 하나만 더 만들면 달라집니다.'
             : '점수보다 내용을 보세요. 아래 기본 드릴 2주면 충분히 뒤집힙니다.'
+      });
+    }
+    if (gsum.count > 1) {
+      insights.push({
+        icon: 'score',
+        label: '오늘 ' + gsum.count + '경기 ' + gsum.wins + '승 ' + gsum.losses + '패' + (gsum.draws ? ' ' + gsum.draws + '무' : ''),
+        detail: gsum.wins >= gsum.losses
+          ? '여러 경기를 치렀어요. 이긴 경기에서 통한 샷 하나를 다음에도 그대로 써 보세요.'
+          : '여러 경기 중 내용이 좋았던 한 경기를 기준으로 다음 훈련을 잡아 보세요.'
       });
     }
     if (cond != null && intensity != null) {

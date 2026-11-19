@@ -39,7 +39,11 @@
       likedByMe: !!(likeSets[p.id] && likeSets[p.id][me]),
       likeId: likeSets[p.id] && likeSets[p.id][me],
       replies: rs.map(function (r) {
-        return { id: r.id, nick: r.nick || D.displayName(idx, r.userKey), userKey: r.userKey, text: r.text, createdAt: r.createdAt };
+        return {
+          id: r.id, nick: r.nick || D.displayName(idx, r.userKey), userKey: r.userKey, text: r.text, createdAt: r.createdAt,
+          /* 승인된 코치·멘토의 답글이면 '멘토 조언' 배지로 구분합니다 */
+          mentor: D.isCoach(idx, r.userKey)
+        };
       })
     };
     });
@@ -135,10 +139,14 @@
         matchTab: 'find',        /* find · in(받은 요청) · out(보낸 요청) · chat(대화) */
         matchSort: 'score',      /* score(궁합순) · recent(최근순) */
         matchFilterOpen: '',     /* 펼친 필터 줄 (level · region · discipline · gender) */
-        chatRoom: null, chatOther: '', chatOpen: false, coachTab: '', coachPlayer: null, composer: '', replyTo: null
+        chatRoom: null, chatOther: '', chatOpen: false, coachTab: '', coachPlayer: null, composer: '', replyTo: null,
+        lastSavedLog: null       /* 방금 저장한 일지 → 커뮤니티 원탭 공유 */
       },
       analysis: null,
-      queue: U.readJSON(QUEUE_KEY, []),
+      /* 전송 대기열은 시트(서버) 모드에서만 씁니다.
+       * 기기 저장(체험·게스트) 모드에서 예전 버전이 남긴 대기열을 그대로 읽으면
+       * '저장 중… 35건 남음'처럼 보이거나 실패만 반복합니다. */
+      queue: (api && api.mode === 'sheets') ? (U.readJSON(QUEUE_KEY, []) || []) : [],
       locks: {},
       syncError: null,
       syncState: 'idle',
@@ -149,10 +157,21 @@
     var flushing = false;
     var apiRef = api;
 
+    /* 예전 버전(v1.0)을 쓰던 기기에 남은 전송 대기열 정리.
+     * 기기 저장 모드에는 보낼 서버가 없으므로 대기열 자체를 지웁니다. */
+    if ((api && api.mode) !== 'sheets') U.storage.removeItem(QUEUE_KEY);
+
+    function isSheets() { return !!(apiRef && apiRef.mode === 'sheets'); }
+
     function defaultDraft() {
+      /* 아무것도 미리 채우지 않습니다. (예전에는 60분·21:18·'승'이 채워져 있어
+       * 이미 입력을 마친 것처럼 보였습니다.) */
       return {
-        date: U.ymd(), cond: 6, intensity: 6, minutes: 60,
-        done: ['스트록', '게임'], score: { a: 21, b: 18 }, result: '승',
+        date: U.ymd(), cond: null, intensity: null, minutes: null,
+        done: [],
+        gameMode: 21,
+        games: [{ a: '', b: '' }],
+        score: null, result: '',
         pain: [], weakness: [], note: ''
       };
     }
@@ -183,7 +202,11 @@
     }
 
     /* ---------- 큐 ---------- */
-    function persistQueue() { U.writeJSON(QUEUE_KEY, state.queue); }
+    function persistQueue() {
+      /* 기기 저장 모드: 대기열을 localStorage에 남기지 않습니다 */
+      if (!isSheets()) return;
+      U.writeJSON(QUEUE_KEY, state.queue);
+    }
 
     function enqueue(op) {
       op.ts = op.ts || Date.now();
@@ -230,6 +253,15 @@
           op.attempts = (op.attempts || 0) + 1;
           op.lastError = err && err.message;
           state.stats.failed++;
+          if (!isSheets()) {
+            /* 기기 저장 모드에는 다시 보낼 서버가 없습니다.
+             * 실패한 요청은 버리고 다음 요청으로 넘어갑니다(무한 재시도·대기 표시 없음). */
+            state.queue.shift();
+            state.syncState = 'idle';
+            persistQueue();
+            emit();
+            return step();
+          }
           state.syncError = (err && err.message) || '동기화에 실패했어요.';
           persistQueue();
           flushing = false;
@@ -303,6 +335,21 @@
       return false;
     }
 
+    /* 일지 한 줄 → 커뮤니티 글 (이모지·장식 없이 담백하게) */
+    function shareTextOf(e) {
+      var games = (e.games && e.games.length) ? e.games : (e.score ? [e.score] : []);
+      var sum = D.gamesSummary(games);
+      var head = [U.shortDay(e.date || U.ymd()), (e.minutes ? e.minutes + '분' : ''),
+        ((e.done || []).join('·'))].filter(Boolean).join(' · ');
+      var tail = [];
+      if (sum.count) {
+        tail.push(sum.count + '경기 ' + sum.wins + '승 ' + sum.losses + '패' + (sum.draws ? ' ' + sum.draws + '무' : ''));
+      }
+      if (e.cond) tail.push('컨디션 ' + e.cond + '/10');
+      if (e.pain && e.pain.length) tail.push('아픈 곳 ' + e.pain.join('·'));
+      return head + (tail.length ? '\n' + tail.join(' · ') : '');
+    }
+
     function meEntity(extra) {
       var me = state.me || {};
       var e = {
@@ -356,12 +403,14 @@
       setDraft: function (patch) {
         Object.keys(patch).forEach(function (k) { state.drafts.log[k] = patch[k]; });
         state.analysis = null;
+        state.ui.lastSavedLog = null;     /* 다시 고치면 공유 카드는 감춥니다 */
         emit();
       },
 
       resetDraft: function () {
         state.drafts.log = defaultDraft();
         state.analysis = null;
+        state.ui.lastSavedLog = null;
         emit();
       },
 
@@ -380,8 +429,20 @@
         opts = opts || {};
         if (!tryLock('log', 1200)) return { ok: false, reason: 'locked' };
         var d = JSON.parse(JSON.stringify(state.drafts.log));
+        /* 게임 점수: 한 일지에 여러 경기를 남길 수 있습니다.
+         * 점수가 비어 있는 게임은 저장하지 않고, 예전처럼 한 경기만 넣어도 됩니다. */
+        var games = D.cleanGames(d.games);
+        if (!games.length && d.score) games = D.cleanGames([d.score]);
+        var gsum = D.gamesSummary(games);
+        var score = gsum.first;
+        var result = gsum.result || d.result || '';
+        var scoreRaw = games.length ? D.formatGames(games, d.gameMode) : '';
+        var draftForAi = JSON.parse(JSON.stringify(d));
+        draftForAi.games = games;
+        draftForAi.score = score;
+        draftForAi.result = result;
         var an = BM.ai.analyze({
-          draft: d, records: state.data.records, level: (state.me && state.me.level) || d.level,
+          draft: draftForAi, records: state.data.records, level: (state.me && state.me.level) || d.level,
           discipline: (state.me && state.me.discipline) || d.discipline,
           nick: state.me && state.me.nick
         });
@@ -391,8 +452,8 @@
           id: U.uid(),
           clientId: U.clientId(),
           cond: d.cond, intensity: d.intensity, minutes: d.minutes,
-          done: d.done, score: d.score,
-          result: d.result || D.resultFromScore(d.score),
+          done: d.done, score: score, scoreRaw: scoreRaw, games: games, gameMode: d.gameMode,
+          result: result,
           pain: d.pain, weakness: d.weakness,
           prescription: an.care, drills: an.drills
         });
@@ -400,9 +461,68 @@
         pushRow(entity);
         state.analysis = an;
         state.ui.tab = 'log';
+        state.ui.lastSavedLog = entity;   /* 저장 직후 '커뮤니티에 공유' 카드용 */
         commit();
         if (opts.keepDraft !== true) state.drafts.log = defaultDraft();
         return { ok: true, entity: entity, analysis: an };
+      },
+
+      /* 일지 → 커뮤니티 공유: 저장 직후 카드에서 한 번에 올립니다.
+       * 같은 일지는 두 번 올리지 않고(대상 칸에 일지 ID), 점수·시간만 담백하게 적습니다. */
+      shareLogToCommunity: function (logId) {
+        var me = state.me || {};
+        if (!me.key) return { ok: false, reason: 'no_login' };
+        var e = state.ui.lastSavedLog;
+        if (logId) {
+          e = (state.data.records || []).filter(function (r) { return r.id === logId; })[0] || e;
+        }
+        if (!e || !e.id) return { ok: false, reason: 'no_log' };
+        if (!tryLock('share:' + e.id, 1500)) return { ok: false, reason: 'locked' };
+        var already = (state.idx.byType['소셜'] || []).some(function (p) {
+          return p.userKey === me.key && String(p.target || '') === String(e.id);
+        });
+        if (already) return { ok: false, reason: 'already' };
+        var entity = meEntity({
+          type: '소셜', date: U.ymd(), id: U.uid(), clientId: U.clientId(),
+          target: e.id, text: shareTextOf(e)
+        });
+        pushRow(entity);
+        state.ui.lastSavedLog = null;      /* 공유했으면 카드는 접습니다 */
+        commit();
+        return { ok: true, text: entity.text };
+      },
+
+      /* ---------- 꾸미기 해금 (하트 소모처) ----------
+       * 프레임·배지는 한 번 사 두면 계속 씁니다. 무료·연속 출석 해금은 하트를 쓰지 않습니다.
+       * 해금 기록은 기존 '꾸미기구매' 행(대상=frame:gold · badge:star)을 그대로 씁니다. */
+      buyDeco: function (kind, value) {
+        var me = state.me || {};
+        if (!me.key) return { ok: false, reason: 'no_login' };
+        var id = D.decoId(kind, value);
+        if (!id) return { ok: false, reason: 'unknown' };
+        if (!tryLock('deco:' + id, 1500)) return { ok: false, reason: 'locked' };
+        var status = state.data.hearts || {};
+        var streak = D.checkinStreak(state.idx, me.key);
+        if (D.ownsDeco(state.idx, me.key, id, streak)) {
+          return { ok: true, purchased: false, price: 0, id: id, balance: status.balance || 0 };
+        }
+        var price = D.decoPrice(id);
+        if ((status.balance || 0) < price) {
+          return { ok: false, reason: 'hearts', need: price - (status.balance || 0), price: price, id: id };
+        }
+        pushRow(meEntity({
+          type: '꾸미기구매', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
+          target: id, likes: price, nick: me.nick
+        }));
+        commit();
+        return { ok: true, purchased: true, price: price, id: id, balance: (state.data.hearts || {}).balance || 0 };
+      },
+
+      dismissShare: function () {
+        if (!state.ui.lastSavedLog) return { ok: false };
+        state.ui.lastSavedLog = null;
+        emit();
+        return { ok: true };
       },
 
       saveWeakness: function (skills) {
@@ -758,7 +878,12 @@
           purchased = true;
         }
 
-        var theme = { theme: themeId, avatar: (me.theme && me.theme.avatar) || '🏸' };
+        /* 테마를 바꿔도 사진·프레임·배경·배지는 그대로 남깁니다 */
+        var cur = D.avatarOf({ theme: me.theme });
+        var theme = {
+          theme: themeId, avatar: cur.emoji, avatarPhoto: cur.photo,
+          avatarFrame: cur.frame, avatarBg: cur.bg, avatarBadge: cur.badge
+        };
         pushRow({
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
           nick: me.nick, level: me.level, discipline: me.discipline, userKey: me.key,

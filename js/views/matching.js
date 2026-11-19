@@ -573,10 +573,13 @@
             return;
           }
           if (kind === 'ad') {
+            /* js/ads.js 어댑터: 네이티브 브리지가 있으면 그쪽, 웹에서는 3초 미리보기 */
             var myView = BM.views.my;
             if (b.classList.contains('is-busy')) return;
             b.classList.add('is-busy');
-            var play = (myView && myView.playRewardAd) ? myView.playRewardAd() : Promise.resolve(null);
+            var play = (BM.ads && BM.ads.showRewarded)
+              ? BM.ads.showRewarded({ unit: 'heart_reward' })
+              : ((myView && myView.playRewardAd) ? myView.playRewardAd() : Promise.resolve(null));
             play.then(function (r) {
               if (!r || !r.rewarded) { b.classList.remove('is-busy'); return; }
               var res = ctx.actions.watchAd({ verified: true, adUnit: r.adUnit });

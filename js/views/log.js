@@ -9,7 +9,56 @@
   BM.views = BM.views || {};
 
   function fillOf(v) {
-    return Math.round((U.clamp(v, 1, 10) - 1) / 9 * 100);
+    return Math.round((U.clamp(v == null ? 5 : v, 1, 10) - 1) / 9 * 100);
+  }
+
+  /* ---------- 게임 점수 (여러 게임 · 21/25점제) ---------- */
+  function draftGames(d) {
+    if (d.games && d.games.length) return d.games;
+    if (d.score) return [{ a: d.score.a, b: d.score.b }];
+    return [{ a: '', b: '' }];
+  }
+
+  function gamesSummaryText(games) {
+    var sum = D.gamesSummary(D.cleanGames(games));
+    if (!sum.count) return '점수를 넣으면 승패를 자동으로 계산해요';
+    return sum.count + '경기 · ' + sum.wins + '승 ' + sum.losses + '패' +
+      (sum.draws ? ' ' + sum.draws + '무' : '') + ' → <b>' + U.esc(sum.result) + '</b>';
+  }
+
+  function gameRowHtml(g, i, total) {
+    var a = g && g.a != null ? g.a : '';
+    var b = g && g.b != null ? g.b : '';
+    return '<div class="gamerow" data-game="' + i + '">' +
+      '<span class="gamerow__n">' + (total > 1 ? (i + 1) + '게임' : '게임') + '</span>' +
+      '<input type="number" inputmode="numeric" min="0" max="30" step="1" data-field="gameA" data-gi="' + i + '" ' +
+        'value="' + U.esc(a) + '" placeholder="나" aria-label="' + (i + 1) + '게임 내 점수">' +
+      '<span class="colon">:</span>' +
+      '<input type="number" inputmode="numeric" min="0" max="30" step="1" data-field="gameB" data-gi="' + i + '" ' +
+        'value="' + U.esc(b) + '" placeholder="상대" aria-label="' + (i + 1) + '게임 상대 점수">' +
+      (total > 1
+        ? '<button type="button" class="gamerow__del" data-act="remove-game" data-gi="' + i + '" aria-label="' + (i + 1) + '게임 지우기">−</button>'
+        : '') +
+    '</div>';
+  }
+
+  function gamesRows(games) {
+    return games.map(function (g, i) { return gameRowHtml(g, i, games.length); }).join('');
+  }
+
+  function gamesField(d) {
+    var games = draftGames(d);
+    var mode = Number(d.gameMode) === 25 ? 25 : 21;
+    return '<div class="field" data-games>' +
+      '<div class="field__label"><span>게임 점수</span><small>모르면 비워두세요</small></div>' +
+      '<div class="seg seg--wide seg--mode" data-gamemode>' +
+      [21, 25].map(function (m) {
+        return '<button type="button" class="seg__btn' + (mode === m ? ' is-on' : '') + '" data-gamemode-val="' + m + '" aria-pressed="' + (mode === m ? 'true' : 'false') + '">' + m + '점제</button>';
+      }).join('') + '</div>' +
+      '<div class="gamelist" data-gamelist>' + gamesRows(games) + '</div>' +
+      '<button type="button" class="addgame" data-act="add-game">' + UI.icon('plus') + '게임 추가</button>' +
+      '<p class="gamesum" data-gamesum>' + gamesSummaryText(games) + '</p>' +
+      '</div>';
   }
 
   function scoreRing(score) {
@@ -31,7 +80,7 @@
     }).join('') + '</ul>';
   }
 
-  function analysisCard(an) {
+  function analysisCard(an, state) {
     if (!an) return '';
     var drills = (an.drills && an.drills.drills) || [];
     var gp = an.gradePlan;
@@ -74,12 +123,33 @@
       (pb && pb.tips && pb.tips.length
         ? '<h3 class="sec-title">' + UI.icon('pin') + '전술 노트 · ' + U.esc(pb.discipline) + '</h3>' +
           '<div class="care__col">' + bulletList(pb.tips) + '</div>' : '') +
+
+      /* 저장 직후에만 보이는 "커뮤니티에 공유" 스트립 */
+      (state && state.ui && state.ui.lastSavedLog
+        ? '<div class="sharebar" data-region="share">' +
+          '<p class="sharebar__t">오늘 운동을 커뮤니티에 남길까요?</p>' +
+          '<p class="sharebar__s">' + U.esc(sharePreview(state.ui.lastSavedLog)) + '</p>' +
+          '<div class="sharebar__acts">' +
+          '<button type="button" class="btn btn--primary grow" data-act="share-log">' + UI.icon('community') + '커뮤니티에 오늘 운동 공유</button>' +
+          '<button type="button" class="btn btn--ghost" data-act="dismiss-share">나중에</button></div></div>'
+        : '') +
       '</section>';
   }
 
+  /* 공유 미리보기 — 일지에서 시간·훈련·전적만 담백하게 */
+  function sharePreview(e) {
+    var games = (e.games && e.games.length) ? e.games : (e.score ? [e.score] : []);
+    var sum = D.gamesSummary(games);
+    return [U.shortDay(e.date || U.ymd()), (e.minutes ? e.minutes + '분' : ''), ((e.done || []).join('·')),
+      (sum.count ? sum.count + '경기 ' + sum.wins + '승 ' + sum.losses + '패' : '')].filter(Boolean).join(' · ');
+  }
+
   function recentRow(r) {
-    var scoreTxt = r.score ? (r.score.a + ':' + r.score.b) : '';
-    var win = (r.result || D.resultFromScore(r.score));
+    var games = (r.games && r.games.length) ? r.games : (r.score ? [r.score] : []);
+    var win = (r.result || (games.length === 1 ? D.resultFromScore(games[0]) : ''));
+    var scoreTxt = games.length
+      ? (games.length > 1 ? games.length + '경기' : games[0].a + ':' + games[0].b)
+      : '';
     var tags = [].concat(r.pain || [], r.weakness || []).slice(0, 3);
     return '<li class="logrow" data-record="' + U.esc(r.id) + '">' +
       '<div class="logrow__date"><strong>' + U.shortDay(r.date) + '</strong><span>' + U.relDay(r.date) + '</span></div>' +
@@ -115,32 +185,23 @@
         '<header class="card__head"><h2>오늘 일지</h2>' +
         '<label class="datepick"><input type="date" data-field="date" value="' + U.esc(d.date) + '"></label></header>' +
 
-        '<div class="field"><div class="field__label"><span>컨디션</span><b data-out="cond">' + d.cond + '</b></div>' +
-        '<input type="range" min="1" max="10" step="1" value="' + d.cond + '" data-field="cond" class="range" style="--fill:' + fillOf(d.cond) + '%">' +
+        '<div class="field"><div class="field__label"><span>컨디션</span><b data-out="cond"' + (d.cond == null ? ' class="is-unset"' : '') + '>' + (d.cond == null ? '미입력' : d.cond) + '</b></div>' +
+        '<input type="range" min="1" max="10" step="1" value="' + (d.cond == null ? 5 : d.cond) + '" data-field="cond" class="range" style="--fill:' + fillOf(d.cond) + '%' + '" aria-label="컨디션 1에서 10">' +
         '<div class="range__ends"><span>무거움</span><span>가벼움</span></div></div>' +
 
-        '<div class="field"><div class="field__label"><span>훈련강도</span><b data-out="intensity">' + d.intensity + '</b></div>' +
-        '<input type="range" min="1" max="10" step="1" value="' + d.intensity + '" data-field="intensity" class="range" style="--fill:' + fillOf(d.intensity) + '%">' +
+        '<div class="field"><div class="field__label"><span>훈련강도</span><b data-out="intensity"' + (d.intensity == null ? ' class="is-unset"' : '') + '>' + (d.intensity == null ? '미입력' : d.intensity) + '</b></div>' +
+        '<input type="range" min="1" max="10" step="1" value="' + (d.intensity == null ? 5 : d.intensity) + '" data-field="intensity" class="range" style="--fill:' + fillOf(d.intensity) + '%' + '" aria-label="훈련 강도 1에서 10">' +
         '<div class="range__ends"><span>가볍게</span><span>전력</span></div></div>' +
 
-        '<div class="field"><div class="field__label"><span>운동 시간</span><b><span data-out="minutes">' + d.minutes + '</span>분</b></div>' +
+        '<div class="field"><div class="field__label"><span>운동 시간</span><b data-out="minutes"' + (d.minutes == null ? ' class="is-unset"' : '') + '>' + (d.minutes == null ? '미입력' : d.minutes + '분') + '</b></div>' +
         '<div class="stepper"><button type="button" class="step" data-step="-5" aria-label="5분 줄이기">−</button>' +
-        '<input type="number" inputmode="numeric" min="0" max="300" step="5" value="' + d.minutes + '" data-field="minutes">' +
+        '<input type="number" inputmode="numeric" min="0" max="300" step="5" value="' + (d.minutes == null ? '' : d.minutes) + '" placeholder="60" data-field="minutes" aria-label="운동 시간(분)">' +
         '<button type="button" class="step" data-step="5" aria-label="5분 늘리기">+</button></div></div>' +
 
         '<div class="field"><div class="field__label"><span>완료 훈련</span><small>여러 개 선택</small></div>' +
         UI.chips('done', D.VOCAB.done, d.done) + '</div>' +
 
-        '<div class="field"><div class="field__label"><span>게임 점수</span><small>모르면 비워두세요</small></div>' +
-        '<div class="scorerow">' +
-        '<input type="number" inputmode="numeric" min="0" max="30" data-field="scoreA" value="' + (d.score ? d.score.a : '') + '" aria-label="내 점수">' +
-        '<span class="colon">:</span>' +
-        '<input type="number" inputmode="numeric" min="0" max="30" data-field="scoreB" value="' + (d.score ? d.score.b : '') + '" aria-label="상대 점수">' +
-        '</div>' +
-        '<div class="seg" data-seg="result">' +
-        ['승', '패', '무'].map(function (r) {
-          return '<button type="button" class="seg__btn' + (d.result === r ? ' is-on' : '') + '" data-segval="' + r + '">' + r + '</button>';
-        }).join('') + '</div></div>' +
+        gamesField(d) +
 
         '<div class="field"><div class="field__label"><span>아픈 부위</span><small>없으면 그대로</small></div>' +
         UI.chips('pain', D.VOCAB.pain, d.pain) + '</div>' +
@@ -154,10 +215,10 @@
         '<div class="submit-wrap">' +
         '<button class="btn btn--primary btn--big" data-act="save-log">' +
         UI.icon('check') + '<span>저장하고 AI 분석</span></button>' +
-        '<p class="hint">연타해도 한 번만 저장됩니다</p></div>' +
+        '<p class="hint">입력하지 않은 항목은 비워서 저장돼요 · 연타해도 한 번만 저장됩니다</p></div>' +
         '</section>' +
 
-        analysisCard(an) +
+        analysisCard(an, state) +
 
         '<section class="card" data-region="recent">' +
         '<header class="card__head"><h2>최근 기록</h2><span class="muted">' + recent.length + '건</span></header>' +
@@ -169,31 +230,48 @@
     mount: function (root, ctx) {
       var form = root.querySelector('[data-form="log"]');
       if (!form) return;
+
+      /* 게임 목록을 상태에서 다시 그립니다 (추가·삭제·점수제 변경) */
+      function repaintGames(focusLast) {
+        var host = form.querySelector('[data-gamelist]');
+        if (!host) return;
+        var draft = ctx.store.state.drafts.log;
+        var games = draftGames(draft);
+        host.innerHTML = gamesRows(games);
+        var sum = form.querySelector('[data-gamesum]');
+        if (sum) sum.innerHTML = gamesSummaryText(games);
+        if (focusLast) {
+          var inputs = host.querySelectorAll('[data-field="gameA"]');
+          if (inputs.length && inputs[inputs.length - 1].focus) inputs[inputs.length - 1].focus();
+        }
+      }
+
       form.addEventListener('input', function (ev) {
         var el = ev.target;
         var f = el.getAttribute && el.getAttribute('data-field');
         if (!f) return;
         if (f === 'cond' || f === 'intensity') {
           var out = form.querySelector('[data-out="' + f + '"]');
-          if (out) out.textContent = el.value;
+          if (out) { out.textContent = el.value; out.classList.remove('is-unset'); }
           el.style.setProperty('--fill', fillOf(+el.value) + '%');
           var patch1 = {}; patch1[f] = +el.value; ctx.actions.setDraft(patch1);
         } else if (f === 'minutes') {
           var mo = form.querySelector('[data-out="minutes"]');
-          if (mo) mo.textContent = el.value;
-          ctx.actions.setDraft({ minutes: U.clamp(+el.value || 0, 0, 300) });
-        } else if (f === 'scoreA' || f === 'scoreB') {
-          var a = +form.querySelector('[data-field="scoreA"]').value;
-          var b = +form.querySelector('[data-field="scoreB"]').value;
-          var score = (form.querySelector('[data-field="scoreA"]').value === '' && form.querySelector('[data-field="scoreB"]').value === '')
-            ? null : { a: a, b: b };
-          var res = score ? D.resultFromScore(score) : '';
-          ctx.actions.setDraft({ score: score, result: res });
-          if (res) {
-            UI.$$('.seg__btn', form).forEach(function (btn) {
-              btn.classList.toggle('is-on', btn.getAttribute('data-segval') === res);
-            });
+          var mv = el.value === '' ? null : U.clamp(+el.value || 0, 0, 300);
+          if (mo) {
+            mo.textContent = mv == null ? '미입력' : mv + '분';
+            mo.classList.toggle('is-unset', mv == null);
           }
+          ctx.actions.setDraft({ minutes: mv });
+        } else if (f === 'gameA' || f === 'gameB') {
+          var gi = +el.getAttribute('data-gi');
+          var games = draftGames(ctx.store.state.drafts.log).slice();
+          var g = { a: games[gi] ? games[gi].a : '', b: games[gi] ? games[gi].b : '' };
+          g[f === 'gameA' ? 'a' : 'b'] = el.value;
+          games[gi] = g;
+          ctx.actions.setDraft({ games: games });
+          var sum = form.querySelector('[data-gamesum]');
+          if (sum) sum.innerHTML = gamesSummaryText(games);
         } else if (f === 'date') {
           ctx.actions.setDraft({ date: el.value });
         } else if (f === 'note') {
@@ -209,8 +287,43 @@
           var next = U.clamp((+input.value || 0) + (+step.getAttribute('data-step')), 0, 300);
           input.value = next;
           var mo = form.querySelector('[data-out="minutes"]');
-          if (mo) mo.textContent = next;
+          if (mo) { mo.textContent = next + '분'; mo.classList.remove('is-unset'); }
           ctx.actions.setDraft({ minutes: next });
+          UI.haptic(6);
+          return;
+        }
+        var addGame = ev.target.closest('[data-act="add-game"]');
+        if (addGame) {
+          ev.preventDefault();
+          var list = draftGames(ctx.store.state.drafts.log).slice();
+          list.push({ a: '', b: '' });
+          ctx.actions.setDraft({ games: list });
+          repaintGames(true);
+          UI.haptic(8);
+          return;
+        }
+        var removeGame = ev.target.closest('[data-act="remove-game"]');
+        if (removeGame) {
+          ev.preventDefault();
+          var at = +removeGame.getAttribute('data-gi');
+          var left = draftGames(ctx.store.state.drafts.log).slice();
+          left.splice(at, 1);
+          if (!left.length) left = [{ a: '', b: '' }];
+          ctx.actions.setDraft({ games: left });
+          repaintGames(false);
+          UI.haptic(6);
+          return;
+        }
+        var modeBtn = ev.target.closest('[data-gamemode-val]');
+        if (modeBtn) {
+          ev.preventDefault();
+          var mode = +modeBtn.getAttribute('data-gamemode-val') === 25 ? 25 : 21;
+          ctx.actions.setDraft({ gameMode: mode });
+          UI.$$('[data-gamemode-val]', form).forEach(function (b) {
+            var on = +b.getAttribute('data-gamemode-val') === mode;
+            b.classList.toggle('is-on', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
           UI.haptic(6);
           return;
         }
@@ -223,6 +336,15 @@
           var vals = UI.readChips(group);
           var patch = {}; patch[name] = vals;
           ctx.actions.setDraft(patch);
+          UI.haptic(6);
+          return;
+        }
+        var seg = ev.target.closest('[data-segval]');
+        if (seg) {
+          ev.preventDefault();
+          UI.$$('.seg__btn', seg.parentNode).forEach(function (b) { b.classList.remove('is-on'); });
+          seg.classList.add('is-on');
+          ctx.actions.setDraft({ result: seg.getAttribute('data-segval') });
           UI.haptic(6);
           return;
         }
@@ -254,6 +376,21 @@
       });
 
       root.addEventListener('click', function (ev) {
+        /* 저장 직후 공유 스트립 (분석 카드 안 · 폼 밖) */
+        if (ev.target.closest('[data-act="share-log"]')) {
+          ev.preventDefault();
+          var shared = ctx.actions.shareLogToCommunity();
+          if (shared.ok) { UI.toast('커뮤니티에 올렸어요'); UI.haptic(10); }
+          else if (shared.reason === 'already') UI.toast('이미 공유한 일지예요');
+          else if (shared.reason === 'locked') UI.toast('잠시만요, 올리는 중이에요');
+          else UI.toast('공유할 일지가 없어요', 'error');
+          return;
+        }
+        if (ev.target.closest('[data-act="dismiss-share"]')) {
+          ev.preventDefault();
+          ctx.actions.dismissShare();
+          return;
+        }
         var row = ev.target.closest('[data-record]');
         if (!row) return;
         var id = row.getAttribute('data-record');
@@ -268,7 +405,7 @@
 
     update: function (root, state) {
       var anRegion = root.querySelector('[data-region="analysis"]');
-      var html = analysisCard(state.analysis);
+      var html = analysisCard(state.analysis, state);
       if (anRegion) {
         if (html) anRegion.outerHTML = html;
       } else if (html) {
@@ -286,9 +423,13 @@
   };
 
   function recordDetail(rec) {
+    var games = (rec.games && rec.games.length) ? rec.games : (rec.score ? [rec.score] : []);
+    var gameText = games.map(function (g, i) {
+      return (games.length > 1 ? (i + 1) + '게임 ' : '') + (g.mode === 25 ? '25점제 ' : '') + g.a + ':' + g.b;
+    }).join(' / ');
     var rows = [
       ['컨디션', rec.cond], ['훈련강도', rec.intensity], ['운동시간', rec.minutes ? rec.minutes + '분' : ''],
-      ['완료훈련', (rec.done || []).join(', ')], ['게임점수', rec.scoreRaw || ''], ['결과', rec.result],
+      ['완료훈련', (rec.done || []).join(', ')], ['게임점수', gameText || rec.scoreRaw || ''], ['결과', rec.result],
       ['아픈부위', (rec.pain || []).join(', ')], ['약점기술', (rec.weakness || []).join(', ')]
     ].filter(function (r) { return r[1] !== '' && r[1] != null; });
     var care = rec.prescription || null;
