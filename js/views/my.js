@@ -25,6 +25,18 @@
     return '<span class="pill pill--gender pill--' + (v === '여성' ? 'f' : 'm') + '">' + U.esc(v) + '</span>';
   }
 
+  /* 플레이 스타일 — 급수·성별과 나란히 프로필 카드에 보여 줍니다 */
+  function styleOf(state, me, mp) {
+    return D.normalizeStyle((mp && mp.style) || (me && me.style) ||
+      (me && me.theme && me.theme.style) || '');
+  }
+
+  function stylePillOf(v) {
+    var s = D.normalizeStyle(v);
+    if (!s) return '';
+    return '<span class="pill pill--style">' + U.esc(s) + '</span>';
+  }
+
   function themeSwatches(state) {
     var current = (state.me && state.me.theme && state.me.theme.theme) || 'th_def';
     var meKey = (state.me && state.me.key) || '';
@@ -287,6 +299,18 @@
       var myApps = (state.data.coachApps || []).filter(function (a) { return a.userKey === me.key; });
       var coach = (myApps.filter(function (a) { return a.status === '승인'; })[0]);
       var pendingApp = myApps.filter(function (a) { return a.status === '심사중'; })[0];
+      var myStyle = styleOf(state, me, mp);
+      var prof = (state.idx && D.profileOf(state.idx, me.key)) || {};
+      var myLevel = mp.level || prof.level || '';
+      var myDiscipline = mp.discipline || prof.discipline || '';
+      var where = [myDiscipline, mp.region || me.region, mp.club || me.club].filter(Boolean).join(' · ');
+      var missing = [];
+      if (!myLevel) missing.push('실력');
+      if (!myDiscipline) missing.push('종목');
+      if (D.normalizeGender(mp.gender || me.gender) === '비공개') missing.push('성별');
+      if (!myStyle) missing.push('플레이 스타일');
+      if (!mp.region && !me.region) missing.push('활동 지역');
+      if (!mp.club && !me.club) missing.push('체육관');
       return '' +
         '<section class="card card--profile">' +
         '<div class="profile">' +
@@ -294,11 +318,19 @@
         UI.avatar(myAvatar(me), 64) +
         '<span class="profile__avcam">' + UI.icon('camera') + '</span></button>' +
         '<div class="profile__id"><div class="profile__name">' + U.esc(me.nick || '회원') +
-        genderPillOf(mp.gender || me.gender) +
         (coach ? '<span class="pill pill--ok">코치</span>' : '') + '</div>' +
-        '<p class="profile__meta">' + U.esc([me.level, me.discipline, me.region, me.club].filter(Boolean).join(' · ')) + '</p>' +
+        '<div class="profile__pills">' +
+        (myLevel ? '<span class="pill pill--grade">' + U.esc(myLevel) + '</span>' : '') +
+        genderPillOf(mp.gender || me.gender) + stylePillOf(myStyle) + '</div>' +
+        '<p class="profile__meta">' + U.esc(where || '종목·지역·체육관을 골라 보세요') + '</p>' +
         (me.bio ? '<p class="profile__bio">' + U.esc(me.bio) + '</p>' : '') + '</div>' +
-        '<button class="iconbtn" data-act="edit-profile" aria-label="프로필 수정">' + UI.icon('edit') + '</button></div>' +
+        '<button class="iconbtn" data-act="edit-profile" aria-label="프로필 꾸미기">' + UI.icon('edit') + '</button></div>' +
+        '<button type="button" class="btn btn--primary btn--big profile__deco" data-act="decorate-sheet">' +
+        '<span class="profile__deco-t">' + UI.icon('spark') + '프로필 꾸미기</span>' +
+        '<span class="profile__deco-s">실력 · 성별 · 플레이 스타일 · 체육관 · 사진</span></button>' +
+        (missing.length
+          ? '<p class="profile__decohint">' + U.esc(missing.slice(0, 2).join(' · ')) +
+            (missing.length > 2 ? ' 등' : '') + '을 채우면 매칭이 더 잘 맞춰져요.</p>' : '') +
         (pendingApp ? '<p class="notice">멘토 신청이 <b>심사중</b>이에요. 승인되면 코치 기능을 쓸 수 있어요.</p>' : '') +
         '<div class="stats">' +
         '<div class="stat"><strong>' + (s.count || 0) + '</strong><span>총 기록</span></div>' +
@@ -310,7 +342,7 @@
 
         accountCard(state) +
 
-        group('decor', 'camera', '프로필 꾸미기', '사진 · 프레임 꾸미기', decoratePanel(me, state), 'decor') +
+        group('decor', 'camera', '사진 · 프레임', '사진 · 프레임 꾸미기', decoratePanel(me, state), 'decor') +
         group('theme', 'palette', '테마', themeName(theme), themeSwatches(state)) +
         group('data', 'chart', '데이터 연결', '시트 연결 · 내보내기', dataPanel(state)) +
         group('legal', 'shield', '개인정보 · 계정', '', legalCard(state)) +
@@ -373,13 +405,18 @@
         }
         if (ev.target.closest('[data-act="edit-profile"]')) {
           ev.preventDefault();
-          openProfileSheet(root, ctx);
+          openDecorateSheet(ctx);
+          return;
+        }
+        if (ev.target.closest('[data-act="decorate-sheet"]')) {
+          ev.preventDefault();
+          openDecorateSheet(ctx);
           return;
         }
         if (ev.target.closest('[data-act="decorate-avatar"]')) {
           ev.preventDefault();
           ev.stopPropagation();
-          openAvatarSheet(root, ctx);
+          openDecorateSheet(ctx, { focus: 'avatar' });
           return;
         }
         if (ev.target.closest('[data-act="pick-photo"]')) {
@@ -626,145 +663,301 @@
     });
   }
 
-  function openAvatarSheet(root, ctx, initialDraft) {
-    var me = ctx.store.state.me || {};
+  /* ---------- 프로필 꾸미기 (한 곳에서) ----------
+   * 실력·성별·플레이 스타일·주 체육관·활동 지역·한 줄 소개·사진/프레임/배경/배지를
+   * 한 시트에서 고치고 저장합니다. 저장 값은 프로필(꾸미기 JSON)과
+   * 매칭프로필(payload JSON)에 함께 들어가 시트 26칸은 그대로입니다. */
+  function decorateDraft(state) {
+    var me = state.me || {};
+    var mp = myMatchProfile(state);
+    var av = myAvatar(me);
+    /* 체험 모드의 자리표시(일반회원·복식)가 아니라 실제로 저장된 값만 씁니다 */
+    var idx = state.idx || (state.data && state.data.idx) || null;
+    var prof = (idx && D.profileOf(idx, me.key)) || {};
+    var rawLevel = mp.level || prof.level || '';
+    var level = D.normalizeGrade(rawLevel);
+    return {
+      nick: me.nick || '',
+      photo: av.photo, emoji: av.emoji, frame: av.frame, bg: av.bg, badge: av.badge,
+      level: level,
+      discipline: mp.discipline || prof.discipline || '',
+      gender: D.normalizeGender(mp.gender || me.gender),
+      style: styleOf(state, me, mp),
+      region: mp.region || me.region || '',
+      club: mp.club || me.club || '',
+      bio: me.bio || mp.bio || ''
+    };
+  }
+
+  function decoPills(draft) {
+    return ((draft.level) ? '<span class="pill pill--grade">' + U.esc(draft.level) + '</span>' : '') +
+      genderPillOf(draft.gender) + stylePillOf(draft.style);
+  }
+
+  function decoMeta(draft) {
+    return [draft.region, draft.club].filter(Boolean).join(' · ') || '지역 · 체육관';
+  }
+
+  function decoPreview(draft, me) {
+    return '<div class="decostudio__stage">' +
+      '<div class="decostudio__av" data-deco-preview>' + UI.avatar(draft, 96) + '</div>' +
+      '<div class="decostudio__id"><strong>' + U.esc(draft.nick || me.nick || '회원') + '</strong>' +
+      '<div class="decostudio__pills" data-deco-pills>' + decoPills(draft) + '</div>' +
+      '<p class="decostudio__meta" data-deco-meta>' + U.esc(decoMeta(draft)) + '</p>' +
+      '</div></div>';
+  }
+
+  function decoChips(field, values, current, opts) {
+    opts = opts || {};
+    return '<div class="chips chips--wrap" data-dgroup="' + U.esc(field) + '">' + values.map(function (v) {
+      var on = current === v;
+      return '<button type="button" class="chip chip--sm' + (on ? ' is-on' : '') + '"' +
+        ' data-dfield="' + U.esc(field) + '" data-dval="' + U.esc(v) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        U.esc(v) + '</button>';
+    }).join('') + (opts.note ? '<span class="decostudio__note">' + U.esc(opts.note) + '</span>' : '') + '</div>';
+  }
+
+  function decorateBody(draft, me, state) {
+    return '<div class="decostudio">' +
+      decoPreview(draft, me) +
+
+      '<h4 class="avstudio__label" data-sec="nick">닉네임</h4>' +
+      '<input class="deco__input" type="text" data-dtext="nick" maxlength="12" autocomplete="off" value="' + U.esc(draft.nick) + '">' +
+
+      '<h4 class="avstudio__label" data-sec="avatar">사진 · 프레임</h4>' +
+      '<div class="decostudio__acts">' +
+      '<button type="button" class="btn btn--primary btn--sm" data-act="deco-photo">' + UI.icon('camera') + '사진 올리기</button>' +
+      '<button type="button" class="btn btn--ghost btn--sm" data-act="deco-clear"' + (draft.photo ? '' : ' disabled') + '>' + UI.icon('trash') + '사진 지우기</button>' +
+      '</div>' +
+      '<div class="pickgrid pickgrid--frame mt8">' + frames().map(function (f) {
+        var df = decoOf(state, 'frame', f.id);
+        return '<button type="button" class="framepick' + (draft.frame === f.id ? ' is-on' : '') + (df.owned ? '' : ' is-locked') + '"' +
+          ' data-dframe="' + U.esc(f.id) + '" aria-pressed="' + (draft.frame === f.id ? 'true' : 'false') + '"' +
+          ' title="' + U.esc(f.name + (df.owned ? '' : ' · 하트 ' + df.price + '개로 해금')) + '">' +
+          '<span class="framepick__dot framepick__dot--' + U.esc(f.id) + '"></span>' +
+          '<span class="framepick__name">' + U.esc(f.name) + '</span>' + lockTag(df) + '</button>';
+      }).join('') + '</div>' +
+      '<div class="pickgrid pickgrid--bg">' + bgs().map(function (b) {
+        return '<button type="button" class="bgpick' + (draft.bg === b.id ? ' is-on' : '') + '" data-dbg="' + U.esc(b.id) + '"' +
+          ' aria-pressed="' + (draft.bg === b.id ? 'true' : 'false') + '">' +
+          '<span class="bgpick__dot bgpick__dot--' + U.esc(b.id) + '"></span>' +
+          '<span class="bgpick__name">' + U.esc(b.name) + '</span></button>';
+      }).join('') + '</div>' +
+      '<div class="pickgrid pickgrid--emoji">' + AVATARS.map(function (a) {
+        return '<button type="button" class="avataropt' + (draft.emoji === a ? ' is-on' : '') + '" data-demoji="' + U.esc(a) + '"' +
+          ' aria-pressed="' + (draft.emoji === a ? 'true' : 'false') + '">' + U.esc(a) + '</button>';
+      }).join('') + '</div>' +
+      '<div class="pickgrid pickgrid--badge">' + badges().map(function (b) {
+        var db = decoOf(state, 'badge', b);
+        return '<button type="button" class="badgeopt' + (draft.badge === b ? ' is-on' : '') + (db.owned ? '' : ' is-locked') + '"' +
+          ' data-dbadge="' + U.esc(b) + '" aria-pressed="' + (draft.badge === b ? 'true' : 'false') + '"' +
+          ' title="' + U.esc((b ? D.decoName(db.id) : '배지 없음') + (db.owned ? '' : ' · 하트 ' + db.price + '개로 해금')) + '">' +
+          (b ? U.esc(b) : '없음') + lockTag(db) + '</button>';
+      }).join('') + '</div>' +
+
+      '<h4 class="avstudio__label" data-sec="level">실력(급수)</h4>' +
+      decoChips('level', D.VOCAB.grades, draft.level) +
+
+      '<h4 class="avstudio__label" data-sec="gender">성별</h4>' +
+      decoChips('gender', D.VOCAB.genders, draft.gender) +
+
+      '<h4 class="avstudio__label" data-sec="discipline">주력 종목</h4>' +
+      decoChips('discipline', D.VOCAB.disciplines, draft.discipline) +
+
+      '<h4 class="avstudio__label" data-sec="style">플레이 스타일</h4>' +
+      decoChips('style', D.VOCAB.styles, draft.style, { note: '한 번 더 누르면 해제' }) +
+
+      '<h4 class="avstudio__label" data-sec="club">주 체육관</h4>' +
+      '<input class="deco__input" type="text" data-dtext="club" maxlength="20" autocomplete="off"' +
+      ' placeholder="자주 가는 체육관 이름" value="' + U.esc(draft.club) + '">' +
+
+      '<h4 class="avstudio__label" data-sec="region">활동 지역</h4>' +
+      decoChips('region', D.VOCAB.regions, draft.region) +
+
+      '<h4 class="avstudio__label" data-sec="bio">한 줄 소개</h4>' +
+      '<input class="deco__input" type="text" data-dtext="bio" maxlength="60" autocomplete="off"' +
+      ' placeholder="어떤 플레이를 좋아하는지 한 줄로" value="' + U.esc(draft.bio) + '">' +
+      '</div>' +
+      '<div class="deco__savebar"><button class="btn btn--primary btn--big" data-act="deco-save">저장</button></div>' +
+      '<p class="hint">저장하면 MY 카드와 1:1 매칭 프로필에 <b>같은 모습</b>으로 보여요. ' +
+      '플레이 스타일·체육관은 새 칸을 만들지 않고 기존 프로필 JSON에 담깁니다(시트 26칸 그대로).</p>';
+  }
+
+  function paintDecoPreview(node, draft) {
+    var av = node.querySelector('[data-deco-preview]');
+    if (av) av.innerHTML = UI.avatar(draft, 96);
+    var pills = node.querySelector('[data-deco-pills]');
+    if (pills) pills.innerHTML = decoPills(draft);
+    var meta = node.querySelector('[data-deco-meta]');
+    if (meta) meta.textContent = decoMeta(draft);
+    var name = node.querySelector('.decostudio__id strong');
+    if (name) name.textContent = draft.nick || '회원';
+    var clear = node.querySelector('[data-act="deco-clear"]');
+    if (clear) clear.disabled = !draft.photo;
+  }
+
+  function saveDecorate(ctx, draft) {
     var state = ctx.store.state;
-    var draft = initialDraft
-      ? { photo: initialDraft.photo, emoji: initialDraft.emoji, frame: initialDraft.frame, bg: initialDraft.bg, badge: initialDraft.badge }
-      : myAvatar(me);
+    var me = state.me || {};
+    var mp = myMatchProfile(state);
+    var res = ctx.actions.saveProfile({
+      nick: String(draft.nick || '').trim() || me.nick,
+      level: draft.level, discipline: draft.discipline || me.discipline || mp.discipline || '',
+      gender: draft.gender, region: draft.region, club: draft.club, bio: draft.bio,
+      style: draft.style, avatar: draft.emoji, avatarPhoto: draft.photo,
+      avatarFrame: draft.frame, avatarBg: draft.bg, avatarBadge: draft.badge
+    });
+    if (!res || !res.ok) return res || { ok: false };
+    ctx.actions.saveMatchProfile({
+      region: draft.region, level: draft.level,
+      discipline: draft.discipline || mp.discipline || me.discipline || '복식', club: draft.club,
+      availability: mp.availability || '', experience: mp.experience || '',
+      bio: draft.bio, gender: draft.gender, style: draft.style,
+      avatar: draft.emoji, avatarPhoto: draft.photo, avatarFrame: draft.frame,
+      avatarBg: draft.bg, avatarBadge: draft.badge
+    });
+    return res;
+  }
+
+  function openDecorateSheet(ctx, opts) {
+    opts = opts || {};
+    var state = ctx.store.state;
+    var me = state.me || {};
+    var draft = opts.draft || decorateDraft(state);
+    var focus = opts.focus || '';
 
     var wrap = UI.openSheet({
       title: '프로필 꾸미기',
-      body: '<div class="avstudio">' +
-        '<div class="avstudio__stage"><div data-preview>' + UI.avatar(draft, 118) + '</div>' +
-        '<p class="avstudio__hint" data-studio-hint>' +
-        (draft.photo ? '내 사진 · ' : '이모지 ' + U.esc(draft.emoji) + ' · ') + '프레임 ' + U.esc(frameName(draft.frame)) + '</p></div>' +
-        '<div class="avstudio__row">' +
-        '<button type="button" class="btn btn--primary btn--sm" data-act="studio-photo">' + UI.icon('camera') + '사진 올리기</button>' +
-        '<button type="button" class="btn btn--ghost btn--sm" data-act="studio-clear"' + (draft.photo ? '' : ' disabled') + '>' + UI.icon('trash') + '사진 지우기</button>' +
-        '</div>' +
-
-        '<h4 class="avstudio__label">프레임</h4>' +
-        '<div class="pickgrid pickgrid--frame">' + frames().map(function (f) {
-          var df = decoOf(state, 'frame', f.id);
-          return '<button type="button" class="framepick' + (draft.frame === f.id ? ' is-on' : '') + (df.owned ? '' : ' is-locked') + '"' +
-            ' data-pick-frame="' + U.esc(f.id) + '" aria-pressed="' + (draft.frame === f.id ? 'true' : 'false') + '"' +
-            ' title="' + U.esc(f.name + (df.owned ? '' : ' · 하트 ' + df.price + '개로 해금')) + '">' +
-            '<span class="framepick__dot framepick__dot--' + U.esc(f.id) + '"></span>' +
-            '<span class="framepick__name">' + U.esc(f.name) + '</span>' + lockTag(df) + '</button>';
-        }).join('') + '</div>' +
-
-        '<h4 class="avstudio__label">배경</h4>' +
-        '<div class="pickgrid pickgrid--bg">' + bgs().map(function (b) {
-          return '<button type="button" class="bgpick' + (draft.bg === b.id ? ' is-on' : '') + '" data-pick-bg="' + U.esc(b.id) + '"' +
-            ' aria-pressed="' + (draft.bg === b.id ? 'true' : 'false') + '">' +
-            '<span class="bgpick__dot bgpick__dot--' + U.esc(b.id) + '"></span>' +
-            '<span class="bgpick__name">' + U.esc(b.name) + '</span></button>';
-        }).join('') + '</div>' +
-
-        '<h4 class="avstudio__label">이모지</h4>' +
-        '<div class="pickgrid pickgrid--emoji">' + AVATARS.map(function (a) {
-          return '<button type="button" class="avataropt' + (draft.emoji === a ? ' is-on' : '') + '" data-pick-emoji="' + U.esc(a) + '"' +
-            ' aria-pressed="' + (draft.emoji === a ? 'true' : 'false') + '">' + U.esc(a) + '</button>';
-        }).join('') + '</div>' +
-
-        '<h4 class="avstudio__label">배지</h4>' +
-        '<div class="pickgrid pickgrid--badge">' + badges().map(function (b) {
-          var db = decoOf(state, 'badge', b);
-          return '<button type="button" class="badgeopt' + (draft.badge === b ? ' is-on' : '') + (db.owned ? '' : ' is-locked') + '"' +
-            ' data-pick-badge="' + U.esc(b) + '" aria-pressed="' + (draft.badge === b ? 'true' : 'false') + '"' +
-            ' title="' + U.esc((b ? D.decoName(db.id) : '배지 없음') + (db.owned ? '' : ' · 하트 ' + db.price + '개로 해금')) + '">' +
-            (b ? U.esc(b) : '없음') + lockTag(db) + '</button>';
-        }).join('') + '</div></div>' +
-        '<button class="btn btn--primary btn--big mt16" data-act="studio-save">저장</button>' +
-        '<p class="hint">사진은 기기에 256×256 JPEG로 저장되고, MY·1:1 매칭·커뮤니티에 같은 모습으로 보여요.</p>' +
-        '<p class="hint">' + U.esc(streakLine((state.data && state.data.hearts) || {})) + '</p>',
+      body: decorateBody(draft, me, state),
       onMount: function (node) {
-        function repaintPreview() {
-          var box = node.querySelector('[data-preview]');
-          if (box) box.innerHTML = UI.avatar(draft, 118);
-          var hint = node.querySelector('[data-studio-hint]');
-          if (hint) hint.textContent = (draft.photo ? '내 사진 · ' : '이모지 ' + draft.emoji + ' · ') + '프레임 ' + frameName(draft.frame);
-          var clear = node.querySelector('[data-act="studio-clear"]');
-          if (clear) clear.disabled = !draft.photo;
+        if (focus) {
+          setTimeout(function () {
+            var sec = node.querySelector('[data-sec="' + focus + '"]');
+            if (sec && sec.scrollIntoView) sec.scrollIntoView({ block: 'start' });
+          }, 120);
         }
-
         node.addEventListener('click', function (ev) {
-          var f = ev.target.closest('[data-pick-frame]');
-          if (f) {
+          var chip = ev.target.closest('[data-dfield]');
+          if (chip) {
             ev.preventDefault();
-            var fidPick = f.getAttribute('data-pick-frame');
-            var dfPick = decoOf(ctx.store.state, 'frame', fidPick);
-            if (!dfPick.owned) {
-              unlockDeco(ctx, 'frame', fidPick, function (res) {
-                if (res && res.ok) draft.frame = fidPick;
-                openAvatarSheet(root, ctx, draft);   /* 고르던 다른 값은 그대로 두고 다시 엽니다 */
+            var field = chip.getAttribute('data-dfield');
+            var val = chip.getAttribute('data-dval');
+            /* 한 번 더 누르면 해제 (플레이 스타일) */
+            draft[field] = (field === 'style' && draft.style === val) ? '' : val;
+            var group = chip.closest('[data-dgroup]');
+            if (group) {
+              Array.prototype.forEach.call(group.querySelectorAll('[data-dfield]'), function (b) {
+                var on = b.getAttribute('data-dval') === draft[field];
+                b.classList.toggle('is-on', on);
+                b.setAttribute('aria-pressed', on ? 'true' : 'false');
+              });
+            }
+            paintDecoPreview(node, draft);
+            UI.haptic(5);
+            return;
+          }
+          var fr = ev.target.closest('[data-dframe]');
+          if (fr) {
+            ev.preventDefault();
+            var fid = fr.getAttribute('data-dframe');
+            var df = decoOf(ctx.store.state, 'frame', fid);
+            if (!df.owned) {
+              unlockDeco(ctx, 'frame', fid, function (res) {
+                if (res && res.ok) draft.frame = fid;
+                openDecorateSheet(ctx, { draft: draft });
               });
               return;
             }
-            draft.frame = fidPick;
-            togglePick(node, 'data-pick-frame', draft.frame);
-            repaintPreview(); UI.haptic(6);
+            draft.frame = fid;
+            Array.prototype.forEach.call(node.querySelectorAll('[data-dframe]'), function (b) {
+              b.classList.toggle('is-on', b.getAttribute('data-dframe') === fid);
+              b.setAttribute('aria-pressed', b.getAttribute('data-dframe') === fid ? 'true' : 'false');
+            });
+            paintDecoPreview(node, draft);
+            UI.haptic(5);
             return;
           }
-          var b = ev.target.closest('[data-pick-bg]');
-          if (b) {
+          var bg = ev.target.closest('[data-dbg]');
+          if (bg) {
             ev.preventDefault();
-            draft.bg = b.getAttribute('data-pick-bg');
-            togglePick(node, 'data-pick-bg', draft.bg);
-            repaintPreview(); UI.haptic(6);
+            draft.bg = bg.getAttribute('data-dbg');
+            Array.prototype.forEach.call(node.querySelectorAll('[data-dbg]'), function (b) {
+              b.classList.toggle('is-on', b.getAttribute('data-dbg') === draft.bg);
+              b.setAttribute('aria-pressed', b.getAttribute('data-dbg') === draft.bg ? 'true' : 'false');
+            });
+            paintDecoPreview(node, draft);
+            UI.haptic(5);
             return;
           }
-          var e = ev.target.closest('[data-pick-emoji]');
-          if (e) {
+          var em = ev.target.closest('[data-demoji]');
+          if (em) {
             ev.preventDefault();
-            draft.emoji = e.getAttribute('data-pick-emoji');
-            togglePick(node, 'data-pick-emoji', draft.emoji);
-            repaintPreview(); UI.haptic(6);
+            draft.emoji = em.getAttribute('data-demoji');
+            Array.prototype.forEach.call(node.querySelectorAll('[data-demoji]'), function (b) {
+              b.classList.toggle('is-on', b.getAttribute('data-demoji') === draft.emoji);
+              b.setAttribute('aria-pressed', b.getAttribute('data-demoji') === draft.emoji ? 'true' : 'false');
+            });
+            paintDecoPreview(node, draft);
+            UI.haptic(5);
             return;
           }
-          var bd = ev.target.closest('[data-pick-badge]');
+          var bd = ev.target.closest('[data-dbadge]');
           if (bd) {
             ev.preventDefault();
-            var badgePick = bd.getAttribute('data-pick-badge');
-            var dbPick = decoOf(ctx.store.state, 'badge', badgePick);
-            if (!dbPick.owned) {
-              unlockDeco(ctx, 'badge', badgePick, function (res) {
-                if (res && res.ok) draft.badge = badgePick;
-                openAvatarSheet(root, ctx, draft);
+            var bid = bd.getAttribute('data-dbadge');
+            var db = decoOf(ctx.store.state, 'badge', bid);
+            if (!db.owned) {
+              unlockDeco(ctx, 'badge', bid, function (res) {
+                if (res && res.ok) draft.badge = bid;
+                openDecorateSheet(ctx, { draft: draft });
               });
               return;
             }
-            draft.badge = badgePick;
-            togglePick(node, 'data-pick-badge', draft.badge);
-            repaintPreview(); UI.haptic(6);
+            draft.badge = bid;
+            Array.prototype.forEach.call(node.querySelectorAll('[data-dbadge]'), function (b) {
+              b.classList.toggle('is-on', b.getAttribute('data-dbadge') === bid);
+              b.setAttribute('aria-pressed', b.getAttribute('data-dbadge') === bid ? 'true' : 'false');
+            });
+            paintDecoPreview(node, draft);
+            UI.haptic(5);
             return;
           }
-          if (ev.target.closest('[data-act="studio-photo"]')) {
+          if (ev.target.closest('[data-act="deco-photo"]')) {
             ev.preventDefault();
             pickPhotoFile(function (url) {
               draft.photo = url;
-              repaintPreview();
+              paintDecoPreview(node, draft);
               UI.toast('사진을 넣었어요. 저장을 누르면 적용돼요');
             }, function (msg) { UI.toast(msg, 'error'); });
             return;
           }
-          if (ev.target.closest('[data-act="studio-clear"]')) {
+          if (ev.target.closest('[data-act="deco-clear"]')) {
             ev.preventDefault();
             draft.photo = '';
-            repaintPreview();
+            paintDecoPreview(node, draft);
             return;
           }
-          if (ev.target.closest('[data-act="studio-save"]')) {
+          if (ev.target.closest('[data-act="deco-save"]')) {
             ev.preventDefault();
-            saveAvatar(ctx, draft).then(function (ok) {
-              if (!ok) { UI.toast('잠시만요, 저장 중이에요'); return; }
-              UI.closeSheet();
-              UI.toast('프로필을 꾸몄어요');
-              UI.haptic(14);
-              ctx.refresh();
+            Array.prototype.forEach.call(node.querySelectorAll('[data-dtext]'), function (inp) {
+              draft[inp.getAttribute('data-dtext')] = inp.value.trim();
             });
+            var res = saveDecorate(ctx, draft);
+            if (!res.ok) {
+              UI.toast(res.reason === 'locked' ? '잠시만요, 저장 중이에요' : '저장하지 못했어요', 'error');
+              return;
+            }
+            UI.closeSheet();
+            UI.toast('프로필을 꾸몄어요');
+            UI.haptic(14);
+            if (ctx.refresh) ctx.refresh();
           }
+        });
+        node.addEventListener('input', function (ev) {
+          var inp = ev.target.closest('[data-dtext]');
+          if (!inp) return;
+          draft[inp.getAttribute('data-dtext')] = inp.value;
+          paintDecoPreview(node, draft);
         });
       }
     });
@@ -796,77 +989,6 @@
       });
     }
     return Promise.resolve(true);
-  }
-
-  function openProfileSheet(root, ctx) {
-    var me = ctx.store.state.me || {};
-    var mp = myMatchProfile(ctx.store.state);
-    var avatar = myAvatar(me);
-    var gender = mp.gender || me.gender || '비공개';
-    UI.openSheet({
-      title: '프로필 수정',
-      body: '<div class="sheethero">' + UI.avatar(avatar, 64) +
-        '<div><strong>' + U.esc(me.nick || '회원') + '</strong>' +
-        '<p class="hint">사진 · 프레임 · 배경은 한곳에서 바꿔요.</p>' +
-        '<button type="button" class="linkbtn" data-act="decorate-from-sheet">' + UI.icon('camera') + '사진 · 프레임 꾸미기</button></div></div>' +
-        '<div class="form">' +
-        '<label class="flabel">닉네임<input type="text" data-p="nick" maxlength="12" value="' + U.esc(me.nick || '') + '"></label>' +
-        '<label class="flabel">성별<div class="scrollx" data-p-group="gender">' + D.VOCAB.genders.map(function (g) {
-          return '<button type="button" class="chip chip--sm' + (gender === g ? ' is-on' : '') + '" data-pick-val="' + g + '">' + g + '</button>';
-        }).join('') + '</div></label>' +
-        '<label class="flabel">급수<div class="scrollx" data-p-group="level">' + D.VOCAB.grades.map(function (l) {
-          return '<button type="button" class="chip chip--sm' + (me.level === l ? ' is-on' : '') + '" data-pick-val="' + l + '">' + l + '</button>';
-        }).join('') + '</div></label>' +
-        '<label class="flabel">주력 종목<div class="scrollx" data-p-group="discipline">' + D.VOCAB.disciplines.map(function (l) {
-          return '<button type="button" class="chip chip--sm' + (me.discipline === l ? ' is-on' : '') + '" data-pick-val="' + l + '">' + l + '</button>';
-        }).join('') + '</div></label>' +
-        '<label class="flabel">지역<div class="scrollx" data-p-group="region">' + D.VOCAB.regions.map(function (r) {
-          return '<button type="button" class="chip chip--sm' + ((mp.region || me.region) === r ? ' is-on' : '') + '" data-pick-val="' + r + '">' + r + '</button>';
-        }).join('') + '</div></label>' +
-        '<label class="flabel">한 줄 소개<input type="text" data-p="bio" maxlength="60" value="' + U.esc(me.bio || '') + '"></label>' +
-        '</div><button class="btn btn--primary btn--big mt16" data-act="save-profile">저장</button>',
-      onMount: function (wrap) {
-        var chosen = { level: me.level, discipline: me.discipline, gender: gender, region: mp.region || me.region || '' };
-        wrap.addEventListener('click', function (ev) {
-          if (ev.target.closest('[data-act="decorate-from-sheet"]')) {
-            ev.preventDefault();
-            UI.closeSheet();
-            openAvatarSheet(root, ctx);
-            return;
-          }
-          var pick = ev.target.closest('[data-pick-val]');
-          if (pick) {
-            var group = pick.closest('[data-p-group]');
-            var key = group.getAttribute('data-p-group');
-            chosen[key] = pick.getAttribute('data-pick-val');
-            Array.prototype.forEach.call(group.querySelectorAll('[data-pick-val]'), function (b) { b.classList.remove('is-on'); });
-            pick.classList.add('is-on');
-            return;
-          }
-          if (ev.target.closest('[data-act="save-profile"]')) {
-            var res = ctx.actions.saveProfile({
-              nick: wrap.querySelector('[data-p="nick"]').value.trim() || me.nick,
-              bio: wrap.querySelector('[data-p="bio"]').value.trim(),
-              level: chosen.level, discipline: chosen.discipline, gender: chosen.gender, region: chosen.region
-            });
-            if (res.ok) {
-              var nowMp = myMatchProfile(ctx.store.state);
-              if (nowMp && nowMp.rowId) {
-                ctx.actions.saveMatchProfile({
-                  region: chosen.region, level: chosen.level, discipline: chosen.discipline,
-                  club: nowMp.club || '', availability: nowMp.availability || '', experience: nowMp.experience || '',
-                  bio: wrap.querySelector('[data-p="bio"]').value.trim(), gender: chosen.gender,
-                  avatar: nowMp.avatar || avatar.emoji, avatarPhoto: nowMp.avatarPhoto || '',
-                  avatarFrame: nowMp.avatarFrame || 'basic', avatarBg: nowMp.avatarBg || 'plain',
-                  avatarBadge: nowMp.avatarBadge || ''
-                });
-              }
-              UI.closeSheet(); UI.toast('프로필을 저장했어요');
-            } else UI.toast('잠시만요, 저장 중이에요');
-          }
-        });
-      }
-    });
   }
 
   function openHelpSheet(ctx) {
@@ -1019,4 +1141,6 @@
 
   BM.views.my = view;
   BM.views.my.playRewardAd = playRewardAd;   /* 매칭 화면의 하트 충전 시트도 같은 광고 흐름을 씁니다 */
+  BM.views.my.decorateDraft = decorateDraft;   /* 테스트·점검용 (꾸미기 시트 초기값) */
+  BM.views.my.decorateBody = decorateBody;     /* 테스트·점검용 (꾸미기 시트 본문) */   /* 매칭 화면의 하트 충전 시트도 같은 광고 흐름을 씁니다 */
 })(typeof globalThis !== 'undefined' ? globalThis : this);

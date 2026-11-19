@@ -1183,7 +1183,7 @@
     var html = BM.views.matching.render(state);
     includes(html, '네트앞여우', '여성 선수 표시');
     excludes(html, '콕집사', '남성 선수 제외');
-    includes(html, '조건 초기화', '조건이 있으면 초기화 버튼');
+    includes(html, '전체 보기', '조건이 있으면 전체 보기 버튼');
 
     state.ui.matchFilter.gender = '전체';
     state.ui.matchFilter.query = '풋워크';

@@ -16,7 +16,7 @@ const files = [
   'js/auth.js', 'js/store.js', 'js/ui.js', 'js/ads.js', 'js/views/profile.js', 'js/views/chat.js', 'js/views/log.js', 'js/views/matching.js',
   'js/views/community.js', 'js/views/coach.js', 'js/views/my.js', 'js/views/start.js',
   'test/harness.js', 'test/fixtures.js', 'test/logic.test.js', 'test/account.test.js', 'test/release.test.js', 'test/usability.test.js',
-  'test/routine.test.js', 'test/meet.test.js', 'test/matchrules.test.js'
+  'test/routine.test.js', 'test/meet.test.js', 'test/matchrules.test.js', 'test/v113.test.js'
 ];
 
 const sandbox = {

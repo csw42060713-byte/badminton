@@ -129,12 +129,14 @@
       (p.level ? '<span class="pill pill--grade">' + U.esc(p.level) + '</span>' : '') +
       ((mp && mp.gender && mp.gender !== '비공개') ? '<span class="pill pill--gender">' + U.esc(mp.gender) + '</span>' : '') +
       (p.discipline ? '<span class="pill pill--ghost">' + U.esc(p.discipline) + '</span>' : '') +
+      ((mp && D.normalizeStyle(mp.style)) ? '<span class="pill pill--style">' + U.esc(D.normalizeStyle(mp.style)) + '</span>' : '') +
       '</div>' +
       '<p class="pp__meta">' + U.esc([mp && mp.region, mp && mp.club].filter(Boolean).join(' · ') || '지역 미입력') + '</p>' +
       '</div></div>' +
       (p.bio ? '<p class="pp__bio">' + U.esc(p.bio) + '</p>' : '') +
       '<dl class="kv kv--tight">' +
       infoRow('성별', (mp && mp.gender) || '비공개') +
+      infoRow('플레이 스타일', mp && mp.style) +
       infoRow('가능 시간', mp && mp.availability) +
       infoRow('경력', mp && mp.experience) +
       infoRow('지역', mp && mp.region) +

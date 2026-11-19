@@ -39,7 +39,8 @@
     doc: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/>',
     shield: '<path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
     bolt: '<path d="M13 3L6 13h4.5L10 21l7-10h-4.5z"/>',
-    users: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.5 14.4c2.1.7 3.5 2.6 3.5 5.6"/>'
+    users: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.5 14.4c2.1.7 3.5 2.6 3.5 5.6"/>',
+    refresh: '<path d="M20 11a8 8 0 1 0-2.3 6.1"/><path d="M20 4v7h-7"/>'
   };
 
   function icon(name, cls) {
@@ -49,6 +50,55 @@
   }
 
   function haptic(ms) { U.haptic(ms); }
+
+  /* ---------- 겹쳐 열린 화면(시트·채팅)과 뒤로 가기 ----------
+   * 시트를 열면 기록을 하나 잡아 두고, 뒤로 가기를 누르면 앱을 나가지 않고
+   * 시트만 닫습니다. 시트를 닫자마자 채팅 같은 다른 겹침 화면이 열리면
+   * 기록을 새로 쌓지 않고 그 기록을 그대로 이어 씁니다(뒤로 가기 한 번에 닫힘). */
+  var overlayDepth = 0;
+  var pendingPop = null;
+  var suppressPopAt = 0;
+  var lastSheetBackAt = 0;
+
+  function isOverlayState(s) { return !!(s && s.bmOverlay); }
+
+  function overlayOpen() {
+    if (!hasDom) return;
+    var held = isOverlayState(typeof history !== 'undefined' ? history.state : null);
+    if (overlayDepth === 0) {
+      if (pendingPop) {
+        clearTimeout(pendingPop);
+        pendingPop = null;
+        if (!held) { try { history.replaceState({ bmOverlay: 1 }, ''); } catch (e) { /* 무시 */ } }
+      } else if (!held) {
+        try { history.pushState({ bmOverlay: 1 }, ''); } catch (e) { return; }
+      }
+    } else if (!held) {
+      /* 깊이는 남았는데 기록이 없어진 경우(다른 화면이 먼저 기록을 지웠을 때) 새로 잡아 둡니다 */
+      try { history.pushState({ bmOverlay: 1 }, ''); } catch (e) { /* 무시 */ }
+    }
+    overlayDepth++;
+  }
+
+  function overlayClose() {
+    if (overlayDepth <= 0) return;
+    overlayDepth--;
+    if (overlayDepth === 0 && isOverlayState(typeof history !== 'undefined' ? history.state : null)) {
+      if (pendingPop) return;
+      pendingPop = setTimeout(function () {
+        pendingPop = null;
+        suppressPopAt = Date.now();
+        try { history.back(); } catch (e) { /* 무시 */ }
+      }, 0);
+    }
+  }
+
+  function overlayReset() {
+    overlayDepth = 0;
+    if (pendingPop) { clearTimeout(pendingPop); pendingPop = null; }
+  }
+
+  function backClosedSheet() { return Date.now() - lastSheetBackAt < 500; }
 
   /* ---------- 토스트 ---------- */
   var toastTimer = null;
@@ -70,7 +120,7 @@
   }
 
   /* ---------- 바텀시트 ---------- */
-  function closeSheet() {
+  function closeSheetDom() {
     if (!hasDom) return;
     var root = $('#sheet');
     if (!root) return;
@@ -79,9 +129,23 @@
     setTimeout(function () { if (root && root.parentNode) root.parentNode.removeChild(root); }, 220);
   }
 
+  function closeSheet() {
+    if (!hasDom) return;
+    closeSheetDom();
+    overlayClose();
+  }
+
+  function removeSheetNow() {
+    if (!hasDom) return;
+    Array.prototype.slice.call(document.querySelectorAll('#sheet')).forEach(function (n) {
+      if (n.parentNode) n.parentNode.removeChild(n);
+    });
+  }
+
   function openSheet(opts) {
     if (!hasDom) return null;
-    closeSheet();
+    /* 이미 열린 시트를 바꿔 열 때는 기록을 건드리지 않고 화면만 교체합니다 */
+    removeSheetNow();
     var wrap = document.createElement('div');
     wrap.id = 'sheet';
     wrap.className = 'sheet';
@@ -94,6 +158,7 @@
       '<div class="sheet__body">' + (opts.body || '') + '</div></div>';
     document.body.appendChild(wrap);
     document.body.classList.add('no-scroll');
+    overlayOpen();
     requestAnimationFrame(function () { wrap.classList.add('is-on'); });
     wrap.addEventListener('click', function (ev) {
       if (ev.target.closest('[data-close]')) closeSheet();
@@ -216,6 +281,23 @@
     $: $, $$: $$, icon: icon, toast: toast, haptic: haptic,
     openSheet: openSheet, closeSheet: closeSheet, confirm: confirmSheet,
     paint: paint, chips: chips, readChips: readChips, toggleChip: toggleChip,
-    avatar: avatar, emptyState: emptyState, stars: stars, person: person, hasDom: hasDom
+    avatar: avatar, emptyState: emptyState, stars: stars, person: person, hasDom: hasDom,
+    overlay: {
+      open: overlayOpen, close: overlayClose, reset: overlayReset,
+      depth: function () { return overlayDepth; },
+      isState: isOverlayState
+    },
+    backClosedSheet: backClosedSheet
   };
+
+  /* 뒤로 가기: 시트가 열려 있으면 시트만 닫습니다(앱을 나가지 않음) */
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('popstate', function () {
+      if (Date.now() - suppressPopAt < 500) return;   /* 우리가 부른 back */
+      if (!hasDom || !document.getElementById('sheet')) return;
+      lastSheetBackAt = Date.now();
+      overlayDepth = Math.max(0, overlayDepth - 1);
+      closeSheetDom();
+    });
+  }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -46,6 +46,28 @@
 
   /* 성별 — 매칭 검색용. 모두에게 밝히고 싶지 않은 사람이 있으므로 '비공개'를 둡니다. */
   var GENDERS = ['남성', '여성', '비공개'];
+
+  /* 플레이 스타일 — 프로필 꾸미기에서 고릅니다.
+   * 시트 칸을 늘리지 않고 매칭프로필 JSON(소셜글)과 프로필 꾸미기 JSON 안에
+   * style 로 들어갑니다(26칸 스키마 그대로). */
+  var STYLES = ['공격형', '수비형', '네트 앞', '올라운드'];
+  var STYLE_ALIASES = {
+    '공격형': '공격형', '공격': '공격형', '어택': '공격형',
+    '수비형': '수비형', '수비': '수비형', '디펜스': '수비형',
+    '네트 앞': '네트 앞', '네트앞': '네트 앞', '전위': '네트 앞', '앞': '네트 앞',
+    '올라운드': '올라운드', '올라운드형': '올라운드', '전천후': '올라운드'
+  };
+
+  function normalizeStyle(v) {
+    var s = String(v == null ? '' : v).trim().replace(/\s+/g, ' ');
+    if (!s) return '';
+    if (STYLE_ALIASES[s]) return STYLE_ALIASES[s];
+    var compact = s.replace(/\s+/g, '');
+    for (var i = 0; i < STYLES.length; i++) {
+      if (STYLES[i].replace(/\s+/g, '') === compact) return STYLES[i];
+    }
+    return '';
+  }
   function normalizeGender(v) {
     var s = String(v == null ? '' : v).trim().replace(/\s+/g, '');
     if (!s) return '비공개';
@@ -226,6 +248,7 @@
     grades: GRADES,
     levels: GRADES,                 /* 예전 이름 호환 */
     genders: GENDERS,
+    styles: STYLES,
     legacyLevels: ['초보용', '일반부', '상급', '선수부'],
     disciplines: ['복식', '단식', '혼합복식'],
     done: ['스트록', '벽치기', '런닝', '코어', '풋워크', '스매시', '게임', '웨이트'],
@@ -1260,7 +1283,8 @@
 
   BM.domain = {
     COLS: COLS, COL: COL, VOCAB: VOCAB, GRADES: GRADES, GENDERS: GENDERS, THEMES: THEMES, AVATAR: AVATAR,
-    normalizeGrade: normalizeGrade, normalizeGender: normalizeGender,
+    normalizeGrade: normalizeGrade, normalizeGender: normalizeGender, normalizeStyle: normalizeStyle,
+    STYLES: STYLES,
     normalizeAvatar: normalizeAvatar, avatarOf: avatarOf,
     DECO_PRICES: DECO_PRICES, STREAK_UNLOCKS: STREAK_UNLOCKS,
     decoId: decoId, decoPrice: decoPrice, decoName: decoName, ownsDeco: ownsDeco,

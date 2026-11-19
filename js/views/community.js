@@ -13,13 +13,15 @@
   var sortMode = 'new';
   var topicFilter = '전체';   /* 상단 말머리 칩 — 전체 / 자유 / 후기 / 번개 / 용품 / 일지 */
 
-  /* 말머리 칩 한 줄 (말머리 고르기 · 목록 거르기에서 같은 모양을 씁니다) */
+  /* 말머리 칩 한 줄 (말머리 고르기 · 목록 거르기에서 같은 모양을 씁니다)
+   * 거르기의 '전체'는 고른 조건이 아니라 '조건 없음'이라 색을 달리해 구분합니다. */
   function topicChips(current, attr, all) {
     var vals = (all ? ['전체'] : []).concat(D.POST_TOPICS);
     return vals.map(function (t) {
       var on = t === current;
-      return '<button type="button" class="chip chip--sm' + (on ? ' is-on' : '') + '" ' + attr + '="' + U.esc(t) + '"' +
-        ' aria-pressed="' + (on ? 'true' : 'false') + '">' + U.esc(t) + '</button>';
+      var whole = all && t === '전체';
+      return '<button type="button" class="chip chip--sm' + (whole ? ' chip--all' : '') + (on ? ' is-on' : '') + '" ' + attr + '="' + U.esc(t) + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' + (whole && on ? UI.icon('check', 'chip__ic') : '') + U.esc(t) + '</button>';
     }).join('');
   }
 

@@ -91,6 +91,7 @@
         bio: p.bio || base.bio || '',
         region: base.region || '',
         club: base.club || '',
+        style: D.normalizeStyle((p.theme && p.theme.style) || ''),
         theme: p.theme || { theme: 'th_night' }
       };
     }

@@ -2780,3 +2780,112 @@ summary { display: list-item; }
   width: 6px; height: 6px; border-radius: 50%;
   background: currentColor; opacity: 0.75;
 }
+
+/* ============================================================
+ * v1.13.0 — 프로필 꾸미기 · 상단 채팅 · '전체' 필터
+ * ============================================================ */
+
+/* 플레이 스타일 배지 (급수·성별과 같은 줄) */
+.pill--style { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-weight: 800; }
+
+/* MY 프로필 카드 — 급수·성별·스타일 줄 + 큰 꾸미기 버튼 */
+.profile__pills { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 7px; }
+.profile__pills .pill { margin-left: 0; }
+.profile__deco {
+  flex-direction: column; gap: 2px;
+  min-height: 0; padding: 11px 14px; margin-top: 16px; border-radius: 14px;
+}
+.profile__deco-t { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 900; letter-spacing: -0.3px; }
+.profile__deco-t .ico { width: 16px; height: 16px; }
+.profile__deco-s { font-size: 10.5px; font-weight: 700; opacity: 0.72; letter-spacing: -0.1px; }
+.profile__decohint { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+/* 프로필 꾸미기 시트 */
+.decostudio { display: flex; flex-direction: column; gap: 2px; }
+.decostudio__stage {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border: 1px solid var(--line);
+}
+.decostudio__av { flex: none; }
+.decostudio__id { min-width: 0; flex: 1; }
+.decostudio__id strong { font-size: 16px; font-weight: 900; letter-spacing: -0.35px; }
+.decostudio__pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.decostudio__pills .pill { margin-left: 0; }
+.decostudio__meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.decostudio__acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.decostudio__note { font-size: 10.5px; color: var(--muted); align-self: center; }
+.deco__input {
+  width: 100%; min-height: 44px; padding: 0 12px;
+  border-radius: 12px; border: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text); font-size: 14px; margin-bottom: 4px;
+}
+
+/* 필터 — '전체'는 조건이 아니라 '조건 없음'이라 다른 색으로 구분 */
+.chip { display: inline-flex; align-items: center; justify-content: center; }
+.chip__ic { width: 12px; height: 12px; margin-right: 3px; }
+.chip--all { color: var(--text-2); }
+.chip--all.is-on { background: transparent; border-color: var(--accent-line); color: var(--accent); }
+.fall {
+  display: inline-flex; align-items: center; gap: 3px;
+  flex: none; min-height: 34px; padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--text-2); font-size: 11.5px; font-weight: 800; letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+.fall .ico { width: 12px; height: 12px; }
+.fall.is-on { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent); }
+.fall:active { transform: scale(0.96); }
+.fpanel__hint {
+  display: flex; align-items: center; gap: 5px;
+  margin: 2px 0 4px; font-size: 11px; color: var(--muted); line-height: 1.4;
+}
+.fpanel__hint .ico { width: 12px; height: 12px; flex: none; }
+.fpanel__hint b { color: var(--text-2); }
+.fsum__all { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 800; }
+.fsum__all .ico { width: 12px; height: 12px; }
+
+/* 상단 채팅 바로가기 — 조금 크게, 열려 있으면 표시 */
+.hdr__chat { width: 36px; height: 36px; }
+.hdr__chat svg { width: 20px; height: 20px; }
+.hdr__chat.is-open { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+/* 시작화면·온보딩에서는 눌러도 동작하지 않는 버튼을 보여 주지 않습니다 */
+body.is-gate .hdr__chat, body.is-gate .heartchip,
+body.is-onboarding .hdr__chat, body.is-onboarding .heartchip { display: none; }
+
+@media (max-width: 370px) {
+  .profile__deco-s { display: none; }
+}
+
+/* 꾸미기 시트: 저장 버튼은 스크롤해도 아래에 붙어 있습니다 */
+.deco__savebar {
+  position: sticky; bottom: -16px;
+  margin-top: 16px; padding: 10px 0 12px;
+  background: linear-gradient(to top, var(--bg-2) 72%, transparent);
+}
+
+/* 필터 줄이 카드 밖으로 넓어져 칩이 잘리지 않게 (그리드 칸을 화면 폭에 맞춤) */
+.fpanel { grid-template-columns: minmax(0, 1fr); }
+.filter-line { min-width: 0; }
+.filter-line .scrollx { max-width: 100%; }
+
+/* 필터 버튼 다섯 개(전체 포함)가 390px 화면에 한 줄로 들어가게 */
+.fbtn { padding: 0 9px 0 10px; gap: 4px; }
+.fbtn__car { width: 11px; height: 11px; }
+
+/* 커뮤니티 말머리 거르기 줄 — '전체' 체크 표시가 붙어도 한 줄에 들어가게 */
+.topicbar { gap: 5px; }
+.topicbar .chip { padding: 0 10px; font-size: 12px; }
+.topicbar .chip__ic { width: 11px; height: 11px; margin-right: 2px; }
+
+/* 다섯 버튼이 다 들어갈 때는 오른쪽 페이드를 끄고, 넘칠 때만 스크롤 힌트를 줍니다 */
+.fbar { -webkit-mask-image: none; mask-image: none; }
+.filter-line .scrollx.is-scrolled {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 92%, transparent);
+}
