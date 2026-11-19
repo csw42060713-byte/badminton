@@ -225,8 +225,12 @@
   /* ============================================================
    * 초보자 4주 루틴 체크리스트
    *  - 라켓을 처음 잡는 사람이 일지 화면 첫머리에서 바로 찾도록 히어로 카드 아래에 둡니다.
+   *  - 기본은 한 줄 요약으로 접혀 있어서(2026-11-19) 일지 입력 폼이 첫 화면에 바로 보입니다.
+   *    요약줄을 누르면 4주 체크리스트가 펼쳐지고, 펼친 상태는 화면을 다시 그려도 유지됩니다.
    *  - 체크는 계정별로 기기에 저장됩니다(store.routine).
    * ============================================================ */
+  var routineOpen = false;   /* 루틴 카드를 펼쳤는지 (탭을 옮겼다 와도 기억) */
+
   function routineSig(state) {
     var map = (state && state.routine) || {};
     var done = Object.keys(map).filter(function (k) { return map[k]; }).sort().join(',');
@@ -269,9 +273,22 @@
       ? '<p class="rtn__next is-done">' + UI.icon('check') + '13개 모두 완료했어요. 4주 동안 수고했어요!</p>'
       : '<p class="rtn__next">' + UI.icon('arrow') + '다음 연습 · ' + next.week + '주차 ' + U.esc(next.name) + '</p>';
 
+    /* 접힌 한 줄 요약 — 지금 상태와 다음에 할 한 가지만 */
+    var sumNext = st.complete
+      ? '4주 동안 수고했어요'
+      : '다음 · ' + next.name;
+
     return '<section class="card card--rtn" data-region="routine" data-sig="' + U.esc(routineSig(state)) + '">' +
-      '<header class="card__head"><h2>' + UI.icon('check') + '초보자 4주 루틴</h2>' +
-      '<span class="pill pill--ghost">왕초보</span></header>' +
+      '<details class="rtn" data-rtn' + (routineOpen ? ' open' : '') + '>' +
+      '<summary class="rtn__sum">' +
+      '<span class="rtn__sum-main">' +
+      '<span class="rtn__sum-t">' + UI.icon('check') + '초보자 4주 루틴' +
+      '<span class="pill pill--ghost">왕초보</span></span>' +
+      '<span class="rtn__sum-s">' + U.esc(sumNext) + '</span></span>' +
+      '<span class="rtn__sum-n"><b>' + st.done + '</b>/' + st.total + '</span>' +
+      UI.icon('arrow', 'rtn__car') +
+      '</summary>' +
+      '<div class="rtn__body">' +
       '<p class="rtn__sub">' + U.esc(R.SUB) + '</p>' +
       '<div class="rtn__overall">' +
       '<div class="rtn__bar" role="progressbar" aria-label="4주 루틴 전체 달성률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + st.pct + '">' +
@@ -288,6 +305,7 @@
       '<p>' + U.esc(R.GUARD) + '</p>' +
       '<button type="button" class="rtn__reset" data-act="routine-reset">체크 지우기</button></div>' +
       '<p class="rtn__save">체크는 이 기기에 저장돼요 · 오늘은 한두 개만 해도 충분해요</p>' +
+      '</div></details>' +
       '</section>';
   }
 
@@ -381,6 +399,12 @@
     },
 
     mount: function (root, ctx) {
+      /* 초보자 루틴: 펼침 상태 기억 — 카드가 다시 그려져도 접히지 않습니다 */
+      root.addEventListener('toggle', function (ev) {
+        var box = ev.target;
+        if (box && box.matches && box.matches('[data-rtn]')) routineOpen = !!box.open;
+      }, true);
+
       /* 초보자 루틴: 체크 · 주차 이동 · 체크 지우기 (카드가 다시 그려져도 살아 있게 위임) */
       root.addEventListener('change', function (ev) {
         var cb = ev.target.closest ? ev.target.closest('[data-rtn-item]') : null;

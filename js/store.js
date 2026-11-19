@@ -36,6 +36,7 @@
       id: p.id, nick: p.nick || D.displayName(idx, p.userKey), userKey: p.userKey,
       text: p.text, createdAt: p.createdAt, date: p.date, target: p.target || '',
       topic: D.topicOf(p),
+      meet: D.meetOf(p),
       likes: Math.max(likeCount, p.likes || 0),
       likedByMe: !!(likeSets[p.id] && likeSets[p.id][me]),
       likeId: likeSets[p.id] && likeSets[p.id][me],
@@ -143,7 +144,7 @@
         matchSort: 'score',      /* score(궁합순) · recent(최근순) */
         matchFilterOpen: '',     /* 펼친 필터 줄 (level · region · discipline · gender) */
         chatRoom: null, chatOther: '', chatOpen: false, chatDraft: '',
-        coachTab: '', coachPlayer: null, composer: '', composerTopic: '자유', replyTo: null,
+        coachTab: '', coachPlayer: null, composer: '', composerTopic: '자유', composerMeet: { when: '', place: '', cap: '' }, replyTo: null,
         routineWeek: 0,          /* 초보자 루틴: 보고 있는 주차 (0이면 아직 덜 끝낸 주차) */
         lastSavedLog: null       /* 방금 저장한 일지 → 커뮤니티 원탭 공유 */
       },
@@ -609,20 +610,29 @@
         return { ok: true };
       },
 
-      createPost: function (text, topic) {
+      /* 커뮤니티 글 올리기 — '번개'면 모집 정보(언제·어디·몇 명)를 함께 담습니다.
+       * 모집 정보를 비우면 일반 글과 똑같이 올라가고, 시트에는 말머리와 같이
+       * '훈련계획' 칸의 JSON으로만 적습니다(26칸 호환). */
+      createPost: function (text, topic, meet) {
         text = (text || '').trim();
         if (!text) return { ok: false, reason: 'empty' };
         if (!tryLock('post', 1200)) return { ok: false, reason: 'locked' };
         var tag = D.normalizeTopic(topic || state.ui.composerTopic);
+        var plan = { topic: tag };
+        if (tag === '번개') {
+          var mv = D.normalizeMeet(meet || state.ui.composerMeet);
+          if (D.meetFilled(mv)) plan.meet = mv;
+        }
         var entity = meEntity({
           type: '소셜', date: U.ymd(), id: U.uid(), clientId: U.clientId(), text: text,
-          plan: { topic: tag }
+          plan: plan
         });
         pushRow(entity);
         state.ui.composer = '';
         state.ui.composerTopic = '자유';
+        state.ui.composerMeet = { when: '', place: '', cap: '' };
         commit();
-        return { ok: true, topic: tag };
+        return { ok: true, topic: tag, meet: plan.meet || null };
       },
 
       saveProfile: function (patch) {
@@ -755,11 +765,13 @@
         emit();
       },
 
-      openChat: function (roomId, otherKey) {
+      /* draft를 넘기면 입력창에 미리 적어 둡니다(사용자가 고쳐서 보냄).
+       * 커뮤니티 '번개 참여 문의'가 이 자리로 바로 이어집니다. */
+      openChat: function (roomId, otherKey, draft) {
         state.ui.chatOpen = true;
         state.ui.chatRoom = roomId || null;
         state.ui.chatOther = otherKey || '';
-        state.ui.chatDraft = '';
+        state.ui.chatDraft = draft || '';
         emit();
       },
 
@@ -1130,6 +1142,14 @@
       setCoachTab: function (tab) { state.ui.coachTab = tab; emit(); },
       setComposer: function (text) { state.ui.composer = text; emit(); },
       setComposerTopic: function (topic) { state.ui.composerTopic = D.normalizeTopic(topic); emit(); },
+      /* 번개 모집 입력칸 — 글자마다 화면을 다시 그리면 포커스가 끊기므로 저장만 합니다 */
+      setComposerMeet: function (field, value) {
+        if (field !== 'when' && field !== 'place' && field !== 'cap') return;
+        var cur = state.ui.composerMeet || {};
+        var next = D.normalizeMeet(cur);
+        next[field] = value;
+        state.ui.composerMeet = D.normalizeMeet(next);
+      },
 
       retrySync: function () { return flush(); },
 

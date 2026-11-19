@@ -277,6 +277,42 @@
     return POST_TOPICS.indexOf(s) >= 0 ? s : '자유';
   }
 
+  /* 커뮤니티 '번개' 모집 정보 — 언제 · 어디 · 몇 명.
+   * 말머리와 같이 '훈련계획' 칸의 {"topic":"번개","meet":{...}}로 적어 시트 26칸을 늘리지 않습니다.
+   * 모두 비워 두면 일반 글과 똑같이 올라갑니다(선택 입력). */
+  var MEET_MAX = 30;          /* 언제·어디 글자 수 */
+
+  function meetLine(v, max) {
+    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max || MEET_MAX);
+  }
+
+  function normalizeMeet(m) {
+    var out = { when: '', place: '', cap: '' };
+    if (!m || typeof m !== 'object') return out;
+    out.when = meetLine(m.when);
+    out.place = meetLine(m.place);
+    var cap = String(m.cap == null ? '' : m.cap).replace(/[^0-9]/g, '').slice(0, 3);
+    if (cap) out.cap = String(U.clamp(parseInt(cap, 10), 1, 99));
+    return out;
+  }
+
+  function meetFilled(m) {
+    return !!(m && (m.when || m.place || m.cap));
+  }
+
+  /* 글에서 모집 정보만 꺼냅니다 (없으면 null) */
+  function meetOf(post) {
+    if (!post || !post.plan || !post.plan.meet) return null;
+    var m = normalizeMeet(post.plan.meet);
+    return meetFilled(m) ? m : null;
+  }
+
+  /* 모집 정보 한 줄 — 채팅 미리 채우기·안내에 씁니다 */
+  function meetText(m, sep) {
+    if (!meetFilled(m)) return '';
+    return [m.when, m.place, m.cap ? m.cap + '명' : ''].filter(Boolean).join(sep || ' · ');
+  }
+
   /* 글의 말머리: 직접 고른 값이 먼저, 없으면 일지 공유 글(target=일지 ID)은 '일지', 나머지는 '자유' */
   function topicOf(post) {
     if (!post) return '자유';
@@ -1135,6 +1171,7 @@
     matchBetween: matchBetween, canChatWith: canChatWith,
     coachRoomId: coachRoomId, coachChatAllowed: coachChatAllowed,
     POST_TOPICS: POST_TOPICS, normalizeTopic: normalizeTopic, topicOf: topicOf,
+    normalizeMeet: normalizeMeet, meetFilled: meetFilled, meetOf: meetOf, meetText: meetText,
     chatThreads: chatThreads, threadById: threadById, chatUnread: chatUnread,
     matchProfileOf: matchProfileOf
   };
