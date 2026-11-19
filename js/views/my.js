@@ -287,7 +287,7 @@
         '<button type="button" class="linkbtn" data-act="decorate-avatar">사진 · 배경</button></header>' +
         decoratePanel(me, state) + '</section>' +
 
-        '<section class="card"><header class="card__head"><h2>테마</h2><span class="muted sm">탭하면 바로 적용</span></header>' +
+        '<section class="card"><header class="card__head"><h2>테마</h2><span class="muted sm">탭해서 적용</span></header>' +
         themeSwatches(state) + '</section>' +
 
         '<section class="card"><header class="card__head"><h2>데이터 연결</h2>' +
