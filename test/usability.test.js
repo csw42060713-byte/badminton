@@ -21,7 +21,11 @@
 
   function freshStore(opts) {
     clearStorage();
-    if (!(opts && opts.empty)) U.writeJSON('bm_rows_v1', BM.fixtures.demo());
+    if (!(opts && opts.empty)) {
+      var rows = BM.fixtures.demo();
+      ((opts && opts.extra) || []).forEach(function (e) { rows.push(D.toRow(e)); });
+      U.writeJSON('bm_rows_v1', rows);
+    }
     var api = BM.api.createLocal({ latency: 0 });
     var store = BM.store.createStore({ api: api });
     return store.actions.init().then(function () { return store; });
@@ -204,13 +208,17 @@
   });
 
   test('코치 대화: 요청 문구를 채운 채로 열리고, 보내면 코치 대화방이 생긴다', function () {
-    return freshStore().then(function (store) {
-      var room = D.coachRoomId(BM.seed.ME, 'demo_net');
-      var r = store.actions.openCoachChat('demo_net', '코치님, 일지 피드백 부탁드려요.');
+    return freshStore({ extra: [{
+      id: 'mentor_chi', type: '멘토신청', createdAt: U.stamp(), nick: '콕집사', userKey: 'demo_chi',
+      target: D.ADMIN_TARGET,
+      payload: { status: '승인', type: '동호인 멘토', experience: '5년', reason: '기본기 봐드려요', submitted: U.stamp() }
+    }] }).then(function (store) {
+      var room = D.coachRoomId(BM.seed.ME, 'demo_chi');
+      var r = store.actions.openCoachChat('demo_chi', '코치님, 일지 피드백 부탁드려요.');
       ok(r.ok, '대화 열기');
       eq(store.state.ui.chatOpen, true, 'DM 패널');
       eq(store.state.ui.chatRoom, room, '코치 방');
-      eq(store.state.ui.chatOther, 'demo_net', '상대');
+      eq(store.state.ui.chatOther, 'demo_chi', '상대');
       includes(store.state.ui.chatDraft, '피드백 부탁드려요', '요청 문구 미리 채움');
 
       /* 화면: 채워진 입력창 + 보낼 수 있는 상태 */
@@ -219,7 +227,7 @@
       includes(html, '피드백 부탁드려요', '미리 채운 문구');
       includes(html, 'data-dm-form', '보내기 가능(잠금 아님)');
 
-      var sent = store.actions.sendChat(room, 'demo_net', store.state.ui.chatDraft);
+      var sent = store.actions.sendChat(room, 'demo_chi', store.state.ui.chatDraft);
       ok(sent.ok, '메시지 전송');
       eq(store.state.ui.chatDraft, '', '보낸 뒤 미리 채운 문구는 비움');
       var thread = D.threadById(store.state.idx, BM.seed.ME, room);
@@ -228,8 +236,21 @@
       eq(thread.unread, 0, '내가 보낸 메시지는 안 읽음 아님');
 
       /* 코치는 시작된 방에서만 답장할 수 있다 → 방이 생겼으니 이제 가능 */
-      eq(D.canChatWith(store.state.idx, 'demo_net', BM.seed.ME), true, '코치 답장 가능');
+      eq(D.canChatWith(store.state.idx, 'demo_chi', BM.seed.ME), true, '코치 답장 가능');
       return store.flush();
+    });
+  });
+
+  test('코치 대화: 이미 매칭·친구인 코치면 그 대화방을 그대로 쓴다', function () {
+    return freshStore().then(function (store) {
+      var room = D.coachRoomId(BM.seed.ME, 'demo_net');
+      eq(store.state.data.threads.filter(function (t) { return t.roomId === room; }).length, 0, '코치 방은 아직 없음');
+      var match = store.state.data.threads.filter(function (t) { return t.other === 'demo_net'; })[0];
+      ok(match && match.kind === 'match', '매칭 대화방이 있음');
+      var r = store.actions.openCoachChat('demo_net', '코치님, 피드백 부탁드려요.');
+      ok(r.ok, '대화 열기');
+      eq(store.state.ui.chatRoom, match.roomId, '새 방을 만들지 않고 매칭 방 재사용');
+      eq(store.state.ui.chatDraft, '코치님, 피드백 부탁드려요.', '요청 문구는 그대로 채움');
     });
   });
 
