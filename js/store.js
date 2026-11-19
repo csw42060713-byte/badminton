@@ -64,6 +64,7 @@
       club: pl.club || '', availability: pl.availability || '',
       experience: pl.experience || '', bio: pl.bio || '', avatar: av.emoji,
       gender: D.normalizeGender(pl.gender),
+      style: D.normalizeStyle(pl.style),
       avatarPhoto: av.photo, avatarFrame: av.frame, avatarBg: av.bg, avatarBadge: av.badge,
       createdAt: m.createdAt
     });
@@ -648,7 +649,8 @@
           availability: patch.availability != null ? patch.availability : (me.availability || ''),
           experience: patch.experience != null ? patch.experience : (me.experience || ''),
           avatar: patch.avatar || (me.theme && me.theme.avatar) || '🏸',
-          gender: patch.gender != null ? D.normalizeGender(patch.gender) : D.normalizeGender(me.gender)
+          gender: patch.gender != null ? D.normalizeGender(patch.gender) : D.normalizeGender(me.gender),
+          style: patch.style != null ? D.normalizeStyle(patch.style) : D.normalizeStyle(me.style || (me.theme && me.theme.style))
         };
         /* 꾸미기: 테마 + 아바타(사진·프레임·배경·배지). 넘기지 않은 값은 지금 것을 유지합니다. */
         var cur = D.avatarOf({ theme: me.theme });
@@ -665,7 +667,8 @@
           avatarPhoto: deco.photo,
           avatarFrame: deco.frame,
           avatarBg: deco.bg,
-          avatarBadge: deco.badge
+          avatarBadge: deco.badge,
+          style: merged.style
         };
         var entity = {
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
@@ -676,6 +679,7 @@
         state.me = {
           key: me.key, nick: merged.nick, level: merged.level, discipline: merged.discipline,
           bio: merged.bio, region: merged.region, club: merged.club, gender: merged.gender,
+          style: merged.style,
           availability: merged.availability, experience: merged.experience, theme: theme
         };
         commit();
@@ -1009,11 +1013,12 @@
           purchased = true;
         }
 
-        /* 테마를 바꿔도 사진·프레임·배경·배지는 그대로 남깁니다 */
+        /* 테마를 바꿔도 사진·프레임·배지·플레이 스타일은 그대로 남깁니다 */
         var cur = D.avatarOf({ theme: me.theme });
         var theme = {
           theme: themeId, avatar: cur.emoji, avatarPhoto: cur.photo,
-          avatarFrame: cur.frame, avatarBg: cur.bg, avatarBadge: cur.badge
+          avatarFrame: cur.frame, avatarBg: cur.bg, avatarBadge: cur.badge,
+          style: D.normalizeStyle(me.style || (me.theme && me.theme.style))
         };
         pushRow({
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),

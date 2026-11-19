@@ -90,6 +90,10 @@
         chatBadge.hidden = !total;
       }
       chatBtn.classList.toggle('has-unread', !!total);
+      var chatOpen = !!(state.ui && state.ui.chatOpen);
+      chatBtn.classList.toggle('is-open', chatOpen);
+      chatBtn.setAttribute('aria-expanded', chatOpen ? 'true' : 'false');
+      chatBtn.title = chatOpen ? '채팅 닫기' : '채팅 열기' + (total ? ' · 새 소식 ' + total + '건' : '');
     }
     /* 코치 탭: 관리자에게만 도착한 멘토 신청 배지 */
     var coachBtn = nav && nav.querySelector('[data-tab="coach"]');
@@ -104,18 +108,18 @@
   }
 
   /* ---------- 안드로이드 뒤로 가기 ----------
-   * 채팅(DM)을 열면 기록을 하나 쌓아 두고, 뒤로 가기를 누르면 앱을 닫지 않고
-   * 채팅만 닫습니다(설치형 앱과 같은 동작). */
+   * 채팅(DM)을 열면 겹침 기록을 하나 잡아 두고, 뒤로 가기를 누르면 앱을 닫지 않고
+   * 채팅만 닫습니다(설치형 앱과 같은 동작). 시트도 같은 기록을 함께 씁니다. */
   var dmHist = false;
   function dmPushHistory() {
     if (dmHist) return;
     dmHist = true;
-    try { history.pushState({ bmDm: 1 }, ''); } catch (e) { /* 무시 */ }
+    UI.overlay.open();
   }
   function dmPopHistory() {
     if (!dmHist) return;
     dmHist = false;
-    try { history.back(); } catch (e) { /* 무시 */ }
+    UI.overlay.close();
   }
 
   /* ---------- 1:1 채팅(DM) 패널 ---------- */
@@ -422,6 +426,9 @@
   function showGate() {
     gated = true;
     currentTab = null;
+    dmHist = false;
+    /* 남아 있는 겹침 화면 기록을 정리합니다(탈퇴·로그아웃 뒤 뒤로 가기로 앱을 나가지 않게) */
+    if (UI.overlay && UI.overlay.reset) UI.overlay.reset();
     document.body.classList.add('is-gate');
     document.body.classList.remove('is-onboarding');
     setNav(false);
@@ -477,6 +484,7 @@
   /* ---------- 앱 진입 ---------- */
   function enterApp(session) {
     gated = false;
+    dmHist = false;          /* 새 저장소·계정에서는 겹침 기록을 새로 잡습니다 */
     document.body.classList.remove('is-gate');
     document.body.classList.remove('is-onboarding');
     setNav(true);
@@ -653,10 +661,12 @@
       else store.actions.openChats();
     });
 
-    /* 안드로이드 뒤로 가기: 채팅이 열려 있으면 채팅만 닫습니다 */
+    /* 안드로이드 뒤로 가기: 시트를 닫은 back이면 채팅은 그대로 두고,
+     * 채팅이 열려 있으면 채팅만 닫습니다 */
     window.addEventListener('popstate', function () {
+      if (UI.backClosedSheet && UI.backClosedSheet()) return;
       if (store && store.state.ui.chatOpen) {
-        dmHist = false;
+        /* dmHist 는 paintDm 의 dmPopHistory 가 정리합니다(겹침 기록 깊이도 함께) */
         store.actions.closeChats();
       }
     });
@@ -679,7 +689,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.12.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.13.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

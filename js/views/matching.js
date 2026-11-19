@@ -34,7 +34,7 @@
     return {
       userKey: key, nick: d.nick || '회원', level: d.level || '', discipline: d.discipline || '',
       region: '', club: '', availability: '', experience: '', bio: d.bio || '',
-      gender: '비공개', theme: d.theme || null
+      gender: '비공개', style: D.normalizeStyle(d.theme && d.theme.style), theme: d.theme || null
     };
   }
 
@@ -84,6 +84,10 @@
   /* ---------- 필터 ---------- */
   function filterOf(state) {
     return state.ui.matchFilter || {};
+  }
+
+  function activeFilterCount(state) {
+    return D.activeFilters(filterOf(state)).length;
   }
 
   function sortOf(state) {
@@ -174,8 +178,9 @@
       (st.friend.state === 'friends' ? '<span class="pill pill--friend">친구</span>' : '') + '</div>' +
       '<p class="pcard__meta">' + U.esc(meta || '지역 미입력') + '</p></div>' +
       '<div class="fit"><strong>' + scored.score + '</strong><span>궁합</span></div></div>' +
-      (p.discipline || spec ? '<p class="pcard__spec">' +
+      (p.discipline || p.style || spec ? '<p class="pcard__spec">' +
         (p.discipline ? '<span class="eventchip is-on">' + U.esc(p.discipline) + '</span>' : '') +
+        (p.style ? '<span class="pill pill--style">' + U.esc(p.style) + '</span>' : '') +
         (spec ? '<span class="pcard__spec-t">' + U.esc(spec) + '</span>' : '') + '</p>' : '') +
       (p.bio ? '<p class="pcard__bio">' + U.esc(p.bio) + '</p>' : '') +
       (scored.reasons.length ? '<p class="pcard__why">' + U.esc(scored.reasons.slice(0, 2).join(' · ')) + '</p>' : '') +
@@ -473,7 +478,11 @@
       '<div><dt>주력 종목</dt><dd>' + (p.discipline
         ? '<span class="eventchip eventchip--lg is-on">' + U.esc(p.discipline) + '</span>'
         : '<span class="muted">미입력</span>') + '</dd></div>' +
+      '<div><dt>플레이 스타일</dt><dd>' + (p.style
+        ? '<span class="pill pill--style">' + U.esc(p.style) + '</span>'
+        : '<span class="muted">미입력</span>') + '</dd></div>' +
       '<div><dt>급수</dt><dd>' + U.esc(p.level || '미입력') + '</dd></div>' +
+      '<div><dt>주 체육관</dt><dd>' + U.esc(p.club || '미입력') + '</dd></div>' +
       '<div><dt>경력</dt><dd>' + U.esc(p.experience || '미입력') + '</dd></div>' +
       '<div><dt>가능 시간</dt><dd>' + U.esc(p.availability || '미입력') + '</dd></div>' +
       '</dl>' +
@@ -684,7 +693,7 @@
     var cost = D.HEART_RULES.MATCH_COST;
     var ready = !!(mp.level && mp.discipline && mp.region);
     var meta = [D.normalizeGender(mp.gender) === '비공개' ? '' : D.normalizeGender(mp.gender),
-      mp.discipline, mp.region].filter(Boolean);
+      mp.discipline, D.normalizeStyle(mp.style), mp.region].filter(Boolean);
 
     return '<div class="mycard">' + UI.avatar(mp.rowId ? mp : me, 46) +
       '<div class="mycard__id">' +
@@ -747,11 +756,34 @@
           return;
         }
 
+        /* '전체' — 한 조건이 아니라 모든 조건을 풀어 전부 다시 보여 줍니다 */
+        if (ev.target.closest('[data-act="show-all"]')) {
+          ev.preventDefault();
+          var had = activeFilterCount(ctx.store.state);
+          var search = root.querySelector('[data-search-input]');
+          if (search) search.value = '';
+          ctx.actions.resetMatchFilter();
+          if (had) { UI.toast('조건을 모두 풀었어요'); UI.haptic(6); }
+          return;
+        }
+
         var chip = ev.target.closest('[data-filter]');
         if (chip) {
           ev.preventDefault();
+          var key = chip.getAttribute('data-filter');
+          var val = chip.getAttribute('data-value');
+          if (val === '전체') {
+            /* 각 줄의 전체도 같은 의미로 통일 — 모든 조건을 풀고 전부 보여 줍니다 */
+            var hadAny = activeFilterCount(ctx.store.state);
+            var box = root.querySelector('[data-search-input]');
+            if (box) box.value = '';
+            ctx.actions.resetMatchFilter();
+            if (hadAny) UI.toast('조건을 모두 풀었어요');
+            UI.haptic(6);
+            return;
+          }
           var patch = {};
-          patch[chip.getAttribute('data-filter')] = chip.getAttribute('data-value');
+          patch[key] = val;
           ctx.actions.setFilter(patch);
           UI.haptic(6);
           return;
@@ -870,7 +902,36 @@
       if (filters) {
         var fs = filterSig(state);
         if (filters.getAttribute('data-sig') !== fs) {
+          /* 다시 그려도 가로 스크롤 위치와 고른 칩이 그대로 보이게 합니다.
+           * (칩을 누를 때마다 줄이 왼쪽 끝으로 튀어 고른 값이 화면 밖으로 사라지던 문제) */
+          var keeps = {};
+          var bar = filters.querySelector('[data-fbar]');
+          var barLeft = bar ? bar.scrollLeft : 0;
+          Array.prototype.forEach.call(filters.querySelectorAll('.filter-line'), function (ln) {
+            var sx = ln.querySelector('.scrollx');
+            if (sx) keeps[ln.getAttribute('data-key')] = sx.scrollLeft;
+          });
           filters.innerHTML = filterBarOnly(state);
+          var bar2 = filters.querySelector('[data-fbar]');
+          if (bar2 && barLeft) bar2.scrollLeft = barLeft;
+          Array.prototype.forEach.call(filters.querySelectorAll('.filter-line'), function (ln) {
+            var sx = ln.querySelector('.scrollx');
+            if (!sx) return;
+            var keep = keeps[ln.getAttribute('data-key')];
+            if (keep != null) sx.scrollLeft = keep;
+            sx.classList.toggle('is-scrolled', sx.scrollLeft > 1);
+            /* 지금 고른 칩이 가려져 있으면 보이게 옮깁니다 */
+            var on = sx.querySelector('.chip.is-on');
+            if (on) {
+              var cr = on.getBoundingClientRect();
+              var sr = sx.getBoundingClientRect();
+              if (cr.left < sr.left || cr.right > sr.right) {
+                /* 고른 칩이 줄 맨 앞에 오게 옮깁니다(오른쪽은 페이드로 '더 있음'을 알립니다) */
+                sx.scrollLeft = Math.max(0, sx.scrollLeft + (cr.left - sr.left) - 8);
+              }
+              sx.classList.toggle('is-scrolled', sx.scrollLeft > 1);
+            }
+          });
           filters.setAttribute('data-sig', fs);
         }
       }
@@ -928,18 +989,26 @@
     }
     function line(kr, key, options) {
       var current = f[key] || '전체';
-      return '<div class="filter-line' + (open === key ? ' is-active' : '') + '">' +
+      return '<div class="filter-line' + (open === key ? ' is-active' : '') + '" data-key="' + key + '">' +
         '<span class="filter-line__label">' + kr + '</span><div class="scrollx">' +
         ['전체'].concat(options).map(function (o) {
-          return '<button type="button" class="chip chip--sm' + (current === o ? ' is-on' : '') + '"' +
+          var on = current === o;
+          var all = o === '전체';
+          /* '전체'는 조건을 고른 것이 아니라 '모든 조건 풀기' 상태라 색을 달리해 한눈에 구분합니다 */
+          return '<button type="button" class="chip chip--sm' + (all ? ' chip--all' : '') + (on ? ' is-on' : '') + '"' +
             ' data-filter="' + key + '" data-value="' + U.esc(o) + '"' +
-            ' aria-pressed="' + (current === o ? 'true' : 'false') + '">' + U.esc(o) + '</button>';
+            ' aria-pressed="' + (on ? 'true' : 'false') + '">' +
+            (all && on ? UI.icon('check', 'chip__ic') : '') + U.esc(o) + '</button>';
         }).join('') + '</div></div>';
     }
-    return '<div class="fbar">' +
+    return '<div class="fbar" data-fbar>' +
+      '<button type="button" class="fall' + (active.length ? '' : ' is-on') + '" data-act="show-all"' +
+      ' aria-label="' + (active.length ? '조건을 모두 풀고 전체 선수 보기' : '전체 선수 보기') + '">' +
+      UI.icon(active.length ? 'refresh' : 'check') + '<span>전체</span></button>' +
       button('level', '급수') + button('region', '지역') + button('discipline', '종목') + button('gender', '성별') +
       '</div>' +
       '<div class="fpanel' + (open ? ' is-open' : '') + '">' +
+      '<p class="fpanel__hint">' + UI.icon('refresh') + '‘전체’를 누르면 급수·지역·종목·성별 조건이 <b>모두</b> 풀려요.</p>' +
       line('급수', 'level', D.VOCAB.grades) +
       line('지역', 'region', D.VOCAB.regions) +
       line('종목', 'discipline', D.VOCAB.disciplines) +
@@ -947,7 +1016,8 @@
       '</div>' +
       (active.length ? '<p class="fsum">' + active.map(function (a) {
         return '<span class="fsum__chip">' + U.esc(a.key === 'query' ? '“' + a.value + '”' : a.value) + '</span>';
-      }).join('') + '<button type="button" class="linkbtn" data-act="reset-filter">조건 초기화</button></p>' : '');
+      }).join('') + '<button type="button" class="linkbtn fsum__all" data-act="show-all">' +
+        UI.icon('refresh') + '전체 보기</button></p>' : '');
   }
 
   /* ---------- 내 매칭 카드 편집 ---------- */
@@ -959,6 +1029,7 @@
       level: myMp.level || me.level || 'C조',
       discipline: myMp.discipline || me.discipline || '복식',
       gender: myMp.gender || '비공개',
+      style: D.normalizeStyle(myMp.style || me.style || ''),
       availability: myMp.availability || '주말',
       experience: myMp.experience || '2~5년',
       club: myMp.club || '',
@@ -983,6 +1054,7 @@
         '<div class="form">' +
         '<label class="flabel">성별' + chips('gender', D.VOCAB.genders) + '</label>' +
         '<label class="flabel">급수' + chips('level', D.VOCAB.grades) + '</label>' +
+        '<label class="flabel">플레이 스타일' + chips('style', D.VOCAB.styles) + '</label>' +
         '<label class="flabel">주력 종목' + chips('discipline', D.VOCAB.disciplines) + '</label>' +
         '<label class="flabel">지역' + chips('region', D.VOCAB.regions) + '</label>' +
         '<label class="flabel">가능 시간' + chips('availability', D.VOCAB.availability) + '</label>' +
@@ -1012,7 +1084,7 @@
             ctx.actions.saveProfile({
               gender: payload.gender, region: payload.region,
               level: payload.level, discipline: payload.discipline,
-              bio: payload.bio, club: payload.club
+              bio: payload.bio, club: payload.club, style: payload.style
             });
             UI.closeSheet();
             UI.toast('매칭 카드를 저장했어요.');
