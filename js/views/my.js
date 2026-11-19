@@ -374,6 +374,37 @@
       '</div></div></details>';
   }
 
+  /* ---------- 초보자 4주 루틴 표시 선택 ----------
+   * 일지 & AI 화면에 4주 체크리스트를 보일지 MY에서 언제든 바꿉니다.
+   * '아직 고르지 않음'은 스위치가 꺼진 채로 보이고, 한 번 켜면 표시됩니다. */
+  function routinePrefCard(state) {
+    var pref = (state || {}).routinePref;
+    var off = pref === false;
+    var undecided = pref === null;
+    var on = !off && !undecided;        /* routinePref가 없는 예전 state는 켜진 것으로 */
+    var pill = on ? '<span class="pill pill--ok">표시 중</span>'
+      : undecided ? '<span class="pill pill--ghost">아직 안 고름</span>'
+        : '<span class="pill pill--ghost">숨김</span>';
+    var hint = on
+      ? '체크는 이 기기에 저장돼요 · 오늘은 한두 개만 해도 충분해요'
+      : undecided
+        ? '일지 & AI 화면에서 아직 시작할지 고르지 않았어요. 켜면 1주차부터 바로 보입니다.'
+        : '일지 & AI 화면에서 숨겨 둔 상태예요. 켜면 바로 다시 보입니다.';
+    return '' +
+      '<section class="card" data-region="routine-pref">' +
+      '<header class="card__head"><h2>훈련</h2>' + pill + '</header>' +
+      /* v1.20의 MY 설정 줄(.prefrow)과 같은 모양으로 그립니다 */
+      '<div class="prefrow">' +
+      '<div class="prefrow__t"><strong>초보자 4주 루틴 표시</strong>' +
+      '<p>일지 & AI 첫 화면에 4주 체크리스트를 보여줘요</p></div>' +
+      '<button type="button" class="switch' + (on ? ' is-on' : '') + '" role="switch" aria-checked="' +
+      (on ? 'true' : 'false') + '" aria-label="초보자 4주 루틴 표시 ' + (on ? '끄기' : '켜기') + '" data-act="routine-pref-toggle">' +
+      '<i aria-hidden="true"></i><span>' + (on ? '켬' : '끔') + '</span></button>' +
+      '</div>' +
+      '<p class="hint">' + hint + '</p>' +
+      '</section>';
+  }
+
   var view = {
     title: 'MY',
     render: function (state) {
@@ -425,6 +456,8 @@
         '<div class="stat"><strong>' + (s.winRate == null ? '—' : s.winRate + '%') + '</strong><span>승률</span></div>' +
         '</div></section>' +
 
+        routinePrefCard(state) +
+
         heartCard(hearts) +
 
         accountCard(state) +
@@ -475,6 +508,19 @@
           UI.toast('브라우저 알림을 허용하면 다른 탭에서도 알려 드려요');
           return;
         }
+
+        if (ev.target.closest('[data-act="routine-pref-toggle"]')) {
+          ev.preventDefault();
+          var curPref = ctx.store.state.routinePref;
+          var nextPref = curPref === true ? false : true;
+          var resPref = ctx.actions.setRoutinePref(nextPref);
+          if (resPref && resPref.ok) {
+            UI.toast(nextPref ? '일지 화면에 4주 루틴을 보여줄게요' : '일지 화면에서 4주 루틴을 숨겼어요');
+            UI.haptic(10);
+          }
+          return;
+        }
+
         if (ev.target.closest('[data-act="checkin"]')) {
           ev.preventDefault();
           var ci = ctx.actions.checkIn();

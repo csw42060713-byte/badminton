@@ -228,13 +228,39 @@
    *  - 기본은 한 줄 요약으로 접혀 있어서(2026-11-19) 일지 입력 폼이 첫 화면에 바로 보입니다.
    *    요약줄을 누르면 4주 체크리스트가 펼쳐지고, 펼친 상태는 화면을 다시 그려도 유지됩니다.
    *  - 체크는 계정별로 기기에 저장됩니다(store.routine).
+   *  - 표시 선택(state.routinePref): null이면 '시작할까요?' 선택 카드, true면 체크리스트,
+   *    false면 카드 자체를 숨깁니다. 무엇을 보여 줄지는 routineBlock()이 정합니다.
    * ============================================================ */
   var routineOpen = false;   /* 루틴 카드를 펼쳤는지 (탭을 옮겼다 와도 기억) */
+
+  /* '아직 안 고름' 상태에서 보여 주는 선택 카드 */
+  function routineAskCard(state) {
+    return '' +
+      '<section class="card card--rtn-ask" data-region="routine" data-sig="' + U.esc(routineSig(state)) + '">' +
+      '<div class="ask__head">' +
+      '<span class="ask__eyebrow">' + UI.icon('spark') + '처음 시작하는 분께</span>' +
+      '<h2 class="ask__t">초보자 4주 루틴, 같이 시작할까요?</h2>' +
+      '<p class="ask__s">라켓을 처음 잡아도 괜찮아요. 주 2~3회, 하루 20~30분이면 4주 동안 기본기를 하나씩 익힐 수 있어요.</p>' +
+      '</div>' +
+      '<div class="ask__stats">' +
+      '<div><b>4주</b><span>13개 연습</span></div>' +
+      '<div><b>20~30분</b><span>한 번에</span></div>' +
+      '<div><b>2~3회</b><span>1주일에</span></div>' +
+      '</div>' +
+      '<div class="ask__btns">' +
+      '<button type="button" class="btn btn--primary btn--big" data-act="routine-start">초보자 루틴 시작하기</button>' +
+      '<button type="button" class="btn btn--ghost btn--big" data-act="routine-skip">괜찮아요, 건너뛰기</button>' +
+      '</div>' +
+      '<p class="ask__note">나중에 MY에서 언제든 켜고 끌 수 있어요</p>' +
+      '</section>';
+  }
 
   function routineSig(state) {
     var map = (state && state.routine) || {};
     var done = Object.keys(map).filter(function (k) { return map[k]; }).sort().join(',');
-    return ((state.ui && state.ui.routineWeek) || 0) + '|' + done;
+    var pref = (state || {}).routinePref;
+    var mode = pref === true ? 'on' : pref === false ? 'off' : pref === null ? 'ask' : 'legacy';
+    return mode + '|' + ((state.ui && state.ui.routineWeek) || 0) + '|' + done;
   }
 
   function routineCard(state) {
@@ -309,6 +335,16 @@
       '</section>';
   }
 
+  /* 표시 선택에 따라 일지 첫머리에 무엇을 그릴지 정합니다.
+   *  false → 아무것도 그리지 않음 · null → 선택 카드 · true → 체크리스트
+   *  routinePref가 없는 예전 state(undefined)는 예전처럼 체크리스트입니다. */
+  function routineBlock(state) {
+    var pref = (state || {}).routinePref;
+    if (pref === false) return '';
+    if (pref === null) return routineAskCard(state);
+    return routineCard(state);
+  }
+
   function recentRow(r) {
     var games = (r.games && r.games.length) ? r.games : (r.score ? [r.score] : []);
     var win = (r.result || (games.length === 1 ? D.resultFromScore(games[0]) : ''));
@@ -349,7 +385,7 @@
         '<div><span>평균 컨디션</span><strong>' + (stats.avgCond == null ? '—' : stats.avgCond) + '</strong></div>' +
         '</div></section>' +
 
-        routineCard(state) +
+        routineBlock(state) +
 
         '<section class="card" data-form="log">' +
         '<header class="card__head"><h2>' + (editing ? '지난 일지 수정' : '오늘 일지') + '</h2>' +
@@ -568,6 +604,22 @@
       });
 
       root.addEventListener('click', function (ev) {
+        /* 선택 카드 — 시작하기 / 건너뛰기 */
+        if (ev.target.closest('[data-act="routine-start"]')) {
+          ev.preventDefault();
+          routineOpen = true;                                  /* 시작했으니 체크리스트를 펼쳐서 */
+          ctx.actions.setRoutinePref(true);
+          UI.toast('4주 루틴을 켰어요 · 1주차부터 하나씩 해 봐요');
+          UI.haptic(12);
+          return;
+        }
+        if (ev.target.closest('[data-act="routine-skip"]')) {
+          ev.preventDefault();
+          ctx.actions.setRoutinePref(false);
+          UI.toast('루틴을 숨겼어요 · MY에서 언제든 다시 켤 수 있어요');
+          UI.haptic(8);
+          return;
+        }
         var wk = ev.target.closest('[data-rtn-week]');
         if (wk) {
           ev.preventDefault();
@@ -661,12 +713,13 @@
 
     update: function (root, state) {
       var rtn = root.querySelector('[data-region="routine"]');
-      var rtnHtml = routineCard(state);
-      if (rtn && rtnHtml) {
-        if (rtn.getAttribute('data-sig') !== routineSig(state)) rtn.outerHTML = rtnHtml;
-      } else if (!rtn && rtnHtml) {
+      var rtnHtml = routineBlock(state);
+      if (rtn) {
+        if (!rtnHtml) rtn.remove();                                  /* 건너뛰기 → 카드 숨김 */
+        else if (rtn.getAttribute('data-sig') !== routineSig(state)) rtn.outerHTML = rtnHtml;
+      } else if (rtnHtml) {
         var hero = root.querySelector('.card--hero');
-        if (hero) hero.insertAdjacentHTML('afterend', rtnHtml);
+        if (hero) hero.insertAdjacentHTML('afterend', rtnHtml);       /* 다시 켜기 → 카드 복귀 */
       }
       var anRegion = root.querySelector('[data-region="analysis"]');
       var html = analysisCard(state.analysis, state);

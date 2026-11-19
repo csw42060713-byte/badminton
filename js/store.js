@@ -138,6 +138,8 @@
       drafts: { log: defaultDraft() },
       /* 초보자 4주 루틴 체크 상태 (기기 저장 · 계정별) */
       routine: {},
+      /* 초보자 4주 루틴 표시 선택 — null(아직 안 고름) · true(보임) · false(숨김) */
+      routinePref: null,
       ui: {
         tab: 'log',
         /* 매칭 찾기: 처음에는 아무 조건도 고르지 않은 상태(안내 카드만 보임).
@@ -205,6 +207,12 @@
 
     function loadRoutine() {
       state.routine = BM.routine ? BM.routine.load(routineScope()) : {};
+      state.routinePref = BM.routine ? BM.routine.loadPref(routineScope()) : null;
+      /* 이미 체크한 항목이 있는 기기는 루틴을 쓰던 사람입니다.
+       * 새로 생긴 '시작할까요?' 카드로 되돌리지 않고 켜진 상태로 이어 갑니다. */
+      if (state.routinePref === null && Object.keys(state.routine || {}).length) {
+        state.routinePref = BM.routine.savePref(routineScope(), true);
+      }
     }
 
     function recompute() {
@@ -511,6 +519,14 @@
         var n = Number(no);
         state.ui.routineWeek = n >= 1 && n <= 4 ? n : 0;
         emit();
+      },
+
+      /* 루틴 표시 선택: true(보임) · false(숨김) · null(아직 안 고름) — 기기에 바로 저장 */
+      setRoutinePref: function (val) {
+        if (!BM.routine) return { ok: false };
+        state.routinePref = BM.routine.savePref(routineScope(), val);
+        emit();
+        return { ok: true, routinePref: state.routinePref };
       },
 
       setTab: function (tab) {

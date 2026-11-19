@@ -568,9 +568,10 @@
     if (!sess) return;
     U.storage.removeItem(BM.auth.rowsKeyFor(sess));
     ACCOUNT_LOCAL_KEYS.forEach(function (k) { U.storage.removeItem(k); });
-    /* 초보자 4주 루틴 체크도 이 계정 것만 지웁니다 */
+    /* 초보자 4주 루틴 체크·표시 선택도 이 계정 것만 지웁니다 */
     if (BM.routine && BM.auth.meKeyFor) {
       U.storage.removeItem(BM.routine.keyFor(BM.auth.meKeyFor(sess)));
+      U.storage.removeItem(BM.routine.prefKeyFor(BM.auth.meKeyFor(sess)));
     }
     var profiles = U.readJSON(BM.auth.PROFILE_KEY, {}) || {};
     var idKey = BM.auth.identityKey(sess);
@@ -904,7 +905,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.20.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.21.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

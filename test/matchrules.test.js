@@ -423,7 +423,7 @@
     var sw = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf8');
     var css = fs.readFileSync(path.join(rootDir, 'styles.css'), 'utf8');
     includes(app, 'pendingMatch', '상단 채팅 배지에 매칭 요청 포함');
-    ok(/var VERSION = 'bm-v1\.20\.0'/.test(sw), 'sw.js bm-v1.20.0');
+    ok(/var VERSION = 'bm-v1\.21\.0'/.test(sw), 'sw.js bm-v1.21.0');
     includes(css, '.letter {', '편지지 스타일');
     includes(css, '.dmgroupav', '단체방 아이콘 스타일');
   });

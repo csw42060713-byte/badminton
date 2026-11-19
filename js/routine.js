@@ -238,12 +238,39 @@
     return U.writeJSON(keyFor(scope), normalize(map));
   }
 
+  /* ---------- 루틴 표시 선택 (3가지 상태) ----------
+   *  null  = 아직 고르지 않음 → 일지 화면에 '시작할까요?' 선택 카드를 보여 줍니다
+   *  true  = 쓰기로 함        → 일지 화면에 4주 체크리스트를 보여 줍니다
+   *  false = 건너뛰기          → 일지 화면에서 카드를 숨깁니다 (MY에서 언제든 다시 켤 수 있음)
+   *  체크 상태와 따로 저장하고, 기기 저장만 씁니다(시트 26칸 스키마는 그대로).
+   */
+  var PREF_KEY = 'bm_routine_pref_v1';
+
+  function prefKeyFor(scope) {
+    return PREF_KEY + '::' + String(scope || 'guest').toLowerCase();
+  }
+
+  function loadPref(scope) {
+    var v = U.readJSON(prefKeyFor(scope), null);
+    if (v === true || v === 'true') return true;
+    if (v === false || v === 'false') return false;
+    return null;
+  }
+
+  function savePref(scope, val) {
+    if (val === true || val === 'true') { U.writeJSON(prefKeyFor(scope), true); return true; }
+    if (val === false || val === 'false') { U.writeJSON(prefKeyFor(scope), false); return false; }
+    U.storage.removeItem(prefKeyFor(scope));
+    return null;
+  }
+
   BM.routine = {
     TITLE: TITLE, SUB: SUB, GUARD: GUARD,
     WEEKS: WEEKS, ALL_ITEMS: ALL_ITEMS,
     ids: ids, hasItem: hasItem, weekOf: weekOf,
     normalize: normalize, toggle: toggle,
     stats: stats, weekStats: weekStats, currentWeek: currentWeek, nextItem: nextItem,
-    keyFor: keyFor, load: load, save: save
+    keyFor: keyFor, load: load, save: save,
+    PREF_KEY: PREF_KEY, prefKeyFor: prefKeyFor, loadPref: loadPref, savePref: savePref
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

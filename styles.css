@@ -2642,6 +2642,47 @@ summary { display: list-item; }
 .rtn__save { margin-top: 8px; font-size: 11px; color: var(--muted); }
 
 /* ============================================================
+ * 초보자 4주 루틴 선택 카드 · MY 스위치 (2026-11-19)
+ *  - 아직 고르지 않은 사람에게만 보이는 선택 카드 (시작하기 / 건너뛰기)
+ *  - MY에서 일지 화면 표시를 켜고 끄는 스위치
+ * ============================================================ */
+.card--rtn-ask {
+  padding: 20px 18px 16px;
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 62%),
+    var(--card);
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--line));
+}
+.ask__head { display: grid; gap: 7px; }
+.ask__eyebrow {
+  display: inline-flex; align-items: center; gap: 5px; justify-self: start;
+  padding: 4px 9px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 11px; font-weight: 800; letter-spacing: -0.1px;
+}
+.ask__eyebrow .ico { width: 13px; height: 13px; }
+.ask__t { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.32; }
+.ask__s { font-size: 12.5px; line-height: 1.6; color: var(--text-2); }
+.ask__stats {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+  margin-top: 14px;
+}
+.ask__stats > div {
+  display: grid; gap: 2px; padding: 10px 8px;
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  text-align: center;
+}
+.ask__stats b { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; }
+.ask__stats span { font-size: 11px; font-weight: 700; color: var(--muted); }
+.ask__btns { display: grid; gap: 8px; margin-top: 14px; }
+.ask__btns .btn--ghost { min-height: 44px; font-size: 13.5px; }
+.ask__note { margin-top: 2px; font-size: 11px; color: var(--muted); text-align: center; }
+
+/* MY의 루틴 표시 스위치는 v1.20 설정 줄(.prefrow · .switch) 모양을 그대로 씁니다.
+ *  한때 여기에 .switch를 따로 정의했는데, 뒤에 온 v1.20 규칙과 섞여 모양이 깨졌습니다. */
+
+/* ============================================================
  * 커뮤니티 번개 모집 (2026-11-19, bm-v1.11.0)
  *  - 작성: 말머리 '번개'를 고르면 나타나는 선택 입력칸
  *  - 글: 일시·장소·인원 + 작성자에게 바로 이어지는 참여 문의
