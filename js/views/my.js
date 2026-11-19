@@ -27,11 +27,45 @@
 
   function themeSwatches(state) {
     var current = (state.me && state.me.theme && state.me.theme.theme) || 'th_def';
+    var meKey = (state.me && state.me.key) || '';
     return '<div class="themes">' + D.THEMES.map(function (t) {
-      return '<button class="theme swatch--' + t.id + (current === t.id ? ' is-on' : '') + '" data-theme="' + t.id + '">' +
+      var owned = D.ownsTheme(state.data.idx, meKey, t.id);
+      var price = D.themePrice(t.id);
+      return '<button class="theme swatch--' + t.id + (current === t.id ? ' is-on' : '') + '" data-theme="' + t.id + '"' +
+        ' aria-pressed="' + (current === t.id ? 'true' : 'false') + '"' +
+        ' title="' + U.esc(t.name + (owned ? '' : ' · 하트 ' + price + '개로 열기')) + '">' +
         '<span class="theme__dot"></span><span class="theme__name">' + U.esc(t.name) + '</span>' +
-        '<span class="theme__hint">' + U.esc(t.hint) + '</span></button>';
+        '<span class="theme__hint">' + U.esc(t.hint) + '</span>' +
+        (owned || price <= 0 ? '' : '<span class="decolock theme__lock">하트 ' + price + '</span>') + '</button>';
     }).join('') + '</div>';
+  }
+
+  /* 테마 고르기 — 저장(하트 차감)이 끝난 뒤에만 화면 테마를 바꿉니다.
+   * 예전에는 결과를 보지 않고 바로 칠해서, 하트가 모자라도 '적용했어요'라고
+   * 알리고 화면만 바뀌었다가 새로고침하면 되돌아갔습니다. */
+  function pickTheme(ctx, id) {
+    var state = ctx.store.state;
+    var meKey = (state.me && state.me.key) || '';
+    var price = D.themePrice(id);
+    var owned = D.ownsTheme(state.data.idx, meKey, id);
+    var balance = (state.data.hearts && state.data.hearts.balance) || 0;
+
+    function apply() {
+      var res = ctx.actions.setTheme(id);
+      if (res && res.ok) {
+        /* 테마 적용·잔액은 store가 emit하면서 화면에 바로 반영됩니다 */
+        UI.haptic(8);
+        UI.toast(res.purchased ? '하트 ' + res.price + '개로 테마를 열었어요' : '테마를 적용했어요');
+        return;
+      }
+      if (res && res.reason === 'hearts') UI.toast('하트가 ' + res.need + '개 부족해요. 광고·출석으로 모아 주세요.', 'error');
+      else if (res && res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+      else UI.toast('테마를 바꾸지 못했어요', 'error');
+    }
+
+    if (owned || price <= 0) { apply(); return; }
+    UI.confirm(((D.themeById(id) || {}).name || '테마') + ' — 하트 ' + price + '개로 열까요? 한 번 열면 계속 써요. 지금 하트 ' + balance + '개.', '열기')
+      .then(function (yes) { if (yes) apply(); });
   }
 
   function adLabel(hearts) {
@@ -280,13 +314,7 @@
         var sw = ev.target.closest('.theme[data-theme]');   /* html[data-theme]까지 올라가지 않게 */
         if (sw) {
           ev.preventDefault();
-          var id = sw.getAttribute('data-theme');
-          Array.prototype.forEach.call(root.querySelectorAll('[data-theme]'), function (b) { b.classList.remove('is-on'); });
-          sw.classList.add('is-on');
-          document.documentElement.setAttribute('data-theme', id);
-          UI.haptic(8);
-          ctx.actions.setTheme(id);
-          UI.toast('테마를 적용했어요');
+          pickTheme(ctx, sw.getAttribute('data-theme'));
           return;
         }
         if (ev.target.closest('[data-act="checkin"]')) {

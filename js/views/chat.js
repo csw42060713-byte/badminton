@@ -138,12 +138,19 @@
     if (scroll) scroll.scrollTop = scroll.scrollHeight;
   }
 
-  /* 한 번만 이벤트를 답니다 (호스트는 app.js가 계속 씁니다) */
+  /* 한 번만 이벤트를 답니다 (호스트는 app.js가 계속 씁니다)
+   * 다만 로그아웃 → 다시 로그인하면 store·ctx가 새로 만들어지므로,
+   * 이벤트 리스너는 그대로 두고 '지금 ctx'만 바꿔 끼웁니다.
+   * (예전에는 첫 ctx를 붙잡고 있어서, 다시 로그인하면 채팅을 눌렀을 때
+   *  이전 계정의 store가 움직여 엉뚱한 탭으로 튀었습니다.) */
   function bind(host, ctx) {
-    if (!host || host.dataset.dmBound === '1') return;
+    if (!host) return;
+    host.__dmCtx = ctx;
+    if (host.dataset.dmBound === '1') return;
     host.dataset.dmBound = '1';
 
     host.addEventListener('click', function (ev) {
+      ctx = host.__dmCtx || ctx;
       if (ev.target.closest('[data-dm-close]')) {
         ev.preventDefault();
         ctx.actions.closeChats();
@@ -195,6 +202,7 @@
     });
 
     host.addEventListener('submit', function (ev) {
+      ctx = host.__dmCtx || ctx;
       var form = ev.target.closest('[data-dm-form]');
       if (!form) return;
       ev.preventDefault();

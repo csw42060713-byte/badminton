@@ -43,7 +43,7 @@
         }).join('') + '</ul>' : '<p class="muted sm">첫 답글을 남겨 보세요.</p>') +
         '<form class="replyform" data-reply-form="' + U.esc(p.id) + '">' +
         '<input type="text" maxlength="200" placeholder="' + U.esc((state.me && state.me.nick) || '나') + '(으)로 답글" data-reply-input="' + U.esc(p.id) + '" value="' + U.esc(replyDrafts[p.id] || '') + '">' +
-        '<button class="btn btn--sm btn--primary" type="submit">' + UI.icon('send') + '</button></form>' +
+        '<button class="btn btn--sm btn--primary" type="submit" aria-label="답글 보내기">' + UI.icon('send') + '</button></form>' +
         '</div>' : '') +
       '</article>';
   }

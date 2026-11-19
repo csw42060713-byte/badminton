@@ -269,7 +269,14 @@
   function repaint() {
     if (gated) return;
     if (painting) { pendingRepaint = true; return; }
+    /* 같은 화면을 다시 그릴 때는 보던 위치를 지킵니다.
+     * (MY처럼 긴 화면에서 꾸미기·테마를 누를 때마다 맨 위로 튀던 문제) */
+    var main = el('main');
+    var y = (typeof window !== 'undefined' && window.scrollY) || 0;
+    var mt = main ? main.scrollTop : 0;
     mountView(currentTab || (store && store.state.ui.tab) || 'log');
+    if (main) main.scrollTop = mt;
+    if (y && typeof window !== 'undefined') window.scrollTo(0, y);
   }
 
   /* ---------- 저장 버튼(연타 잠금 + 즉시 피드백) ---------- */
@@ -640,7 +647,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.9.1' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.9.2' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

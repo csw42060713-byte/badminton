@@ -248,6 +248,7 @@
         var name = act.getAttribute('data-act');
         if (name === 'google') {
           ev.preventDefault();
+          if (act.dataset.busy === '1') return;      /* 연타로 로그인 창이 두 번 뜨지 않게 */
           act.dataset.busy = '1';
           BM.auth.requestGoogleSignIn().then(function (info) {
             act.dataset.busy = '0';
@@ -339,6 +340,8 @@
         }
         if (name === 'finish') {
           ev.preventDefault();
+          if (ui.busy) return;                       /* 시작하기 연타 방지 */
+          ui.busy = true;
           finishOnboarding(host, ctx);
           return;
         }
@@ -404,9 +407,9 @@
   function finishOnboarding(host, ctx) {
     var o = ui.onb;
     var nick = String(o.nick || '').trim();
-    if (!nick) { ui.error = '닉네임을 입력해 주세요.'; paint(host); return; }
-    if (!o.level) { ui.error = '급수를 골라 주세요.'; paint(host); return; }
-    if (!o.discipline) { ui.error = '주력 종목을 골라 주세요.'; paint(host); return; }
+    if (!nick) { ui.busy = false; ui.error = '닉네임을 입력해 주세요.'; paint(host); return; }
+    if (!o.level) { ui.busy = false; ui.error = '급수를 골라 주세요.'; paint(host); return; }
+    if (!o.discipline) { ui.busy = false; ui.error = '주력 종목을 골라 주세요.'; paint(host); return; }
     ui.error = '';
     if (typeof ctx.onComplete === 'function') {
       ctx.onComplete({
