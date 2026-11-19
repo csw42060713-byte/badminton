@@ -2491,9 +2491,40 @@ summary { display: list-item; }
 .post__topic { margin-left: auto; }
 
 /* ============================================================
- * 초보자 4주 루틴 체크리스트 (2026-11-19, bm-v1.10.0)
+ * 초보자 4주 루틴 체크리스트 (2026-11-19, bm-v1.10.0 → v1.11.0)
  *  - 일지 & AI 히어로 카드 아래. 라켓을 처음 잡는 사람도 바로 따라 하게.
+ *  - 기본은 한 줄 요약으로 접혀 있어 일지 입력 폼이 첫 화면에 바로 보입니다.
  * ============================================================ */
+.card--rtn { padding: 0; }
+.rtn > summary {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; list-style: none; cursor: pointer;
+}
+.rtn > summary::-webkit-details-marker { display: none; }
+.rtn > summary::marker { content: ''; }
+.rtn__sum-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.rtn__sum-t {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 800; letter-spacing: -0.3px;
+}
+.rtn__sum-t .ico { flex: 0 0 auto; width: 16px; height: 16px; color: var(--accent); }
+.rtn__sum-t .pill { margin-left: 2px; }
+.rtn__sum-s {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 11.5px; color: var(--muted); letter-spacing: -0.1px;
+}
+.rtn__sum-n {
+  flex: 0 0 auto; font-size: 11.5px; font-weight: 800; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.rtn__sum-n b { font-size: 13.5px; color: var(--accent); }
+.rtn__car {
+  flex: 0 0 auto; width: 15px; height: 15px; color: var(--muted);
+  transform: rotate(90deg); transition: transform 160ms ease;
+}
+.rtn[open] .rtn__car { transform: rotate(-90deg); }
+.rtn[open] > summary { padding-bottom: 8px; }
+.rtn__body { padding: 0 16px 16px; animation: viewIn 160ms ease-out; }
 .rtn__sub { margin-top: 6px; font-size: 12px; line-height: 1.55; color: var(--muted); }
 .rtn__overall { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
 .rtn__bar {
@@ -2578,3 +2609,61 @@ summary { display: list-item; }
   text-decoration: underline; text-underline-offset: 3px;
 }
 .rtn__save { margin-top: 8px; font-size: 11px; color: var(--muted); }
+
+/* ============================================================
+ * 커뮤니티 번개 모집 (2026-11-19, bm-v1.11.0)
+ *  - 작성: 말머리 '번개'를 고르면 나타나는 선택 입력칸
+ *  - 글: 일시·장소·인원 + 작성자에게 바로 이어지는 참여 문의
+ * ============================================================ */
+.viteform {
+  margin-top: 10px; padding: 11px 12px;
+  border: 1px dashed var(--accent-line); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  animation: viewIn 140ms ease-out;
+}
+.viteform[hidden] { display: none; }
+.viteform__t {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 800; color: var(--text-2); letter-spacing: -0.1px;
+}
+.viteform__t .ico { flex: 0 0 auto; width: 14px; height: 14px; color: var(--accent); }
+.viteform__t small { font-weight: 700; color: var(--muted); }
+.viteform__grid {
+  display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.7fr);
+  gap: 8px; margin-top: 9px;
+}
+.viteform__f { display: grid; gap: 4px; min-width: 0; }
+.viteform__f--wide { grid-column: 1 / -1; }
+.viteform__f span { font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: -0.1px; }
+.viteform__f input {
+  min-height: 40px; padding: 8px 11px;
+  border-radius: 10px; background: var(--card-2);
+}
+.viteform__f input::placeholder { color: var(--muted); }
+
+.vite {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 11px; padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 9%, transparent),
+    color-mix(in srgb, var(--accent) 4%, transparent));
+}
+.vite__info { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.vite__t {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10.5px; font-weight: 800; color: var(--accent); letter-spacing: -0.1px;
+}
+.vite__t .ico { flex: 0 0 auto; width: 13px; height: 13px; }
+.vite__t b {
+  margin-left: 1px; padding: 1px 6px; border-radius: 999px;
+  background: var(--accent); color: var(--accent-ink); font-size: 10px;
+}
+.vite__row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 700; color: var(--text); line-height: 1.35;
+}
+.vite__row .ico { flex: 0 0 auto; width: 13px; height: 13px; color: var(--muted); }
+.vite__row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vite__btn { flex: 0 0 auto; }
+.vite__own { flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--muted); }

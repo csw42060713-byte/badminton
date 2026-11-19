@@ -52,6 +52,7 @@
       '<time>' + U.timeAgo(p.createdAt) + '</time></span></button>' +
       '<span class="pill pill--ghost post__topic">' + U.esc(p.topic || '자유') + '</span></header>' +
       '<p class="post__text">' + U.esc(p.text).replace(/\n/g, '<br>') + '</p>' +
+      (p.meet ? meetCard(p, state) : '') +
       '<footer class="post__foot">' +
       '<button class="react' + (p.likedByMe ? ' is-on' : '') + '" data-like="' + U.esc(p.id) + '" aria-pressed="' + (p.likedByMe ? 'true' : 'false') + '">' +
       UI.icon('heart') + '<span data-like-count>' + p.likes + '</span></button>' +
@@ -69,6 +70,53 @@
         '<button class="btn btn--sm btn--primary" type="submit" aria-label="답글 보내기">' + UI.icon('send') + '</button></form>' +
         '</div>' : '') +
       '</article>';
+  }
+
+  /* ---------- 번개 모집 ----------
+   * 글 위에 일시·장소·인원을 스포츠 앱처럼 한 카드로 묶고,
+   * 작성자에게 바로 이어지는 `참여 문의` 버튼을 둡니다. */
+  function meetCard(p, state) {
+    var m = p.meet;
+    var me = (state.me && state.me.key) || '';
+    var mine = !!me && p.userKey === me;
+    return '<div class="vite">' +
+      '<div class="vite__info">' +
+      '<p class="vite__t">' + UI.icon('bolt') + '번개 모집' +
+      (m.cap ? '<b>' + U.esc(m.cap) + '명</b>' : '') + '</p>' +
+      '<p class="vite__row">' + UI.icon('clock') + '<span>' + U.esc(m.when || '일시는 문의해서 정해요') + '</span></p>' +
+      '<p class="vite__row">' + UI.icon('pin') + '<span>' + U.esc(m.place || '장소는 문의해서 정해요') + '</span></p>' +
+      '</div>' +
+      (mine
+        ? '<span class="vite__own">내가 올린 번개</span>'
+        : (p.userKey
+          ? '<button type="button" class="btn btn--primary btn--sm vite__btn" data-vite-dm="' + U.esc(p.userKey) + '"' +
+            ' data-vite-post="' + U.esc(p.id) + '" aria-label="' + U.esc(p.nick) + '님께 번개 참여 문의">' +
+            UI.icon('send') + '<span>참여 문의</span></button>'
+          : '')) +
+      '</div>';
+  }
+
+  /* 참여 문의 문구 — 한 줄 입력창에 들어가도록 날짜까지만(길면 생략) */
+  function inquiryDraft(post) {
+    var when = post && post.meet && post.meet.when ? String(post.meet.when) : '';
+    if (when.length > 16) when = '';
+    return '번개 참여하고 싶어요!' + (when ? ' (' + when + ')' : '');
+  }
+
+  /* 말머리가 '번개'일 때만 보이는 선택 입력칸 (전부 비워 두어도 그냥 글이 됩니다) */
+  function meetFields(picked, state) {
+    var m = (state.ui && state.ui.composerMeet) || {};
+    var on = picked === '번개';
+    return '<div class="viteform" data-viteform' + (on ? '' : ' hidden') + '>' +
+      '<p class="viteform__t">' + UI.icon('bolt') + '번개 모집 정보 <small>비워 두어도 올라가요</small></p>' +
+      '<div class="viteform__grid">' +
+      '<label class="viteform__f"><span>언제</span>' +
+      '<input type="text" maxlength="30" data-vitefield="when" enterkeyhint="next" placeholder="11/21(금) 19:00" value="' + U.esc(m.when || '') + '"></label>' +
+      '<label class="viteform__f"><span>몇 명</span>' +
+      '<input type="text" inputmode="numeric" maxlength="3" data-vitefield="cap" enterkeyhint="next" placeholder="6" value="' + U.esc(m.cap || '') + '"></label>' +
+      '<label class="viteform__f viteform__f--wide"><span>어디 체육관</span>' +
+      '<input type="text" maxlength="30" data-vitefield="place" placeholder="동네 체육관 이름" value="' + U.esc(m.place || '') + '"></label>' +
+      '</div></div>';
   }
 
   /* ---------- 빈 화면 ----------
@@ -138,6 +186,7 @@
         '<div class="row">' + UI.avatar({ theme: state.me && state.me.theme }, 34) +
         '<textarea rows="1" data-composer placeholder="오늘 경기 어땠어요? 한 줄 남겨보세요" maxlength="300">' + U.esc(state.ui.composer || '') + '</textarea></div>' +
         '<div class="chips topicpick" data-topics data-tag="' + U.esc(picked) + '">' + topicChips(picked, 'data-topic', false) + '</div>' +
+        meetFields(picked, state) +
         '<div class="row between mt8"><span class="muted sm">욕설·비방은 자제해 주세요</span>' +
         '<button class="btn btn--primary btn--sm" data-act="post">' + UI.icon('send') + '올리기</button></div>' +
         '</section>' +
@@ -165,6 +214,13 @@
             b.classList.toggle('is-on', on);
             b.setAttribute('aria-pressed', on ? 'true' : 'false');
           });
+          /* 번개일 때만 모집 입력칸을 보여 줍니다 */
+          var vf = root.querySelector('[data-viteform]');
+          if (vf) vf.hidden = tag !== '번개';
+          if (tag === '번개' && vf) {
+            var first = vf.querySelector('[data-vitefield]');
+            if (first && !first.value) { try { first.focus({ preventScroll: true }); } catch (e) { /* 무시 */ } }
+          }
           UI.haptic(6);
           return;
         }
@@ -190,6 +246,32 @@
           ev.preventDefault();
           var key = author.getAttribute('data-author');
           if (key && BM.views.profile) BM.views.profile.open(key, ctx);
+          return;
+        }
+        /* 번개 참여 문의 — 친구·매칭·코치면 바로 1:1 대화를 열고 문구를 미리 채움,
+         * 아니면 프로필 시트(친구 추가)로 이어 줍니다. */
+        var vite = ev.target.closest('[data-vite-dm]');
+        if (vite) {
+          ev.preventDefault();
+          var vkey = vite.getAttribute('data-vite-dm');
+          var vst = ctx.store.state;
+          var meKey = (vst.me && vst.me.key) || '';
+          if (!vkey || vkey === meKey) { UI.toast('내가 올린 번개예요'); return; }
+          var postId = vite.getAttribute('data-vite-post');
+          var post = (vst.data.posts || []).filter(function (x) { return x.id === postId; })[0];
+          if (D.canChatWith(vst.data.idx, meKey, vkey)) {
+            var roomId = BM.views.profile.roomFor(vst, vkey);
+            if (!roomId && D.coachChatAllowed(vst.data.idx, meKey, vkey)) roomId = D.coachRoomId(meKey, vkey);
+            if (roomId) {
+              var draft = inquiryDraft(post);
+              ctx.actions.openChat(roomId, vkey, draft);
+              ctx.actions.markChatRead(roomId, vkey);
+              UI.haptic(8);
+              return;
+            }
+          }
+          BM.views.profile.open(vkey, ctx);
+          UI.toast('친구가 되면 1:1 대화로 이어져요');
           return;
         }
         var like = ev.target.closest('[data-like]');
@@ -241,15 +323,20 @@
           ev.preventDefault();
           var ta = root.querySelector('[data-composer]');
           var text = ta ? ta.value : '';
-          var res = ctx.actions.createPost(text, ctx.store.state.ui.composerTopic);
+          var st = ctx.store.state;
+          var res = ctx.actions.createPost(text, st.ui.composerTopic, st.ui.composerMeet);
           if (res.ok) {
             if (ta) ta.value = '';
+            /* 모집 입력칸도 같이 비웁니다 (다음 글은 다시 자유) */
+            UI.$$('[data-vitefield]', root).forEach(function (inp) { inp.value = ''; });
+            var vf = root.querySelector('[data-viteform]');
+            if (vf) vf.hidden = true;
             /* 올린 글이 지금 거르는 말머리와 다르면 전체로 돌아가 방금 글을 보여 줍니다 */
             if (topicFilter !== '전체' && topicFilter !== res.topic) {
               topicFilter = '전체';
               paintTopicFilter(root, ctx.store.state);
             }
-            UI.toast('글을 올렸어요'); UI.haptic(10);
+            UI.toast(res.meet ? '번개 모집을 올렸어요' : '글을 올렸어요'); UI.haptic(10);
           }
           else if (res.reason === 'empty') UI.toast('내용을 입력해 주세요');
           else if (res.reason === 'locked') UI.toast('잠시만요, 올리는 중이에요');
@@ -260,6 +347,9 @@
       root.addEventListener('input', function (ev) {
         var ta = ev.target.closest('[data-composer]');
         if (ta) ctx.actions.setComposer(ta.value);
+        /* 번개 모집 입력 — 화면을 다시 그리지 않고 값만 담아 둡니다 */
+        var vf = ev.target.closest('[data-vitefield]');
+        if (vf) ctx.actions.setComposerMeet(vf.getAttribute('data-vitefield'), vf.value);
         var ri = ev.target.closest('[data-reply-input]');
         if (ri) replyDrafts[ri.getAttribute('data-reply-input')] = ri.value;
       }, { passive: true });
@@ -301,6 +391,9 @@
         pickHost.innerHTML = topicChips(pickTag, 'data-topic', false);
         pickHost.setAttribute('data-tag', pickTag);
       }
+      /* 모집 입력칸은 말머리를 따라갑니다 (값은 입력칸이 그대로 들고 있음) */
+      var viteHost = root.querySelector('[data-viteform]');
+      if (viteHost) viteHost.hidden = pickTag !== '번개';
       region.innerHTML = postsHtml(state);
       if (keep) {
         var again = region.querySelector('[data-reply-input="' + keep.pid + '"]');
@@ -315,7 +408,8 @@
     _openReplies: openReplies,
     /* 테스트·점검용 (화면 안에서만 쓰는 말머리 상태) */
     _visiblePosts: visiblePosts,
-    _setTopicFilter: function (t) { topicFilter = !t || t === '전체' ? '전체' : D.normalizeTopic(t); return topicFilter; }
+    _setTopicFilter: function (t) { topicFilter = !t || t === '전체' ? '전체' : D.normalizeTopic(t); return topicFilter; },
+    _inquiryDraft: inquiryDraft
   };
 
   BM.views.community = view;

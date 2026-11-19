@@ -37,7 +37,9 @@
     trash: '<path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/><path d="M11 11v6M13 11v6"/>',
     pin: '<path d="M12 21s6-5.3 6-10a6 6 0 1 0-12 0c0 4.7 6 10 6 10z"/><circle cx="12" cy="11" r="2.2"/>',
     doc: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/>',
-    shield: '<path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/>'
+    shield: '<path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+    bolt: '<path d="M13 3L6 13h4.5L10 21l7-10h-4.5z"/>',
+    users: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.5 14.4c2.1.7 3.5 2.6 3.5 5.6"/>'
   };
 
   function icon(name, cls) {

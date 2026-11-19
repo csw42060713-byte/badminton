@@ -1,5 +1,5 @@
 /* ============================================================
- * test/routine.test.js — 초보자 배드민턴 4주 루틴 (v1.10.0)
+ * test/routine.test.js — 초보자 배드민턴 4주 루틴 (v1.10.0 → v1.11.0 접기)
  *  1) 4주 · 13개 항목, 승우 님이 추가한 '서서 하는 헤어핀/언더'가 2주차에 있다
  *  2) 초보자 눈높이: 항목마다 방법 + 감 잡는 포인트 + 소요 시간
  *  3) 주차별/전체 달성률 계산, 다음 연습 안내, 완료 판정
@@ -306,6 +306,28 @@
     excludes(html, 'undefined', 'undefined 없음');
   });
 
+  test('4주 루틴 화면: 기본은 한 줄 요약으로 접혀 있다', function () {
+    var html = BM.views.log.render(stateOf());
+    includes(html, 'class="rtn" data-rtn>', '기본은 접힘(details에 open 없음)');
+    excludes(html, 'data-rtn open', '처음에는 펼치지 않음');
+    includes(html, 'rtn__sum', '요약 헤더');
+    includes(html, '다음 · 라켓 그립 익히기', '다음에 할 한 가지');
+    includes(html, '0</b>/13', '완료 수');
+    includes(html, '왕초보', '배지');
+    /* 접혀 있어도 체크리스트 내용은 그려 두고 CSS로 숨깁니다 */
+    includes(html, '라켓 그립 익히기', '펼쳤을 때 볼 내용');
+  });
+
+  test('4주 루틴 화면: 요약줄에 진행과 다음 연습이 함께 보인다', function () {
+    var m = { w1_grip: true, w1_ready: true, w1_warmup: true };
+    var html = BM.views.log.render(stateOf(m, 2));
+    includes(html, '3</b>/13', '3/13');
+    includes(html, '다음 · 서서 하는 헤어핀 연습', '다음 연습이 요약에');
+    var done = BM.views.log.render(stateOf(checkAll(), 4));
+    includes(done, '4주 동안 수고했어요', '완주하면 격려');
+    excludes(done, '다음 · ', '완주하면 다음 연습 없음');
+  });
+
   test('4주 루틴: index.html과 sw.js에 새 파일이 들어 있다', function () {
     var hasNode = typeof require === 'function' && typeof root.__REPO_ROOT__ === 'string';
     if (!hasNode) return;
@@ -316,7 +338,7 @@
     var app = fs.readFileSync(path.join(rootDir, 'app.js'), 'utf8');
     includes(index, 'js/routine.js', 'index.html 스크립트');
     includes(sw, "'./js/routine.js'", 'sw.js 캐시');
-    ok(/var VERSION = 'bm-v1\.10\.0'/.test(sw), 'sw.js bm-v1.10.0');
-    includes(app, "version: 'v1.10.0'", 'app.js v1.10.0');
+    ok(/var VERSION = 'bm-v1\.11\.0'/.test(sw), 'sw.js bm-v1.11.0');
+    includes(app, "version: 'v1.11.0'", 'app.js v1.11.0');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
