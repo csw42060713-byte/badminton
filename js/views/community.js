@@ -115,12 +115,16 @@
   }
 
   function topicFilterBar() {
-    return '<div class="chips topicbar" data-topicfilterbar>' + topicChips(topicFilter, 'data-topicfilter', true) + '</div>';
+    return '<div class="chips topicbar" data-topicfilterbar data-tag="' + U.esc(topicFilter) + '">' +
+      topicChips(topicFilter, 'data-topicfilter', true) + '</div>';
   }
 
   function paintTopicFilter(root, state) {
     var host = root.querySelector('[data-topicfilterbar]');
-    if (host) host.innerHTML = topicChips(topicFilter, 'data-topicfilter', true);
+    if (host) {
+      host.innerHTML = topicChips(topicFilter, 'data-topicfilter', true);
+      host.setAttribute('data-tag', topicFilter);
+    }
     var region = root.querySelector('[data-region="posts"]');
     if (region) region.innerHTML = postsHtml(state);
   }
@@ -133,7 +137,7 @@
         '<section class="card card--composer">' +
         '<div class="row">' + UI.avatar({ theme: state.me && state.me.theme }, 34) +
         '<textarea rows="1" data-composer placeholder="오늘 경기 어땠어요? 한 줄 남겨보세요" maxlength="300">' + U.esc(state.ui.composer || '') + '</textarea></div>' +
-        '<div class="chips topicpick" data-topics>' + topicChips(picked, 'data-topic', false) + '</div>' +
+        '<div class="chips topicpick" data-topics data-tag="' + U.esc(picked) + '">' + topicChips(picked, 'data-topic', false) + '</div>' +
         '<div class="row between mt8"><span class="muted sm">욕설·비방은 자제해 주세요</span>' +
         '<button class="btn btn--primary btn--sm" data-act="post">' + UI.icon('send') + '올리기</button></div>' +
         '</section>' +
@@ -285,9 +289,18 @@
       if (active && active.matches && active.matches('[data-reply-input]')) {
         keep = { pid: active.getAttribute('data-reply-input'), value: active.value, pos: active.selectionStart };
       }
-      /* 말머리 칩 상태도 함께 맞춥니다 */
+      /* 말머리 칩 상태도 함께 맞춥니다 (올린 뒤 작성 말머리는 자유로 돌아갑니다) */
       var filterHost = root.querySelector('[data-topicfilterbar]');
-      if (filterHost) filterHost.innerHTML = topicChips(topicFilter, 'data-topicfilter', true);
+      if (filterHost && filterHost.getAttribute('data-tag') !== topicFilter) {
+        filterHost.innerHTML = topicChips(topicFilter, 'data-topicfilter', true);
+        filterHost.setAttribute('data-tag', topicFilter);
+      }
+      var pickTag = state.ui.composerTopic || '자유';
+      var pickHost = root.querySelector('[data-topics]');
+      if (pickHost && pickHost.getAttribute('data-tag') !== pickTag) {
+        pickHost.innerHTML = topicChips(pickTag, 'data-topic', false);
+        pickHost.setAttribute('data-tag', pickTag);
+      }
       region.innerHTML = postsHtml(state);
       if (keep) {
         var again = region.querySelector('[data-reply-input="' + keep.pid + '"]');
