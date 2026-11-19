@@ -2889,3 +2889,6 @@ body.is-onboarding .hdr__chat, body.is-onboarding .heartchip { display: none; }
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 92%, transparent);
   mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 92%, transparent);
 }
+
+/* 필터 버튼 줄이 넘칠 때만 오른쪽을 부드럽게 (넘치는 걸 숨기지 않고 알려 줍니다) */
+.fbar.is-scroll { -webkit-mask-image: linear-gradient(90deg, #000 90%, transparent); mask-image: linear-gradient(90deg, #000 90%, transparent); }
