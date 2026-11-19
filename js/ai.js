@@ -28,7 +28,8 @@
  * [SHAH25] Shaharudin M.I. et al., <Characteristics of injuries among elite badminton players:
  *        a systematic review>, PubMed 41332252, 2025 — 하지 54~71%, 건병증·염좌가 흔함.
  * [BMJ25] <Systematic review on badminton injuries: incidence, characteristics and risk factors>,
- *        BMJ Open Sport & Exercise Medicine 11(1):e002127, 2025 — 1,000시간당 1~4건, 과사용 25~74%.
+ *        BMJ Open Sport & Exercise Medicine 11(1):e002127, 2025 — 1,000시간당 1~4건, 과사용 25~74%,
+ *        부상의 40%가 직전 주 훈련부하 10% 이상 급증과 연관(Piggott & Newton) → 주간 부하 급증 경계.
  * [MARC24] Marchena-Rodríguez A. et al., <Aetiology, epidemiology and treatment of musculoskeletal
  *        injuries in badminton players: a systematic review and meta-analysis>, 2024 — 염좌 36%, 하지 52%.
  * [PHOM25] Phomsoupha M. et al., <… musculoskeletal injury prevention warm-up program for youth
@@ -44,6 +45,18 @@
  * [SILVA23] Silva R.S. et al., <Patellar Tendon Load Progression during Rehabilitation Exercises>,
  *        Med Sci Sports Exerc, 2023 — 슬개건 하중 3단계(step-up < lunge < decline squat).
  * [TRAV19] Travers M.J. et al., <Efficacy of heavy eccentric calf training…>, PubMed 30636702, 2019.
+ * [NA24]  나경민·조은혜, <세계 배드민턴 남자복식경기의 승자 예측모형 탐색: 의사결정나무분석 적용>,
+ *        한국체육학회지 63(3):147-156, 2024 (KCI) — BWF 국제대회 남자복식 100경기(233세트).
+ *        승패 예측 변인: 랠리후반 득점·랠리전반 득점·서브실점·서브득점·선제공격 실점·리시브 실점.
+ *        랠리후반 득점 12.5점 이상이면 75.9% 승리, 이하이면 72.4% 패배.
+ * [PHOM15] Phomsoupha M., Laffaye G., <The Science of Badminton: Game Characteristics, Anthropometry,
+ *        Physiology, Visual Fitness and Biomechanics>, Sports Med 45(4):473-495, 2015 —
+ *        랠리 약 7초·휴식 약 15초(랠리:휴식 ≈ 1:2), 실질 경기시간 약 31%.
+ * [PHOM20] Phomsoupha M., Laffaye G., <Injuries in badminton: A review>, Science & Sports, 2020 —
+ *        부상이 훈련 후반(48%)에 가장 많고, 피로로 힘·고유수용감각이 떨어질 때 늘어남.
+ * [GABB16] Gabbett T.J., <The training-injury prevention paradox: should athletes be training smarter
+ *        and harder?>, Br J Sports Med 50:273-280, 2016 — 급성(1주):만성(4주 평균) 부하 비율
+ *        0.8~1.3을 낮은 위험 구간, 1.5 이상 급증을 위험 구간으로 제시(모니터링 참고값).
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -634,6 +647,166 @@
     return { wins: w, losses: l, total: w + l, rate: w + l ? Math.round((w / (w + l)) * 100) : null };
   }
 
+  /* ---------- 여러 경기(21·25점제) 점수 흐름 ----------
+   * 일지에 남긴 "최종 점수"만으로 읽을 수 있는 것만 말합니다.
+   * 경기 중간 흐름(역전·연속 실점)은 기록이 없으므로 추측하지 않고 '가능성'으로만 씁니다.
+   * [NA24] 국제대회 남자복식 233세트 — 후반 득점이 승패를 가른 주요 변인.
+   * [PHOM15] 랠리 약 7초·휴식 약 15초(1:2) — 경기 사이 회복을 규칙적으로.
+   * [PHOM20] 부상은 훈련 후반(48%)에 많고 피로로 힘·고유수용감각이 떨어질 때 늘어남. */
+  function gameMode(games, explicit) {
+    var m = Number(explicit);
+    if (m === 21 || m === 25) return m;
+    var seen = 0;
+    (games || []).forEach(function (g) {
+      var mm = Number(g && g.mode);
+      if (!seen && (mm === 21 || mm === 25)) seen = mm;
+    });
+    return seen || 21;
+  }
+
+  function gameFlow(games, explicitMode, discipline) {
+    var list = [];
+    (games || []).forEach(function (g) {
+      if (!g) return;
+      var a = Number(g.a), b = Number(g.b);
+      if (!isFinite(a) || !isFinite(b)) return;
+      list.push({ a: a, b: b });
+    });
+    var flow = {
+      mode: gameMode(games, explicitMode), count: 0, wins: 0, losses: 0,
+      avgMargin: 0, close: 0, deuce: 0, blowout: 0,
+      firstMargin: 0, lastMargin: 0, fade: false, tips: []
+    };
+    if (!list.length) return flow;
+
+    var mode = flow.mode;
+    var margins = [], total = 0, close = 0, deuce = 0, blowout = 0;
+    list.forEach(function (g) {
+      var m = g.a - g.b;
+      margins.push(m);
+      total += Math.abs(m);
+      if (Math.abs(m) <= 3) close++;
+      if (Math.abs(m) <= 2 && Math.min(g.a, g.b) >= mode - 2) deuce++;
+      if (Math.abs(m) >= 10) blowout++;
+      var r = BM.domain.resultFromScore(g);
+      if (r === '승') flow.wins++;
+      else if (r === '패') flow.losses++;
+    });
+    flow.count = list.length;
+    flow.avgMargin = Math.round((total / list.length) * 10) / 10;
+    flow.close = close;
+    flow.deuce = deuce;
+    flow.blowout = blowout;
+    flow.firstMargin = margins[0];
+    flow.lastMargin = margins[margins.length - 1];
+    /* 여러 경기를 치렀는데 마지막 경기에서 점수차가 5점 이상 더 벌어졌으면
+     * '후반 체력/집중력' 신호로 봅니다. (점수만 보는 참고 신호) */
+    flow.fade = list.length >= 2 && flow.lastMargin < 0 && (flow.lastMargin - flow.firstMargin) <= -5;
+    flow.tips = flowTips(flow, discipline);
+    return flow;
+  }
+
+  function signed(n) { return (n > 0 ? '+' : '') + n; }
+
+  /* 점수 흐름에 대한 실전 문구 — 코치가 일지에 적어 주는 말투로 짧게 */
+  function flowTips(flow, discipline) {
+    var out = [];
+    if (!flow || !flow.count) return out;
+    var d = String(discipline || '').trim();
+    var singles = d.indexOf('단식') >= 0;
+
+    if (flow.mode === 25) {
+      out.push('25점제는 21점제보다 4점 더 길어요. 중반(12~13점)에서 한 번 숨을 고르며 남은 전술을 정하고, 마지막 5점은 안전한 선택부터 하세요.');
+    }
+    if (flow.fade) {
+      out.push('첫 경기 ' + signed(flow.firstMargin) + '점차 → 마지막 경기 ' + signed(flow.lastMargin) +
+        '점차로 벌어졌어요. 여러 경기를 뛰는 날은 경기 사이 60~90초를 규칙적으로 쉬세요 — 물 조금, 앉기, 다리 올리기, 긴 날숨 6회.');
+    }
+    if (flow.deuce >= 1) {
+      out.push('마지막 2~3점까지 간 경기가 ' + flow.deuce + '경기예요. ' +
+        flow.mode + '점제는 막판 실수 하나가 세트를 바꿉니다. 마지막 3~4점에서는 새 기술을 꺼내지 말고, 서브는 숏서브로 고정하고 리시브는 네트 앞으로 붙이세요.');
+    } else if (flow.close >= 2) {
+      out.push('3점차 이내 접전이 ' + flow.close + '경기예요. 이길 때도 이긴 이유가 분명해야 다음에 또 이깁니다. 접전에서 통한 샷 하나를 적어 두세요.');
+    }
+    var blowoutLoss = flow.blowout > 0 && flow.losses > 0;
+    if (blowoutLoss) {
+      out.push('10점 이상 벌어진 경기가 있었어요. 초반 5점은 깊은 클리어·드라이브로 안전하게 가고, 흐름이 안 좋으면 랠리를 길게 끌지 말고 짧게 끝내는 쪽을 택하세요.');
+    }
+    if (!singles) {
+      out.push('다음 경기에서는 서브 실점과 리시브 실점만 따로 세어 보세요. 국제대회 남자복식 분석에서도 이 두 가지가 승패를 가른 변인이었어요.');
+    } else {
+      out.push('11점 전·후로 실점을 나눠 적어 보세요. 후반에 실점이 몰리면 풋워크 피로를 먼저 의심하고, 경기 사이 회복 시간을 늘리세요.');
+    }
+    return out.slice(0, 3);
+  }
+
+  /* ---------- 주간 부하(내부 부하 = 운동 분 × 주관적 강도) ----------
+   * 세션 RPE 방식(Foster 2001)으로 기록된 시간·강도를 그대로 곱해 씁니다.
+   * [GABB16] 급성(최근 1주):만성(직전 4주 주당 평균) 0.8~1.3 = 참고 구간, 1.5 이상 = 급증.
+   * [BMJ25] 부상의 40%가 직전 주 훈련부하 10% 이상 급증과 연관.
+   * 진단이 아니라 '늘리는 속도'를 보는 참고 지표입니다. */
+  function sessionLoad(r) {
+    var m = Number(r && r.minutes);
+    var i = Number(r && r.intensity);
+    if (!isFinite(m) || m <= 0) return 0;
+    if (!isFinite(i) || i <= 0) return m;
+    return m * i;
+  }
+
+  function loadIndex(records, draft) {
+    var out = { acute: 0, chronic: 0, ratio: 0, change: 0, sessions: 0, zone: '', tips: [] };
+    var today = U.parseYmd(U.ymd());
+    if (!today) return out;
+    var acute = 0, prior = 0, past = 0, pastSessions = 0;
+    var pastWeeks = {};
+
+    (records || []).forEach(function (r) {
+      var d = U.parseYmd(r.date);
+      if (!d) return;
+      var diff = Math.round((today - d) / 86400000);
+      if (diff < 0 || diff > 34) return;
+      var load = sessionLoad(r);
+      if (diff <= 6) acute += load;
+      else if (diff <= 13) { prior += load; pastSessions++; pastWeeks['w1'] = 1; }
+      else { past += load; pastSessions++; pastWeeks['w' + Math.ceil(diff / 7)] = 1; }
+    });
+    /* 오늘 작성 중인 일지도 이번 주 부하에 넣습니다 */
+    var todayLoad = sessionLoad(draft);
+    if (todayLoad) acute += todayLoad;
+    out.acute = Math.round(acute);
+    /* 4주 평균을 말하려면 최소 2주·3세션은 있어야 합니다 */
+    if (!pastSessions || pastSessions < 3 || Object.keys(pastWeeks).length < 2) return out;
+
+    out.sessions = pastSessions + (todayLoad ? 1 : 0);
+    out.chronic = Math.round(past / 4);
+    if (!out.chronic) return out;
+    out.ratio = Math.round((acute / out.chronic) * 10) / 10;
+    out.change = prior ? Math.round(((acute - prior) / prior) * 100) : 0;
+    out.zone = out.ratio >= 1.5 ? 'spike' : out.ratio > 1.3 ? 'watch' : out.ratio < 0.8 ? 'low' : 'ok';
+    out.tips = loadTips(out);
+    return out;
+  }
+
+  function loadTips(load) {
+    var out = [];
+    if (load.zone === 'spike') {
+      out.push('최근 7일 부하가 직전 4주 평균의 ' + load.ratio + '배로 급증했어요. 이번 주는 더 늘리지 말고, 다음 주에도 10% 넘게 올리지 마세요.');
+    } else if (load.zone === 'watch') {
+      out.push('최근 7일 부하가 직전 4주 평균의 ' + load.ratio + '배예요. 조금 높은 편이니 이번 주는 지금 볼륨을 유지하세요.');
+    } else if (load.zone === 'low') {
+      out.push('최근 7일 부하가 직전 4주 평균의 ' + load.ratio + '배로 적어요. 감각이 떨어지지 않게 다음 주는 10% 이내로만 올리세요.');
+    } else if (load.zone === 'ok') {
+      out.push('최근 7일 부하가 직전 4주 평균의 ' + load.ratio + '배예요. 지금 리듬이면 무리 없이 쌓이고 있어요.');
+    }
+    if (load.zone !== 'low' && load.change >= 15) {
+      out.push('지난주보다 ' + load.change + '% 늘었어요. 주당 부하가 10% 넘게 뛰면 부상 위험이 커진다는 보고가 있으니 다음 주는 유지하세요.');
+    }
+    if (load.zone === 'spike' || (load.zone === 'watch' && load.change >= 25)) {
+      out.push('잠이 부족하거나 통증이 생기면 그날은 세트 수를 20~30% 줄이고, 대신 풋워크·폼 점검으로 바꾸세요.');
+    }
+    return out.slice(0, 2);
+  }
+
   /* 급수 플랜 — 화면·시트 어디서든 같은 문구가 나오도록 */
   function gradePlan(level) {
     var g = gradeOf(level);
@@ -671,6 +844,8 @@
      * (예전 한 경기 기록은 그대로 한 경기로 읽힙니다.) */
     var games = BM.domain.cleanGames(draft.games);
     var gsum = BM.domain.gamesSummary(games);
+    var flow = gameFlow(draft.games, draft.gameMode, discipline);
+    var load = loadIndex(records.filter(function (r) { return r.date !== today; }), draft);
     var todayEntry = {
       date: today,
       cond: draft.cond, intensity: draft.intensity, minutes: draft.minutes,
@@ -745,9 +920,13 @@
       insights.push({
         icon: 'score',
         label: '오늘 ' + gsum.count + '경기 ' + gsum.wins + '승 ' + gsum.losses + '패' + (gsum.draws ? ' ' + gsum.draws + '무' : ''),
-        detail: gsum.wins >= gsum.losses
-          ? '여러 경기를 치렀어요. 이긴 경기에서 통한 샷 하나를 다음에도 그대로 써 보세요.'
-          : '여러 경기 중 내용이 좋았던 한 경기를 기준으로 다음 훈련을 잡아 보세요.'
+        detail: (flow.fade
+          ? '마지막 경기에서 점수차가 벌어졌어요. 경기 사이 회복 시간을 먼저 챙기세요.'
+          : flow.deuce >= 1
+            ? '접전이 ' + flow.deuce + '경기였어요. 후반 2~3점 운영이 이 경기들의 승부처였습니다.'
+            : gsum.wins >= gsum.losses
+              ? '여러 경기를 치렀어요. 이긴 경기에서 통한 샷 하나를 다음에도 그대로 써 보세요.'
+              : '여러 경기 중 내용이 좋았던 한 경기를 기준으로 다음 훈련을 잡아 보세요.')
       });
     }
     if (cond != null && intensity != null) {
@@ -791,7 +970,18 @@
         detail: '최근 30일 기록 기준이에요. 아래 추천드릴이 이 기술에 맞춰져 있습니다.'
       });
     }
-    insights = insights.slice(0, 5);
+    if (load.zone) {
+      insights.push({
+        icon: 'clock',
+        label: '주간 부하 ' + load.ratio + '배 (' + (load.zone === 'spike' ? '급증' : load.zone === 'watch' ? '조금 높음' : load.zone === 'low' ? '적음' : '적정') + ')',
+        detail: load.zone === 'spike' || load.zone === 'watch'
+          ? '직전 4주 평균과 비교한 최근 7일 부하예요. 늘리는 속도를 먼저 보세요.'
+          : load.zone === 'low'
+            ? '쉬엄쉬엄 쌓인 주예요. 다음 주에 10% 이내로 올려 보세요.'
+            : '부하가 평소 범위 안에 있어요. 이 속도를 유지하세요.'
+      });
+    }
+    insights = insights.slice(0, 6);
 
     /* ---------- 추천드릴 ---------- */
     var drills = takeDrills(weakSkills, level, 3);
@@ -856,6 +1046,7 @@
     var risk = [];
     if (painToday.length && (intensity || 0) >= 8) risk.push({ level: 'warn', text: '통증이 있는데 강도가 높아요. 오늘은 강도를 6 이하로 낮추는 걸 권장합니다.' });
     if (repeatedPain.length) risk.push({ level: 'warn', text: repeatedPain.join(', ') + ' 통증이 반복되고 있어요. 2주 이상 이어지면 정형외과 상담을 권장합니다.' });
+    if (load.zone === 'spike') risk.push({ level: 'warn', text: '최근 7일 부하가 직전 4주 평균의 ' + load.ratio + '배예요. 급증한 주에는 부상 위험이 커지니 다음 주는 볼륨을 유지하세요.' });
     if (streakDays >= 6) risk.push({ level: 'info', text: streakDays + '일 연속 훈련 중이에요. 24시간 휴식을 넣어 주세요.' });
     if (!risk.length) risk.push({ level: 'ok', text: '무리한 신호는 없어요. 지금 리듬을 유지하세요.' });
 
@@ -874,6 +1065,8 @@
       grade: gradeOf(level) || '',
       gradePlan: gp,
       playbook: playbook(discipline, level),
+      flow: flow,
+      load: load,
       drills: { drills: drills },
       care: care,
       week: week,
@@ -908,6 +1101,7 @@
     DRILLS: DRILLS, REHAB: INJURY, INJURY: INJURY,
     GRADE_PLANS: GRADE_PLANS, TACTICS: TACTICS, WARMUP: WARMUP,
     GRADES: GRADES, gradeOf: gradeOf, tierOf: tierOf, setsFor: setsFor,
-    gradePlan: gradePlan, playbook: playbook
+    gradePlan: gradePlan, playbook: playbook,
+    gameFlow: gameFlow, loadIndex: loadIndex
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
