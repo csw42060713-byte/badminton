@@ -117,7 +117,7 @@
       '</section>';
   }
 
-  /* ---------- 계정 카드 (로그인 상태 · 로그아웃 · Google Client ID) ---------- */
+  /* ---------- 계정 카드 (로그인 상태 · 로그아웃) ---------- */
   function isGuest() {
     var s = BM.auth && BM.auth.session ? BM.auth.session() : null;
     return !s || s.kind === 'guest';
@@ -127,14 +127,12 @@
     var auth = BM.auth;
     var s = auth.session();
     var kind = s ? s.kind : 'guest';
-    var cid = auth.googleClientId();
     var name = (s && s.name) || (state.me && state.me.nick) || '회원';
     var email = (s && s.email) || '';
     /* 실제 데이터 통로를 봅니다.
      * 예전에는 bridgeUrl()(저장 값이 없으면 기본 주소를 돌려줌)로 판단해서
      * 기기 저장(local) 모드에서도 '시트 브리지 계정'이라고 잘못 보였습니다. */
     var live = (s && s.source === 'sheets') || state.mode === 'sheets';
-    var origin = (typeof location !== 'undefined' && location.origin) || '';
     var pic = s && s.picture
       ? '<img class="acc__pic" src="' + U.esc(s.picture) + '" alt="">'
       : '<span class="acc__pic acc__pic--emoji">' + (kind === 'google' ? 'G' : kind === 'email' ? '✉' : '🏸') + '</span>';
@@ -157,18 +155,6 @@
         : '<button type="button" class="btn btn--ghost btn--sm" data-act="logout">로그아웃</button>') +
       '</div>' +
       '<p class="hint">' + hint + '</p>' +
-      '<details class="adv">' +
-      '<summary>고급 · Google Client ID</summary>' +
-      '<div class="adv__body">' +
-      '<p class="hint">' + (auth.isDefaultGoogleClientId
-        ? '기본으로 배드민턴 앱의 Google Client ID가 연결돼 있어 따로 넣지 않아도 구글 로그인이 돼요. '
-        : '이 기기에만 다른 Client ID가 저장돼 있어요(아래 지우기를 누르면 기본값으로 돌아갑니다). ') +
-      '다른 Google Cloud 프로젝트 것을 쓰려면 여기에 넣으세요. 승인된 자바스크립트 원본에는 ' +
-      U.esc(origin || '이 사이트 주소') + '가 있어야 합니다.</p>' +
-      '<input class="adv__input" type="text" data-cid spellcheck="false" autocomplete="off" placeholder="0000-xxxx.apps.googleusercontent.com" value="' + U.esc(cid) + '">' +
-      '<div class="row gap8 mt8"><button type="button" class="btn btn--primary grow btn--sm" data-act="save-client-id">저장</button>' +
-      (cid ? '<button type="button" class="btn btn--ghost btn--sm" data-act="clear-client-id">지우기</button>' : '') +
-      '</div></div></details>' +
       '</section>';
   }
 
@@ -260,8 +246,12 @@
     return (t && t.name) || '기본 코트';
   }
 
-  /* 데이터 연결 — 안내 문구는 짧게, 버튼은 크게 */
+  /* 데이터 연결 — 안내 문구는 짧게, 버튼은 크게.
+   * 개발자용 Google Client ID 입력은 첫 화면을 어지럽히지 않게 이 묶음 맨 아래에 둡니다. */
   function dataPanel(state) {
+    var auth = BM.auth;
+    var cid = auth.googleClientId();
+    var origin = (typeof location !== 'undefined' && location.origin) || '';
     return '<p class="hint">' + (state.mode === 'sheets'
       ? '구글 시트의 <b>출력결과</b> 탭과 연결되어 있어요. 저장하면 시트에 바로 쌓입니다.'
       : '이 기기 브라우저에 저장돼요. 시트를 연결하면 계정 기록이 시트에도 쌓입니다.') + '</p>' +
@@ -271,7 +261,19 @@
       ((state.mode === 'local' && isGuest()) ? '<button class="linkbtn mt8" data-act="reset-demo">저장된 기록 모두 지우기</button>' : '') +
       '<p class="sync">마지막 동기화 ' + U.esc(state.lastSync || '—') +
       (state.syncState === 'syncing' ? ' · 보내는 중…' : state.syncState === 'error' ? ' · <b class="warn">재시도 대기</b>' : '') + '</p>' +
-      (state.queue && state.queue.length ? '<button class="linkbtn" data-act="retry">대기 중인 저장 ' + state.queue.length + '건 지금 보내기</button>' : '');
+      (state.queue && state.queue.length ? '<button class="linkbtn" data-act="retry">대기 중인 저장 ' + state.queue.length + '건 지금 보내기</button>' : '') +
+      '<details class="adv">' +
+      '<summary>고급 · Google Client ID</summary>' +
+      '<div class="adv__body">' +
+      '<p class="hint">' + (auth.isDefaultGoogleClientId
+        ? '기본으로 배드민턴 앱의 Google Client ID가 연결돼 있어 따로 넣지 않아도 구글 로그인이 돼요. '
+        : '이 기기에만 다른 Client ID가 저장돼 있어요(아래 지우기를 누르면 기본값으로 돌아갑니다). ') +
+      '다른 Google Cloud 프로젝트 것을 쓰려면 여기에 넣으세요. 승인된 자바스크립트 원본에는 ' +
+      U.esc(origin || '이 사이트 주소') + '가 있어야 합니다.</p>' +
+      '<input class="adv__input" type="text" data-cid spellcheck="false" autocomplete="off" placeholder="0000-xxxx.apps.googleusercontent.com" value="' + U.esc(cid) + '">' +
+      '<div class="row gap8 mt8"><button type="button" class="btn btn--primary grow btn--sm" data-act="save-client-id">저장</button>' +
+      (cid ? '<button type="button" class="btn btn--ghost btn--sm" data-act="clear-client-id">지우기</button>' : '') +
+      '</div></div></details>';
   }
 
   var view = {

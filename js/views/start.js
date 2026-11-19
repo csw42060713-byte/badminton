@@ -161,12 +161,12 @@
     var wrap = UI.openSheet({
       title: 'Google 로그인',
       body: '<p class="sheet__text">실제 구글 계정으로 로그인하려면 <b>Google OAuth Client ID</b>가 필요해요. ' +
-        'MY &gt; 계정 &gt; 고급 설정에 한 번만 넣어 두면 다음부터는 버튼 한 번으로 끝납니다.</p>' +
+        'MY &gt; 데이터 연결 &gt; 고급에 한 번만 넣어 두면 다음부터는 버튼 한 번으로 끝납니다.</p>' +
         '<ol class="start__steps">' +
         '<li>console.cloud.google.com → 새 프로젝트</li>' +
         '<li>API 및 서비스 → 사용자 인증 정보 → OAuth 클라이언트 ID(웹 애플리케이션)</li>' +
         '<li>승인된 자바스크립트 원본에 이 사이트 주소를 추가</li>' +
-        '<li>발급된 <b>…apps.googleusercontent.com</b>을 고급 설정에 붙여넣기</li>' +
+        '<li>발급된 <b>…apps.googleusercontent.com</b>을 MY &gt; 데이터 연결 &gt; 고급에 붙여넣기</li>' +
         '</ol>' +
         '<p class="sheet__text mt8">지금은 데모 계정으로 화면을 미리 볼 수 있어요.</p>' +
         '<button type="button" class="btn btn--primary btn--big mt8" data-g="demo">데모 Google 계정으로 미리보기</button>' +
