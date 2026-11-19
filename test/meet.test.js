@@ -175,7 +175,7 @@
     includes(html, 'data-vitefield="when"', '입력칸은 그려 두고 숨김');
     includes(html, 'data-vitefield="place"', '장소 입력칸');
     includes(html, 'data-vitefield="cap"', '인원 입력칸');
-    excludes(html, 'data-vite-dm', '글에는 참여 문의 버튼 없음');
+    excludes(html, 'data-vite-group', '일반 글에는 참여 문의 버튼 없음');
   });
 
   test('번개 화면: 말머리를 번개로 고르면 입력칸이 열리고 값을 기억한다', function () {
@@ -199,18 +199,17 @@
     includes(html, '11/21(금) 19:00', '일시');
     includes(html, '올림픽체육관', '장소');
     includes(html, '6명', '인원');
-    includes(html, 'data-vite-dm="u_other"', '참여 문의 버튼');
+    includes(html, 'data-vite-group="bolt-1"', '참여 문의 → 단체방 버튼');
     includes(html, '참여 문의', '버튼 글자');
-    includes(html, 'data-vite-post="bolt-1"', '어느 글인지 함께');
     excludes(html, '내가 올린 번개', '남의 글에는 내 글 표시 없음');
   });
 
-  test('번개 화면: 내가 올린 번개에는 참여 문의 대신 표시만', function () {
+  test('번개 화면: 내가 올린 번개는 단체방을 여는 버튼이 된다', function () {
     var rows = [meetRow({ topic: '번개', meet: { when: '', place: '동네 체육관', cap: '' } }, BM.seed.ME)];
     var html = BM.views.community.render(stateOf(rows));
     checkHtml(html, '내 번개');
-    includes(html, '내가 올린 번개', '내 글 표시');
-    excludes(html, 'data-vite-dm', '내 글에는 참여 문의 없음');
+    includes(html, '단체방 열기', '내 글은 단체방 열기');
+    includes(html, 'data-vite-group="bolt-1"', '같은 방을 엽니다');
     includes(html, '일시는 문의해서 정해요', '비어 있는 일시 안내');
     includes(html, '동네 체육관', '적은 장소');
   });
@@ -245,9 +244,9 @@
     var sw = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf8');
     var app = fs.readFileSync(path.join(rootDir, 'app.js'), 'utf8');
     var index = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
-    ok(/var VERSION = 'bm-v1\.11\.0'/.test(sw), 'sw.js bm-v1.11.0');
-    includes(app, "version: 'v1.11.0'", 'app.js v1.11.0');
-    includes(index, 'styles.css?v=20261119-14', 'styles.css 쿼리 갱신');
+    ok(/var VERSION = 'bm-v1\.12\.0'/.test(sw), 'sw.js bm-v1.12.0');
+    includes(app, "version: 'v1.12.0'", 'app.js v1.12.0');
+    includes(index, 'styles.css?v=20261119-15', 'styles.css 쿼리 갱신');
     includes(index, 'js/routine.js', '루틴 파일 유지');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

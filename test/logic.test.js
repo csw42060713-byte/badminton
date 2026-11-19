@@ -513,7 +513,7 @@
     });
   });
 
-  test('매칭: 하트가 부족하면 신청되지 않는다', function () {
+  test('매칭: 요청을 보낼 때는 하트를 빼지 않고, 2개 이상인지만 확인한다', function () {
     return freshStore().then(function (store) {
       eq(store.state.data.hearts.balance, 6, '시작 잔액');
       var targets = ['demo_chi', 'demo_suttle', 'demo_foot'];
@@ -521,12 +521,21 @@
         store.state.locks = {};
         ok(store.actions.requestMatch(t, '같이 쳐요').ok, t + ' 신청');
       });
-      eq(store.state.data.hearts.balance, 0, '전부 사용');
+      eq(store.state.data.hearts.balance, 6, '보낼 때는 차감 없음(수락 시 차감)');
+      eq((store.state.idx.byType['내하트사용'] || []).filter(function (h) {
+        return h.userKey === BM.seed.ME;
+      }).length, 1, '새 내하트사용 행은 만들지 않음(예전 성사 건 1건 그대로)');
+      /* 보유 하트가 2개보다 적으면 요청 자체를 막는다 (받아도 낼 수 없으므로) */
+      for (var gi = 0; gi < 5; gi++) {     /* 선물 1개씩 다섯 번 → 6개에서 1개 */
+        store.state.locks = {};
+        ok(store.actions.giftHeart('demo_koala').ok, '하트 선물 ' + (gi + 1));
+      }
+      eq(store.state.data.hearts.balance, 1, '하트 1개만 남음');
       store.state.locks = {};
       var blocked = store.actions.requestMatch('demo_drive', '');
-      eq(blocked.ok, false, '네 번째는 불가');
+      eq(blocked.ok, false, '하트가 2개보다 적으면 신청 불가');
       eq(blocked.reason, 'hearts', '이유: 하트 부족');
-      eq(blocked.need, 2, '부족 개수');
+      eq(blocked.need, 1, '부족 개수');
     });
   });
 

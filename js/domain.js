@@ -272,6 +272,16 @@
    * {"topic":"번개"} 로 적습니다(예전 글은 주제가 없으므로 아래에서 자동 판별). */
   var POST_TOPICS = ['자유', '후기', '번개', '용품', '일지'];
 
+  /* 모집 글(지금은 '번개' 말머리)에서 쓰는 이름표.
+   * 나중에 말머리 이름을 바꾸면 이 한 곳만 고치면 화면 문구가 따라갑니다. */
+  var MEET = {
+    topic: '번개',
+    cardLabel: '번개 모집',
+    roomLabel: '번개 단체방',
+    joinLabel: '참여 문의',
+    openLabel: '단체방 열기'
+  };
+
   function normalizeTopic(v) {
     var s = String(v == null ? '' : v).trim();
     return POST_TOPICS.indexOf(s) >= 0 ? s : '자유';
@@ -577,6 +587,19 @@
     });
     listOf(idx, '내하트사용', userKey).forEach(function (h) {
       add('match', '매칭 신청', -(h.likes || R.MATCH_COST), h, nickOf(idx, h.target));
+    });
+    /* 1:1 매칭 (v1.12.0~) — 보낼 때가 아니라 '상대가 수락할 때' 보낸 사람 하트를 뺍니다.
+     * 요청 행 자체에 payOn:'accept' 를 적어 두므로, 상대 기기에서 수락해도
+     * 보낸 사람의 원장(행을 세어 계산)에 바로 반영됩니다.
+     * 예전 요청(payOn 없음)은 이미 '내하트사용' 행이 있어 두 번 차감되지 않게 건너뜁니다. */
+    listOf(idx, '매칭신청', userKey).forEach(function (r) {
+      var pl = r.payload || {};
+      if (pl.payOn !== 'accept' || r.status !== '수락') return;
+      var cost = Number(pl.heartCost) || R.MATCH_COST;
+      var charged = pl.charged == null ? cost : Number(pl.charged);
+      charged = Math.max(0, Math.min(cost, isFinite(charged) ? charged : cost));
+      if (charged <= 0) return;
+      add('match', '매칭 성사', -charged, r, nickOf(idx, r.target));
     });
     listOf(idx, '꾸미기구매', userKey).forEach(function (h) {
       var target = String(h.target || '');
@@ -1052,6 +1075,73 @@
     return (idx.byType['매칭채팅'] || []).some(function (m) { return String(m.team || '') === room; });
   }
 
+  /* ---------- 모집 글 단체방 (참여 문의) ----------
+   * 글마다 하나인 고정 방입니다. 방 ID는 글 ID를 그대로 씁니다.
+   *  · '팀' 칸은 브리지가 레코드 ID만 그대로 내려주고 사람 키처럼 보이면
+   *    공개 ID(u…)로 바꿔 버립니다(sanitizeRow_). 'group_post_' 같은 접두사를 붙이면
+   *    다른 기기에서는 방 ID가 달라지므로, 이미 레코드 ID인 글 ID를 그대로 씁니다.
+   *  · 글 ID와 매칭신청·친구수락 ID는 모두 무작위라 서로 겹치지 않습니다.
+   *  · 참여자는 따로 행을 만들지 않고, 방에 남긴 사람들(그리고 글쓴이)로 셉니다.
+   *    말을 걸면 그때부터 이 기기의 대화 목록에도 방이 남습니다. */
+  function groupRoomId(postId) { return String(postId == null ? '' : postId); }
+
+  function groupPostOf(idx, roomId) {
+    if (!idx || !idx.byId || !roomId) return null;
+    var p = idx.byId[String(roomId)];
+    return p && p.type === '소셜' ? p : null;
+  }
+
+  function isGroupRoom(idx, roomId) { return !!groupPostOf(idx, roomId); }
+
+  function groupTitle(post) {
+    var t = (post && post.topic) ? normalizeTopic(post.topic) : topicOf(post);
+    return (t === MEET.topic ? MEET.roomLabel : t + ' 단체방');
+  }
+
+  function groupNote(post) {
+    var m = (post && post.meet) || meetOf(post);
+    var txt = meetFilled(m) ? meetText(m, ' · ') : '';
+    if (!txt) txt = String((post && post.text) || '').replace(/\s+/g, ' ').trim();
+    return U.truncate(txt, 60);
+  }
+
+  function groupMembers(idx, post, list, meKey) {
+    var seen = {}, out = [];
+    function add(key, nick) {
+      if (!key || seen[key]) return;
+      seen[key] = 1;
+      out.push({ key: key, nick: nick || nickOf(idx, key) || '회원', me: key === meKey });
+    }
+    if (post) add(post.userKey, post.nick);
+    (list || []).forEach(function (m) { add(m.userKey, m.nick); });
+    return out;
+  }
+
+  /* 단체방 하나의 모습 — 참여자·메시지·안 읽음 */
+  function groupThread(idx, post, list, meKey, readAt) {
+    var msgs = U.sortBy(list || [], function (m) { return m.createdAt || ''; });
+    var last = msgs[msgs.length - 1] || null;
+    var since = (readAt || {})[String((post && post.id) || '')] || '';
+    var members = groupMembers(idx, post, msgs, meKey);
+    return {
+      roomId: String((post && post.id) || ''), other: '', kind: 'group', postId: String((post && post.id) || ''),
+      title: groupTitle(post), note: groupNote(post),
+      members: members, memberCount: members.length,
+      messages: msgs, last: last, at: (last && last.createdAt) || '',
+      unread: msgs.filter(function (m) {
+        return m.userKey !== meKey && (!since || (m.createdAt || '') > since);
+      }).length
+    };
+  }
+
+  /* 대화 목록에 없더라도 방 하나를 그려 볼 수 있게 (참여 문의로 막 들어온 방) */
+  function groupThreadById(idx, meKey, roomId) {
+    var post = groupPostOf(idx, roomId);
+    if (!post) return null;
+    var list = (idx.byType['매칭채팅'] || []).filter(function (m) { return String(m.team) === String(roomId); });
+    return groupThread(idx, post, list, meKey, chatReadMap(idx, meKey));
+  }
+
   /* 친구이거나 매칭이 성사된 상대, 또는 승인된 코치와 1:1 대화를 할 수 있습니다.
    * (이미 대화가 시작된 방은 그대로 이어집니다.) */
   function canChatWith(idx, meKey, otherKey) {
@@ -1104,6 +1194,29 @@
       if (String(roomId).indexOf('coach_') === 0) map[roomId].kind = 'coach';
     });
 
+    /* 모집 글 단체방 — 글마다 하나인 고정 방(방 ID = 글 ID).
+     * 이미 들어간 방(내가 한마디 했거나, 읽음 표시가 있거나, 내가 쓴 글)만 목록에 둡니다. */
+    var groupMsgs = {};
+    (idx.byType['매칭채팅'] || []).forEach(function (m) {
+      if (!groupPostOf(idx, m.team)) return;
+      (groupMsgs[m.team] = groupMsgs[m.team] || []).push(m);
+    });
+    Object.keys(groupMsgs).forEach(function (roomId) {
+      var post = groupPostOf(idx, roomId);
+      var list = U.sortBy(groupMsgs[roomId], function (m) { return m.createdAt || ''; });
+      var joined = !!readAt[roomId] || (post && post.userKey === meKey) ||
+        list.some(function (m) { return m.userKey === meKey; });
+      if (!joined) return;
+      map[roomId] = groupThread(idx, post, list, meKey, readAt);
+    });
+    /* 문의 버튼으로 방을 열어 읽음 표시만 남은 방(아직 대화 없음)도 내 목록에 남깁니다 */
+    Object.keys(readAt).forEach(function (roomId) {
+      if (map[roomId]) return;
+      var post = groupPostOf(idx, roomId);
+      if (!post) return;
+      map[roomId] = groupThread(idx, post, [], meKey, readAt);
+    });
+
     /* 친구: 친구수락 행 ID가 곧 대화방 ID (양쪽 기기에서 같은 값) */
     friendsOf(idx, meKey).forEach(function (f) {
       if (!f.roomId) return;
@@ -1128,7 +1241,10 @@
     });
 
     return Object.keys(map).map(function (k) { return map[k]; })
-      .filter(function (t) { return t.other && t.other !== meKey; })
+      .filter(function (t) {
+        if (t.kind === 'group') return true;   /* 단체방은 '상대 한 사람'이 없습니다 */
+        return t.other && t.other !== meKey;
+      })
       .sort(function (a, b) { return (a.at || '') < (b.at || '') ? 1 : -1; });
   }
 
@@ -1170,8 +1286,11 @@
     friendState: friendState, friendsOf: friendsOf, incomingFriendRequests: incomingFriendRequests,
     matchBetween: matchBetween, canChatWith: canChatWith,
     coachRoomId: coachRoomId, coachChatAllowed: coachChatAllowed,
-    POST_TOPICS: POST_TOPICS, normalizeTopic: normalizeTopic, topicOf: topicOf,
+    POST_TOPICS: POST_TOPICS, MEET: MEET, normalizeTopic: normalizeTopic, topicOf: topicOf,
     normalizeMeet: normalizeMeet, meetFilled: meetFilled, meetOf: meetOf, meetText: meetText,
+    groupRoomId: groupRoomId, groupPostOf: groupPostOf, isGroupRoom: isGroupRoom,
+    groupTitle: groupTitle, groupNote: groupNote, groupMembers: groupMembers,
+    groupThread: groupThread, groupThreadById: groupThreadById,
     chatThreads: chatThreads, threadById: threadById, chatUnread: chatUnread,
     matchProfileOf: matchProfileOf
   };

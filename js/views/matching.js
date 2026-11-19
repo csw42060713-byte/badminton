@@ -140,7 +140,6 @@
     var balance = hearts.balance || 0;
     return { cost: cost, balance: balance, short: balance < cost };
   }
-
   function playerCard(p, state) {
     var st = statusOf(state, p);
     var mp = myProfile(state);
@@ -162,9 +161,9 @@
     } else {
       action = '<button class="btn btn--ghost btn--sm" data-open-profile="' + key + '">' +
         '프로필 보고 요청하기</button>';
-      /* 요청 전에 하트가 얼마나 드는지 카드에서 바로 보이게 (스크롤 전) */
+      /* 요청 전에 하트가 어떻게 드는지 카드에서 바로 보이게 (수락될 때 차감) */
       var hb = heartBuyText(state);
-      costNote = '<span class="pcard__cost">' + UI.icon('heart') + '신청 하트 ' + hb.cost + '개 · 보유 ' + hb.balance + '개' +
+      costNote = '<span class="pcard__cost">' + UI.icon('heart') + '수락 시 하트 ' + hb.cost + '개 차감 · 보유 ' + hb.balance + '개' +
         (hb.short ? ' <b class="down">· ' + (hb.cost - hb.balance) + '개 부족</b>' : '') + '</span>';
     }
 
@@ -259,6 +258,38 @@
   }
 
   /* ---------- 요청 목록 ---------- */
+  /* 받은 1:1 매칭 요청 = 편지지 카드.
+   * 보낸 사람의 급수·종목·한마디와 수락/거절이 한 장에 담기게 합니다.
+   * (과한 장식 없이 스포츠 앱 톤 — 얇은 테두리, 급수 배지, 한 줄 인사말) */
+  function letterHtml(state, r, opts) {
+    opts = opts || {};
+    var other = r.userKey;
+    var p = personOf(state, other);
+    var note = (r.payload && r.payload.note) || '';
+    var meta = [p.region, p.club].filter(Boolean).join(' · ');
+    var spec = [p.discipline, p.availability].filter(Boolean).join(' · ');
+    var cost = D.HEART_RULES.MATCH_COST;
+    return '<article class="letter' + (opts.compact ? ' letter--compact' : '') + '"' +
+      ' data-letter="' + U.esc(r.id) + '" data-open-profile="' + U.esc(other) + '"' +
+      ' data-from="' + U.esc(other) + '">' +
+      '<div class="letter__top">' +
+      '<span class="letter__av">' + UI.avatar(p, opts.compact ? 44 : 52) + '</span>' +
+      '<div class="letter__who">' +
+      '<div class="letter__name">' + U.esc(p.nick) + gradePill(p) + genderPill(p) + '</div>' +
+      '<p class="letter__meta">' + U.esc(meta || '지역 미입력') +
+      (spec ? ' · ' + U.esc(spec) : '') + '</p></div>' +
+      '<span class="letter__stamp">매칭 요청</span></div>' +
+      (note
+        ? '<p class="letter__note">' + U.esc(note) + '</p>'
+        : '<p class="letter__note letter__note--empty">한마디 없이 보낸 요청이에요.</p>') +
+      '<p class="letter__rule">' + UI.icon('heart') +
+      '수락하면 보낸 분의 하트 ' + cost + '개가 차감되고 1:1 대화가 열려요.</p>' +
+      '<div class="letter__acts">' +
+      '<button type="button" class="btn btn--ghost btn--sm" data-decline="' + U.esc(r.id) + '">거절</button>' +
+      '<button type="button" class="btn btn--primary btn--sm" data-accept="' + U.esc(r.id) + '">수락</button>' +
+      '</div></article>';
+  }
+
   function reqRow(state, r, kind) {
     var other = kind === 'in' ? r.userKey : r.target;
     var p = personOf(state, other);
@@ -294,6 +325,9 @@
         : UI.emptyState('send', '보낸 요청이 없어요', '마음에 드는 상대의 프로필을 보고 요청을 보내보세요.',
           '<button type="button" class="btn btn--ghost btn--sm mt8" data-match-tab="find">플레이어 찾기</button>');
     }
+    if (kind === 'in') {
+      return '<div class="letters">' + list.map(function (r) { return letterHtml(state, r); }).join('') + '</div>';
+    }
     return '<ul class="rqlist">' + list.map(function (r) { return reqRow(state, r, kind); }).join('') + '</ul>';
   }
 
@@ -319,11 +353,15 @@
         '<button type="button" class="btn btn--ghost btn--sm mt8" data-match-tab="find">플레이어 찾기</button>');
     }
     return '<ul class="roomlist">' + rooms.map(function (r) {
-      var rp = personOf(state, r.other);
-      return '<li class="room" data-open-chat="' + U.esc(r.roomId) + '" data-other="' + U.esc(r.other) + '">' +
-        UI.avatar(rp, 42) +
-        '<div class="room__mid"><strong>' + U.esc(rp.nick) +
-        (rp.level ? ' <span class="pill pill--grade">' + U.esc(rp.level) + '</span>' : '') + '</strong>' +
+      var group = r.kind === 'group';
+      var rp = group ? null : personOf(state, r.other);
+      return '<li class="room' + (group ? ' room--group' : '') + '" data-open-chat="' + U.esc(r.roomId) + '" data-other="' + U.esc(r.other) + '">' +
+        (group
+          ? '<span class="dmgroupav dmgroupav--sm" aria-hidden="true">' + UI.icon('users') + '</span>'
+          : UI.avatar(rp, 42)) +
+        '<div class="room__mid"><strong>' + U.esc(group ? (r.title || D.MEET.roomLabel) : rp.nick) +
+        (group ? ' <span class="pill pill--ok">단체</span>' : '') +
+        (!group && rp.level ? ' <span class="pill pill--grade">' + U.esc(rp.level) + '</span>' : '') + '</strong>' +
         '<p>' + U.esc(U.truncate((r.last && r.last.text) || '대화를 시작해 보세요', 34)) + '</p></div>' +
         '<div class="room__right"><time>' + U.timeAgo(r.at) + '</time>' +
         (r.unread ? '<span class="badge">' + r.unread + '</span>' : '') + '</div></li>';
@@ -390,7 +428,9 @@
 
     var footer;
     if (st.incoming) {
-      footer = '<div class="pp__note">' + UI.icon('clock') + '상대가 먼저 요청했어요. 수락하면 바로 대화할 수 있어요.</div>' +
+      var incNote = (st.incoming.payload && st.incoming.payload.note) || '';
+      footer = (incNote ? '<p class="pp__quote">' + U.esc(incNote) + '</p>' : '') +
+        '<div class="pp__note pp__note--info">' + UI.icon('heart') + '상대가 먼저 요청했어요. 수락하면 보낸 분의 하트 ' + cost + '개가 차감되고 바로 대화할 수 있어요.</div>' +
         '<div class="row gap8 mt8">' +
         '<button class="btn btn--ghost grow" data-decline="' + U.esc(st.incoming.id) + '">거절</button>' +
         '<button class="btn btn--primary grow" data-accept="' + U.esc(st.incoming.id) + '">수락하고 대화하기</button></div>';
@@ -404,7 +444,7 @@
     } else {
       footer = '<label class="flabel">한마디 남기기 <span class="muted">(선택)</span>' +
         '<input type="text" data-note maxlength="60" placeholder="토요일 오전 어떠세요?" value="' + U.esc(noteDrafts[p.userKey] || '') + '"></label>' +
-        '<p class="pp__cost">매칭 신청에 하트 <b>' + cost + '개</b> · 보유 <b class="' + (short ? 'down' : 'up') + '">' + balance + '개</b>' +
+        '<p class="pp__cost">보유 하트 <b class="' + (short ? 'down' : 'up') + '">' + balance + '개</b> · 수락 시 <b>' + cost + '개</b>가 차감돼요' +
         (short ? '<span class="warn"> · ' + (cost - balance) + '개 부족</span>' : '') + '</p>' +
         '<div class="row gap8 mt8">' +
         '<button class="btn btn--ghost grow" data-close>닫기</button>' +
@@ -425,7 +465,7 @@
       (scored.reasons.length ? '<span class="pp__why">' + U.esc(scored.reasons.slice(0, 3).join(' · ')) + '</span>' : '') + '</p>' +
       /* 하트 소모 안내는 요청 버튼까지 스크롤하지 않아도 보이게 맨 위에 둡니다 */
       (canRequest
-        ? '<p class="pp__cost pp__cost--top">' + UI.icon('heart') + '매칭 신청에 하트 <b>' + cost + '개</b> · 보유 <b class="' + (short ? 'down' : 'up') + '">' + balance + '개</b>' +
+        ? '<p class="pp__cost pp__cost--top">' + UI.icon('heart') + '매칭 요청 · <b>수락 시 하트 ' + cost + '개 차감</b> · 보유 <b class="' + (short ? 'down' : 'up') + '">' + balance + '개</b>' +
           (short ? '<span class="warn"> · ' + (cost - balance) + '개 부족</span>' : '') + '</p>'
         : '') +
 
@@ -459,7 +499,7 @@
             if (send.disabled) return;
             var res = ctx.actions.requestMatch(send.getAttribute('data-send-request'), note);
             UI.closeSheet();
-            if (res.ok) UI.toast('요청을 보냈어요. 상대가 수락하면 대화할 수 있어요.');
+            if (res.ok) UI.toast('요청을 보냈어요. 상대가 수락하면 하트 ' + (res.cost || D.HEART_RULES.MATCH_COST) + '개가 차감되고 대화가 열려요.');
             else if (res.reason === 'already') UI.toast('이미 요청한 상대예요.');
             else if (res.reason === 'hearts') UI.toast('하트가 ' + res.need + '개 부족해요.', 'error');
             else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
@@ -525,9 +565,19 @@
   function acceptRequest(ctx, reqId) {
     var req = (ctx.store.state.data.requests || []).filter(function (r) { return r.id === reqId; })[0] || {};
     var res = ctx.actions.respondMatch(reqId, '수락');
-    if (!res || !res.ok) { UI.toast('잠시 후 다시 시도해 주세요', 'error'); return; }
+    if (!res || !res.ok) {
+      if (res && res.reason === 'done') UI.toast('이미 처리한 요청이에요');
+      else UI.toast('잠시 후 다시 시도해 주세요', 'error');
+      return;
+    }
     UI.haptic(12);
-    UI.toast('수락했어요. 대화를 시작해 보세요.');
+    if (res.short > 0) {
+      UI.toast('수락했어요 · 보낸 분 하트가 ' + res.charged + '개뿐이라 ' + res.charged + '개만 차감했어요.');
+    } else if (res.charged > 0) {
+      UI.toast('수락했어요 · 보낸 분 하트 ' + res.charged + '개 차감');
+    } else {
+      UI.toast('수락했어요. 대화를 시작해 보세요.');
+    }
     if (res.roomId) {
       ctx.actions.openChat(res.roomId, req.userKey || '');
       ctx.actions.markChatRead(res.roomId, req.userKey || '');
@@ -552,7 +602,7 @@
     var cost = D.HEART_RULES.MATCH_COST;
     var balance = h.balance || 0;
     var enough = balance >= cost;
-    var body = '<p class="sheet__text">매칭 신청에는 하트 ' + cost + '개가 필요해요. 지금 <b>' + balance + '개</b> 있어요.</p>' +
+    var body = '<p class="sheet__text">1:1 매칭은 <b>상대가 수락할 때</b> 하트 ' + cost + '개가 차감돼요. 지금 <b>' + balance + '개</b> 있어요.</p>' +
       '<div class="charge">' +
       '<button type="button" class="charge__row" data-charge="checkin"' + (h.canCheckIn ? '' : ' disabled') + '>' +
       '<span class="charge__t">출석 체크</span>' +
@@ -642,7 +692,7 @@
       '<p class="mycard__meta">' + U.esc(meta.length ? meta.join(' · ') : '매칭 카드가 아직 없어요') + '</p></div>' +
       '<button type="button" class="btn btn--ghost btn--sm" data-act="edit-match">' + (mp.level || mp.region ? '수정' : '만들기') + '</button></div>' +
       (ready ? '' : '<p class="mycard__hint">급수·종목·지역을 등록하면 맞는 상대부터 보여드려요.</p>') +
-      '<div class="mycard__hearts">하트 <b>' + balance + '</b><span>· 신청 1회 ' + cost + '개</span>' +
+      '<div class="mycard__hearts">하트 <b>' + balance + '</b><span>· 수락 시 하트 ' + cost + '개 차감</span>' +
       (balance < cost ? '<button type="button" class="linkbtn" data-act="charge-hearts">충전</button>' : '') +
       '</div>';
   }
@@ -856,6 +906,7 @@
     /* 테스트/다른 화면에서 재사용 */
     profileBody: profileBody,
     playerCard: playerCard,
+    letterHtml: letterHtml,
     statusOf: statusOf,
     resultsHtml: resultsHtml,
     visiblePlayers: visiblePlayers,

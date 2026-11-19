@@ -619,7 +619,7 @@
         if (!tryLock('post', 1200)) return { ok: false, reason: 'locked' };
         var tag = D.normalizeTopic(topic || state.ui.composerTopic);
         var plan = { topic: tag };
-        if (tag === '번개') {
+        if (tag === D.MEET.topic) {
           var mv = D.normalizeMeet(meet || state.ui.composerMeet);
           if (D.meetFilled(mv)) plan.meet = mv;
         }
@@ -693,6 +693,10 @@
         return { ok: true };
       },
 
+      /* 1:1 매칭 요청 — 보낼 때는 '하트 2개를 가지고 있는지'만 확인하고,
+       * 실제 차감은 상대가 수락할 때 보낸 사람(from) 원장에서 일어납니다.
+       * 요청 행에 payOn:'accept' 를 적어 두면, 상대 기기에서 수락해도
+       * 보낸 사람의 하트가 (행을 세는 원장 규칙으로) 바로 차감됩니다. */
       requestMatch: function (targetKey, note) {
         if (!tryLock('match:' + targetKey, 1500)) return { ok: false, reason: 'locked' };
         var balance = state.data.hearts.balance;
@@ -706,48 +710,74 @@
         var req = meEntity({
           type: '매칭신청', id: reqId, clientId: U.clientId(), date: U.ymd(),
           nick: state.me.nick, target: targetKey, status: '대기',
-          payload: { note: note || '', heartCost: cost }
+          payload: { note: note || '', heartCost: cost, payOn: 'accept' }
         });
         pushRow(req);
-        pushRow(meEntity({
-          type: '내하트사용', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
-          nick: state.me.nick, target: targetKey, likes: cost
-        }));
         state.ui.chatRoom = reqId;
         commit();
-        return { ok: true, roomId: reqId };
+        return { ok: true, roomId: reqId, cost: cost, balance: balance, chargeOnAccept: true };
       },
 
+      /* 받은 요청 수락/거절 — 수락하면 보낸 사람 하트 2개가 이때 차감됩니다.
+       * 보낸 사람이 그 사이 하트를 다 써서 2개보다 적으면, 있는 만큼만 차감하고
+       * (거절도 아니고 마이너스도 아닌) 안전한 상태로 남깁니다. */
       respondMatch: function (reqId, status) {
         if (!tryLock('respond:' + reqId, 1200)) return { ok: false, reason: 'locked' };
         var req = (state.idx.byType['매칭신청'] || []).filter(function (r) { return r.id === reqId; })[0];
         if (!req) return { ok: false, reason: 'notfound' };
+        /* 이미 답한 요청은 다시 처리하지 않습니다 (연타·두 기기에서 두 번 차감 방지) */
+        if (req.status && req.status !== '대기') {
+          return { ok: false, reason: 'done', status: req.status, roomId: reqId };
+        }
         var payload = {};
         Object.keys(req.payload || {}).forEach(function (k) { payload[k] = req.payload[k]; });
         payload.status = status;
+        var charged = 0, short = 0;
+        if (status === '수락') {
+          var cost = Number(payload.heartCost) || D.HEART_RULES.MATCH_COST;
+          var senderBalance = req.userKey ? D.heartStatus(state.idx, req.userKey).balance : 0;
+          charged = Math.max(0, Math.min(cost, senderBalance));
+          short = Math.max(0, cost - charged);
+          if (payload.payOn === 'accept') {
+            payload.charged = charged;
+            if (short) payload.short = short;
+            else delete payload.short;
+          } else {
+            charged = 0;   /* 예전 요청은 보낼 때 이미 냈습니다(내하트사용 행) */
+            short = 0;
+          }
+        }
         patchRowById(reqId, { '소셜글': JSON.stringify(payload), '승패': status });
         enqueue({ kind: 'update', id: reqId, clientId: U.clientId(), cells: { '소셜글': JSON.stringify(payload), '승패': status } });
         commit();
-        return { ok: true, roomId: reqId };
+        return { ok: true, roomId: reqId, charged: charged, short: short };
       },
 
       sendChat: function (roomId, otherKey, text) {
         text = (text || '').trim();
         if (!text) return { ok: false, reason: 'empty' };
-        if (!roomId || !otherKey) return { ok: false, reason: 'no_room' };
-        if (!D.canChatWith(state.idx, state.me && state.me.key, otherKey)) {
-          return { ok: false, reason: 'not_allowed' };
+        if (!roomId) return { ok: false, reason: 'no_room' };
+        /* 모집 글 단체방은 방(글)만 있으면 누구나 참여 대화를 할 수 있습니다.
+         * 1:1 방은 지금처럼 친구·매칭(·코치) 상대와만. */
+        var group = D.isGroupRoom(state.idx, roomId);
+        if (group) {
+          if (!(state.me && state.me.key)) return { ok: false, reason: 'no_login' };
+        } else {
+          if (!otherKey) return { ok: false, reason: 'no_room' };
+          if (!D.canChatWith(state.idx, state.me && state.me.key, otherKey)) {
+            return { ok: false, reason: 'not_allowed' };
+          }
         }
         if (!tryLock('chat:' + roomId, 450)) return { ok: false, reason: 'locked' };
         var entity = meEntity({
           type: '매칭채팅', id: U.uid(), clientId: U.clientId(), nick: state.me.nick,
-          userKey: state.me.key, target: otherKey, team: roomId, text: text,
+          userKey: state.me.key, target: group ? '' : otherKey, team: roomId, text: text,
           createdAt: U.stamp()
         });
         pushRow(entity);
         state.ui.chatDraft = '';
         commit();
-        return { ok: true };
+        return { ok: true, group: group };
       },
 
       /* ---------- 1:1 채팅(상단 DM) ---------- */
@@ -773,6 +803,20 @@
         state.ui.chatOther = otherKey || '';
         state.ui.chatDraft = draft || '';
         emit();
+      },
+
+      /* 모집 글 단체방 열기 — 커뮤니티 '참여 문의'가 이리로 이어집니다.
+       * 글 번호가 곧 방 번호이고, 처음 들어온 사람은 인사 문구가 미리 채워집니다. */
+      openGroupChat: function (postId, draft) {
+        var roomId = D.groupRoomId(postId);
+        if (!D.isGroupRoom(state.idx, roomId)) return { ok: false, reason: 'notfound' };
+        if (!(state.me && state.me.key)) return { ok: false, reason: 'no_login' };
+        state.ui.chatOpen = true;
+        state.ui.chatRoom = roomId;
+        state.ui.chatOther = '';
+        state.ui.chatDraft = draft || '';
+        emit();
+        return { ok: true, roomId: roomId };
       },
 
       /* 코치와의 1:1 대화 — 프로필·매칭 없이도 코치 화면에서 바로 연결합니다.
@@ -803,12 +847,20 @@
         if (!roomId) return { ok: false, reason: 'no_room' };
         var me = state.me && state.me.key;
         if (!me) return { ok: false, reason: 'no_login' };
+        var group = D.isGroupRoom(state.idx, roomId);
         var thread = D.threadById(state.idx, me, roomId);
-        if (!thread || !thread.unread) return { ok: false, reason: 'read' };
+        /* 막 들어온 단체방은 아직 대화 목록에 없으므로 글에서 바로 셉니다.
+         * 읽음 표시를 남기면 그때부터 내 대화 목록에도 방이 남습니다. */
+        if (!thread && group) thread = D.groupThreadById(state.idx, me, roomId);
+        /* 처음 여는 단체방은 대화가 없어도 '참여' 기록(읽음 표시)을 남겨 내 목록에 남깁니다 */
+        var readMark = (state.idx.byType['채팅읽음'] || []).some(function (r) {
+          return r.userKey === me && String(r.team || r.target || '') === String(roomId);
+        });
+        if (!thread || (!thread.unread && (readMark || !group))) return { ok: false, reason: 'read' };
         if (!tryLock('read:' + roomId, 1500)) return { ok: false, reason: 'locked' };
         var entity = meEntity({
           type: '채팅읽음', id: U.uid(), clientId: U.clientId(),
-          target: otherKey || thread.other, team: roomId, createdAt: U.stamp()
+          target: group ? '' : (otherKey || thread.other), team: roomId, createdAt: U.stamp()
         });
         pushRow(entity);
         commit();

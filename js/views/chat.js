@@ -22,10 +22,25 @@
     return (state.data.threads || []).filter(function (t) { return String(t.roomId) === String(roomId); })[0] || null;
   }
 
+  /* 대화 목록에 있으면 그대로, 아직 목록에 없으면(막 들어온 방) 글에서 바로 그립니다 */
+  function groupThreadOf(state, roomId) {
+    var hit = (state.data.threads || []).filter(function (t) {
+      return t.kind === 'group' && String(t.roomId) === String(roomId);
+    })[0];
+    if (hit) return hit;
+    if (!roomId) return null;
+    return D.groupThreadById(state.data.idx, (state.me && state.me.key) || '', roomId);
+  }
+
+  function postOf(state, postId) {
+    return (state.data.posts || []).filter(function (p) { return String(p.id) === String(postId); })[0] || null;
+  }
+
   function kindPill(kind) {
     if (kind === 'friend') return '<span class="pill pill--friend">친구</span>';
     if (kind === 'match') return '<span class="pill pill--ghost">매칭</span>';
     if (kind === 'coach') return '<span class="pill pill--ok">코치</span>';
+    if (kind === 'group') return '<span class="pill pill--ok dmroom__group">단체</span>';
     return '';
   }
 
@@ -43,22 +58,44 @@
   }
 
   function threadRow(t, state) {
-    var p = UI.person(state, t.other);
     var me = (state.me && state.me.key) || '';
+    var isGroup = t.kind === 'group';
+    var p = isGroup ? null : UI.person(state, t.other);
     var preview = t.last
-      ? (t.last.userKey === me ? '나: ' : '') + t.last.text
+      ? (t.last.userKey === me ? '나: ' : (isGroup ? (t.last.nick || '') + ': ' : '')) + t.last.text
       : '대화를 시작해 보세요';
-    return '<li class="dmroom" data-thread="' + U.esc(t.roomId) + '" data-other="' + U.esc(t.other) + '">' +
-      UI.avatar(p, 48) +
+    return '<li class="dmroom' + (isGroup ? ' dmroom--group' : '') + '" data-thread="' + U.esc(t.roomId) + '" data-other="' + U.esc(t.other) + '">' +
+      (isGroup
+        ? '<span class="dmgroupav" aria-hidden="true">' + UI.icon('users') + '</span>'
+        : UI.avatar(p, 48)) +
       '<div class="dmroom__mid">' +
-      '<div class="dmroom__top"><strong>' + U.esc(p.nick || '회원') + '</strong>' +
-      (p.level ? '<span class="pill pill--grade">' + U.esc(p.level) + '</span>' : '') +
+      '<div class="dmroom__top"><strong>' + U.esc(isGroup ? (t.title || D.MEET.roomLabel) : (p.nick || '회원')) + '</strong>' +
+      (isGroup ? '<span class="dmroom__n">' + (t.memberCount || 0) + '명</span>' : '') +
+      (!isGroup && p.level ? '<span class="pill pill--grade">' + U.esc(p.level) + '</span>' : '') +
       kindPill(t.kind) + '</div>' +
       '<p class="' + (t.unread ? 'is-unread' : '') + '">' + U.esc(U.truncate(preview, 42)) + '</p></div>' +
       '<div class="dmroom__right">' +
       (t.at ? '<time>' + U.timeAgo(t.at) + '</time>' : '') +
       (t.unread ? '<span class="badge">' + (t.unread > 9 ? '9+' : t.unread) + '</span>' : '') +
       '</div></li>';
+  }
+
+  /* 받은 1:1 매칭 요청 — 편지지 카드(매칭 화면과 같은 모양)로 알려 줍니다 */
+  function matchLetters(state) {
+    var me = (state.me && state.me.key) || '';
+    var list = U.sortBy((state.data.requests || []).filter(function (r) {
+      return r.target === me && r.status === '대기';
+    }), function (r) { return r.createdAt || ''; }, true);
+    if (!list.length) return '';
+    var V = (BM.views.matching && BM.views.matching.letterHtml) ? BM.views.matching : null;
+    var html = list.map(function (r) {
+      return V ? V.letterHtml(state, r, { compact: true }) :
+        '<li class="dmreq" data-letter="' + U.esc(r.id) + '">' + U.esc(r.nick || '') +
+        '<button class="btn btn--primary btn--sm" data-accept="' + U.esc(r.id) + '">수락</button></li>';
+    }).join('');
+    return '<section class="dmsec">' +
+      '<h3 class="dmsec__t">받은 매칭 요청 <span class="badge">' + list.length + '</span></h3>' +
+      '<div class="dmletters">' + html + '</div></section>';
   }
 
   function listHtml(state) {
@@ -72,6 +109,7 @@
       '<button class="iconbtn" data-dm-find aria-label="매칭에서 친구 찾기">' + UI.icon('plus') + '</button>' +
       '</header>' +
       '<div class="dm__scroll" data-dm-scroll>' +
+      matchLetters(state) +
       (reqs.length ? '<section class="dmsec">' +
         '<h3 class="dmsec__t">받은 친구 요청 <span class="badge">' + reqs.length + '</span></h3>' +
         '<ul class="dmreqs">' + reqs.map(function (r) { return requestCard(r, state); }).join('') + '</ul>' +
@@ -87,20 +125,63 @@
   }
 
   /* ---------- 대화방 ---------- */
-  function messageHtml(m, state, otherKey) {
+  function messageHtml(m, state, otherKey, group) {
     var me = (state.me && state.me.key) || '';
     var mine = m.userKey === me;
-    var p = UI.person(state, mine ? me : otherKey);
+    var p = UI.person(state, mine ? me : (group ? m.userKey : otherKey));
     return '<div class="dmsg' + (mine ? ' dmsg--me' : '') + '">' +
       (mine ? '' : '<span class="dmsg__av">' + UI.avatar(p, 28) + '</span>') +
       '<div class="dmsg__col">' +
+      (group && !mine ? '<span class="dmsg__nick">' + U.esc(m.nick || p.nick || '회원') + '</span>' : '') +
       '<div class="dbubble">' + U.esc(m.text).replace(/\n/g, '<br>') + '</div>' +
       '<time>' + hhmm(m.createdAt) + '</time>' +
       '</div></div>';
   }
 
+  /* 모집 글 단체방 — 글 정보·참여자·대화가 함께 보입니다 */
+  function groupRoomHtml(state) {
+    var roomId = state.ui.chatRoom;
+    var room = groupThreadOf(state, roomId);
+    var postId = (room && room.postId) || roomId;
+    var post = postOf(state, postId);
+    var title = (room && room.title) || (post ? D.groupTitle(post) : D.MEET.roomLabel);
+    var note = (room && room.note) || (post ? D.groupNote(post) : '');
+    var messages = (room && room.messages) || [];
+    var members = (room && room.members) || [];
+    var canChat = !!(state.me && state.me.key);
+    var avatars = members.slice(0, 3).map(function (m) {
+      return '<span class="dmhead__av">' + UI.avatar(UI.person(state, m.key), 24) + '</span>';
+    }).join('');
+    return '' +
+      '<header class="dmhead dmhead--room">' +
+      '<button class="iconbtn" data-dm-back aria-label="대화 목록">' + UI.icon('arrow') + '</button>' +
+      '<div class="dmhead__who dmhead__who--group">' +
+      '<span class="dmgroupav dmgroupav--sm" aria-hidden="true">' + UI.icon('users') + '</span>' +
+      '<div><strong>' + U.esc(title) + '</strong>' +
+      '<span>단체방 · ' + (members.length ? members.length + '명 참여' : '아직 대화가 없어요') + '</span></div>' +
+      (avatars ? '<span class="dmhead__avs">' + avatars + '</span>' : '') +
+      '</div></header>' +
+      '<div class="dm__scroll dm__scroll--chat" data-dm-scroll>' +
+      (messages.length
+        ? '<div class="dm__groupnote">' + UI.icon('bolt') + U.esc(note || title) + '</div>' +
+          '<div class="dm__msgs">' + messages.map(function (m) { return messageHtml(m, state, '', true); }).join('') + '</div>'
+        : '<div class="dm__start"><span class="dmgroupav dmgroupav--big" aria-hidden="true">' + UI.icon('users') + '</span>' +
+          '<p class="dm__start-t">' + U.esc(title) + '</p>' +
+          '<p class="dm__start-s">' + (note ? U.esc(note) + '<br>' : '') + '첫 인사를 남기면 참여자로 함께 보여요.</p></div>') +
+      '</div>' +
+      (canChat
+        ? '<form class="dm__composer" data-dm-form>' +
+          '<input type="text" autocomplete="off" enterkeyhint="send" maxlength="300" data-dm-input' +
+          ' value="' + U.esc(state.ui.chatDraft || '') + '"' +
+          ' placeholder="참여 인사를 남겨 보세요" aria-label="메시지 입력">' +
+          '<button class="btn btn--send" type="submit" aria-label="보내기">' + UI.icon('send') + '</button>' +
+          '</form>'
+        : '<div class="dm__locked">' + UI.icon('clock') + '로그인하면 단체방에서 대화할 수 있어요</div>');
+  }
+
   function roomHtml(state) {
     var roomId = state.ui.chatRoom;
+    if (roomId && D.isGroupRoom(state.data.idx, roomId)) return groupRoomHtml(state);
     var room = findThread(state, roomId);
     var other = (room && room.other) || state.ui.chatOther || '';
     var p = UI.person(state, other);
@@ -174,6 +255,33 @@
         ev.preventDefault();
         var key = prof.getAttribute('data-dm-profile');
         if (key && BM.views.profile) BM.views.profile.open(key, ctx);
+        return;
+      }
+      /* 받은 매칭 요청(편지지) — 여기서 바로 수락/거절 */
+      var mAccept = ev.target.closest('[data-accept]');
+      if (mAccept) {
+        ev.preventDefault();
+        var mres = ctx.actions.respondMatch(mAccept.getAttribute('data-accept'), '수락');
+        if (!mres || !mres.ok) { UI.toast(mres && mres.reason === 'done' ? '이미 처리한 요청이에요' : '처리하지 못했어요', 'error'); return; }
+        UI.haptic(12);
+        if (mres.short > 0) UI.toast('수락했어요 · 보낸 분 하트가 ' + mres.charged + '개뿐이라 ' + mres.charged + '개만 차감했어요.');
+        else if (mres.charged > 0) UI.toast('수락했어요 · 보낸 분 하트 ' + mres.charged + '개 차감');
+        else UI.toast('수락했어요. 대화를 시작해 보세요.');
+        if (mres.roomId) ctx.actions.openChat(mres.roomId, mAccept.getAttribute('data-from') || '');
+        return;
+      }
+      var mDecline = ev.target.closest('[data-decline]');
+      if (mDecline) {
+        ev.preventDefault();
+        var dres = ctx.actions.respondMatch(mDecline.getAttribute('data-decline'), '거절');
+        UI.toast(dres && dres.ok ? '요청을 거절했어요' : '처리하지 못했어요');
+        return;
+      }
+      var openProf = ev.target.closest('[data-open-profile]');
+      if (openProf) {
+        ev.preventDefault();
+        var okey = openProf.getAttribute('data-open-profile');
+        if (okey && BM.views.profile) BM.views.profile.open(okey, ctx);
         return;
       }
       var accept = ev.target.closest('[data-req-accept]');

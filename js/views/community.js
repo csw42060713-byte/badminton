@@ -74,25 +74,27 @@
 
   /* ---------- 번개 모집 ----------
    * 글 위에 일시·장소·인원을 스포츠 앱처럼 한 카드로 묶고,
-   * 작성자에게 바로 이어지는 `참여 문의` 버튼을 둡니다. */
+   * `참여 문의`는 작성자 1:1 DM이 아니라 이 글 전용 단체방을 엽니다. */
   function meetCard(p, state) {
     var m = p.meet;
     var me = (state.me && state.me.key) || '';
     var mine = !!me && p.userKey === me;
+    var joined = (state.data.threads || []).some(function (t) {
+      return t.kind === 'group' && String(t.roomId) === String(p.id);
+    });
     return '<div class="vite">' +
       '<div class="vite__info">' +
-      '<p class="vite__t">' + UI.icon('bolt') + '번개 모집' +
+      '<p class="vite__t">' + UI.icon('bolt') + U.esc(D.MEET.cardLabel) +
       (m.cap ? '<b>' + U.esc(m.cap) + '명</b>' : '') + '</p>' +
       '<p class="vite__row">' + UI.icon('clock') + '<span>' + U.esc(m.when || '일시는 문의해서 정해요') + '</span></p>' +
       '<p class="vite__row">' + UI.icon('pin') + '<span>' + U.esc(m.place || '장소는 문의해서 정해요') + '</span></p>' +
       '</div>' +
-      (mine
-        ? '<span class="vite__own">내가 올린 번개</span>'
-        : (p.userKey
-          ? '<button type="button" class="btn btn--primary btn--sm vite__btn" data-vite-dm="' + U.esc(p.userKey) + '"' +
-            ' data-vite-post="' + U.esc(p.id) + '" aria-label="' + U.esc(p.nick) + '님께 번개 참여 문의">' +
-            UI.icon('send') + '<span>참여 문의</span></button>'
-          : '')) +
+      (p.userKey
+        ? '<button type="button" class="btn btn--primary btn--sm vite__btn" data-vite-group="' + U.esc(p.id) + '"' +
+          ' aria-label="' + U.esc(p.nick) + '님 글의 ' + U.esc(D.MEET.roomLabel) + ' 열기">' +
+          UI.icon('users') + '<span>' + U.esc(mine ? D.MEET.openLabel : D.MEET.joinLabel) + '</span>' +
+          (joined ? '<i class="vite__dot" aria-hidden="true"></i>' : '') + '</button>'
+        : '') +
       '</div>';
   }
 
@@ -100,15 +102,15 @@
   function inquiryDraft(post) {
     var when = post && post.meet && post.meet.when ? String(post.meet.when) : '';
     if (when.length > 16) when = '';
-    return '번개 참여하고 싶어요!' + (when ? ' (' + when + ')' : '');
+    return D.MEET.topic + ' 참여하고 싶어요!' + (when ? ' (' + when + ')' : '');
   }
 
   /* 말머리가 '번개'일 때만 보이는 선택 입력칸 (전부 비워 두어도 그냥 글이 됩니다) */
   function meetFields(picked, state) {
     var m = (state.ui && state.ui.composerMeet) || {};
-    var on = picked === '번개';
+    var on = picked === D.MEET.topic;
     return '<div class="viteform" data-viteform' + (on ? '' : ' hidden') + '>' +
-      '<p class="viteform__t">' + UI.icon('bolt') + '번개 모집 정보 <small>비워 두어도 올라가요</small></p>' +
+      '<p class="viteform__t">' + UI.icon('bolt') + U.esc(D.MEET.cardLabel) + ' <small>비워 두어도 올라가요</small></p>' +
       '<div class="viteform__grid">' +
       '<label class="viteform__f"><span>언제</span>' +
       '<input type="text" maxlength="30" data-vitefield="when" enterkeyhint="next" placeholder="11/21(금) 19:00" value="' + U.esc(m.when || '') + '"></label>' +
@@ -216,7 +218,7 @@
           });
           /* 번개일 때만 모집 입력칸을 보여 줍니다 (입력칸 포커스는 건드리지 않음) */
           var vf = root.querySelector('[data-viteform]');
-          if (vf) vf.hidden = tag !== '번개';
+          if (vf) vf.hidden = tag !== D.MEET.topic;
           UI.haptic(6);
           return;
         }
@@ -244,30 +246,22 @@
           if (key && BM.views.profile) BM.views.profile.open(key, ctx);
           return;
         }
-        /* 번개 참여 문의 — 친구·매칭·코치면 바로 1:1 대화를 열고 문구를 미리 채움,
-         * 아니면 프로필 시트(친구 추가)로 이어 줍니다. */
-        var vite = ev.target.closest('[data-vite-dm]');
+        /* 모집 글의 참여 문의 — 작성자 1:1 DM이 아니라 글 전용 단체방을 엽니다.
+         * (내가 쓴 글이어도 같은 방을 열어 대화를 이어 갑니다.) */
+        var vite = ev.target.closest('[data-vite-group]');
         if (vite) {
           ev.preventDefault();
-          var vkey = vite.getAttribute('data-vite-dm');
           var vst = ctx.store.state;
           var meKey = (vst.me && vst.me.key) || '';
-          if (!vkey || vkey === meKey) { UI.toast('내가 올린 번개예요'); return; }
-          var postId = vite.getAttribute('data-vite-post');
-          var post = (vst.data.posts || []).filter(function (x) { return x.id === postId; })[0];
-          if (D.canChatWith(vst.data.idx, meKey, vkey)) {
-            var roomId = BM.views.profile.roomFor(vst, vkey);
-            if (!roomId && D.coachChatAllowed(vst.data.idx, meKey, vkey)) roomId = D.coachRoomId(meKey, vkey);
-            if (roomId) {
-              var draft = inquiryDraft(post);
-              ctx.actions.openChat(roomId, vkey, draft);
-              ctx.actions.markChatRead(roomId, vkey);
-              UI.haptic(8);
-              return;
-            }
-          }
-          BM.views.profile.open(vkey, ctx);
-          UI.toast('친구가 되면 1:1 대화로 이어져요');
+          if (!meKey) { UI.toast('로그인하면 단체방에서 참여 대화를 할 수 있어요', 'error'); return; }
+          var gid = vite.getAttribute('data-vite-group');
+          var gpost = (vst.data.posts || []).filter(function (x) { return String(x.id) === String(gid); })[0] || null;
+          /* 내가 올린 번개면 인사 문구를 미리 채우지 않습니다 (방장 인사) */
+          var mine = !!(gpost && gpost.userKey === meKey);
+          var res = ctx.actions.openGroupChat(gid, mine ? '' : inquiryDraft(gpost));
+          if (!res || !res.ok) { UI.toast('이 글의 단체방을 찾지 못했어요', 'error'); return; }
+          ctx.actions.markChatRead(res.roomId, '');
+          UI.haptic(8);
           return;
         }
         var like = ev.target.closest('[data-like]');
@@ -332,7 +326,7 @@
               topicFilter = '전체';
               paintTopicFilter(root, ctx.store.state);
             }
-            UI.toast(res.meet ? '번개 모집을 올렸어요' : '글을 올렸어요'); UI.haptic(10);
+            UI.toast(res.meet ? D.MEET.cardLabel + '을 올렸어요' : '글을 올렸어요'); UI.haptic(10);
           }
           else if (res.reason === 'empty') UI.toast('내용을 입력해 주세요');
           else if (res.reason === 'locked') UI.toast('잠시만요, 올리는 중이에요');
@@ -389,7 +383,7 @@
       }
       /* 모집 입력칸은 말머리를 따라갑니다 (값은 입력칸이 그대로 들고 있음) */
       var viteHost = root.querySelector('[data-viteform]');
-      if (viteHost) viteHost.hidden = pickTag !== '번개';
+      if (viteHost) viteHost.hidden = pickTag !== D.MEET.topic;
       region.innerHTML = postsHtml(state);
       if (keep) {
         var again = region.querySelector('[data-reply-input="' + keep.pid + '"]');

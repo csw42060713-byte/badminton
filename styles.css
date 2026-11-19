@@ -2667,3 +2667,116 @@ summary { display: list-item; }
 .vite__row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vite__btn { flex: 0 0 auto; }
 .vite__own { flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--muted); }
+
+/* ============================================================
+ * 1:1 매칭 편지지 · 단체방 (2026-11-19, bm-v1.12.0)
+ *  - 받은 매칭 요청: 보낸 사람의 급수·한마디·수락/거절이 한 장에 담긴 카드
+ *  - 모집 글 단체방: 글마다 하나인 방 (방장·참여자 수 배지)
+ * ============================================================ */
+.letters { display: grid; gap: 10px; margin-top: 6px; }
+.letter {
+  position: relative;
+  padding: 14px 14px 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 6%, transparent), transparent 46%),
+    var(--card-2);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  cursor: pointer;
+}
+.letter::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 25%, transparent));
+}
+.letter__top { display: flex; align-items: center; gap: 11px; }
+.letter__av { flex: none; }
+.letter__who { flex: 1; min-width: 0; }
+.letter__name {
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  font-size: 14.5px; font-weight: 800; letter-spacing: -0.3px;
+}
+.letter__meta {
+  margin-top: 3px; font-size: 11.5px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.letter__stamp {
+  flex: none; align-self: flex-start;
+  padding: 3px 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.1px;
+  color: var(--accent); background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+}
+.letter__note {
+  margin-top: 11px; padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  border: 1px solid var(--line);
+  font-size: 13px; line-height: 1.5; color: var(--text);
+  word-break: break-word;
+}
+.letter__note--empty { color: var(--muted); }
+.letter__rule {
+  display: flex; align-items: flex-start; gap: 5px;
+  margin-top: 9px; font-size: 11px; line-height: 1.45; color: var(--muted);
+}
+.letter__rule .ico { flex: none; width: 13px; height: 13px; margin-top: 1px; color: var(--accent); }
+.letter__acts { display: flex; gap: 8px; margin-top: 12px; }
+.letter__acts .btn { flex: 1; min-height: 38px; }
+
+/* 상단 채팅 패널 안에서는 한 단계 작게 */
+.letter--compact { padding: 12px 12px 11px 14px; border-radius: 16px; }
+.letter--compact .letter__name { font-size: 13.5px; }
+.letter--compact .letter__note { margin-top: 9px; padding: 8px 10px; font-size: 12.5px; }
+.letter--compact .letter__acts { margin-top: 10px; }
+.letter--compact .letter__acts .btn { min-height: 34px; }
+.letter--compact .letter__rule { font-size: 10.5px; }
+.dmletters { display: grid; gap: 8px; }
+
+.pp__note--info {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--text-2);
+}
+.pp__note--info .ico { color: var(--accent); }
+.pp__quote {
+  margin-top: 10px; padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  border: 1px solid var(--line);
+  font-size: 13px; line-height: 1.5; color: var(--text);
+}
+
+/* 단체방 */
+.dmgroupav {
+  flex: none; display: grid; place-items: center;
+  width: 48px; height: 48px; border-radius: 16px;
+  background: var(--accent-soft); color: var(--accent);
+  border: 1px solid var(--accent-line);
+}
+.dmgroupav .ico { width: 22px; height: 22px; }
+.dmgroupav--sm { width: 34px; height: 34px; border-radius: 12px; }
+.dmgroupav--sm .ico { width: 17px; height: 17px; }
+.dmgroupav--big { width: 62px; height: 62px; border-radius: 20px; margin-bottom: 8px; }
+.dmgroupav--big .ico { width: 27px; height: 27px; }
+.dmroom__n { font-size: 11px; font-weight: 700; color: var(--muted); }
+.dmhead__avs { display: flex; align-items: center; flex: none; }
+.dmhead__av { display: block; margin-left: -8px; border-radius: 999px; box-shadow: 0 0 0 2px var(--bg); }
+.dmhead__av:first-child { margin-left: 0; }
+.dmhead__who--group { cursor: default; }
+.dmsg__nick { margin: 0 0 2px 2px; font-size: 10.5px; font-weight: 800; color: var(--muted); }
+.dm__groupnote {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  align-self: center; max-width: 100%;
+  margin: 0 auto 12px; padding: 6px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid var(--line);
+  font-size: 11.5px; font-weight: 700; color: var(--text-2);
+}
+.dm__groupnote .ico { flex: none; width: 13px; height: 13px; color: var(--accent); }
+.vite__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; opacity: 0.75;
+}

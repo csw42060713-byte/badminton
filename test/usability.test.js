@@ -154,7 +154,7 @@
     var html = BM.views.matching.render(state);
     checkHtml(html, '매칭 목록');
     includes(html, 'pcard__cost', '카드의 하트 안내');
-    includes(html, '신청 하트 2개', '비용');
+    includes(html, '수락 시 하트 2개 차감', '수락할 때 차감되는 비용');
     ok(html.indexOf('pcard__cost') < html.indexOf('프로필 보고 요청하기'), '버튼보다 먼저 읽힘');
   });
 
@@ -164,7 +164,7 @@
     var body = BM.views.matching.profileBody(state, target);
     checkHtml(body, '프로필 시트');
     includes(body, 'pp__cost pp__cost--top', '상단 하트 안내');
-    includes(body, '매칭 신청에 하트', '문구');
+    includes(body, '매칭 요청 · <b>수락 시 하트 2개 차감</b>', '수락 시 차감 문구');
     ok(body.indexOf('pp__cost pp__cost--top') < body.indexOf('pp__spec'), '스펙 표보다 위');
     ok(body.indexOf('pp__cost pp__cost--top') < body.indexOf('data-send-request'), '요청 버튼보다 위');
   });

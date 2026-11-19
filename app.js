@@ -80,7 +80,11 @@
     var chatBtn = el('hdrChat');
     if (chatBtn) {
       var chatBadge = el('hdrChatBadge');
-      var total = (state.data.unread || 0) + ((state.data.friendRequests || []).length);
+      var meNow = state.me && state.me.key;
+      var pendingMatch = (state.data.requests || []).filter(function (r) {
+        return r.target === meNow && r.status === '대기';
+      }).length;
+      var total = (state.data.unread || 0) + ((state.data.friendRequests || []).length) + pendingMatch;
       if (chatBadge) {
         chatBadge.textContent = total > 9 ? '9+' : String(total);
         chatBadge.hidden = !total;
@@ -675,7 +679,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.11.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.12.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

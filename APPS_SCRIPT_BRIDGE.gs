@@ -778,7 +778,10 @@ function adminEmails_() {
   return list;
 }
 
-/* 하트 잔액 = 기본 + 적립(출석·광고·합치기·선물받음) - 사용(매칭·테마·선물보냄) */
+/* 하트 잔액 = 기본 + 적립(출석·광고·합치기·선물받음) - 사용(매칭·테마·선물보냄)
+ *  · 1:1 매칭은 v1.12.0부터 '상대가 수락할 때' 보낸 사람 하트가 빠집니다.
+ *    요청 행(매칭신청)에 payOn:'accept' 로 적혀 있으면 수락 상태일 때 차감합니다.
+ *    (예전 요청은 보낼 때 낸 '내하트사용' 행이 있어 그대로 둡니다 — 두 번 차감 방지) */
 function heartBalance_(userKey) {
   var data = readRows_();
   var earned = 0, spent = 0;
@@ -796,6 +799,16 @@ function heartBalance_(userKey) {
       else if (uid === userKey) spent += likes;
     }
     if (t === '내하트사용' && uid === userKey) spent += likes;
+    if (t === '매칭신청' && uid === userKey) {
+      var pl = null;
+      try { pl = JSON.parse(c[COL['소셜글']] || '{}'); } catch (e) { pl = null; }
+      if (pl && pl.payOn === 'accept' && c[COL['승패']] === '수락') {
+        var cost = parseInt(pl.heartCost, 10) || CONFIG.MATCH_HEART_COST;
+        var charged = (pl.charged == null) ? cost : parseInt(pl.charged, 10);
+        if (isNaN(charged)) charged = cost;
+        spent += Math.max(0, Math.min(cost, charged));
+      }
+    }
     if (t === '꾸미기구매' && uid === userKey) {
       var price = parseInt(c[COL['좋아요']] || '', 10);
       if (isNaN(price)) price = CONFIG.THEME_PRICES[target] || 0;
