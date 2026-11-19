@@ -1654,6 +1654,7 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 .swatch--th_sakura .theme__dot { background: linear-gradient(135deg, #ffffff, #e83e8c); }
 .theme__name { font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px; }
 .theme__hint { font-size: 10.5px; color: var(--muted); }
+.theme__lock { justify-self: start; margin-top: 3px; font-size: 10px; }
 .sync { margin-top: 12px; font-size: 11px; color: var(--muted); }
 .version { text-align: center; font-size: 11px; color: var(--muted); padding: 10px 0 4px; }
 

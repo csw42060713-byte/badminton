@@ -348,15 +348,6 @@
           UI.haptic(6);
           return;
         }
-        var seg = ev.target.closest('[data-segval]');
-        if (seg) {
-          ev.preventDefault();
-          UI.$$('.seg__btn', seg.parentNode).forEach(function (b) { b.classList.remove('is-on'); });
-          seg.classList.add('is-on');
-          ctx.actions.setDraft({ result: seg.getAttribute('data-segval') });
-          UI.haptic(6);
-          return;
-        }
         if (ev.target.closest('[data-act="save-log"]')) {
           ev.preventDefault();
           ctx.saveLog(ev.target.closest('[data-act="save-log"]'));

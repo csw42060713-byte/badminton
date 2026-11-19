@@ -347,4 +347,45 @@
     includes(auth, 'hash: hash', '저장은 해시 값으로');
     excludes(auth, 'hash: password', '평문 저장 없음');
   });
+
+  /* =========================================================
+   * 5. 화면 회귀 — 2026-11-19 14:00 오류 점검에서 고친 것들
+   * ========================================================= */
+  test('DM: 로그아웃 후 다시 로그인해도 최신 ctx로 동작한다', function () {
+    var chat = readRepo('js/views/chat.js');
+    includes(chat, 'host.__dmCtx = ctx', '다시 bind할 때 현재 ctx를 기억');
+    includes(chat, 'ctx = host.__dmCtx || ctx', '이벤트는 기억한 ctx를 사용');
+  });
+
+  test('MY: 테마는 저장에 성공했을 때만 적용하고 실패를 알린다', function () {
+    var my = readRepo('js/views/my.js');
+    includes(my, 'function pickTheme(ctx, id)', '테마 선택 전용 함수');
+    includes(my, "res.reason === 'hearts'", '하트 부족 안내');
+    excludes(my, "document.documentElement.setAttribute('data-theme'", '테마 적용은 paintChrome이 맡는다');
+    excludes(my, "ctx.actions.setTheme(id);\n          UI.toast('테마를 적용했어요')", '결과를 보지 않고 성공 토스트를 띄우지 않음');
+    includes(my, 'theme__lock', '테마 가격 표시');
+  });
+
+  test('MY: 다시 그려도 보던 스크롤 위치를 지킨다', function () {
+    var app = readRepo('app.js');
+    includes(app, 'function repaint()', 'repaint');
+    includes(app, 'window.scrollTo(0, y)', '스크롤 복원');
+  });
+
+  test('UI: 이벤트 처리 블록이 중복되지 않는다 (일지 결과 버튼)', function () {
+    var log = readRepo('js/views/log.js');
+    var n = (log.match(/var seg = ev\.target\.closest\('\[data-segval\]'\)/g) || []).length;
+    eq(n, 1, 'data-segval 처리 블록은 하나');
+  });
+
+  test('UI: 구글 로그인·온보딩 버튼은 연타를 막는다', function () {
+    var start = readRepo('js/views/start.js');
+    includes(start, "if (act.dataset.busy === '1') return", '구글 로그인 연타 방지');
+    includes(start, 'if (ui.busy) return;', '온보딩 시작하기 연타 방지');
+  });
+
+  test('UX: 아이콘만 있는 답글 전송 버튼에 이름이 있다', function () {
+    var community = readRepo('js/views/community.js');
+    includes(community, 'aria-label="답글 보내기"', '스크린리더용 이름');
+  });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
