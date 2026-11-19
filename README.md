@@ -169,7 +169,7 @@ badminton-app/
 ├─ test/
 │  ├─ run.js             node 실행기 (브라우저 없이 로직 검증)
 │  ├─ harness.js         아주 작은 테스트 도구
-│  ├─ logic.test.js      96개 테스트 (시트 호환·AI·하트·급수·검색·꾸미기·저장·화면·계정)
+│  ├─ logic.test.js      테스트 (§7 참고) (시트 호환·AI·하트·급수·검색·꾸미기·저장·화면·계정)
 │  ├─ account.test.js    계정 삭제·개인정보처리방침 테스트 (브리지 .gs를 가짜 Google 환경에서 실행)
 │  └─ fixtures.js        테스트 전용 예시 데이터 (앱 번들에는 포함되지 않음)
 └─ README.md

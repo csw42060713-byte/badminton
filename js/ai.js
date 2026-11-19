@@ -845,7 +845,6 @@
     var games = BM.domain.cleanGames(draft.games);
     var gsum = BM.domain.gamesSummary(games);
     var flow = gameFlow(draft.games, draft.gameMode, discipline);
-    var load = loadIndex(records.filter(function (r) { return r.date !== today; }), draft);
     var todayEntry = {
       date: today,
       cond: draft.cond, intensity: draft.intensity, minutes: draft.minutes,
@@ -854,6 +853,8 @@
       pain: draft.pain || [], weakness: draft.weakness || [], userKey: draft.userKey
     };
     var history = records.filter(function (r) { return r.date !== today || r.cond !== draft.cond; });
+    /* 부하 점검도 같은 일지(오늘·같은 컨디션)를 두 번 세지 않는 기록으로 계산합니다 */
+    var load = loadIndex(history, draft);
     var window14 = recentWindow(history, 14);
     var window30 = recentWindow(history, 30);
 
