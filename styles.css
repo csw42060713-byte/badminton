@@ -682,6 +682,7 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 .empty .ico { width: 30px; height: 30px; margin: 0 auto 10px; color: color-mix(in srgb, var(--muted) 60%, transparent); }
 .empty__t { font-weight: 800; color: var(--text-2); font-size: 13.5px; }
 .empty__s { font-size: 12px; margin-top: 4px; line-height: 1.6; }
+.empty__acts { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 14px; }
 
 .skeleton { display: grid; gap: 12px; }
 .sk {

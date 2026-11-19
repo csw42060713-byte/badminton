@@ -48,6 +48,37 @@
       '</article>';
   }
 
+  /* ---------- 빈 화면 ----------
+   * 첫 방문에 빈 화면만 보이지 않도록, 아직 공유하지 않은 최근 일지를
+   * 한 번에 올리는 버튼을 둡니다. 올릴 일지가 없으면 일지 쓰기로 보냅니다. */
+  function shareableRecord(state) {
+    var me = (state.me && state.me.key) || '';
+    var shared = {};
+    ((state.idx && state.idx.byType && state.idx.byType['소셜']) || []).forEach(function (p) {
+      if (p.userKey === me && p.target) shared[String(p.target)] = true;
+    });
+    var recs = state.data.records || [];
+    for (var i = 0; i < recs.length; i++) {
+      var r = recs[i];
+      if (r && r.id && !shared[String(r.id)]) return r;
+    }
+    return null;
+  }
+
+  function emptyBlock(state) {
+    var rec = shareableRecord(state);
+    var action = '<div class="empty__acts">' +
+      (rec
+        ? '<button type="button" class="btn btn--primary btn--sm" data-act="share-last">' +
+          UI.icon('send') + U.shortDay(rec.date) + ' 기록 그대로 공유</button>' +
+          '<button type="button" class="linkbtn" data-act="write-log">새 일지 쓰기</button>'
+        : '<button type="button" class="btn btn--primary btn--sm" data-act="write-log">' +
+          UI.icon('edit') + '일지 쓰고 공유하기</button>') +
+      '</div>';
+    return UI.emptyState('community', '아직 글이 없어요',
+      rec ? '지난 훈련 기록이 그대로 첫 글이 돼요.' : '오늘 훈련을 남기면 첫 글이 돼요.', action);
+  }
+
   var view = {
     title: '커뮤니티',
     render: function (state) {
@@ -66,7 +97,7 @@
         '</div>' +
         '<section class="card card--flush" data-region="posts">' +
         (posts.length ? posts.map(function (p) { return postCard(p, state); }).join('')
-          : UI.emptyState('community', '아직 글이 없어요', '첫 글을 남겨 보세요.')) +
+          : emptyBlock(state)) +
         '</section>';
     },
 
@@ -105,6 +136,24 @@
           ev.preventDefault();
           sortMode = sortBtn.getAttribute('data-sortval');
           ctx.refresh();
+          return;
+        }
+        /* 빈 화면 — 지난 기록 원탭 공유 / 일지 쓰기 */
+        if (ev.target.closest('[data-act="share-last"]')) {
+          ev.preventDefault();
+          var rec = shareableRecord(ctx.store.state);
+          if (!rec) { ctx.actions.setTab('log'); return; }
+          var shared = ctx.actions.shareLogToCommunity(rec.id);
+          if (shared.ok) { UI.toast('지난 기록을 공유했어요'); UI.haptic(10); }
+          else if (shared.reason === 'already') UI.toast('이미 공유한 기록이에요');
+          else if (shared.reason === 'no_login') UI.toast('로그인하면 커뮤니티에 공유할 수 있어요');
+          else if (shared.reason === 'locked') UI.toast('잠시만요, 올리는 중이에요');
+          else UI.toast('공유할 기록이 없어요');
+          return;
+        }
+        if (ev.target.closest('[data-act="write-log"]')) {
+          ev.preventDefault();
+          ctx.actions.setTab('log');
           return;
         }
         if (ev.target.closest('[data-act="post"]')) {
@@ -154,7 +203,7 @@
       var posts = (state.data.posts || []).slice();
       if (sortMode === 'hot') posts.sort(function (a, b) { return (b.likes + b.replies.length) - (a.likes + a.replies.length); });
       region.innerHTML = posts.length ? posts.map(function (p) { return postCard(p, state); }).join('')
-        : UI.emptyState('community', '아직 글이 없어요', '첫 글을 남겨 보세요.');
+        : emptyBlock(state);
       if (keep) {
         var again = region.querySelector('[data-reply-input="' + keep.pid + '"]');
         if (again) {

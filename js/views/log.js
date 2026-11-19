@@ -122,7 +122,6 @@
       '<section class="card card--ai" data-region="analysis">' +
       '<header class="card__head">' +
       '<div class="ai-badge">' + UI.icon('spark') + '배드민턴 AI</div>' +
-      '<button class="linkbtn" data-act="show-json">시트 형식</button>' +
       '</header>' +
       '<div class="ai-top">' + scoreRing(an.score) +
       '<div class="ai-top__text"><p class="ai-headline">' + U.esc(an.headline) + '</p>' +
@@ -402,17 +401,6 @@
         if (ev.target.closest('[data-act="save-log"]')) {
           ev.preventDefault();
           ctx.saveLog(ev.target.closest('[data-act="save-log"]'));
-          return;
-        }
-        if (ev.target.closest('[data-act="show-json"]')) {
-          ev.preventDefault();
-          var an = ctx.store.state.analysis;
-          if (!an) return;
-          UI.openSheet({
-            title: '시트에 저장되는 형태',
-            body: '<p class="sheet__text">기존 시트의 <b>추천드릴</b>·<b>맞춤처방</b> 칸과 같은 JSON입니다.</p>' +
-              '<pre class="code">' + U.esc(JSON.stringify(an.sheetPatch, null, 2)) + '</pre>'
-          });
           return;
         }
       });
