@@ -99,12 +99,28 @@
     }
   }
 
+  /* ---------- 안드로이드 뒤로 가기 ----------
+   * 채팅(DM)을 열면 기록을 하나 쌓아 두고, 뒤로 가기를 누르면 앱을 닫지 않고
+   * 채팅만 닫습니다(설치형 앱과 같은 동작). */
+  var dmHist = false;
+  function dmPushHistory() {
+    if (dmHist) return;
+    dmHist = true;
+    try { history.pushState({ bmDm: 1 }, ''); } catch (e) { /* 무시 */ }
+  }
+  function dmPopHistory() {
+    if (!dmHist) return;
+    dmHist = false;
+    try { history.back(); } catch (e) { /* 무시 */ }
+  }
+
   /* ---------- 1:1 채팅(DM) 패널 ---------- */
   function paintDm(state) {
     var host = el('dm');
     if (!host) return;
     var open = !!(state.ui && state.ui.chatOpen && state.ready && !gated);
     if (!open) {
+      dmPopHistory();
       if (!host.hidden) {
         host.hidden = true;
         host.innerHTML = '';
@@ -119,6 +135,7 @@
       keep = { value: active.value, pos: active.selectionStart };
     }
     host.hidden = false;
+    dmPushHistory();
     BM.views.chat.bind(host, ctx);
     BM.views.chat.render(host, state);
     host.dataset.sig = state.ui.chatRoom ? 'room:' + state.ui.chatRoom : 'list';
@@ -628,6 +645,14 @@
       else store.actions.openChats();
     });
 
+    /* 안드로이드 뒤로 가기: 채팅이 열려 있으면 채팅만 닫습니다 */
+    window.addEventListener('popstate', function () {
+      if (store && store.state.ui.chatOpen) {
+        dmHist = false;
+        store.actions.closeChats();
+      }
+    });
+
     window.addEventListener('hashchange', function () {
       if (!store || gated) return;
       var id = (location.hash || '').replace('#/', '');
@@ -646,7 +671,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.9.4' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.9.5' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);
