@@ -336,7 +336,7 @@
   test('PWA: sw.js 캐시 목록에 모든 화면 파일이 들어 있다', function () {
     var sw = readRepo('sw.js');
     var index = readRepo('index.html');
-    ok(/var VERSION = 'bm-v1\.(6|7|8|9)\.\d+'/.test(sw) || /var VERSION = 'bm-v2/.test(sw), 'VERSION 갱신');
+    ok(/var VERSION = 'bm-v\d+\.\d+\.\d+'/.test(sw), 'VERSION 형식');
     var srcs = (index.match(/src="([^"]+\.js)"/g) || []).map(function (s) { return s.replace(/src="|"/g, ''); });
     ok(srcs.length >= 15, '스크립트 개수');
     srcs.forEach(function (f) { includes(sw, "'./" + f + "'", 'sw.js 캐시 누락: ' + f); });

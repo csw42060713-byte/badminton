@@ -12,10 +12,11 @@ const vm = require('vm');
 
 const root = path.join(__dirname, '..');
 const files = [
-  'js/util.js', 'js/domain.js', 'js/ai.js', 'js/seed.js', 'js/api.js',
+  'js/util.js', 'js/domain.js', 'js/routine.js', 'js/ai.js', 'js/seed.js', 'js/api.js',
   'js/auth.js', 'js/store.js', 'js/ui.js', 'js/ads.js', 'js/views/profile.js', 'js/views/chat.js', 'js/views/log.js', 'js/views/matching.js',
   'js/views/community.js', 'js/views/coach.js', 'js/views/my.js', 'js/views/start.js',
-  'test/harness.js', 'test/fixtures.js', 'test/logic.test.js', 'test/account.test.js', 'test/release.test.js', 'test/usability.test.js'
+  'test/harness.js', 'test/fixtures.js', 'test/logic.test.js', 'test/account.test.js', 'test/release.test.js', 'test/usability.test.js',
+  'test/routine.test.js'
 ];
 
 const sandbox = {

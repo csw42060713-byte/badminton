@@ -2489,3 +2489,92 @@ summary { display: list-item; }
 .topicpick { margin-top: 8px; }
 .topicbar { margin: 12px 0 4px; }
 .post__topic { margin-left: auto; }
+
+/* ============================================================
+ * 초보자 4주 루틴 체크리스트 (2026-11-19, bm-v1.10.0)
+ *  - 일지 & AI 히어로 카드 아래. 라켓을 처음 잡는 사람도 바로 따라 하게.
+ * ============================================================ */
+.rtn__sub { margin-top: 6px; font-size: 12px; line-height: 1.55; color: var(--muted); }
+.rtn__overall { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.rtn__bar {
+  flex: 1; height: 8px; border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+.rtn__bar i {
+  display: block; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  transition: width 220ms ease;
+}
+.rtn__num { flex: 0 0 auto; font-size: 11.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rtn__num b { font-size: 14px; color: var(--accent); }
+
+.rtn__weeks {
+  display: flex; gap: 6px; margin: 12px -2px 0; padding: 2px;
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.rtn__weeks::-webkit-scrollbar { display: none; }
+.rtn__wk {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+  min-height: 34px; padding: 0 11px; border-radius: 999px;
+  border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 3%, transparent);
+  color: var(--text-2); font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.rtn__wk i { font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rtn__wk b { color: var(--good); font-size: 11px; }
+.rtn__wk.is-on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--text); }
+.rtn__wk.is-on i { color: var(--accent); }
+
+.rtn__week { margin-top: 14px; }
+.rtn__goal { display: flex; flex-direction: column; gap: 3px; }
+.rtn__goal b { font-size: 13.5px; letter-spacing: -0.2px; }
+.rtn__goal span { font-size: 11.5px; color: var(--muted); }
+.rtn__wkgoal { margin-top: 5px; font-size: 12px; line-height: 1.5; color: var(--text-2); }
+
+.rtn__list { display: grid; gap: 8px; margin-top: 10px; }
+.rtn__item {
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--text) 2.5%, transparent);
+}
+.rtn__item.is-done {
+  border-color: color-mix(in srgb, var(--good) 30%, transparent);
+  background: color-mix(in srgb, var(--good) 7%, transparent);
+}
+.rtn__lab { display: flex; align-items: flex-start; gap: 10px; padding: 11px 12px; cursor: pointer; }
+.rtn__lab input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none;
+  flex: 0 0 auto; width: 22px; height: 22px; margin: 1px 0 0; padding: 0;
+  position: relative; border: 1.5px solid var(--line-2); border-radius: 7px;
+  background: transparent; cursor: pointer; transition: background 140ms ease, border-color 140ms ease;
+}
+.rtn__lab input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+.rtn__lab input[type="checkbox"]:checked::after {
+  content: ''; position: absolute; left: 7px; top: 2px; width: 6px; height: 12px;
+  border: solid var(--accent-ink); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.rtn__lab input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+.rtn__text { min-width: 0; display: grid; gap: 3px; }
+.rtn__name { display: flex; align-items: baseline; gap: 6px; font-size: 13.5px; font-weight: 800; letter-spacing: -0.2px; }
+.rtn__name small { flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--muted); }
+.rtn__how { font-size: 12px; line-height: 1.58; color: var(--text-2); }
+.rtn__point { font-size: 11.5px; line-height: 1.5; color: var(--muted); }
+.rtn__point b { margin-right: 5px; font-weight: 800; color: var(--accent-2); }
+.rtn__item.is-done .rtn__name { color: var(--muted); }
+
+.rtn__next {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 12px; padding: 9px 11px; border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  font-size: 12px; font-weight: 700; color: var(--text-2); line-height: 1.45;
+}
+.rtn__next .ico { flex: 0 0 auto; width: 14px; height: 14px; color: var(--accent); }
+.rtn__next.is-done { background: color-mix(in srgb, var(--good) 10%, transparent); }
+.rtn__next.is-done .ico { color: var(--good); }
+
+.rtn__foot { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; }
+.rtn__foot p { flex: 1; font-size: 11.5px; line-height: 1.5; color: var(--muted); }
+.rtn__reset {
+  flex: 0 0 auto; padding: 3px 2px; border: 0; background: none;
+  font-size: 11.5px; font-weight: 700; color: var(--muted);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.rtn__save { margin-top: 8px; font-size: 11px; color: var(--muted); }
