@@ -134,6 +134,8 @@
       idx: D.index([]),
       data: derive([], null),
       drafts: { log: defaultDraft() },
+      /* 초보자 4주 루틴 체크 상태 (기기 저장 · 계정별) */
+      routine: {},
       ui: {
         tab: 'log',
         matchFilter: { level: '전체', gender: '전체', region: '전체', discipline: '전체', query: '' },
@@ -142,6 +144,7 @@
         matchFilterOpen: '',     /* 펼친 필터 줄 (level · region · discipline · gender) */
         chatRoom: null, chatOther: '', chatOpen: false, chatDraft: '',
         coachTab: '', coachPlayer: null, composer: '', composerTopic: '자유', replyTo: null,
+        routineWeek: 0,          /* 초보자 루틴: 보고 있는 주차 (0이면 아직 덜 끝낸 주차) */
         lastSavedLog: null       /* 방금 저장한 일지 → 커뮤니티 원탭 공유 */
       },
       analysis: null,
@@ -176,6 +179,17 @@
         score: null, result: '',
         pain: [], weakness: [], note: ''
       };
+    }
+
+    /* ---------- 초보자 4주 루틴 (기기 저장) ----------
+     * 계정마다 체크 상태를 따로 둡니다. 로그인 계정은 me.key(u_…),
+     * 둘러보기는 demo_me 키를 씁니다. 시트 26칸과는 무관합니다. */
+    function routineScope() {
+      return (state.me && state.me.key) || 'guest';
+    }
+
+    function loadRoutine() {
+      state.routine = BM.routine ? BM.routine.load(routineScope()) : {};
     }
 
     function recompute() {
@@ -368,6 +382,7 @@
           state.me = normalizeMe(res.me);
           state.rows = res.rows || [];
           state.ready = true;
+          loadRoutine();
           state.lastSync = res.syncedAt || U.stamp();
           purgeSamples();
           U.writeJSON(CACHE_KEY, { rows: state.rows, me: state.me, at: state.lastSync });
@@ -383,6 +398,7 @@
             state.me = normalizeMe(cache.me);
             state.rows = cache.rows;
             state.ready = true;
+            loadRoutine();
             state.syncError = (err && err.message) || '오프라인 상태예요.';
             recompute();
             emit();
@@ -394,9 +410,32 @@
       reload: function () { return apiRef.bootstrap().then(function (res) {
         state.me = normalizeMe(res.me);
         state.rows = res.rows || [];
+        loadRoutine();
         recompute();
         emit();
       }); },
+
+      /* 초보자 4주 루틴: 항목 하나 체크/해제 → 기기에 바로 저장 */
+      toggleRoutine: function (id) {
+        if (!BM.routine) return { ok: false };
+        state.routine = BM.routine.toggle(state.routine, id);
+        BM.routine.save(routineScope(), state.routine);
+        emit();
+        return { ok: true, routine: state.routine };
+      },
+
+      resetRoutine: function () {
+        state.routine = {};
+        if (BM.routine) BM.routine.save(routineScope(), state.routine);
+        emit();
+        return { ok: true };
+      },
+
+      setRoutineWeek: function (no) {
+        var n = Number(no);
+        state.ui.routineWeek = n >= 1 && n <= 4 ? n : 0;
+        emit();
+      },
 
       setTab: function (tab) {
         state.ui.tab = tab; emit();

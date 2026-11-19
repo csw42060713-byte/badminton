@@ -11,9 +11,9 @@
  * 새 버전은 설치 즉시 skipWaiting()으로 넘어가고, 화면(app.js)이
  * controllerchange에서 한 번만 새로고침합니다.
  * 파일을 수정하면 VERSION을 올려야 설치된 기기가 새 파일을 받습니다.
- * 2026-11-19: 사용성 점검 5건(점수제·AI 카드·매칭 하트·코치 대화·말머리) 반영.
+ * 2026-11-19: 초보자 4주 루틴 체크리스트(서서 하는 헤어핀·언더 포함) 추가.
  * ============================================================ */
-var VERSION = 'bm-v1.9.9';
+var VERSION = 'bm-v1.10.0';
 var SHELL = [
   './',
   './index.html',
@@ -23,6 +23,7 @@ var SHELL = [
   './manifest.webmanifest',
   './js/util.js',
   './js/domain.js',
+  './js/routine.js',
   './js/ai.js',
   './js/seed.js',
   './js/api.js',

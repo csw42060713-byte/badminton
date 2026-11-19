@@ -222,6 +222,75 @@
       (sum.count ? sum.count + '경기 ' + sum.wins + '승 ' + sum.losses + '패' : '')].filter(Boolean).join(' · ');
   }
 
+  /* ============================================================
+   * 초보자 4주 루틴 체크리스트
+   *  - 라켓을 처음 잡는 사람이 일지 화면 첫머리에서 바로 찾도록 히어로 카드 아래에 둡니다.
+   *  - 체크는 계정별로 기기에 저장됩니다(store.routine).
+   * ============================================================ */
+  function routineSig(state) {
+    var map = (state && state.routine) || {};
+    var done = Object.keys(map).filter(function (k) { return map[k]; }).sort().join(',');
+    return ((state.ui && state.ui.routineWeek) || 0) + '|' + done;
+  }
+
+  function routineCard(state) {
+    var R = BM.routine;
+    if (!R) return '';
+    var map = (state && state.routine) || {};
+    var st = R.stats(map);
+    var picked = (state.ui && state.ui.routineWeek) || 0;
+    var weekNo = picked ? picked : R.currentWeek(map);
+    var week = R.weekOf(weekNo);
+    var ws = R.weekStats(week, map);
+    var next = R.nextItem(map);
+
+    var weekChips = st.weeks.map(function (w) {
+      var on = w.no === weekNo;
+      return '<button type="button" class="rtn__wk' + (on ? ' is-on' : '') + (w.complete ? ' is-done' : '') + '"' +
+        ' data-rtn-week="' + w.no + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        w.no + '주차<i>' + w.done + '/' + w.total + '</i>' +
+        (w.complete ? '<b aria-hidden="true">✓</b>' : '') + '</button>';
+    }).join('');
+
+    var items = week.items.map(function (it) {
+      var done = !!map[it.id];
+      return '<li class="rtn__item' + (done ? ' is-done' : '') + '">' +
+        '<label class="rtn__lab">' +
+        '<input type="checkbox" data-rtn-item="' + it.id + '"' + (done ? ' checked' : '') +
+        ' aria-label="' + U.esc(it.name) + '">' +
+        '<span class="rtn__text">' +
+        '<span class="rtn__name">' + U.esc(it.name) + '<small>' + it.min + '분</small></span>' +
+        '<span class="rtn__how">' + U.esc(it.how) + '</span>' +
+        '<span class="rtn__point"><b>감 잡는 포인트</b>' + U.esc(it.point) + '</span>' +
+        '</span></label></li>';
+    }).join('');
+
+    var nextLine = st.complete
+      ? '<p class="rtn__next is-done">' + UI.icon('check') + '13개 모두 완료했어요. 4주 동안 수고했어요!</p>'
+      : '<p class="rtn__next">' + UI.icon('arrow') + '다음 연습 · ' + next.week + '주차 ' + U.esc(next.name) + '</p>';
+
+    return '<section class="card card--rtn" data-region="routine" data-sig="' + U.esc(routineSig(state)) + '">' +
+      '<header class="card__head"><h2>' + UI.icon('check') + '초보자 4주 루틴</h2>' +
+      '<span class="pill pill--ghost">왕초보</span></header>' +
+      '<p class="rtn__sub">' + U.esc(R.SUB) + '</p>' +
+      '<div class="rtn__overall">' +
+      '<div class="rtn__bar" role="progressbar" aria-label="4주 루틴 전체 달성률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + st.pct + '">' +
+      '<i style="width:' + st.pct + '%"></i></div>' +
+      '<span class="rtn__num"><b>' + st.done + '</b>/' + st.total + ' · ' + st.pct + '%</span></div>' +
+      '<div class="rtn__weeks">' + weekChips + '</div>' +
+      '<div class="rtn__week">' +
+      '<p class="rtn__goal"><b>' + week.no + '주차 · ' + U.esc(week.name) + '</b><span>' + U.esc(ws.pace) + '</span></p>' +
+      '<p class="rtn__wkgoal">이번 주 목표 · ' + U.esc(week.goal) + '</p>' +
+      '<ul class="rtn__list">' + items + '</ul>' +
+      '</div>' +
+      nextLine +
+      '<div class="rtn__foot">' +
+      '<p>' + U.esc(R.GUARD) + '</p>' +
+      '<button type="button" class="rtn__reset" data-act="routine-reset">체크 지우기</button></div>' +
+      '<p class="rtn__save">체크는 이 기기에 저장돼요 · 오늘은 한두 개만 해도 충분해요</p>' +
+      '</section>';
+  }
+
   function recentRow(r) {
     var games = (r.games && r.games.length) ? r.games : (r.score ? [r.score] : []);
     var win = (r.result || (games.length === 1 ? D.resultFromScore(games[0]) : ''));
@@ -260,6 +329,8 @@
         '<div><span>이번 달</span><strong>' + (stats.minutesMonth || 0) + '<i>분</i></strong></div>' +
         '<div><span>평균 컨디션</span><strong>' + (stats.avgCond == null ? '—' : stats.avgCond) + '</strong></div>' +
         '</div></section>' +
+
+        routineCard(state) +
 
         '<section class="card" data-form="log">' +
         '<header class="card__head"><h2>오늘 일지</h2>' +
@@ -310,6 +381,33 @@
     },
 
     mount: function (root, ctx) {
+      /* 초보자 루틴: 체크 · 주차 이동 · 체크 지우기 (카드가 다시 그려져도 살아 있게 위임) */
+      root.addEventListener('change', function (ev) {
+        var cb = ev.target.closest ? ev.target.closest('[data-rtn-item]') : null;
+        if (!cb || !BM.routine) return;
+        var id = cb.getAttribute('data-rtn-item');
+        var item = null;
+        for (var i = 0; i < BM.routine.ALL_ITEMS.length; i++) {
+          if (BM.routine.ALL_ITEMS[i].id === id) { item = BM.routine.ALL_ITEMS[i]; break; }
+        }
+        if (!item) return;
+        var before = BM.routine.stats(ctx.store.state.routine);
+        ctx.actions.toggleRoutine(id);
+        var after = BM.routine.stats(ctx.store.state.routine);
+        var was = before.weeks[item.week - 1], now = after.weeks[item.week - 1];
+        if (was && now && !was.complete && now.complete) {
+          UI.haptic(14);
+          if (now.no < 4) {
+            UI.toast(now.no + '주차 완료! ' + (now.no + 1) + '주차로 넘어가요');
+            ctx.actions.setRoutineWeek(now.no + 1);
+          } else {
+            UI.toast('4주 루틴 완주! 정말 수고했어요 🎉');
+          }
+        } else {
+          UI.haptic(8);
+        }
+      });
+
       var form = root.querySelector('[data-form="log"]');
       if (!form) return;
 
@@ -438,6 +536,23 @@
       });
 
       root.addEventListener('click', function (ev) {
+        var wk = ev.target.closest('[data-rtn-week]');
+        if (wk) {
+          ev.preventDefault();
+          ctx.actions.setRoutineWeek(+wk.getAttribute('data-rtn-week'));
+          UI.haptic(6);
+          return;
+        }
+        if (ev.target.closest('[data-act="routine-reset"]')) {
+          ev.preventDefault();
+          UI.confirm('체크한 내용을 모두 지울까요?', '지우기').then(function (yes) {
+            if (!yes) return;
+            ctx.actions.resetRoutine();
+            ctx.actions.setRoutineWeek(1);
+            UI.toast('체크를 지웠어요. 1주차부터 다시 시작해요');
+          });
+          return;
+        }
         /* 저장 직후 공유 스트립 (분석 카드 안 · 폼 밖) */
         if (ev.target.closest('[data-act="share-log"]')) {
           ev.preventDefault();
@@ -466,6 +581,14 @@
     },
 
     update: function (root, state) {
+      var rtn = root.querySelector('[data-region="routine"]');
+      var rtnHtml = routineCard(state);
+      if (rtn && rtnHtml) {
+        if (rtn.getAttribute('data-sig') !== routineSig(state)) rtn.outerHTML = rtnHtml;
+      } else if (!rtn && rtnHtml) {
+        var hero = root.querySelector('.card--hero');
+        if (hero) hero.insertAdjacentHTML('afterend', rtnHtml);
+      }
       var anRegion = root.querySelector('[data-region="analysis"]');
       var html = analysisCard(state.analysis, state);
       if (anRegion) {
