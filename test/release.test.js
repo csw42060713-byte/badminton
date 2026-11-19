@@ -224,6 +224,46 @@
     eq(BM.ai.playbook('복식', '초심').tips.length, 2, '초심 전술은 2개');
   });
 
+  test('AI: 스플릿 스텝 논문 수치가 드릴·전술에 반영된다', function () {
+    var s = BM.ai.SPLIT_STEP;
+    eq(s.reactionSec.join('~'), '0.24~0.25', '반응시간');
+    eq(s.stanceHeightRatio.join('~'), '0.51~0.52', '스탠스 폭');
+    eq(s.baseRadiusCm.join('~'), '42~55', '베이스 반경');
+    includes(s.source, 'PLoS ONE', '출처');
+
+    var drill = BM.ai.DRILLS['풋워크'].filter(function (d) { return d.name === '스플릿스텝 타이밍'; })[0];
+    ok(drill, '스플릿 스텝 드릴');
+    includes(drill.method, '0.24~0.25초', '반응시간 문구');
+    includes(drill.method, '0.51~0.52배', '스탠스 문구');
+    var back = BM.ai.DRILLS['풋워크'].filter(function (d) { return d.name === '베이스 복귀 스플릿스텝'; })[0];
+    ok(back, '베이스 복귀 드릴');
+    includes(back.method, '42~55cm', '베이스 반경 문구');
+
+    var an = BM.ai.analyze({ draft: { weakness: ['풋워크'], discipline: '단식' }, records: [], level: 'B조' });
+    includes(an.drills.drills.map(function (d) { return d.method + ' ' + d.point; }).join(' '), '0.24~0.25초', '추천드릴에 반영');
+    includes(BM.ai.playbook('단식', 'A조').tips.join(' '), '백핸드 후위', '단식 전술');
+  });
+
+  test('AI: 복식 서브·리시브 분석 수치가 드릴·전술에 반영된다', function () {
+    var sv = BM.ai.DOUBLES_SERVE, rc = BM.ai.DOUBLES_RECEIVE;
+    eq(sv.bodyPct.join('~'), '67~70', '몸쪽 서브 비중');
+    eq(sv.lossPct.join('~'), '23~25', '서브 실점률');
+    eq(rc.shortDrivePct.join('~'), '38~46', '숏 드라이브');
+    eq(rc.drivePct.join('~'), '21~34', '드라이브');
+    eq(rc.hairpinPct.join('~'), '15~28', '헤어핀');
+    includes(sv.source, '체육과학연구', '출처');
+
+    var serve = BM.ai.DRILLS['서브'].filter(function (d) { return d.name === '숏서브 네트 낮게'; })[0];
+    includes(serve.method, '67~70%', '서브 드릴');
+    var recv = BM.ai.DRILLS['리시브'].filter(function (d) { return d.name === '서브 리시브 코스'; })[0];
+    includes(recv.method, '38~46%', '리시브 드릴');
+
+    var tips = BM.ai.playbook('복식', 'A조').tips.join(' ');
+    includes(tips, '67~70%', '복식 전술 서브');
+    includes(tips, '38~46%', '복식 전술 리시브');
+    includes(BM.ai.gradePlan('C조').rules.join(' '), '직선·대각', 'C조 규칙');
+  });
+
   test('AI: 부상 8부위에 기준·처방·복귀 수칙이 있다', function () {
     ['목', '어깨', '무릎', '허리', '팔꿈치', '손목', '아킬레스건', '발목'].forEach(function (part) {
       var box = BM.ai.INJURY[part];
