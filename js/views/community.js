@@ -214,13 +214,9 @@
             b.classList.toggle('is-on', on);
             b.setAttribute('aria-pressed', on ? 'true' : 'false');
           });
-          /* 번개일 때만 모집 입력칸을 보여 줍니다 */
+          /* 번개일 때만 모집 입력칸을 보여 줍니다 (입력칸 포커스는 건드리지 않음) */
           var vf = root.querySelector('[data-viteform]');
           if (vf) vf.hidden = tag !== '번개';
-          if (tag === '번개' && vf) {
-            var first = vf.querySelector('[data-vitefield]');
-            if (first && !first.value) { try { first.focus({ preventScroll: true }); } catch (e) { /* 무시 */ } }
-          }
           UI.haptic(6);
           return;
         }
