@@ -875,6 +875,7 @@
           ctx.actions.setMatchQuery(search.value);
         });
       }
+      syncFbar(root);
     },
 
     /* 필터·검색·신청 상태가 바뀌면 결과 영역만 다시 그립니다.
@@ -935,6 +936,7 @@
           filters.setAttribute('data-sig', fs);
         }
       }
+      syncFbar(root);
 
       var results = root.querySelector('[data-region="results"]');
       if (results) {
@@ -1018,6 +1020,13 @@
         return '<span class="fsum__chip">' + U.esc(a.key === 'query' ? '“' + a.value + '”' : a.value) + '</span>';
       }).join('') + '<button type="button" class="linkbtn fsum__all" data-act="show-all">' +
         UI.icon('refresh') + '전체 보기</button></p>' : '');
+  }
+
+  /* 필터 버튼 줄이 화면보다 길면 오른쪽 페이드로 '더 있음'을 알립니다. */
+  function syncFbar(root) {
+    var bar = root && root.querySelector ? root.querySelector('[data-fbar]') : null;
+    if (!bar) return;
+    bar.classList.toggle('is-scroll', bar.scrollWidth > bar.clientWidth + 1);
   }
 
   /* ---------- 내 매칭 카드 편집 ---------- */
