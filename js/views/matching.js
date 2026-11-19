@@ -134,6 +134,13 @@
   }
 
   /* ---------- 목록 카드 ---------- */
+  function heartBuyText(state) {
+    var hearts = state.data.hearts || {};
+    var cost = D.HEART_RULES.MATCH_COST;
+    var balance = hearts.balance || 0;
+    return { cost: cost, balance: balance, short: balance < cost };
+  }
+
   function playerCard(p, state) {
     var st = statusOf(state, p);
     var mp = myProfile(state);
@@ -143,6 +150,7 @@
     var spec = [p.availability, p.experience].filter(Boolean).join(' · ');
 
     var action;
+    var costNote = '';
     if (st.incoming) {
       action = '<button class="btn btn--primary btn--sm" data-open-profile="' + key + '">' +
         '받은 요청 확인</button>';
@@ -154,6 +162,10 @@
     } else {
       action = '<button class="btn btn--ghost btn--sm" data-open-profile="' + key + '">' +
         '프로필 보고 요청하기</button>';
+      /* 요청 전에 하트가 얼마나 드는지 카드에서 바로 보이게 (스크롤 전) */
+      var hb = heartBuyText(state);
+      costNote = '<span class="pcard__cost">' + UI.icon('heart') + '신청 하트 ' + hb.cost + '개 · 보유 ' + hb.balance + '개' +
+        (hb.short ? ' <b class="down">· ' + (hb.cost - hb.balance) + '개 부족</b>' : '') + '</span>';
     }
 
     return '<article class="pcard" data-player="' + key + '" data-open-profile="' + key + '">' +
@@ -168,7 +180,7 @@
         (spec ? '<span class="pcard__spec-t">' + U.esc(spec) + '</span>' : '') + '</p>' : '') +
       (p.bio ? '<p class="pcard__bio">' + U.esc(p.bio) + '</p>' : '') +
       (scored.reasons.length ? '<p class="pcard__why">' + U.esc(scored.reasons.slice(0, 2).join(' · ')) + '</p>' : '') +
-      '<div class="pcard__act">' + action + '</div></article>';
+      '<div class="pcard__act">' + costNote + action + '</div></article>';
   }
 
   /* ---------- 결과 계산 ---------- */
@@ -373,6 +385,8 @@
     var balance = hearts.balance || 0;
     var key = U.esc(p.userKey);
     var sent = st.mine && st.mine.status !== '거절' ? st.mine : null;
+    var short = balance < cost;
+    var canRequest = !st.incoming && !st.canChat && !sent;
 
     var footer;
     if (st.incoming) {
@@ -388,7 +402,6 @@
       footer = '<div class="pp__note">' + UI.icon('clock') + '보낸 요청이에요 · 상태 <b>' + U.esc(sent.status) + '</b></div>' +
         '<button class="btn btn--ghost btn--big mt8" data-close>닫기</button>';
     } else {
-      var short = balance < cost;
       footer = '<label class="flabel">한마디 남기기 <span class="muted">(선택)</span>' +
         '<input type="text" data-note maxlength="60" placeholder="토요일 오전 어떠세요?" value="' + U.esc(noteDrafts[p.userKey] || '') + '"></label>' +
         '<p class="pp__cost">매칭 신청에 하트 <b>' + cost + '개</b> · 보유 <b class="' + (short ? 'down' : 'up') + '">' + balance + '개</b>' +
@@ -410,6 +423,11 @@
       '</div></div>' +
       '<p class="pp__match">궁합 <b>' + scored.score + '</b>' +
       (scored.reasons.length ? '<span class="pp__why">' + U.esc(scored.reasons.slice(0, 3).join(' · ')) + '</span>' : '') + '</p>' +
+      /* 하트 소모 안내는 요청 버튼까지 스크롤하지 않아도 보이게 맨 위에 둡니다 */
+      (canRequest
+        ? '<p class="pp__cost pp__cost--top">' + UI.icon('heart') + '매칭 신청에 하트 <b>' + cost + '개</b> · 보유 <b class="' + (short ? 'down' : 'up') + '">' + balance + '개</b>' +
+          (short ? '<span class="warn"> · ' + (cost - balance) + '개 부족</span>' : '') + '</p>'
+        : '') +
 
       '<dl class="pp__spec">' +
       '<div><dt>주력 종목</dt><dd>' + (p.discipline
@@ -955,5 +973,6 @@
 
   view.openProfile = openProfile;
   view.openHeartSheet = openHeartSheet;
+  view.profileBody = profileBody;   /* 테스트·점검용 (프로필 시트 본문) */
   BM.views.matching = view;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

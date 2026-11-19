@@ -253,6 +253,30 @@
     return out;
   }
 
+  /* 코치 카드 — 누르면 바로 피드백 요청(DM 미리 채움) 또는 1:1 채팅으로 이어집니다 */
+  function coachCard(c, state) {
+    var key = U.esc(c.key);
+    var meta = [c.level, c.discipline, [c.region, c.club].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+    var p = UI.person(state, c.key);
+    var room = D.coachRoomId((state.me && state.me.key) || '', c.key);
+    var thread = (state.data.threads || []).filter(function (t) {
+      return String(t.roomId) === room;
+    })[0];
+    var canChat = D.canChatWith(state.data.idx, state.me && state.me.key, c.key);
+    return '<li class="coachcard" data-coach="' + key + '">' +
+      '<div class="coachcard__top">' + UI.avatar(p, 42) +
+      '<div class="coachcard__id"><strong>' + U.esc(c.nick) +
+      (thread && thread.unread ? ' <i class="badge">' + thread.unread + '</i>' : '') + '</strong>' +
+      (meta ? '<p class="coachcard__meta">' + U.esc(meta) + '</p>' : '') + '</div></div>' +
+      '<div class="coachcard__act">' +
+      '<button type="button" class="btn btn--primary btn--sm" data-coach-ask="' + key + '">' + UI.icon('spark') + '피드백 요청</button>' +
+      (canChat
+        ? '<button type="button" class="btn btn--ghost btn--sm" data-coach-chat="' + key + '">' + UI.icon('community') + '1:1 채팅' +
+          (thread && thread.unread ? ' <i class="badge">' + thread.unread + '</i>' : '') + '</button>'
+        : '<span class="coachcard__note">채팅은 승인된 코치와만 열립니다</span>') +
+      '</div></li>';
+  }
+
   function playerCoachView(state) {
     var coaches = coachesOf(state);
     return '<section class="card">' +
@@ -262,13 +286,18 @@
       '<p class="coachflow">일지 남기기 <i>→</i> 코치 확인 <i>→</i> 피드백</p>' +
       '<button class="btn btn--primary btn--big mt16" data-act="go-log">' + UI.icon('log') + '오늘 일지 남기기</button>' +
       (coaches.length
-        ? '<ul class="bullets mt16">' + coaches.slice(0, 4).map(function (c) {
-            var meta = [c.level, c.discipline, [c.region, c.club].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
-            return '<li><b>' + U.esc(c.nick) + '</b>' + (meta ? ' — ' + U.esc(meta) : '') + '</li>';
-          }).join('') + '</ul>'
+        ? '<ul class="coachcards mt16">' + coaches.slice(0, 6).map(function (c) { return coachCard(c, state); }).join('') + '</ul>'
         : '<p class="hint">아직 활동 중인 코치가 없어요. 내가 먼저 멘토로 신청할 수 있어요.</p>') +
       '<button class="linkbtn mt8" data-coachtab="apply">' + UI.icon('coach') + ' 멘토로 신청하기</button>' +
       '</section>';
+  }
+
+  /* 피드백 요청 문구 — 내 최근 일지를 짧게 붙여 코치가 바로 알게 합니다 */
+  function feedbackAskText(state) {
+    var r = (state.data.records || [])[0];
+    if (!r) return '코치님, 일지 피드백 부탁드려요. 이번 주 훈련에서 먼저 볼 점을 알려 주세요.';
+    var tags = [].concat(r.weakness || [], r.pain || []).slice(0, 2).join('·');
+    return '코치님, ' + U.shortDay(r.date) + ' 일지' + (tags ? '(' + tags + ')' : '') + ' 보고 한 줄 피드백 부탁드려요.';
   }
 
   var view = {
@@ -333,6 +362,26 @@
           ev.preventDefault();
           ctx.actions.setTab('log');
           UI.haptic(6);
+          return;
+        }
+
+        /* 코치에게 피드백 요청 — 상단 DM 대화방을 열고 요청 문구를 미리 적어 둡니다 */
+        var ask = ev.target.closest('[data-coach-ask]');
+        if (ask) {
+          ev.preventDefault();
+          var askKey = ask.getAttribute('data-coach-ask');
+          var r1 = ctx.actions.openCoachChat(askKey, feedbackAskText(ctx.store.state));
+          if (r1.ok) { UI.toast('메시지를 고친 뒤 보내 주세요'); UI.haptic(10); }
+          else UI.toast('대화를 열지 못했어요', 'error');
+          return;
+        }
+        var cchat = ev.target.closest('[data-coach-chat]');
+        if (cchat) {
+          ev.preventDefault();
+          var chatKey = cchat.getAttribute('data-coach-chat');
+          var r2 = ctx.actions.openCoachChat(chatKey, '');
+          if (r2.ok) UI.haptic(8);
+          else UI.toast('대화를 열지 못했어요', 'error');
           return;
         }
 

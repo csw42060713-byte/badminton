@@ -113,38 +113,28 @@
     return '최근 7일 부하 ' + load.ratio + '배 · ' + zone;
   }
 
-  function analysisCard(an, state) {
-    if (!an) return '';
+  /* 한 줄 지표 — 진단 목록의 첫 3개를 칩으로. 상세 문장은 접힌 '자세히 보기'에 있습니다. */
+  function metricStrip(an) {
+    var labels = (an.insights || []).map(function (it) { return it.label; }).slice(0, 3);
+    if (!labels.length) return '';
+    return '<div class="ai-metrics">' + labels.map(function (t) {
+      return '<span class="ai-metric">' + U.esc(t) + '</span>';
+    }).join('') + '</div>';
+  }
+
+  /* 진단 · 경기 흐름 · 부하 점검을 한 접기로 (저장 직후 화면이 길어지지 않게) */
+  function analysisDetails(an) {
     var drills = (an.drills && an.drills.drills) || [];
-    var gp = an.gradePlan;
-    var pb = an.playbook;
-    return '' +
-      '<section class="card card--ai" data-region="analysis">' +
-      '<header class="card__head">' +
-      '<div class="ai-badge">' + UI.icon('spark') + '배드민턴 AI</div>' +
-      '</header>' +
-      '<div class="ai-top">' + scoreRing(an.score) +
-      '<div class="ai-top__text"><p class="ai-headline">' + U.esc(an.headline) + '</p>' +
-      '<p class="ai-sub">다음 목표 · <strong>' + U.esc(an.focus) + '</strong></p></div></div>' +
-      '<ul class="insights">' + an.insights.map(insightRow).join('') + '</ul>' +
-      (an.risk && an.risk[0] ? '<div class="risk risk--' + an.risk[0].level + '">' + UI.icon('alert') +
-        '<span>' + U.esc(an.risk[0].text) + '</span></div>' : '') +
-      '<h3 class="sec-title">' + UI.icon('check') + '추천 드릴</h3>' +
-      '<ol class="drills">' + drills.map(function (d, i) {
-        return '<li class="drill"><div class="drill__no">' + (i + 1) + '</div><div class="drill__body">' +
-          '<div class="drill__top"><strong>' + U.esc(d.name) + '</strong><span class="pill pill--ghost">' + U.esc(d.sets) + '</span></div>' +
-          '<p class="drill__method">' + U.esc(d.method) + '</p>' +
-          '<p class="drill__point">포인트 · ' + U.esc(d.point) + '</p></div></li>';
-      }).join('') + '</ol>' +
-      '<details class="fold fold--ai" data-fold="care">' +
-      '<summary class="fold__sum"><span>맞춤 처방 <small>웜업 · 회복 · 스트레칭</small></span>' + UI.icon('arrow', 'fold__car') + '</summary>' +
-      '<div class="fold__body"><div class="care">' +
-      (an.care.warmup && an.care.warmup.length
-        ? '<div class="care__col"><h4>웜업</h4>' + bulletList(an.care.warmup) + '</div>' : '') +
-      '<div class="care__col"><h4>회복</h4>' + bulletList(an.care.rehab) + '</div>' +
-      '<div class="care__col"><h4>스트레칭</h4>' + bulletList(an.care.stretch) + '</div>' +
-      '<div class="care__col"><h4>마음</h4>' + bulletList(an.care.mental) + '</div>' +
-      '</div></div></details>' +
+    var bits = [(an.insights || []).length + '개 진단'];
+    if (an.flow && an.flow.count) bits.push('경기 흐름');
+    if (an.load && an.load.zone) bits.push('부하 점검');
+    return '<details class="fold fold--ai" data-fold="ai-detail">' +
+      '<summary class="fold__sum"><span>자세히 보기 <small>' + U.esc(bits.join(' · ')) + '</small></span>' +
+      UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' +
+      ((an.insights || []).length ? '<ul class="insights">' + an.insights.map(insightRow).join('') + '</ul>' : '') +
+      ((an.risk || []).length
+        ? '<div class="care__col mt8"><h4>점검</h4>' + bulletList(an.risk.map(function (r) { return r.text; })) + '</div>' : '') +
       (an.flow && an.flow.count && an.flow.tips && an.flow.tips.length
         ? '<h3 class="sec-title">' + UI.icon('chart') + '경기 흐름 · ' + U.esc(an.flow.mode + '점제') + '</h3>' +
           '<div class="planbox"><p class="planbox__t">' + U.esc(flowLine(an.flow)) + '</p>' +
@@ -154,11 +144,53 @@
           '<div class="planbox"><p class="planbox__t">' + U.esc(loadLine(an.load)) + '</p>' +
           '<p class="planbox__v">운동 시간 × 강도로 계산한 내부 부하예요. 직전 4주 평균과 비교합니다.</p>' +
           bulletList(an.load.tips) + '</div>' : '') +
-      '<h3 class="sec-title">' + UI.icon('chart') + '이번 주 루틴</h3>' +
-      '<div class="week">' + an.week.map(function (w) {
+      (drills.some(function (d) { return d.point; })
+        ? '<div class="care__col mt8"><h4>드릴 포인트</h4>' + bulletList(drills.filter(function (d) {
+            return d.point;
+          }).map(function (d) { return d.name + ' — ' + d.point; })) + '</div>' : '') +
+      '</div></details>';
+  }
+
+  function analysisCard(an, state) {
+    if (!an) return '';
+    var drills = (an.drills && an.drills.drills) || [];
+    var gp = an.gradePlan;
+    var pb = an.playbook;
+    var warn = (an.risk || []).filter(function (r) { return r.level !== 'ok'; })[0] || null;
+    return '' +
+      '<section class="card card--ai" data-region="analysis">' +
+      '<header class="card__head">' +
+      '<div class="ai-badge">' + UI.icon('spark') + '배드민턴 AI</div>' +
+      '</header>' +
+      '<div class="ai-top">' + scoreRing(an.score) +
+      '<div class="ai-top__text"><p class="ai-headline">' + U.esc(an.headline) + '</p>' +
+      '<p class="ai-sub">다음 목표 · <strong>' + U.esc(an.focus) + '</strong></p></div></div>' +
+      metricStrip(an) +
+      (warn ? '<div class="risk risk--' + warn.level + '">' + UI.icon('alert') +
+        '<span>' + U.esc(warn.text) + '</span></div>' : '') +
+      '<h3 class="sec-title">' + UI.icon('check') + '추천 드릴</h3>' +
+      '<ol class="drills drills--core">' + drills.map(function (d, i) {
+        return '<li class="drill drill--core"><div class="drill__no">' + (i + 1) + '</div><div class="drill__body">' +
+          '<div class="drill__top"><strong>' + U.esc(d.name) + '</strong><span class="pill pill--ghost">' + U.esc(d.sets) + '</span></div>' +
+          '<p class="drill__method">' + U.esc(d.method) + '</p></div></li>';
+      }).join('') + '</ol>' +
+      analysisDetails(an) +
+      '<details class="fold fold--ai" data-fold="week">' +
+      '<summary class="fold__sum"><span>이번 주 루틴 <small>다음 훈련 · 실전</small></span>' +
+      '<i class="fold__val">' + an.week.length + '회차</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body"><div class="week">' + an.week.map(function (w) {
         return '<div class="week__row"><span class="week__day">' + U.esc(w.day) + '</span>' +
           '<span class="week__focus">' + U.esc(w.focus) + '</span><span class="week__menu">' + U.esc(w.menu) + '</span></div>';
-      }).join('') + '</div>' +
+      }).join('') + '</div></div></details>' +
+      '<details class="fold fold--ai" data-fold="care">' +
+      '<summary class="fold__sum"><span>맞춤 처방 <small>웜업 · 회복 · 스트레칭</small></span>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body"><div class="care">' +
+      (an.care.warmup && an.care.warmup.length
+        ? '<div class="care__col"><h4>웜업</h4>' + bulletList(an.care.warmup) + '</div>' : '') +
+      '<div class="care__col"><h4>회복</h4>' + bulletList(an.care.rehab) + '</div>' +
+      '<div class="care__col"><h4>스트레칭</h4>' + bulletList(an.care.stretch) + '</div>' +
+      '<div class="care__col"><h4>마음</h4>' + bulletList(an.care.mental) + '</div>' +
+      '</div></div></details>' +
       ((gp || (pb && pb.tips && pb.tips.length))
         ? '<details class="fold fold--ai" data-fold="extra">' +
           '<summary class="fold__sum"><span>더 보기 <small>급수 플랜 · 전술 노트</small></span>' + UI.icon('arrow', 'fold__car') + '</summary>' +

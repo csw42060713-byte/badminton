@@ -268,6 +268,23 @@
 
   var JSON_TYPES = { '매칭프로필': 1, '코치신청': 1, '멘토신청': 1, '매칭신청': 1, '코치피드백': 1, '계획': 1 };
 
+  /* 커뮤니티 말머리(주제 태그) — 시트 칸을 늘리지 않고 '훈련계획' 칸에
+   * {"topic":"번개"} 로 적습니다(예전 글은 주제가 없으므로 아래에서 자동 판별). */
+  var POST_TOPICS = ['자유', '후기', '번개', '용품', '일지'];
+
+  function normalizeTopic(v) {
+    var s = String(v == null ? '' : v).trim();
+    return POST_TOPICS.indexOf(s) >= 0 ? s : '자유';
+  }
+
+  /* 글의 말머리: 직접 고른 값이 먼저, 없으면 일지 공유 글(target=일지 ID)은 '일지', 나머지는 '자유' */
+  function topicOf(post) {
+    if (!post) return '자유';
+    var t = post.plan && post.plan.topic;
+    if (t) return normalizeTopic(t);
+    return post.target ? '일지' : '자유';
+  }
+
   /* 멘토 심사는 관리자 계정만 할 수 있습니다.
    * 앱(화면)과 브리지(APPS_SCRIPT_BRIDGE.gs CONFIG.ADMIN_EMAILS)가 같은 값을 봅니다. */
   var ADMIN_EMAILS = ['csw42060713@gmail.com'];
@@ -980,12 +997,32 @@
     };
   }
 
-  /* 친구이거나 매칭이 성사된 상대와만 1:1 대화를 할 수 있습니다.
+  /* 코치와의 1:1 대화방 — 두 사람 키를 정렬해 만든 고정 ID라서 양쪽 기기에서 같습니다.
+   * (친구·매칭처럼 별도 행 없이 '매칭채팅' 행의 팀 칸에 이 ID를 씁니다.) */
+  function coachRoomId(a, b) {
+    var pair = [String(a == null ? '' : a), String(b == null ? '' : b)].sort();
+    return 'coach_' + encodeURIComponent(pair[0]) + '__' + encodeURIComponent(pair[1]);
+  }
+
+  /* 코치 대화 허용:
+   *  · 선수 → 승인된 코치: 바로 대화를 시작할 수 있습니다(피드백 요청용).
+   *  · 코치 → 선수: 이미 대화가 시작된 방이 있을 때만 이어서 답합니다(모르는 회원에게 먼저 말 걸지 않음). */
+  function coachChatAllowed(idx, meKey, otherKey) {
+    var meCoach = isCoach(idx, meKey);
+    var otherCoach = isCoach(idx, otherKey);
+    if (!meCoach && !otherCoach) return false;
+    if (otherCoach && !meCoach) return true;
+    var room = coachRoomId(meKey, otherKey);
+    return (idx.byType['매칭채팅'] || []).some(function (m) { return String(m.team || '') === room; });
+  }
+
+  /* 친구이거나 매칭이 성사된 상대, 또는 승인된 코치와 1:1 대화를 할 수 있습니다.
    * (이미 대화가 시작된 방은 그대로 이어집니다.) */
   function canChatWith(idx, meKey, otherKey) {
     if (!meKey || !otherKey || meKey === otherKey) return false;
     if (friendState(idx, meKey, otherKey).state === 'friends') return true;
-    return matchBetween(idx, meKey, otherKey).accepted;
+    if (matchBetween(idx, meKey, otherKey).accepted) return true;
+    return coachChatAllowed(idx, meKey, otherKey);
   }
 
   /* 대화 목록: 메시지가 있는 방 + 친구 + 매칭 성사 상대(첫 대화 전 포함) */
@@ -1028,6 +1065,7 @@
     var map = {};
     Object.keys(groups).forEach(function (roomId) {
       map[roomId] = threadOf(idx, roomId, groups[roomId], meKey, readAt);
+      if (String(roomId).indexOf('coach_') === 0) map[roomId].kind = 'coach';
     });
 
     /* 친구: 친구수락 행 ID가 곧 대화방 ID (양쪽 기기에서 같은 값) */
@@ -1095,6 +1133,8 @@
     FRIEND_TYPES: FRIEND_TYPES,
     friendState: friendState, friendsOf: friendsOf, incomingFriendRequests: incomingFriendRequests,
     matchBetween: matchBetween, canChatWith: canChatWith,
+    coachRoomId: coachRoomId, coachChatAllowed: coachChatAllowed,
+    POST_TOPICS: POST_TOPICS, normalizeTopic: normalizeTopic, topicOf: topicOf,
     chatThreads: chatThreads, threadById: threadById, chatUnread: chatUnread,
     matchProfileOf: matchProfileOf
   };

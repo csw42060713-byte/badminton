@@ -34,7 +34,8 @@
     var likeCount = hearts.filter(function (h) { return h.target === p.id; }).length;
     return {
       id: p.id, nick: p.nick || D.displayName(idx, p.userKey), userKey: p.userKey,
-      text: p.text, createdAt: p.createdAt, date: p.date,
+      text: p.text, createdAt: p.createdAt, date: p.date, target: p.target || '',
+      topic: D.topicOf(p),
       likes: Math.max(likeCount, p.likes || 0),
       likedByMe: !!(likeSets[p.id] && likeSets[p.id][me]),
       likeId: likeSets[p.id] && likeSets[p.id][me],
@@ -139,7 +140,8 @@
         matchTab: 'find',        /* find · in(받은 요청) · out(보낸 요청) · chat(대화) */
         matchSort: 'score',      /* score(궁합순) · recent(최근순) */
         matchFilterOpen: '',     /* 펼친 필터 줄 (level · region · discipline · gender) */
-        chatRoom: null, chatOther: '', chatOpen: false, coachTab: '', coachPlayer: null, composer: '', replyTo: null,
+        chatRoom: null, chatOther: '', chatOpen: false, chatDraft: '',
+        coachTab: '', coachPlayer: null, composer: '', composerTopic: '자유', replyTo: null,
         lastSavedLog: null       /* 방금 저장한 일지 → 커뮤니티 원탭 공유 */
       },
       analysis: null,
@@ -484,7 +486,7 @@
         if (already) return { ok: false, reason: 'already' };
         var entity = meEntity({
           type: '소셜', date: U.ymd(), id: U.uid(), clientId: U.clientId(),
-          target: e.id, text: shareTextOf(e)
+          target: e.id, text: shareTextOf(e), plan: { topic: '일지' }
         });
         pushRow(entity);
         state.ui.lastSavedLog = null;      /* 공유했으면 카드는 접습니다 */
@@ -568,17 +570,20 @@
         return { ok: true };
       },
 
-      createPost: function (text) {
+      createPost: function (text, topic) {
         text = (text || '').trim();
         if (!text) return { ok: false, reason: 'empty' };
         if (!tryLock('post', 1200)) return { ok: false, reason: 'locked' };
+        var tag = D.normalizeTopic(topic || state.ui.composerTopic);
         var entity = meEntity({
-          type: '소셜', date: U.ymd(), id: U.uid(), clientId: U.clientId(), text: text
+          type: '소셜', date: U.ymd(), id: U.uid(), clientId: U.clientId(), text: text,
+          plan: { topic: tag }
         });
         pushRow(entity);
         state.ui.composer = '';
+        state.ui.composerTopic = '자유';
         commit();
-        return { ok: true };
+        return { ok: true, topic: tag };
       },
 
       saveProfile: function (patch) {
@@ -691,6 +696,7 @@
           createdAt: U.stamp()
         });
         pushRow(entity);
+        state.ui.chatDraft = '';
         commit();
         return { ok: true };
       },
@@ -699,12 +705,14 @@
       openChats: function () {
         state.ui.chatOpen = true;
         state.ui.chatRoom = null;
+        state.ui.chatDraft = '';
         emit();
       },
 
       closeChats: function () {
         state.ui.chatOpen = false;
         state.ui.chatRoom = null;
+        state.ui.chatDraft = '';
         emit();
       },
 
@@ -712,11 +720,27 @@
         state.ui.chatOpen = true;
         state.ui.chatRoom = roomId || null;
         state.ui.chatOther = otherKey || '';
+        state.ui.chatDraft = '';
         emit();
+      },
+
+      /* 코치와의 1:1 대화 — 프로필·매칭 없이도 코치 화면에서 바로 연결합니다.
+       * draft를 넘기면 입력창에 미리 적어 두고(선수가 고쳐서 보냄) 바로 열립니다. */
+      openCoachChat: function (coachKey, draft) {
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        if (!coachKey || coachKey === me) return { ok: false, reason: 'no_target' };
+        state.ui.chatOpen = true;
+        state.ui.chatRoom = D.coachRoomId(me, coachKey);
+        state.ui.chatOther = coachKey;
+        state.ui.chatDraft = draft || '';
+        emit();
+        return { ok: true, roomId: state.ui.chatRoom };
       },
 
       closeChat: function () {
         state.ui.chatRoom = null;
+        state.ui.chatDraft = '';
         emit();
       },
 
@@ -1062,6 +1086,7 @@
       setCoachPlayer: function (key) { state.ui.coachPlayer = key; emit(); },
       setCoachTab: function (tab) { state.ui.coachTab = tab; emit(); },
       setComposer: function (text) { state.ui.composer = text; emit(); },
+      setComposerTopic: function (topic) { state.ui.composerTopic = D.normalizeTopic(topic); emit(); },
 
       retrySync: function () { return flush(); },
 

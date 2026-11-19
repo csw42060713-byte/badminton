@@ -4,13 +4,35 @@
 (function (root) {
   'use strict';
   var BM = root.BM = root.BM || {};
-  var U = BM.util;
+  var U = BM.util, D = BM.domain;
   var UI = BM.ui;
   BM.views = BM.views || {};
 
   var openReplies = {};   /* postId -> true */
   var replyDrafts = {};   /* postId -> text */
   var sortMode = 'new';
+  var topicFilter = '전체';   /* 상단 말머리 칩 — 전체 / 자유 / 후기 / 번개 / 용품 / 일지 */
+
+  /* 말머리 칩 한 줄 (말머리 고르기 · 목록 거르기에서 같은 모양을 씁니다) */
+  function topicChips(current, attr, all) {
+    var vals = (all ? ['전체'] : []).concat(D.POST_TOPICS);
+    return vals.map(function (t) {
+      var on = t === current;
+      return '<button type="button" class="chip chip--sm' + (on ? ' is-on' : '') + '" ' + attr + '="' + U.esc(t) + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' + U.esc(t) + '</button>';
+    }).join('');
+  }
+
+  function visiblePosts(state) {
+    var posts = (state.data.posts || []).slice();
+    if (topicFilter !== '전체') {
+      posts = posts.filter(function (p) { return (p.topic || '자유') === topicFilter; });
+    }
+    if (sortMode === 'hot') posts.sort(function (a, b) { return (b.likes + b.replies.length) - (a.likes + a.replies.length); });
+    return posts;
+  }
+
+  function allPosts(state) { return state.data.posts || []; }
 
   function avatarFor(state, userKey) {
     var mp = (state.data.matchProfiles || []).filter(function (m) { return m.userKey === userKey; })[0];
@@ -27,7 +49,8 @@
       '<button type="button" class="post__author" data-author="' + U.esc(p.userKey) + '" aria-label="' + U.esc(p.nick) + ' 프로필 보기">' +
       UI.avatar(avatarFor(state, p.userKey), 40) +
       '<span class="post__who"><strong>' + U.esc(p.nick) + '</strong>' +
-      '<time>' + U.timeAgo(p.createdAt) + '</time></span></button></header>' +
+      '<time>' + U.timeAgo(p.createdAt) + '</time></span></button>' +
+      '<span class="pill pill--ghost post__topic">' + U.esc(p.topic || '자유') + '</span></header>' +
       '<p class="post__text">' + U.esc(p.text).replace(/\n/g, '<br>') + '</p>' +
       '<footer class="post__foot">' +
       '<button class="react' + (p.likedByMe ? ' is-on' : '') + '" data-like="' + U.esc(p.id) + '" aria-pressed="' + (p.likedByMe ? 'true' : 'false') + '">' +
@@ -79,30 +102,84 @@
       rec ? '지난 훈련 기록이 그대로 첫 글이 돼요.' : '오늘 훈련을 남기면 첫 글이 돼요.', action);
   }
 
+  function filteredEmpty(topic) {
+    return UI.emptyState('community', '‘' + topic + '’ 말머리 글이 아직 없어요', '다른 말머리를 골라 보거나 이 말머리로 첫 글을 남겨 보세요.',
+      '<button type="button" class="btn btn--ghost btn--sm mt8" data-topicall="1">전체 글 보기</button>');
+  }
+
+  function postsHtml(state) {
+    var posts = visiblePosts(state);
+    if (posts.length) return posts.map(function (p) { return postCard(p, state); }).join('');
+    if (!allPosts(state).length) return emptyBlock(state);
+    return filteredEmpty(topicFilter);
+  }
+
+  function topicFilterBar() {
+    return '<div class="chips topicbar" data-topicfilterbar>' + topicChips(topicFilter, 'data-topicfilter', true) + '</div>';
+  }
+
+  function paintTopicFilter(root, state) {
+    var host = root.querySelector('[data-topicfilterbar]');
+    if (host) host.innerHTML = topicChips(topicFilter, 'data-topicfilter', true);
+    var region = root.querySelector('[data-region="posts"]');
+    if (region) region.innerHTML = postsHtml(state);
+  }
+
   var view = {
     title: '커뮤니티',
     render: function (state) {
-      var posts = (state.data.posts || []).slice();
-      if (sortMode === 'hot') posts.sort(function (a, b) { return (b.likes + b.replies.length) - (a.likes + a.replies.length); });
+      var picked = state.ui.composerTopic || '자유';
       return '' +
         '<section class="card card--composer">' +
         '<div class="row">' + UI.avatar({ theme: state.me && state.me.theme }, 34) +
         '<textarea rows="1" data-composer placeholder="오늘 경기 어땠어요? 한 줄 남겨보세요" maxlength="300">' + U.esc(state.ui.composer || '') + '</textarea></div>' +
+        '<div class="chips topicpick" data-topics>' + topicChips(picked, 'data-topic', false) + '</div>' +
         '<div class="row between mt8"><span class="muted sm">욕설·비방은 자제해 주세요</span>' +
         '<button class="btn btn--primary btn--sm" data-act="post">' + UI.icon('send') + '올리기</button></div>' +
         '</section>' +
+        topicFilterBar() +
         '<div class="seg seg--wide" data-sort>' +
         '<button class="seg__btn' + (sortMode === 'new' ? ' is-on' : '') + '" data-sortval="new">최신</button>' +
         '<button class="seg__btn' + (sortMode === 'hot' ? ' is-on' : '') + '" data-sortval="hot">인기</button>' +
         '</div>' +
         '<section class="card card--flush" data-region="posts">' +
-        (posts.length ? posts.map(function (p) { return postCard(p, state); }).join('')
-          : emptyBlock(state)) +
+        postsHtml(state) +
         '</section>';
     },
 
     mount: function (root, ctx) {
       root.addEventListener('click', function (ev) {
+        /* 말머리 고르기 (작성) — 한 개만 켜집니다 */
+        var pick = ev.target.closest('[data-topic]');
+        if (pick) {
+          ev.preventDefault();
+          var tag = D.normalizeTopic(pick.getAttribute('data-topic'));
+          ctx.actions.setComposerTopic(tag);
+          var group = pick.parentNode;
+          UI.$$('.chip', group).forEach(function (b) {
+            var on = b.getAttribute('data-topic') === tag;
+            b.classList.toggle('is-on', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+          UI.haptic(6);
+          return;
+        }
+        /* 말머리 거르기 (목록) — 전체 포함 */
+        var filt = ev.target.closest('[data-topicfilter]');
+        if (filt) {
+          ev.preventDefault();
+          var picked = filt.getAttribute('data-topicfilter');
+          topicFilter = picked === '전체' ? '전체' : D.normalizeTopic(picked);
+          paintTopicFilter(root, ctx.store.state);
+          UI.haptic(6);
+          return;
+        }
+        if (ev.target.closest('[data-topicall]')) {
+          ev.preventDefault();
+          topicFilter = '전체';
+          paintTopicFilter(root, ctx.store.state);
+          return;
+        }
         /* 글쓴이 아바타·닉네임을 누르면 프로필(친구 추가·채팅) */
         var author = ev.target.closest('[data-author]');
         if (author) {
@@ -160,8 +237,16 @@
           ev.preventDefault();
           var ta = root.querySelector('[data-composer]');
           var text = ta ? ta.value : '';
-          var res = ctx.actions.createPost(text);
-          if (res.ok) { if (ta) ta.value = ''; UI.toast('글을 올렸어요'); UI.haptic(10); }
+          var res = ctx.actions.createPost(text, ctx.store.state.ui.composerTopic);
+          if (res.ok) {
+            if (ta) ta.value = '';
+            /* 올린 글이 지금 거르는 말머리와 다르면 전체로 돌아가 방금 글을 보여 줍니다 */
+            if (topicFilter !== '전체' && topicFilter !== res.topic) {
+              topicFilter = '전체';
+              paintTopicFilter(root, ctx.store.state);
+            }
+            UI.toast('글을 올렸어요'); UI.haptic(10);
+          }
           else if (res.reason === 'empty') UI.toast('내용을 입력해 주세요');
           else if (res.reason === 'locked') UI.toast('잠시만요, 올리는 중이에요');
           return;
@@ -200,10 +285,10 @@
       if (active && active.matches && active.matches('[data-reply-input]')) {
         keep = { pid: active.getAttribute('data-reply-input'), value: active.value, pos: active.selectionStart };
       }
-      var posts = (state.data.posts || []).slice();
-      if (sortMode === 'hot') posts.sort(function (a, b) { return (b.likes + b.replies.length) - (a.likes + a.replies.length); });
-      region.innerHTML = posts.length ? posts.map(function (p) { return postCard(p, state); }).join('')
-        : emptyBlock(state);
+      /* 말머리 칩 상태도 함께 맞춥니다 */
+      var filterHost = root.querySelector('[data-topicfilterbar]');
+      if (filterHost) filterHost.innerHTML = topicChips(topicFilter, 'data-topicfilter', true);
+      region.innerHTML = postsHtml(state);
       if (keep) {
         var again = region.querySelector('[data-reply-input="' + keep.pid + '"]');
         if (again) {
@@ -214,7 +299,10 @@
       }
     },
 
-    _openReplies: openReplies
+    _openReplies: openReplies,
+    /* 테스트·점검용 (화면 안에서만 쓰는 말머리 상태) */
+    _visiblePosts: visiblePosts,
+    _setTopicFilter: function (t) { topicFilter = !t || t === '전체' ? '전체' : D.normalizeTopic(t); return topicFilter; }
   };
 
   BM.views.community = view;

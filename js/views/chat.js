@@ -25,6 +25,7 @@
   function kindPill(kind) {
     if (kind === 'friend') return '<span class="pill pill--friend">친구</span>';
     if (kind === 'match') return '<span class="pill pill--ghost">매칭</span>';
+    if (kind === 'coach') return '<span class="pill pill--ok">코치</span>';
     return '';
   }
 
@@ -111,7 +112,7 @@
       '<button class="dmhead__who" data-dm-profile="' + U.esc(other) + '">' +
       UI.avatar(p, 34) +
       '<div><strong>' + U.esc(p.nick || '상대') + '</strong>' +
-      '<span>' + U.esc([p.level, room && room.kind === 'friend' ? '친구' : (room && room.kind === 'match' ? '매칭' : '')].filter(Boolean).join(' · ') || '1:1 대화') + '</span></div>' +
+      '<span>' + U.esc([p.level, room && room.kind === 'friend' ? '친구' : (room && room.kind === 'match' ? '매칭' : (room && room.kind === 'coach' ? '코치' : ''))].filter(Boolean).join(' · ') || '1:1 대화') + '</span></div>' +
       '</button>' +
       '</header>' +
       '<div class="dm__scroll dm__scroll--chat" data-dm-scroll>' +
@@ -124,6 +125,7 @@
       (canChat
         ? '<form class="dm__composer" data-dm-form>' +
           '<input type="text" autocomplete="off" enterkeyhint="send" maxlength="300" data-dm-input' +
+          ' value="' + U.esc(state.ui.chatDraft || '') + '"' +
           ' placeholder="메시지를 입력하세요" aria-label="메시지 입력">' +
           '<button class="btn btn--send" type="submit" aria-label="보내기">' + UI.icon('send') + '</button>' +
           '</form>'

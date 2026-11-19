@@ -2422,3 +2422,70 @@ summary { display: list-item; }
 .fold__sum, .group__sum { display: flex; }
 .card--composer textarea { min-height: 44px; padding: 12px 0; }
 .card--composer .row.between { margin-top: 4px; }
+
+/* ============================================================
+   12) v1.9.9 — 앱 사용성 점검 반영 (조환비 피드백 5건)
+   ============================================================ */
+
+/* 일지 & AI — 총평·한 줄 지표·추천 드릴 핵심 먼저, 상세는 접기 */
+.ai-metrics { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.ai-metric {
+  max-width: 100%;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  border: 1px solid var(--line);
+  font-size: 11.5px; font-weight: 700; color: var(--text-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.drills--core { margin-top: 8px; gap: 10px; }
+.drill--core .drill__method {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.fold--ai .insights { margin-top: 4px; }
+.fold--ai .fold__body > .care__col:first-child { margin-top: 10px; }
+
+/* 매칭 — 하트 소모 안내를 카드·프로필 상단에서 먼저 보여 줌 */
+.pcard__act { align-items: center; gap: 8px; flex-wrap: wrap; }
+.pcard__cost {
+  margin-right: auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11.5px; font-weight: 700; color: var(--muted);
+}
+.pcard__cost .ico { width: 13px; height: 13px; color: var(--accent); }
+.pcard__cost b.down { color: var(--warn); }
+.pp__cost--top {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px;
+  margin-top: 12px; padding: 9px 11px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  font-size: 12px; color: var(--text-2);
+}
+.pp__cost--top .ico { width: 14px; height: 14px; color: var(--accent); }
+.pp__cost .down { color: var(--warn); }
+.pp__cost .up { color: var(--text); }
+
+/* 코치 — 승인된 코치 카드에서 바로 피드백 요청 / 1:1 채팅 */
+.coachcards { display: grid; gap: 10px; }
+.coachcard {
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+.coachcard__top { display: flex; align-items: center; gap: 10px; }
+.coachcard__id { min-width: 0; }
+.coachcard__id strong {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13.5px; letter-spacing: -0.2px;
+}
+.coachcard__meta { margin-top: 3px; font-size: 11.5px; color: var(--muted); }
+.coachcard__act { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.coachcard__act .btn { flex: 1; min-width: 0; min-height: 36px; font-size: 12.5px; }
+.coachcard__note { align-self: center; font-size: 11.5px; color: var(--muted); }
+
+/* 커뮤니티 — 말머리 고르기 / 거르기 */
+.topicpick { margin-top: 8px; }
+.topicbar { margin: 12px 0 4px; }
+.post__topic { margin-left: auto; }
