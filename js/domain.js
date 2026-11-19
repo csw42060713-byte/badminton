@@ -885,6 +885,20 @@
     return out;
   }
 
+  /* 매칭 찾기 목록을 보여 줄 상태인지.
+   *  - 처음 들어오면 아무 조건도 고르지 않은 '안내' 상태입니다(목록 없음).
+   *  - 조건·검색어를 고르거나 '전체'를 누르면 목록을 보여 줍니다.
+   *  - started 값이 없는 예전 화면 상태에서는 '전체'라도 적혀 있으면 보여 주는 것으로 봅니다. */
+  function matchSearchActive(filter, started) {
+    filter = filter || {};
+    if (started === true) return true;
+    if (started === false) return false;
+    if (activeFilters(filter).length) return true;
+    return ['level', 'gender', 'region', 'discipline'].some(function (k) {
+      return filter[k] === '전체';
+    });
+  }
+
   /* --- 매칭 신청 상태 --- */
   function matchRequests(idx, userKey) {
     return (idx.byType['매칭신청'] || []).filter(function (m) {
@@ -1291,6 +1305,7 @@
     frameById: frameById, frameName: frameName, badgeEmoji: badgeEmoji, badgeLabel: badgeLabel,
     streakUnlocked: streakUnlocked, checkinStreak: checkinStreak, nextStreakMilestone: nextStreakMilestone,
     searchText: searchText, matchesQuery: matchesQuery, filterPlayers: filterPlayers, activeFilters: activeFilters,
+    matchSearchActive: matchSearchActive,
     HEART_RULES: HEART_RULES,
     BASE_HEARTS: BASE_HEARTS, HEART_COST_MATCH: HEART_COST_MATCH,
     JSON_TYPES: JSON_TYPES,
