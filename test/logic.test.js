@@ -1937,6 +1937,28 @@
     });
   });
 
+  test('광고 어댑터: ui.hasDom이 값(true)이어도 시트를 띄운다', function () {
+    /* ui.js는 hasDom을 true/false 값으로 내보냅니다.
+     * 예전 코드는 UI.hasDom()으로 불러 그 자리에서 예외가 났고, 버튼만 잠긴 채 남았습니다. */
+    var real = BM.ui;
+    var calls = [];
+    BM.ui = {
+      hasDom: true,
+      openSheet: function (opts) { calls.push(opts.title || ''); return null; },
+      closeSheet: function () {}
+    };
+    return BM.ads.showRewarded({ unit: 'heart_reward' }).then(function (r) {
+      BM.ui = real;
+      eq(calls.length, 1, '시트를 한 번 띄우려 한다');
+      includes(calls[0], '광고', '시트 제목');
+      eq(r.rewarded, false, '시트가 없으면 지급하지 않는다');
+      eq(r.reason, 'no_sheet', '이유: 시트 없음');
+    }, function (e) {
+      BM.ui = real;
+      throw e;
+    });
+  });
+
   /* ---------- 자동 실행 ---------- */
   if (typeof process !== 'undefined' && process.argv && /run\.js$/.test(process.argv[1] || '')) {
     BM.test.run().then(function (sum) {

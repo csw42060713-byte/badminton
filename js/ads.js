@@ -71,45 +71,62 @@
     });
   }
 
+  /* 화면이 있는 환경인지 — ui.js의 hasDom은 값(true/false)이고, 함수로 내보내는 경우도 받아 줍니다. */
+  function uiReady() {
+    var UI = BM.ui;
+    if (!UI || typeof UI.openSheet !== 'function') return false;
+    return (typeof UI.hasDom === 'function') ? !!UI.hasDom() : !!UI.hasDom;
+  }
+
   /* 웹 미리보기: 3초 · 중간에 닫으면 지급하지 않습니다 */
   function playPreview(adUnit) {
     return new Promise(function (resolve) {
       var UI = BM.ui;
-      if (!UI || typeof UI.openSheet !== 'function' || !UI.hasDom || !UI.hasDom()) {
+      if (!uiReady()) {
         /* 화면이 없는 환경(테스트)에서는 재생할 수 없습니다 */
         resolve({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'no_dom' });
         return;
       }
       var left = PREVIEW_SEC;
       var closed = false;
-      var wrap = UI.openSheet({
-        title: '광고 보고 하트 받기',
-        body: '<div class="ad-sim">' +
-          '<div class="ad-sim__badge">AD</div>' +
-          '<p class="ad-sim__t">광고를 보는 중이에요</p>' +
-          '<p class="ad-sim__s">끝까지 보면 하트 <b>' + (BM.domain ? BM.domain.HEART_RULES.AD_REWARD : 1) + '개</b> · <b data-ad-count>' + PREVIEW_SEC + '</b>초</p>' +
-          '<div class="adbar adbar--lg"><i data-ad-progress style="width:0%"></i></div>' +
-          '<button type="button" class="btn btn--ghost btn--big mt16" data-ad-cancel>그만 보기</button>' +
-          '<p class="hint">웹에서는 광고 미리보기예요. 앱(스토어)에서는 이 자리에 실제 광고가 나옵니다.</p></div>'
-      });
+      var timer = null;
+      var wrap = null;
       function settle(res) {
         if (closed) return;
         closed = true;
         if (timer) clearInterval(timer);
-        UI.closeSheet();
+        if (typeof UI.closeSheet === 'function') UI.closeSheet();
         resolve(res);
       }
-      /* 닫기(X·배경)로 나가면 지급하지 않습니다 */
-      if (wrap) {
-        wrap.addEventListener('click', function (ev) {
-          if (ev.target.closest('[data-ad-cancel]')) { ev.preventDefault(); settle({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'cancel' }); return; }
-          if (ev.target.closest('[data-close]')) settle({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'cancel' });
+      try {
+        wrap = UI.openSheet({
+          title: '광고 보고 하트 받기',
+          body: '<div class="ad-sim">' +
+            '<div class="ad-sim__badge">AD</div>' +
+            '<p class="ad-sim__t">광고를 보는 중이에요</p>' +
+            '<p class="ad-sim__s">끝까지 보면 하트 <b>' + (BM.domain ? BM.domain.HEART_RULES.AD_REWARD : 1) + '개</b> · <b data-ad-count>' + PREVIEW_SEC + '</b>초</p>' +
+            '<div class="adbar adbar--lg"><i data-ad-progress style="width:0%"></i></div>' +
+            '<button type="button" class="btn btn--ghost btn--big mt16" data-ad-cancel>그만 보기</button>' +
+            '<p class="hint">웹에서는 광고 미리보기예요. 앱(스토어)에서는 이 자리에 실제 광고가 나옵니다.</p></div>'
         });
+      } catch (e) {
+        resolve({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'error' });
+        return;
       }
-      var timer = setInterval(function () {
+      if (!wrap) {
+        /* 시트를 띄우지 못하면 보상도 없습니다 (버튼이 잠긴 채 남지 않게) */
+        resolve({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'no_sheet' });
+        return;
+      }
+      /* 닫기(X·배경)로 나가면 지급하지 않습니다 */
+      wrap.addEventListener('click', function (ev) {
+        if (ev.target.closest('[data-ad-cancel]')) { ev.preventDefault(); settle({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'cancel' }); return; }
+        if (ev.target.closest('[data-close]')) settle({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'cancel' });
+      });
+      timer = setInterval(function () {
         left -= 1;
-        var c = wrap && wrap.querySelector('[data-ad-count]');
-        var p = wrap && wrap.querySelector('[data-ad-progress]');
+        var c = wrap.querySelector('[data-ad-count]');
+        var p = wrap.querySelector('[data-ad-progress]');
         if (c) c.textContent = String(Math.max(0, left));
         if (p) p.style.width = Math.round(((PREVIEW_SEC - left) / PREVIEW_SEC) * 100) + '%';
         if (left <= 0) settle({ rewarded: true, adUnit: adUnit, source: 'preview' });
