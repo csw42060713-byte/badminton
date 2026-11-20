@@ -378,11 +378,12 @@
         (myLevel ? '<span class="pill pill--grade">' + U.esc(myLevel) + '</span>' : '') +
         genderPillOf(mp.gender || me.gender) + stylePillOf(myStyle) + '</div>' +
         '<p class="profile__meta">' + U.esc(where || '종목·지역·체육관을 골라 보세요') + '</p>' +
-        (me.bio ? '<p class="profile__bio">' + U.esc(me.bio) + '</p>' : '') + '</div>' +
-        '<button class="iconbtn" data-act="edit-profile" aria-label="프로필 꾸미기">' + UI.icon('edit') + '</button></div>' +
+        (me.bio ? '<p class="profile__bio">' + U.esc(me.bio) + '</p>' : '') + '</div></div>' +
+        /* 꾸미기 입구는 이 버튼 하나입니다. 닉네임·사진·프레임·배지·급수·성별·
+         * 스타일·체육관·지역·소개를 한 시트에서 고칩니다(테마만 따로 아래에). */
         '<button type="button" class="btn btn--primary btn--big profile__deco" data-act="decorate-sheet">' +
         '<span class="profile__deco-t">' + UI.icon('spark') + '프로필 꾸미기</span>' +
-        '<span class="profile__deco-s">실력 · 성별 · 플레이 스타일 · 체육관 · 사진</span></button>' +
+        '<span class="profile__deco-s">닉네임 · 사진 · 프레임 · 배지 · 급수 · 스타일 · 체육관</span></button>' +
         (missing.length
           ? '<p class="profile__decohint">' + U.esc(missing.slice(0, 2).join(' · ')) +
             (missing.length > 2 ? ' 등' : '') + '을 채우면 매칭이 더 잘 맞춰져요.</p>' : '') +
@@ -397,7 +398,6 @@
 
         accountCard(state) +
 
-        group('decor', 'camera', '사진 · 프레임', '사진 · 프레임 꾸미기', decoratePanel(me, state), 'decor') +
         group('theme', 'palette', '테마', themeName(theme), themeSwatches(state)) +
         group('data', 'chart', '데이터 연결', '시트 연결 · 내보내기', dataPanel(state)) +
         group('legal', 'shield', '개인정보 · 계정', '', legalCard(state)) +
@@ -462,11 +462,6 @@
           });
           return;
         }
-        if (ev.target.closest('[data-act="edit-profile"]')) {
-          ev.preventDefault();
-          openDecorateSheet(ctx);
-          return;
-        }
         if (ev.target.closest('[data-act="decorate-sheet"]')) {
           ev.preventDefault();
           openDecorateSheet(ctx);
@@ -476,41 +471,6 @@
           ev.preventDefault();
           ev.stopPropagation();
           openDecorateSheet(ctx, { focus: 'avatar' });
-          return;
-        }
-        if (ev.target.closest('[data-act="pick-photo"]')) {
-          ev.preventDefault();
-          pickPhotoFile(function (url) {
-            var spec = myAvatar(ctx.store.state.me);
-            saveAvatar(ctx, {
-              photo: url, emoji: spec.emoji, frame: spec.frame, bg: spec.bg, badge: spec.badge
-            }).then(function (ok) {
-              if (ok) { UI.toast('프로필 사진을 바꿨어요'); UI.haptic(12); }
-              else UI.toast('잠시만요, 저장 중이에요');
-            });
-          }, function (msg) { UI.toast(msg, 'error'); });
-          return;
-        }
-        if (ev.target.closest('[data-act="clear-photo"]')) {
-          ev.preventDefault();
-          var specNow = myAvatar(ctx.store.state.me);
-          saveAvatar(ctx, {
-            photo: '', emoji: specNow.emoji, frame: specNow.frame, bg: specNow.bg, badge: specNow.badge
-          }).then(function (ok) {
-            if (ok) UI.toast('사진을 지웠어요');
-          });
-          return;
-        }
-        var frameBtn = ev.target.closest('[data-pick-frame]');
-        if (frameBtn) {
-          ev.preventDefault();
-          var fid = frameBtn.getAttribute('data-pick-frame');
-          var s2 = myAvatar(ctx.store.state.me);
-          unlockDeco(ctx, 'frame', fid, function (res) {
-            if (!res || !res.ok) { if (res && res.cancelled) UI.toast('그대로 두었어요'); return; }
-            saveAvatar(ctx, { photo: s2.photo, emoji: s2.emoji, frame: fid, bg: s2.bg, badge: s2.badge })
-              .then(function (ok) { if (ok) { UI.toast('프레임 · ' + frameName(fid)); ctx.refresh(); } });
-          });
           return;
         }
         if (ev.target.closest('[data-act="connect"]')) {
@@ -652,27 +612,6 @@
 
   function lockTag(d) {
     return d.owned ? '' : '<span class="decolock">하트 ' + d.price + '</span>';
-  }
-
-  function decoratePanel(me, state) {
-    var spec = myAvatar(me);
-    return '<div class="decor">' +
-      '<div class="decor__preview">' + UI.avatar(spec, 76) + '</div>' +
-      '<div class="decor__body">' +
-      '<p class="decor__t">' + (spec.photo ? '내 사진을 쓰고 있어요' : '이모지 ' + U.esc(spec.emoji)) + '</p>' +
-      '<p class="hint">사진은 256×256으로 줄여 저장해요. 프레임은 아래에서 바로 바뀌어요.</p>' +
-      '<div class="decor__acts">' +
-      '<button type="button" class="btn btn--primary btn--sm" data-act="pick-photo">' + UI.icon('camera') + '사진 올리기</button>' +
-      (spec.photo ? '<button type="button" class="btn btn--ghost btn--sm" data-act="clear-photo">지우기</button>' : '') +
-      '</div></div></div>' +
-      '<div class="framestrip">' + frames().map(function (f) {
-        var d = decoOf(state, 'frame', f.id);
-        return '<button type="button" class="framepick' + (spec.frame === f.id ? ' is-on' : '') + (d.owned ? '' : ' is-locked') + '"' +
-          ' data-pick-frame="' + U.esc(f.id) + '" title="' + U.esc(f.name + (d.owned ? '' : ' · 하트 ' + d.price + '개로 해금')) + '">' +
-          '<span class="framepick__dot framepick__dot--' + U.esc(f.id) + '"></span>' +
-          '<span class="framepick__name">' + U.esc(f.name) + '</span>' + lockTag(d) + '</button>';
-      }).join('') + '</div>' +
-      '<p class="hint">' + U.esc(streakLine((state.data && state.data.hearts) || {})) + '</p>';
   }
 
   /* 사진 → 256×256 정사각형으로 잘라 JPEG로 압축 (localStorage·시트 한 칸 보호) */
@@ -1043,33 +982,6 @@
       }
     });
     return wrap;
-  }
-
-  function frameName(id) {
-    var hit = frames().filter(function (f) { return f.id === id; })[0];
-    return hit ? hit.name : '기본';
-  }
-
-  /* 꾸민 모습을 프로필(꾸미기 칸)과 매칭 카드(매칭프로필 JSON)에 함께 반영합니다 */
-  function saveAvatar(ctx, spec) {
-    var state = ctx.store.state;
-    var me = state.me || {};
-    var mp = myMatchProfile(state);
-    var res = ctx.actions.saveProfile({
-      avatar: spec.emoji, avatarPhoto: spec.photo, avatarFrame: spec.frame,
-      avatarBg: spec.bg, avatarBadge: spec.badge, gender: mp.gender || me.gender
-    });
-    if (!res.ok) return Promise.resolve(false);
-    if (mp && mp.rowId) {
-      ctx.actions.saveMatchProfile({
-        region: mp.region || '', level: mp.level || me.level || '', discipline: mp.discipline || me.discipline || '',
-        club: mp.club || '', availability: mp.availability || '', experience: mp.experience || '',
-        bio: mp.bio || me.bio || '', gender: mp.gender || me.gender || '비공개',
-        avatar: spec.emoji, avatarPhoto: spec.photo, avatarFrame: spec.frame,
-        avatarBg: spec.bg, avatarBadge: spec.badge
-      });
-    }
-    return Promise.resolve(true);
   }
 
   function openHelpSheet(ctx) {

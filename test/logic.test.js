@@ -1372,15 +1372,21 @@
     });
   });
 
-  test('MY 화면: 꾸미기 카드에 사진 올리기·프레임 고르기가 있다', function () {
+  test('MY 화면: 꾸미기 입구는 프로필 꾸미기 하나 (사진·프레임도 그 시트에서)', function () {
     var state = stateOf();
     var html = BM.views.my.render(state);
-    includes(html, 'data-region="decor"', '꾸미기 카드');
-    includes(html, 'data-act="pick-photo"', '사진 올리기');
-    includes(html, 'data-act="decorate-avatar"', '꾸미기 시트 열기');
-    includes(html, 'data-pick-frame="gold"', '프레임 선택');
-    includes(html, '사진 · 프레임 꾸미기', '버튼 문구');
+    /* v1.16: 위 버튼 · 사진·프레임 카드 · 편집 아이콘으로 나뉘어 있던 입구를 하나로 모았습니다 */
+    includes(html, 'data-act="decorate-sheet"', '꾸미기 버튼 하나');
+    includes(html, 'profile__deco', '큰 버튼 스타일');
     includes(html, '프로필 사진 꾸미기', '아바타 버튼 라벨');
+    excludes(html, 'data-region="decor"', '중복된 사진·프레임 카드는 그리지 않는다');
+    excludes(html, 'data-act="edit-profile"', '중복 편집 아이콛 없음');
+    excludes(html, 'data-act="pick-photo"', '카드 안 사진 버튼 없음');
+    excludes(html, 'data-pick-frame="gold"', '카드 안 프레임 줄 없음');
+    /* 사진·프레임은 꾸미기 시트 안에 그대로 있습니다 */
+    var body = BM.views.my.decorateBody(BM.views.my.decorateDraft(state), state.me, state);
+    includes(body, 'data-act="deco-photo"', '시트 안 사진 올리기');
+    includes(body, 'data-dframe="gold"', '시트 안 프레임 선택');
   });
 
   test('온보딩: 성별도 함께 고르고, 프로필·매칭 카드에 저장한다', function () {
@@ -2015,13 +2021,16 @@
     for (var i = 0; i < 2; i++) {
       rows.push(D.toRow({ id: U.uid(), type: '출석하트', userKey: BM.seed.ME, date: U.ymd(U.addDays(new Date(), -i)), likes: 1, createdAt: U.stamp() }));
     }
-    var html = BM.views.my.render(stateOf(rows));
-    var streak = stateOf(rows).data.hearts.checkinStreak;
+    var st = stateOf(rows);
+    var html = BM.views.my.render(st);
+    var streak = st.data.hearts.checkinStreak;
     ok(streak >= 2, '연속 출석 계산: ' + streak);
-    includes(html, streak + '일 연속 출석 중', '연속 출석 표시');
+    includes(html, streak + '일 연속 출석 중', '연속 출석 표시 (하트 카드)');
     includes(html, '일까지', '다음 목표');
-    includes(html, 'is-locked', '잠긴 꾸미기 표시');
-    includes(html, 'decolock', '해금 가격 표시');
+    /* 잠긴 꾸미기(하트 해금)는 이제 꾸미기 시트 안에서 보여 줍니다 */
+    var body = BM.views.my.decorateBody(BM.views.my.decorateDraft(st), st.me, st);
+    includes(body, 'is-locked', '잠긴 꾸미기 표시');
+    includes(body, 'decolock', '해금 가격 표시');
     checkHtml(html, 'MY-꾸미기');
   });
 
