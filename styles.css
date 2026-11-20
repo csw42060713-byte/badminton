@@ -693,6 +693,67 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 .empty__s { font-size: 12px; margin-top: 4px; line-height: 1.6; }
 .empty__acts { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 14px; }
 
+/* ---------- 빈 화면 일러스트 (v1.33.0) ----------
+ * 글자만 남던 자리에 배드민턴 선화 한 장을 놓습니다.
+ * 색은 테마 변수만 쓰므로 다크·라이트·사쿠라·라임에서 저절로 어울립니다. */
+.empty--art { padding: 22px 14px 24px; }
+.empty__art {
+  display: block; width: auto; height: 72px;
+  margin: 0 auto 8px;
+  color: color-mix(in srgb, var(--muted) 84%, transparent);
+}
+.empty__art .st {
+  fill: none; stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.empty__art .st-f {
+  fill: none; stroke: currentColor; stroke-width: 1.1;
+  stroke-linecap: round; stroke-linejoin: round; opacity: 0.6;
+}
+.empty__art .st-a {
+  fill: none; stroke: var(--accent); stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.empty__art .st-a .st-f { stroke: var(--accent); opacity: 0.72; }
+.empty__art .st-d {
+  fill: none; stroke: var(--accent); stroke-width: 1.5;
+  stroke-linecap: round; stroke-dasharray: 2 5; opacity: 0.85;
+}
+@media (max-height: 660px) { .empty__art { height: 62px; } }
+
+/* ---------- 히어로 카드 코트 선화 (v1.33.0) ----------
+ * 일지 & AI · 매칭 · 커뮤니티 · 코치 · MY의 맨 위 카드 오른쪽·아래 여백에만,
+ * 글자를 해치지 않게 8% 남짓의 투명도로 깝니다. 누르기는 그대로 통과합니다. */
+:root {
+  --courtmark: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20200%20150'%20fill='none'%20stroke='%23000'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M16%2046%20184%2036%20190%20116%2022%20122Z'/%3E%3Cpath%20d='M18%2081%20187%2074'/%3E%3Cpath%20d='M16.5%2062%20185%2055'/%3E%3Cpath%20d='M19%20100%20188%2093'/%3E%3Cpath%20d='M102%2041%20104%20119'/%3E%3Cpath%20stroke-width='1.6'%20d='M18%2081h169'%20stroke-dasharray='1%207'/%3E%3Ccircle%20cx='16'%20cy='81'%20r='4'/%3E%3Ccircle%20cx='189'%20cy='74'%20r='4'/%3E%3Cpath%20stroke-width='2'%20stroke-dasharray='2%207'%20d='M114%2034q22-18%2040-6'/%3E%3Cg%20transform='translate(158%2024)%20rotate(-14)'%3E%3Cpath%20d='M-9-17h18l-4%2013h-10z'/%3E%3Cpath%20stroke-width='1.7'%20d='M-9-17l3.4%2013M0-17v13M9-17l-3.4%2013'/%3E%3Cpath%20d='M-5-4h10v3a5%205%200%200%201-10%200z'/%3E%3C/g%3E%3C/svg%3E");
+}
+.card--hero, .card--match, .card--composer, .card--profile, .card--coach { position: relative; }
+.card--hero::after, .card--match::after, .card--profile::after, .card--coach::after {
+  content: ''; position: absolute; right: -16px; bottom: -12px;
+  width: 146px; height: 110px;
+  background: var(--accent); opacity: 0.075;
+  -webkit-mask: var(--courtmark) no-repeat right bottom / contain;
+  mask: var(--courtmark) no-repeat right bottom / contain;
+  pointer-events: none;
+}
+/* MY 프로필 카드 · 코치 카드: 글자가 몰린 아래 대신 이름·제목 옆 빈 자리에 깝니다 */
+.card--profile::after, .card--coach::after {
+  top: -10px; bottom: auto; right: -16px;
+  width: 134px; height: 101px;
+  -webkit-mask-position: right top; mask-position: right top;
+}
+.card--composer::after {
+  content: ''; position: absolute; right: -14px; top: 0; bottom: auto;
+  width: 124px; height: 93px;
+  background: var(--accent); opacity: 0.06;
+  -webkit-mask: var(--courtmark) no-repeat right top / contain;
+  mask: var(--courtmark) no-repeat right top / contain;
+  pointer-events: none;
+}
+[data-theme="th_def"] .card--hero::after, [data-theme="th_def"] .card--match::after,
+[data-theme="th_def"] .card--profile::after, [data-theme="th_def"] .card--coach::after { opacity: 0.085; }
+[data-theme="th_def"] .card--composer::after { opacity: 0.07; }
+
 .skeleton { display: grid; gap: 12px; }
 .sk {
   border-radius: var(--r-lg);
@@ -2823,6 +2884,8 @@ summary { display: list-item; }
   background: var(--accent-soft); border: 1px solid var(--accent-line);
 }
 .matchintro__ico .ico { width: 20px; height: 20px; }
+.matchintro__art { display: block; margin-bottom: 4px; }
+.matchintro__art .empty__art { height: 66px; margin: 0 auto; }
 .matchintro__t { font-size: 14px; font-weight: 800; color: var(--text); line-height: 1.45; letter-spacing: -0.3px; word-break: keep-all; }
 .matchintro__t b { color: var(--accent); }
 .matchintro__d { margin-top: 5px; font-size: 11.5px; line-height: 1.65; color: var(--muted); word-break: keep-all; }

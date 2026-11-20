@@ -96,7 +96,7 @@
     div: 1, span: 1, p: 1, section: 1, article: 1, header: 1, footer: 1, main: 1, nav: 1,
     ul: 1, ol: 1, li: 1, dl: 1, dt: 1, dd: 1, h1: 1, h2: 1, h3: 1, h4: 1, h5: 1, h6: 1,
     button: 1, form: 1, input: 1, textarea: 1, select: 1, option: 1, label: 1, a: 1,
-    img: 1, svg: 1, path: 1, circle: 1, br: 1, time: 1, b: 1, i: 1, strong: 1, em: 1,
+    img: 1, svg: 1, path: 1, circle: 1, g: 1, br: 1, time: 1, b: 1, i: 1, strong: 1, em: 1,
     small: 1, details: 1, summary: 1, pre: 1, code: 1,
     table: 1, thead: 1, tbody: 1, tr: 1, th: 1, td: 1
   };

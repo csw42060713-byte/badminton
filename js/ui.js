@@ -282,8 +282,12 @@
     return '<span class="' + cls + '" title="' + U.esc(p.at || '') + '">' + dot + U.esc(p.label || '활동 정보 없음') + '</span>';
   }
 
+  /* 빈 화면 — 글자만 두지 않고 배드민턴 선화 한 장을 먼저 보여 줍니다.
+   * 그림이 준비된 kind(log·search·community·coach·send·spark)는 art.js의 SVG를,
+   * 그 밖의 kind는 예전처럼 24px 아이콘을 씁니다(부르는 쪽은 그대로). */
   function emptyState(iconName, title, sub, actionHtml) {
-    return '<div class="empty">' + icon(iconName || 'spark') +
+    var art = (BM.art && BM.art.empty) ? BM.art.empty(iconName) : '';
+    return '<div class="empty' + (art ? ' empty--art' : '') + '">' + (art || icon(iconName || 'spark')) +
       '<p class="empty__t">' + U.esc(title) + '</p>' +
       (sub ? '<p class="empty__s">' + U.esc(sub) + '</p>' : '') +
       (actionHtml || '') + '</div>';
