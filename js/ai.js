@@ -31,9 +31,29 @@
  *        BMJ Open Sport & Exercise Medicine 11(1):e002127, 2025 — 1,000시간당 1~4건, 과사용 25~74%,
  *        부상의 40%가 직전 주 훈련부하 10% 이상 급증과 연관(Piggott & Newton) → 주간 부하 급증 경계.
  * [MARC24] Marchena-Rodríguez A. et al., <Aetiology, epidemiology and treatment of musculoskeletal
- *        injuries in badminton players: a systematic review and meta-analysis>, 2024 — 염좌 36%, 하지 52%.
- * [PHOM25] Phomsoupha M. et al., <… musculoskeletal injury prevention warm-up program for youth
- *        badminton (PreventiBad)>, J Sports Sci, 2025 — 예방 워밍업으로 부상 70% 감소(4.07→1.23/1000h).
+ *        injuries in badminton players: a systematic review and meta-analysis>, Res Sports Med, 2024
+ *        (DOI: 10.1080/15438627.2024.2351964) — 28편·2,435명. 하체 부상 52.15%, 염좌 36.06%.
+ * [PHOM25] Phomsoupha M., Tran A., Guermont H., <A prospective randomised controlled trial investigating
+ *        the impact of a musculoskeletal injury prevention warm-up program for youth badminton (PreventiBad)>,
+ *        J Sports Sci 43(5):440-447, 2025 (DOI: 10.1080/02640414.2025.2461931) — 유소년 273명, 8주 클러스터 RCT.
+ *        대조군 4.07건/1,000시간 → 중재군 1.23건, IRR 0.30(95%CI 0.12~0.75) = 부상 70% 감소.
+ * [PENG25] Pengked K., Hareebin Y., Tawanwongsri W., Manunyanon S., <Badminton-related musculoskeletal injuries
+ *        in senior players: Epidemiology and preventive strategies for common injuries>,
+ *        Electron J Gen Med 22(1):em629, 2025 (DOI: 10.29333/ejgm/15917) — 성인 254명.
+ *        우세측 무릎 51.1%·발목 36.3%·어깨/쇄골 25.5%, 발목 염좌 23.5%, 슬개건병증 20.3%.
+ *        방향 전환에서 발목 염좌·무릎 부상이 많고, 준비운동 빈도와 부상 빈도는 역상관(ρ = -0.273, p < 0.001).
+ * [ALC09] Alcock A., Cable N.T., <A comparison of singles and doubles badminton: heart rate response, player
+ *        profiles and game characteristics>, Int J Perform Anal Sport 9(2):228-237, 2009
+ *        (DOI: 10.1080/24748668.2009.11868479) — 단식 평균/최고 심박 88.8%/96.8% vs 복식 75.5%/89.0% HRmax,
+ *        게임당 스텝 593.8 vs 314.5보, 랠리 5.0초·휴식 8.1 vs 9.7초.
+ * [HOFF24] Hoffmann D., Brinkschulte M., Vogt T., <Match characteristics of women's and men's singles and doubles
+ *        events in elite badminton>, Int J Perform Anal Sport, 2024 (DOI: 10.1080/24748668.2024.2386830) —
+ *        2018 세계선수권 5종목. 남자복식·혼합복식이 가장 짧은 랠리(평균 5.6~6.7초)·가장 높은 타구 빈도,
+ *        여자복식이 가장 긴 랠리(평균 약 10.1초)·가장 높은 실제 경기시간 비율.
+ * [SANT25] Santiano F., Ison S., Emmerson J., Colyer S., <Using markerless motion analysis to quantify sex and
+ *        discipline differences in external mechanical work during badminton match play>,
+ *        J Sports Sci 43(12):1158-1166, 2025 (DOI: 10.1080/02640414.2025.2489863) — 체중 보정 외부 기계적
+ *        작업량·파워가 단식에서 복식보다 큼(ES 0.44 / 0.47, 최상위급 남자 선수 ES 0.88).
  * [VRI16] Vriend I. et al., <Neuromuscular training is effective to prevent ankle sprains…>,
  *        JISAKOS 2016 — 신경근 훈련으로 발목 염좌 위험 40% 감소(RR 0.60).
  * [EHS24] Ehsani F. et al., <…subacromial impingement syndrome…>, J Sport Rehabil, 2024 —
@@ -566,6 +586,262 @@
     '마무리: 30초 이상 천천히 걷기 + 종아리·햄스트링·어깨 스트레칭 각 30초'
   ];
 
+  /* ---------- 근거 기반 부상 예방 워밍업 ----------
+   * [PHOM25] PreventiBad RCT(유소년 273명·8주)에서 부상 70% 감소(IRR 0.30, 4.07→1.23건/1,000시간).
+   * [MARC24]·[PENG25] 하체 부상 52.15%, 방향 전환 시 발목 염좌 23.5%·슬개건병증 20.3%,
+   *          우세측 어깨 25.5%, 준비운동 빈도 ↑ → 부상 ↓(ρ = -0.273, p < 0.001).
+   * 그래서 통증 부위에 맞는 신경근 항목을 고르고, 없으면 하체 기본(발목·무릎)으로 잡습니다. */
+  var PREVENT = {
+    lowerBodyPct: 52.15,        /* [MARC24] 하체 부상 비중 */
+    sprainPct: 36.06,           /* [MARC24] 염좌 비중 */
+    ankleSprainPct: 23.5,       /* [PENG25] 발목 염좌 */
+    patellarPct: 20.3,          /* [PENG25] 슬개건병증 */
+    shoulderPct: 25.5,          /* [PENG25] 우세측 어깨 */
+    warmupRho: -0.273,          /* [PENG25] 준비운동 빈도 ↔ 부상 빈도 (Spearman) */
+    preventiBadPct: 70,         /* [PHOM25] 부상 감소율 */
+    controlPer1000h: 4.07,
+    programPer1000h: 1.23,
+    irr: 0.30
+  };
+  var PREVENT_SRC = 'Phomsoupha et al., J Sports Sci 43(5):440-447, 2025 (PreventiBad, DOI 10.1080/02640414.2025.2461931) · ' +
+    'Marchena-Rodríguez et al., Res Sports Med, 2024 (DOI 10.1080/15438627.2024.2351964) · ' +
+    'Pengked et al., Electron J Gen Med 22(1):em629, 2025 (DOI 10.29333/ejgm/15917)';
+  var PREVENT_SRC_SHORT = 'Phomsoupha 2025 J Sports Sci (부상 70%↓) · Marchena-Rodríguez 2024 Res Sports Med · Pengked 2025 EJGM';
+
+  /* 워밍업 항목 — 부위별 1개씩, 이름은 짧게·방법은 한 줄로 */
+  var WARM_ITEMS = {
+    base: {
+      name: '전신 동적 예열', area: '전신', min: 2,
+      how: '다리 앞뒤 흔들기 10회씩 · 런지 워크 6보 · 팔·어깨 원 그리기 10회'
+    },
+    '발목': {
+      name: '발목 고유수용감각', area: '발목', min: 2,
+      how: '한 발 서기 30초 × 2, 눈 감고 15초 × 2 — 접질림은 방향 전환에서 가장 많아요(발목 염좌 23.5%)'
+    },
+    '무릎': {
+      name: '한 발 착지 · 감속 런지', area: '무릎', min: 2,
+      how: '가볍게 뛰어 한 발 착지 후 3초 버티기 좌우 5회 + 앞 런지 후 2초 정지 5회(슬개건병증 20.3%)'
+    },
+    '어깨': {
+      name: '밴드 외회전 · 견갑 안정', area: '어깨', min: 2,
+      how: '탄성밴드 외회전 15회 × 2 + 월 슬라이드 10회 × 2 — 우세측 어깨 부상이 25.5%예요'
+    },
+    '팔꿈치': {
+      name: '전완·손목 예열', area: '팔꿈치', min: 2,
+      how: '손목 굽히기·펴기 10회씩 + 가벼운 편심 손목 신전 15회 — 그립 힘은 빼고 가볍게'
+    },
+    '손목': {
+      name: '손목 가동범위', area: '손목', min: 2,
+      how: '손목 원 그리기 양방향 10회씩 + 손목 앞뒤 20초 × 2, 라켓을 쥔 채로 가볍게'
+    },
+    '허리': {
+      name: '힙힌지 · 흉추 회전', area: '허리', min: 2,
+      how: '고양이-소 10회 + 힙힌지 10회 + 흉추 회전 좌우 8회 — 허리를 굽혀 숙이지 않기'
+    },
+    '목': {
+      name: '턱 당기기 · 흉추 풀기', area: '목', min: 2,
+      how: '턱 당기기 10회 × 2 + 고개 천천히 좌우 10초씩 + 어깨 뒤로 모으기 10회'
+    },
+    '아킬레스건': {
+      name: '종아리 · 발목 예열', area: '아킬레스건', min: 2,
+      how: '벽 짚고 종아리 스트레칭 20초 × 2(무릎 펴고/굽히고) + 발목 돌리기 10회씩 — 아침 첫발이 뻣뻣하면 특히'
+    }
+  };
+
+  /* 종목에 맞는 마지막 1분 — 코트 동작을 미리 한 번 돌립니다 */
+  function warmClose(discipline) {
+    var key = disciplineKey(discipline);
+    if (key === '단식') {
+      return {
+        name: '코트 동작 예열', area: '종목', min: 2,
+        how: '전·후위 코너 8~12초 셔틀 10구 — 단식은 앞뒤 이동 비중이 커서 다리 예열이 곧 경기력입니다'
+      };
+    }
+    return {
+      name: '코트 동작 예열', area: '종목', min: 2,
+      how: '전위 연타·좌우 드라이브 10구 — 복식은 짧은 랠리를 자주 치니 발목·손목을 미리 깨워 두세요'
+    };
+  }
+
+  /* preventionWarmup(painList, discipline)
+   *   → 코트 들어가기 전 8분 · 항목 4개(전신 예열 → 통증 부위 2개 → 종목 예열)
+   * 통증이 없으면 발목·무릎(하체 기본)으로 채웁니다. 같은 입력이면 같은 결과. */
+  function preventionWarmup(painList, discipline) {
+    var pains = (painList || []).filter(function (p) { return p && WARM_ITEMS[p]; });
+    var picked = [], used = {};
+    pains.forEach(function (p) {
+      if (picked.length >= 2 || used[p]) return;
+      used[p] = 1;
+      picked.push(p);
+    });
+    /* 하체 부상이 전체의 52.15% — 부족한 자리는 발목 → 무릎 순서로 */
+    ['발목', '무릎'].forEach(function (p) {
+      if (picked.length >= 2 || used[p]) return;
+      used[p] = 1;
+      picked.push(p);
+    });
+
+    var items = [WARM_ITEMS.base];
+    picked.slice(0, 2).forEach(function (p) { items.push(WARM_ITEMS[p]); });
+    items.push(warmClose(discipline));
+
+    var minutes = 0;
+    var out = items.map(function (it) {
+      minutes += it.min;
+      return { name: it.name, how: it.how, area: it.area, min: it.min };
+    });
+
+    var areas = picked.slice(0, 2);
+    var reason;
+    if (pains.length) {
+      var lower = areas.some(function (a) { return a === '발목' || a === '무릎' || a === '아킬레스건'; });
+      var upper = areas.some(function (a) { return a === '어깨' || a === '팔꿈치' || a === '손목'; });
+      reason = areas.join('·') + ' 준비를 넣었어요. ' +
+        (lower ? '방향 전환에서 발목 염좌(' + PREVENT.ankleSprainPct + '%)·슬개건병증(' + PREVENT.patellarPct +
+          '%)이 나고 부상의 ' + PREVENT.lowerBodyPct + '%가 하체입니다. ' : '') +
+        (upper ? '우세측 어깨 부상이 ' + PREVENT.shoulderPct + '%입니다. ' : '') +
+        '준비운동을 자주 할수록 부상이 적었어요(ρ = ' + PREVENT.warmupRho + ', p < 0.001).';
+    } else {
+      reason = '오늘 통증이 없어 하체 기본으로 잡았어요. 부상의 ' + PREVENT.lowerBodyPct + '%가 하체이고, ' +
+        '8주 예방 워밍업으로 부상이 ' + PREVENT.preventiBadPct + '% 줄었습니다(' + PREVENT.controlPer1000h + ' → ' +
+        PREVENT.programPer1000h + '건/1,000시간).';
+    }
+    return {
+      title: '코트 전 예방 워밍업',
+      minutes: minutes,
+      label: minutes + '분',
+      areas: areas,
+      items: out,
+      reason: reason,
+      source: PREVENT_SRC,
+      sourceShort: PREVENT_SRC_SHORT,
+      stats: PREVENT
+    };
+  }
+
+  /* ---------- 단식 vs 복식 부하·인터벌 기준 ----------
+   * [ALC09] 단식 88.8%/96.8% vs 복식 75.5%/89.0% HRmax, 게임당 593.8 vs 314.5보.
+   * [HOFF24] 남자복식·혼합복식 최단 랠리(5.6~6.7초)·최고 타구 빈도, 여자복식 최장 랠리(약 10.1초).
+   * [SANT25] 단식이 체중 보정 외부 작업량·파워가 큼(ES 0.44 / 최상위급 0.88) → 근력·회복 관리. */
+  var LOAD_STATS = {
+    hrMeanSingles: 88.8, hrPeakSingles: 96.8,
+    hrMeanDoubles: 75.5, hrPeakDoubles: 89.0,
+    stepsSingles: 593.8, stepsDoubles: 314.5,
+    singlesWorkES: 0.44, eliteWorkES: 0.88,
+    mdRallySec: [5.6, 6.7], wdRallySec: 10.1
+  };
+  var LOAD_SRC = 'Alcock & Cable, Int J Perform Anal Sport 9(2):228-237, 2009 (DOI 10.1080/24748668.2009.11868479) · ' +
+    'Hoffmann et al., Int J Perform Anal Sport, 2024 (DOI 10.1080/24748668.2024.2386830) · ' +
+    'Santiano et al., J Sports Sci 43(12):1158-1166, 2025 (DOI: 10.1080/02640414.2025.2489863)';
+  var LOAD_SRC_SHORT = 'Alcock & Cable 2009 Int J Perform Anal Sport · Hoffmann 2024 · Santiano 2025 J Sports Sci';
+
+  var LOAD_GUIDE = {
+    '단식': {
+      rally: '8~12초 (전·후위 코너)',
+      workRest: '1:2 — 8~12초 랠리 뒤 16~24초 회복',
+      drill: '전후 코너 멀티셔틀 8~12초',
+      heart: '평균 88.8% · 최고 96.8% HRmax (복식 75.5% · 89.0%)',
+      steps: '게임당 593.8보 (복식 314.5보)',
+      tips: [
+        '단식은 체중 보정 기계적 작업량·파워가 복식보다 큽니다(ES 0.44, 최상위급 0.88) — 주 2회 하체 근력과 회복을 같이 챙기세요.',
+        '심박이 최고 96.8%까지 오릅니다. 세트 사이 60~90초는 줄이지 말고, 3세트째는 랠리 길이만 2초 줄이세요.'
+      ]
+    },
+    '남자복식': {
+      rally: '6~10초 (실전 평균 5.6~6.7초)',
+      workRest: '1:1.5 — 6~10초 랠리 뒤 10~15초',
+      drill: '드라이브·전위 연타 멀티셔틀 6~10초',
+      heart: '평균 75.5% · 최고 89.0% HRmax',
+      steps: '게임당 314.5보',
+      tips: [
+        '남자복식·혼합복식은 랠리가 가장 짧고 타구 빈도가 가장 높습니다 — 길게 끌지 말고 6~10초 초고빈도로 치세요.',
+        '짧은 랠리 사이 회복도 짧아 심박 변동이 큽니다. 세트 사이 45~60초를 지키고 3세트부터는 드라이브 비중을 줄이세요.'
+      ]
+    },
+    '혼합복식': {
+      rally: '6~10초 (실전 평균 5.6~6.7초)',
+      workRest: '1:1.5 — 6~10초 랠리 뒤 10~15초',
+      drill: '전위 연타·중앙 드라이브 멀티셔틀 6~10초',
+      heart: '평균 75.5% · 최고 89.0% HRmax',
+      steps: '게임당 314.5보',
+      tips: [
+        '혼합복식은 남자복식과 함께 랠리가 가장 짧고 타구 빈도가 가장 높습니다 — 전위 연타 위주로 6~10초 반복하세요.',
+        '남녀 역할이 나뉘니 남성은 후위 연속 공격, 여성은 전위 좌우 커버를 각각 세트로 나눠 부하를 맞추세요.'
+      ]
+    },
+    '여자복식': {
+      rally: '10~12초 (실전 평균 약 10.1초)',
+      workRest: '1:1~1:1.5 — 10~12초 랠리 뒤 10~15초',
+      drill: '지속 랠리 멀티셔틀 10~12초',
+      heart: '평균 75.5% · 최고 89.0% HRmax (복식 기준)',
+      steps: '게임당 314.5보 (복식 기준)',
+      tips: [
+        '여자복식은 랠리가 가장 길고 실제 경기시간 비율도 가장 높습니다 — 10~12초를 끊기지 않게 이어 가는 훈련이 맞습니다.',
+        '랠리가 길어 실점이 천천히 쌓입니다. 세트 사이는 짧게 가져가되 3세트째에도 랠리 수를 줄이지 마세요.'
+      ]
+    },
+    '복식': {
+      rally: '6~10초 (남자복식·혼합복식 5.6~6.7초 · 여자복식 약 10.1초)',
+      workRest: '1:1.5 — 6~10초 랠리 뒤 10~15초',
+      drill: '드라이브·전위 연타 멀티셔틀 6~10초',
+      heart: '평균 75.5% · 최고 89.0% HRmax',
+      steps: '게임당 314.5보',
+      tips: [
+        '복식은 짧은 랠리를 자주 칩니다 — 6~10초 고빈도로, 여자복식이면 10~12초로 늘려 지속력을 같이 챙기세요.',
+        '세트 사이 45~60초를 지키고, 단식 겸업이면 단식 훈련 뒤에는 회복을 하루 더 두세요.'
+      ]
+    }
+  };
+
+  /* 급수별 반복 수 — 같은 기준이라도 구수는 급수에 맞춰 */
+  var LOAD_REPS = {
+    '단식': ['8~10구 × 2~3세트', '8~10구 × 3세트', '10~12구 × 3세트', '10~15구 × 3세트', '12~15구 × 4세트', '15구 × 4세트', '15구 × 4세트'],
+    '남자복식': ['15구 × 2~3세트', '15구 × 3세트', '20구 × 3세트', '20~25구 × 3세트', '25구 × 4세트', '30구 × 4세트', '30구 × 4세트'],
+    '혼합복식': ['15구 × 2~3세트', '15구 × 3세트', '20구 × 3세트', '20~25구 × 3세트', '25구 × 4세트', '30구 × 4세트', '30구 × 4세트'],
+    '여자복식': ['12구 × 2~3세트', '12~15구 × 3세트', '15~20구 × 3세트', '20구 × 3세트', '20~25구 × 4세트', '25구 × 4세트', '25구 × 4세트'],
+    '복식': ['15구 × 2~3세트', '15구 × 3세트', '20구 × 3세트', '20~25구 × 3세트', '25구 × 4세트', '30구 × 4세트', '30구 × 4세트']
+  };
+
+  function disciplineKey(discipline) {
+    var s = String(discipline == null ? '' : discipline).replace(/\s+/g, '');
+    if (!s) return '복식';
+    if (s.indexOf('혼합') >= 0 || s.indexOf('혼복') >= 0) return '혼합복식';
+    if (s.indexOf('여자') >= 0 || s.indexOf('여성') >= 0 || s.indexOf('여복') >= 0) return '여자복식';
+    if (s.indexOf('남자') >= 0 || s.indexOf('남성') >= 0 || s.indexOf('남복') >= 0) return '남자복식';
+    if (s.indexOf('단식') >= 0) return '단식';
+    return '복식';
+  }
+
+  /* disciplineLoadGuide(discipline, level)
+   *   → 주력 종목의 랠리 길이·일:휴식 비율·심박·멀티셔틀 기준을 급수에 맞춰 */
+  function disciplineLoadGuide(discipline, level) {
+    var key = disciplineKey(discipline);
+    var box = LOAD_GUIDE[key] || LOAD_GUIDE['복식'];
+    var tier = tierOf(level);
+    var idx = tier >= 0 ? tier : 2;
+    var reps = (LOAD_REPS[key] || LOAD_REPS['복식'])[idx];
+    var levelNote = tier >= 0 && tier <= 1
+      ? '급수가 낮을 때는 구수보다 정확한 스플릿 스텝·복귀부터'
+      : tier >= 4
+        ? '구수를 늘리되 세트 사이 회복 시간은 그대로 두세요'
+        : '세트 수보다 랠리 길이를 지키는 게 먼저예요';
+    return {
+      discipline: key,
+      label: key,
+      rally: box.rally,
+      workRest: box.workRest,
+      drill: box.drill,
+      reps: reps,
+      heart: box.heart,
+      steps: box.steps,
+      tips: box.tips.slice(),
+      levelNote: levelNote,
+      source: LOAD_SRC,
+      sourceShort: LOAD_SRC_SHORT,
+      stats: LOAD_STATS
+    };
+  }
+
   /* ---------- 부상별 기준 · 처방 ----------
    * signs: 병원에 가야 하는 신호 / rehab: 집에서 할 수 있는 관리 / stretch / ret: 복귀 수칙
    * 근거: [EHS24] 어깨, [YOUNG05]·[SILVA23] 무릎, [VRI16] 발목, [HEALTHY21]·[TRAV19] 아킬레스 */
@@ -1072,6 +1348,9 @@
     /* ---------- 맞춤처방 ---------- */
     var care = { rehab: [], stretch: [], mental: [], warmup: [] };
     var painList = U.uniq(painToday.concat(painCounts.filter(function (p) { return p.n >= 3; }).map(function (p) { return p.name; })));
+    /* 통증 부위·종목에 맞춘 예방 워밍업과 종목별 인터벌 기준 (논문 근거) */
+    var prevent = preventionWarmup(painList, discipline);
+    var loadGuide = disciplineLoadGuide(discipline, level);
     painList.slice(0, 2).forEach(function (p) {
       var box = INJURY[p];
       if (box) {
@@ -1144,6 +1423,8 @@
       load: load,
       drills: { drills: drills },
       care: care,
+      prevent: prevent,
+      loadGuide: loadGuide,
       week: week,
       risk: risk,
       /* 시트에 그대로 넣을 수 있는 형태 */
@@ -1178,6 +1459,8 @@
     GRADES: GRADES, gradeOf: gradeOf, tierOf: tierOf, setsFor: setsFor,
     gradePlan: gradePlan, playbook: playbook,
     gameFlow: gameFlow, loadIndex: loadIndex, scoreModeOf: scoreModeOf,
+    preventionWarmup: preventionWarmup, disciplineLoadGuide: disciplineLoadGuide,
+    disciplineKey: disciplineKey, PREVENT: PREVENT, LOAD_GUIDE: LOAD_GUIDE,
     /* 논문 기준값 — 화면 문구와 같은 숫자 */
     SPLIT_STEP: SPLIT_STEP, DOUBLES_SERVE: DOUBLES_SERVE, DOUBLES_RECEIVE: DOUBLES_RECEIVE
   };
