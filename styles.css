@@ -670,10 +670,10 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 .tag--soft { background: transparent; color: var(--muted); border: 1px solid var(--line); }
 .tag--warn { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
 
-.kv { display: grid; grid-template-columns: 60px 1fr; gap: 6px 10px; margin-top: 10px; font-size: 12.5px; }
-.kv dt { color: var(--muted); }
-.kv dd { color: var(--text-2); word-break: break-word; }
-.kv--tight { font-size: 12px; gap: 5px 10px; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; margin-top: 10px; font-size: 12.5px; }
+.kv dt { color: var(--muted); white-space: nowrap; }
+.kv dd { color: var(--text-2); word-break: break-word; min-width: 0; }
+.kv--tight { font-size: 12px; gap: 5px 12px; }
 
 .stars { display: flex; gap: 2px; }
 .star {
@@ -4198,3 +4198,67 @@ body.has-notif.has-netbar .main { padding-top: calc(var(--hdr-h) + var(--safe-t)
 .drill__foot { margin-top: 7px; }
 .bullets li.warm { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
 .warm__text { flex: 1; min-width: 150px; }
+
+/* ---------- 17.17 주간 약점 3회 챌린지 (bm-v1.31.0) ----------
+ * 루틴 요약줄 아래 한 장 — 제목 한 줄 + 스탬프 3개 + 안내 한 줄.
+ * 스탬프는 일지 저장으로만 채워지므로 누를 것이 없습니다(진행 표시만).
+ * 색은 테마 변수만 써서 나이트·기본(라이트)·사쿠라·라임 모두 같은 대비를 냅니다. */
+.card--wkch { padding: 13px 15px; }
+.card--wkch.is-done {
+  border-color: var(--accent-line);
+  background: color-mix(in srgb, var(--accent) 7%, var(--card));
+}
+.card--wkch.is-quiet { background: var(--card); }
+.wkch { display: grid; gap: 7px; }
+.wkch__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wkch__eyebrow {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.3px;
+  color: var(--muted);
+}
+.wkch__eyebrow .ico { width: 12px; height: 12px; color: var(--accent); }
+.card--wkch.is-done .wkch__eyebrow { color: var(--accent); }
+.wkch__week {
+  flex: 0 0 auto; font-size: 10.5px; font-weight: 700; color: var(--muted);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.1px;
+}
+.wkch__mid { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.wkch__t {
+  min-width: 0; font-size: 13.5px; font-weight: 700; color: var(--text-2);
+  letter-spacing: -0.3px; line-height: 1.35;
+}
+.wkch__t b { color: var(--text); font-weight: 900; }
+.card--wkch.is-done .wkch__t b { color: var(--accent); }
+.wkch__stamps { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; }
+.wkch__stamp {
+  width: 24px; height: 24px; border-radius: 999px;
+  display: grid; place-items: center;
+  border: 1px dashed var(--line-2);
+  font-size: 10px; font-weight: 800; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.wkch__stamp.is-on {
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 13px; font-weight: 900;
+}
+.wkch__note {
+  font-size: 11px; line-height: 1.45; color: var(--text-2); letter-spacing: -0.1px;
+  font-variant-numeric: tabular-nums;
+}
+.wkch__note.is-done { color: var(--accent); font-weight: 800; }
+.wkch__hint { font-size: 11px; line-height: 1.45; color: var(--muted); letter-spacing: -0.1px; }
+.wkch__quiet { font-size: 12px; line-height: 1.5; color: var(--muted); letter-spacing: -0.15px; }
+.wkch__quiet b { color: var(--text-2); font-weight: 800; }
+
+/* 1:1 대화방 — 같은 사람이 이어서 보낸 말풍선은 아바타 자리를 비워 두고(정렬 유지),
+ * 아바타는 말풍선 아랫선에 맞춥니다(시각 17px은 말풍선 아래 '보낸 시각' 한 줄 높이). */
+.dmsg.is-run .dmsg__av { visibility: hidden; }
+.dmsg__av { align-self: flex-end; margin-bottom: 17px; }
+.dmsg.is-run .dmsg__nick { display: none; }
+
+/* 라이트 테마(기본·사쿠라)에서는 스탬프 바탕을 조금 진하게 — 흰 카드 위에서도 ✓ 가 또렷하게 */
+[data-theme="th_def"] .wkch__stamp.is-on,
+[data-theme="th_sakura"] .wkch__stamp.is-on {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}

@@ -144,14 +144,15 @@
   }
 
   /* ---------- 대화방 ---------- */
-  function messageHtml(m, state, otherKey, group) {
+  /* run: 바로 앞 말풍선과 같은 사람이 이어서 보낸 경우 (아바타·닉네임을 한 번만) */
+  function messageHtml(m, state, otherKey, group, run) {
     var me = (state.me && state.me.key) || '';
     var mine = m.userKey === me;
     var p = UI.person(state, mine ? me : (group ? m.userKey : otherKey));
-    return '<div class="dmsg' + (mine ? ' dmsg--me' : '') + '">' +
+    return '<div class="dmsg' + (mine ? ' dmsg--me' : '') + (run ? ' is-run' : '') + '">' +
       (mine ? '' : '<span class="dmsg__av">' + UI.avatar(p, 28) + '</span>') +
       '<div class="dmsg__col">' +
-      (group && !mine ? '<span class="dmsg__nick">' + U.esc(m.nick || p.nick || '회원') + '</span>' : '') +
+      (group && !mine && !run ? '<span class="dmsg__nick">' + U.esc(m.nick || p.nick || '회원') + '</span>' : '') +
       '<div class="dbubble">' + U.esc(m.text).replace(/\n/g, '<br>') + '</div>' +
       '<time>' + U.esc(D.chatStamp(m.createdAt)) + '</time>' +
       '</div></div>';
@@ -161,14 +162,18 @@
    * (같은 날은 '오후 2:20', 다른 날은 '11/18 14:20'으로 시각 자체에도 날짜가 붙어
    *  구분선을 못 보는 곳에서도 언제 보낸 글인지 알 수 있습니다) */
   function messagesHtml(messages, state, otherKey, group) {
-    var html = '', lastDay = '';
+    var html = '', lastDay = '', lastFrom = '';
     (messages || []).forEach(function (m) {
       var day = D.chatDayKey(m.createdAt);
       if (day && day !== lastDay) {
         html += '<div class="dmsgday"><span>' + U.esc(D.chatDayLabel(m.createdAt)) + '</span></div>';
         lastDay = day;
+        lastFrom = '';       /* 날짜가 바뀌면 아바타를 다시 보여 줍니다 */
       }
-      html += messageHtml(m, state, otherKey, group);
+      var fromKey = String(m.userKey || '');
+      var run = !!fromKey && fromKey === lastFrom;
+      html += messageHtml(m, state, otherKey, group, run);
+      lastFrom = fromKey;
     });
     return html;
   }
