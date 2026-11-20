@@ -180,7 +180,8 @@
       '</div></details>';
   }
 
-  /* 관절 보호 체크 — 어꺤 GIRD·하지 피로 구간을 논문 기준 수치로 점검하는 접기 */
+  /* 관절 보호 체크 — 어깨·무릎/발목을 쉬운 코트 말투로 점검하는 접기
+   * 제목·설명은 일상어, 논문 수치는 맨 아래 작은 '참고 논문' 한 줄에만 */
   function guardBlock(b) {
     var thresholds = (b.thresholds || []).map(function (t) {
       return '<li>' + U.esc(t) + '</li>';
@@ -194,10 +195,10 @@
     return '<div class="planbox mt8"><p class="planbox__t">' + U.esc(b.title) + '</p>' +
       '<p class="planbox__v">' + U.esc(b.reason) + '</p>' +
       (b.window ? '<p class="planbox__v">' + U.esc(b.window) + '</p>' : '') +
-      '<p class="planbox__t mt8">기준</p><ul class="bullets">' + thresholds + '</ul>' +
-      '<p class="planbox__t mt8">자가 체크</p><ul class="bullets">' + checks + '</ul>' +
-      '<p class="planbox__t mt8">오늘 할 것</p><ul class="bullets">' + guides + '</ul>' +
-      '<p class="planbox__v">근거 · ' + U.esc(b.sourceShort || b.source) + '</p></div>';
+      '<p class="planbox__t mt8">' + U.esc(b.thresholdTitle || '기준') + '</p><ul class="bullets">' + thresholds + '</ul>' +
+      '<p class="planbox__t mt8">' + U.esc(b.checkTitle || '자가 체크') + '</p><ul class="bullets">' + checks + '</ul>' +
+      '<p class="planbox__t mt8">' + U.esc(b.guideTitle || '오늘 할 것') + '</p><ul class="bullets">' + guides + '</ul>' +
+      '<p class="planbox__src">' + U.esc(b.sourceShort || b.source) + '</p></div>';
   }
 
   function guardFold(an) {

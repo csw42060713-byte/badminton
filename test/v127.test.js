@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v127.test.js — bm-v1.27.0
+ * test/v127.test.js — bm-v1.28.0
  *   배드민턴 선수에게 가장 흔한 두 부위(어깨 · 무릎/발목)의
  *   '검증된 논문 수치 기준'을 AI 분석과 화면에 보강합니다.
  *
@@ -10,6 +10,9 @@
  *          Fong 2021 J Sport Health Sci (측후방 스텝 앞발 착지 = 급성 외측 염좌)
  *
  *   실행: node test/run.js
+ *
+ *   ※ bm-v1.28.0에서 화면 문구를 '쉬운 코트 말투'로 다듬었습니다.
+ *     논문 수치는 내부 stats에 그대로 남고, 화면 검사는 쉬운 문구 기준입니다.
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -100,12 +103,14 @@
     eq(g.shoulder.on, true, '어깨 블록');
     eq(g.shoulder.level, 'pain', '단계');
     var text = joinText(g.shoulder);
-    includes(text, '14°', 'GIRD 기준 문구');
-    includes(text, '0.69', 'FR240 기준 문구');
-    includes(text, '81%', '통증 확률 문구');
-    includes(text, '슬리퍼', '슬리퍼 스트레치');
-    includes(text, '원심성', '외회전 원심성');
+    includes(text, '어깨가 찝히기', '핵심 요약(쉬운 말)');
+    includes(text, '눈에 띄게 덜 내려가면', '쉬운 자가 체크');
+    includes(text, '옆으로 누워 어깨 뒤 풀기', '오늘 할 것');
+    includes(text, '81%', '통증 확률 문구(숫자는 이 한 곳만)');
     includes(text, 'Phys Ther Sport', '출처');
+    excludes(text, 'GIRD', '어려운 약어 없음');
+    excludes(text, 'FR240', '어려운 약어 없음');
+    /* 수치는 내부 stats에 그대로 */
   });
 
   test('v1.27 어깨: 스매시·클리어(오버헤드)를 고른 날도 켜진다', function () {
@@ -125,7 +130,8 @@
     eq(g.lower.level, 'lunge', '런지 단계');
     var text = joinText(g.lower);
     includes(text, '백핸드', '백핸드 런지 주의');
-    includes(text, '앞발', '앞발 착지 주의');
+    includes(text, '발바닥 전체', '착지 주의(쉬운 말)');
+    includes(text, '발목을 삐기 쉬워요', '접질림 설명(쉬운 말)');
     includes(text, 'PeerJ', '출처');
   });
 
@@ -170,9 +176,9 @@
     ok(g.lower.checks.length >= 2, '하지 체크');
     eq(g.lower.guides.length, 3, '하지 가이드 3개');
     ok(g.lower.thresholds.length >= 4, '하지 기준 4줄');
-    includes(g.lower.guides.map(function (x) { return x.name; }).join(' '), '둔근', '둔근 보강');
-    includes(g.lower.guides.map(function (x) { return x.name; }).join(' '), '발목', '발목 안정화');
-    includes(g.shoulder.guides.map(function (x) { return x.name; }).join(' '), '견갑', '견갑 안정');
+    includes(g.lower.guides.map(function (x) { return x.name; }).join(' '), '엉덩이', '엉덩이 보강');
+    includes(g.lower.guides.map(function (x) { return x.name; }).join(' '), '발목', '발목 버티기');
+    includes(g.shoulder.guides.map(function (x) { return x.name; }).join(' '), '벽에 등 대고', '어깨 날개 고정');
   });
 
   test('v1.27 순수성: 같은 입력이면 같은 결과', function () {
@@ -191,10 +197,15 @@
     eq(an.guard.shoulder.on, true, '어깨 켜짐');
     eq(an.guard.lower.on, true, '하지 켜짐');
     var text = joinText(an.guard);
-    includes(text, 'GIRD', 'GIRD');
-    includes(text, '36.14', '교차비');
-    includes(text, '43~86', '하지 부상 비중');
-    includes(text, 'p < 0.001', '무릎 모멘트');
+    includes(text, '어깨가 찝히기', '어깨 핵심 요약');
+    includes(text, '지친 경기 후반', '다리 부상 핵심 요약');
+    excludes(text, 'GIRD', '어려운 약어 없음');
+    excludes(text, 'p <', '통계 기호 없음');
+    excludes(text, 'FR240', '어려운 약어 없음');
+    /* 논문 수치는 내부 stats에 그대로 남는다 */
+    eq(an.guard.shoulder.stats.girdOR, 36.14, '교차비(내부)');
+    eq(an.guard.lower.stats.lowerSharePct.join('~'), '43~86', '하지 부상 비중(내부)');
+    eq(an.guard.lower.stats.kneeMomentP, 0.001, '무릎 유의수준(내부)');
     /* 기존 시트 호환(추천드릴·맞춤처방 JSON)은 그대로 */
     var patch = JSON.parse(an.sheetPatch['맞춤처방']);
     ok(patch.rehab && patch.stretch, '맞춤처방 JSON');
@@ -202,12 +213,14 @@
   });
 
   test('v1.27 처방: 부위별 관리에 새 기준 한 줄이 들어간다', function () {
-    includes(BM.ai.INJURY['어깨'].rehab.join(' '), 'GIRD', '어깨 기준');
+    includes(BM.ai.INJURY['어깨'].rehab.join(' '), '안으로 덜 돌아가거나', '어깨 기준(쉬운 말)');
     includes(BM.ai.INJURY['무릎'].rehab.join(' '), '백핸드', '무릎 기준');
-    includes(BM.ai.INJURY['발목'].rehab.join(' '), '앞발', '발목 기준');
+    includes(BM.ai.INJURY['발목'].rehab.join(' '), '발바닥 전체', '발목 기준(쉬운 말)');
+    excludes(BM.ai.INJURY['어깨'].rehab.join(' '), 'GIRD', '어려운 약어 없음');
+    excludes(BM.ai.INJURY['무릎'].rehab.join(' '), '모멘트', '어려운 용어 없음');
 
     var an = analyze({ pain: ['어깨'], weakness: ['드라이브'], intensity: 6, minutes: 60 });
-    includes(an.care.rehab.join(' '), '슬리퍼', '어깨 처방 연결');
+    includes(an.care.rehab.join(' '), '어깨 뒤 풀기', '어깨 처방 연결');
     var knee = analyze({ pain: ['무릎'], weakness: ['드라이브'], intensity: 6, minutes: 60 });
     includes(knee.care.rehab.join(' '), '런지', '무릎 처방 연결');
   });
@@ -220,9 +233,9 @@
     var html = BM.views.log.render(logState(an));
     includes(html, 'data-fold="guard"', '접기 식별자');
     includes(html, '관절 보호 체크', '제목');
-    includes(html, '어깨 과사용', '어깨 블록');
-    includes(html, '런지 피로 구간', '하지 블록');
-    includes(html, 'GIRD &gt; 14°', '기준 문구(이스케이프)');
+    includes(html, '어깨 보호 체크', '어깨 블록');
+    includes(html, '무릎·발목 보호 체크', '하지 블록');
+    includes(html, '쉬운 기준', '기준 제목(쉬운 말)');
     includes(html, 'Guermont 2023', '출처');
     includes(html, '자가 체크', '체크 제목');
     includes(html, '오늘 할 것', '가이드 제목');
@@ -252,12 +265,12 @@
    * ========================================================= */
   test('v1.27 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.27.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.27.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261120-27', 'index.html 스타일 캐시');
-    includes(readRoot('README.md'), 'v1.27.0', 'README 변경 이력');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.28.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.28.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261120-28', 'index.html 스타일 캐시');
+    includes(readRoot('README.md'), 'v1.28.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.27.0', 'TWA 버전 이름');
-    eq(twa.appVersionCode, 27, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.28.0', 'TWA 버전 이름');
+    eq(twa.appVersionCode, 28, 'TWA 버전 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

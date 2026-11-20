@@ -51,8 +51,8 @@
   test('v1.22 예방 워밍업: 통증 부위마다 다른 항목을 고른다', function () {
     var cases = [
       ['무릎', '한 발 착지 · 감속 런지'],
-      ['발목', '발목 고유수용감각'],
-      ['어깨', '밴드 외회전 · 견갑 안정'],
+      ['발목', '발목 균형 감각'],
+      ['어깨', '팔 바깥 돌리기 · 어깨 날개 고정'],
       ['팔꿈치', '전완·손목 예열'],
       ['손목', '손목 가동범위'],
       ['허리', '힙힌지 · 흉추 회전'],
@@ -77,21 +77,21 @@
     var txt = allText(pv);
     includes(txt, '착지', '무릎 항목');
     includes(txt, '한 발 서기', '발목 항목');
-    excludes(txt, '밴드 외회전', '세 번째 부위는 넣지 않는다');
+    excludes(txt, '팔 바깥 돌리기', '세 번째 부위는 넣지 않는다');
     eq(pv.areas.length, 2, '반영 부위 2개');
     includes(pv.reason, '52.15', '하체 부상 비중 근거');
     includes(pv.reason, '23.5', '발목 염좌 근거');
-    includes(pv.reason, '-0.273', '준비운동 빈도 역상관 근거');
+    includes(pv.reason, '준비운동을 자주 할수록', '준비운동 근거 문구(쉬운 말)');
     /* 하체 통증만 있으면 남은 자리는 하체 기본(발목·무릎)으로 */
     var knee = BM.ai.preventionWarmup(['무릎'], '복식');
-    includes(names(knee).join('|'), '발목 고유수용감각', '빈자리는 발목 기본');
+    includes(names(knee).join('|'), '발목 균형 감각', '빈자리는 발목 기본');
   });
 
   test('v1.22 예방 워밍업: 통증이 없으면 하체 기본 + PreventiBad 근거 문구', function () {
     var pv = BM.ai.preventionWarmup([], '복식');
     eq(pv.items.length, 4, '기본 4항목');
     eq(pv.areas.join(','), '발목,무릎', '하체 기본');
-    includes(names(pv).join('|'), '발목 고유수용감각', '발목 기본 항목');
+    includes(names(pv).join('|'), '발목 균형 감각', '발목 기본 항목');
     includes(pv.reason, '70', '부상 70% 감소');
     includes(pv.reason, '4.07', '대조군 1,000시간당 4.07건');
     includes(pv.reason, '1.23', '중재군 1.23건');
@@ -127,8 +127,9 @@
     includes(g.heart, '96.8', '단식 최고 심박');
     includes(g.steps, '593.8', '게임당 스텝');
     includes(g.heart, '75.5', '복식 비교값');
-    includes(g.tips.join(' '), '0.44', '기계적 부하 ES');
-    includes(g.tips.join(' '), '0.88', '최상위급 ES');
+    includes(g.tips.join(' '), '몸무게 대비 움직이는 양', '단식 부하 설명(쉬운 말)');
+    eq(g.stats.singlesWorkES, 0.44, '내부 기준값 유지');
+    eq(g.stats.eliteWorkES, 0.88, '내부 기준값 유지');
     includes(g.drill, '전후 코너 멀티셔틀', '추천 드릴');
     includes(g.source, '10.1080/24748668.2009.11868479', 'Alcock DOI');
     includes(g.source, '10.1080/02640414.2025.2489863', 'Santiano DOI');
@@ -207,7 +208,7 @@
     }
     var an = BM.ai.analyze({ draft: { date: U.ymd(), pain: [], discipline: '복식' }, records: records, level: 'A조', nick: '나래' });
     eq(an.prevent.areas[0], '어깨', '반복 통증 부위');
-    includes(allText(an.prevent), '밴드 외회전', '어깨 항목');
+    includes(allText(an.prevent), '팔 바깥 돌리기', '어깨 항목');
   });
 
   /* =========================================================
@@ -237,7 +238,7 @@
 
     /* 통증이 없어도 기본 워밍업 블록은 나온다 */
     var plain = BM.ai.analyze({ draft: { cond: 6, discipline: '복식' }, records: [], level: 'C조' });
-    includes(BM.views.log.analysisCard(plain, { ui: {} }), '발목 고유수용감각', '기본 항목');
+    includes(BM.views.log.analysisCard(plain, { ui: {} }), '발목 균형 감각', '기본 항목');
   });
 
   test('v1.22 카드: 일지 기록 상세에는 저장된 처방만 남는다 (새 필드는 카드 전용)', function () {
@@ -253,14 +254,14 @@
    * ========================================================= */
   test('v1.22 버전: sw · app · 스타일 캐시 · README · TWA가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.27.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.27.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261120-27', '스타일 캐시 키');
-    includes(readRoot('README.md'), 'v1.27.0', 'README 변경 이력');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.28.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.28.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261120-28', '스타일 캐시 키');
+    includes(readRoot('README.md'), 'v1.28.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.27.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.27.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 27, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.28.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.28.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 28, 'TWA 버전 코드');
     /* 공개 저장소에 시트 ID·토큰을 남기지 않는다 */
     excludes(readRoot('js/ai.js'), '1sqxAM6eskBYS03s', '시트 ID 없음');
   });

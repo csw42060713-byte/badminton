@@ -2238,6 +2238,8 @@ body.kb-open .dm__composer { padding-bottom: calc(10px + var(--safe-b)); }
 }
 .planbox__t { font-size: 13px; font-weight: 800; color: var(--accent); }
 .planbox__v { font-size: 11.5px; color: var(--muted); }
+/* 참고 논문 한 줄 — 작고 조용하게 (bm-v1.28.0) */
+.planbox__src { font-size: 10px; line-height: 1.4; color: var(--muted); opacity: .72; }
 .planbox .bullets { margin-top: 4px; }
 .legal__row { flex-wrap: wrap; gap: 14px; align-items: center; }
 .legal__row .linkbtn { min-height: 32px; }

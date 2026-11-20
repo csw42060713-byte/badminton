@@ -479,7 +479,7 @@
       ok(last.prescription, '처방 저장');
       ok(last.drills && last.drills.drills.length === 3, '드릴 저장');
       ok(last.prescription.rehab.length >= 2, '처방 항목');
-      includes(last.prescription.rehab.join(' '), '오버헤드', '어깨 부위 처방');
+      includes(last.prescription.rehab.join(' '), '머리 위로 치는', '어깨 부위 처방');
     });
   });
 
