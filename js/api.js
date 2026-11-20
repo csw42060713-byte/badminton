@@ -542,11 +542,37 @@
 
     function rest(method, path, o) {
       o = o || {};
-      return send(method, path, o, false);
+      return send(method, path, o, false, false);
     }
 
-    function send(method, path, o, retried) {
-      var headers = { 'apikey': activeKey, 'Authorization': 'Bearer ' + activeKey };
+    /* 로그인 세션이 있으면 그 access_token 을, 없으면 공개 키를 Bearer 로 씁니다.
+     * (PostgREST 는 둘 다 받지만, access_token 이 있어야 RLS 의 본인 행 정책이 열립니다) */
+    function tokenNow() {
+      if (typeof opts.token === 'function') { try { return opts.token(); } catch (e) { return ''; } }
+      return typeof opts.token === 'string' ? opts.token : '';
+    }
+
+    function bearerValue() {
+      var t = tokenNow();
+      if (t && typeof t.then === 'function') {
+        return t.then(function (v) { return v || activeKey; }, function () { return activeKey; });
+      }
+      return Promise.resolve(t || activeKey);
+    }
+
+    function send(method, path, o, retried, refreshed) {
+      var t = tokenNow();
+      /* 토큰이 즉시 값이면(로그인 없음·문자열) 예전과 똑같이 그 자리에서 요청합니다. */
+      if (t && typeof t.then === 'function') {
+        return t.then(function (v) { return doSend(method, path, o, retried, refreshed, v || activeKey); },
+          function () { return doSend(method, path, o, retried, refreshed, activeKey); });
+      }
+      return doSend(method, path, o, retried, refreshed, t || activeKey);
+    }
+
+    function doSend(method, path, o, retried, refreshed, token) {
+      var authed = token !== activeKey;
+      var headers = { 'apikey': activeKey, 'Authorization': 'Bearer ' + token };
       if (o.body !== undefined) headers['Content-Type'] = 'application/json';
       if (o.prefer) headers['Prefer'] = o.prefer;
       if (o.range) headers['Range'] = o.range;
@@ -561,10 +587,23 @@
           var data = null;
           if (text) { try { data = JSON.parse(text); } catch (e) { data = null; } }
           if (!res.ok) {
+            /* 로그인 토큰이 만료됐을 수 있습니다 → 한 번 갱신해 다시 보내고,
+             * 갱신도 안 되면 공개 키로 한 번만 내려가 예전처럼 동작하게 합니다. */
+            if ((res.status === 401 || res.status === 403) && authed && !refreshed) {
+              var refresh = BM.auth && typeof BM.auth.refreshTokens === 'function' ? BM.auth.refreshTokens : null;
+              if (refresh) {
+                return Promise.resolve(refresh()).then(function (next) {
+                  if (next && next.access_token) return doSend(method, path, o, retried, true, next.access_token);
+                  return doSend(method, path, o, true, true, activeKey);
+                }, function () {
+                  return doSend(method, path, o, true, true, activeKey);
+                });
+              }
+            }
             /* 새 publishable 키가 막힌 프로젝트면 예전 anon 키로 한 번만 다시 */
             if ((res.status === 401 || res.status === 403) && !retried && fallbackKey && activeKey !== fallbackKey) {
               activeKey = fallbackKey;
-              return send(method, path, o, true);
+              return send(method, path, o, true, refreshed);
             }
             throw apiErrorOf(res.status, data);
           }
@@ -799,24 +838,40 @@
         });
       },
       resetDemo: function () { return Promise.resolve({ ok: false }); },
-      /* 계정 삭제(탈퇴): 내 기록만 지웁니다. anon 은 DELETE 가 막히므로
-       * 지우지 못한 행은 '삭제' 기록으로 가려 앱 어디에서도 보이지 않게 합니다. */
+      /* 계정 삭제(탈퇴)
+       *  · 로그인 세션(authenticated)이면 RPC delete_my_account 로
+       *    내 기록을 진짜 DELETE 하고 auth.users 계정까지 지웁니다(service_role 키 없이).
+       *  · 로그인 없이(구글·체험 세션)면 DELETE 가 막혀 있으므로 '삭제' 기록으로 가립니다. */
       deleteAccount: function () {
-        return listAll().then(function (records) {
-          var mine = records.filter(function (r) {
-            if (String(r.user_key || '') !== String(meKey)) return false;
-            var t = String(r.type || '');
-            return t !== PATCH_TYPE && t !== DELETE_TYPE;
+        function legacyDelete() {
+          return listAll().then(function (records) {
+            var mine = records.filter(function (r) {
+              if (String(r.user_key || '') !== String(meKey)) return false;
+              var t = String(r.type || '');
+              return t !== PATCH_TYPE && t !== DELETE_TYPE;
+            });
+            if (!mine.length) return { ok: true, mode: 'supabase', removed: 0 };
+            return rest('DELETE', SB.table + '?user_key=eq.' + enc(meKey), { prefer: 'return=representation' }).then(function (data) {
+              if (Array.isArray(data) && data.length) return { ok: true, mode: 'supabase', removed: data.length };
+              var marks = mine.map(function (r) {
+                return { id: U.uid(), type: DELETE_TYPE, user_key: meKey, target: String(r.id), payload: { at: U.stamp() } };
+              });
+              return rest('POST', SB.table, { body: marks, prefer: 'return=minimal' }).then(function () {
+                return { ok: true, mode: 'supabase', removed: mine.length, hidden: true };
+              });
+            });
           });
-          if (!mine.length) return { ok: true, mode: 'supabase', removed: 0 };
-          return rest('DELETE', SB.table + '?user_key=eq.' + enc(meKey), { prefer: 'return=representation' }).then(function (data) {
-            if (Array.isArray(data) && data.length) return { ok: true, mode: 'supabase', removed: data.length };
-            var marks = mine.map(function (r) {
-              return { id: U.uid(), type: DELETE_TYPE, user_key: meKey, target: String(r.id), payload: { at: U.stamp() } };
-            });
-            return rest('POST', SB.table, { body: marks, prefer: 'return=minimal' }).then(function () {
-              return { ok: true, mode: 'supabase', removed: mine.length, hidden: true };
-            });
+        }
+
+        return bearerValue().then(function (token) {
+          if (!token || token === activeKey) return legacyDelete();
+          return rest('POST', 'rpc/delete_my_account', { body: {}, prefer: 'return=representation' }).then(function (data) {
+            var res = Array.isArray(data) ? data[0] : data;
+            if (res && res.ok) return { ok: true, mode: 'supabase', removed: res.removed || 0, authDeleted: true };
+            if (res && res.ok === false) {
+              return { ok: false, code: res.code || 'error', message: res.message || '탈퇴를 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.' };
+            }
+            return legacyDelete();
           });
         });
       },
