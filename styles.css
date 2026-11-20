@@ -3786,13 +3786,16 @@ body.has-notif.has-netbar .main { padding-top: calc(var(--hdr-h) + var(--safe-t)
   border: 1px solid var(--line-2);
   overflow: hidden;
 }
+/* 봉투 윗면(접힌 선)은 맨 위 띠에만 그어 한마디 글자를 가로지르지 않게 합니다 */
 .env::before {
   content: '';
   position: absolute;
-  inset: 0;
+  left: 0; right: 0; top: 0;
+  height: 46px;
   pointer-events: none;
-  background: linear-gradient(154deg, transparent 47%, color-mix(in srgb, var(--accent) 16%, transparent) 48%, transparent 49.5%);
-  opacity: 0.55;
+  background: linear-gradient(168deg, color-mix(in srgb, var(--accent) 18%, transparent) 49%, transparent 50%);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
+  opacity: 0.9;
 }
 .env__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .env__stamp {
