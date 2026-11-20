@@ -842,6 +842,173 @@
     };
   }
 
+  /* ---------- 실전 선수 오프코트 루틴 ----------
+   * 체전 1등 선수 현장 기준(사용자가 직접 관찰해 알려 준 루틴)을 일반화한 순서입니다.
+   *   코트 날: 밴드 보강 + 스트레칭 → 본운동 → 마무리 스트레칭
+   *   웨이트 날: 가벼운 실내 자전거 20분(예열) → 스트레칭 → 본 웨이트 → 마무리 폼롤러 30분
+   *   지구력: 무릎 착지 충격이 적은 실내 자전거 40분 빠르게
+   * 실명은 쓰지 않고 '체전 1등 선수 현장 기준'으로만 부릅니다. */
+  var OFFCOURT = {
+    title: '실전 선수 오프코트 루틴',
+    note: '체전 1등 선수 현장에서 굳어진 순서예요. 코트에 들어가기 전에 몸을 만들고, 끝나면 반드시 정리하고 나옵니다.',
+    source: '체전 1등 선수 현장 루틴 기록(2026-11-20) · 스포츠의학 회복 원칙',
+    court: {
+      key: 'court',
+      title: '코트 훈련 날',
+      order: '밴드 보강 + 스트레칭 → 본운동 → 마무리 스트레칭',
+      steps: [
+        {
+          name: '밴드 보강 + 스트레칭', min: 15,
+          how: '어깨 밴드 외회전 · 발목 밴드 · 고관절 스트레칭으로 몸을 먼저 만듭니다. 코트에 들어가자마자 폼이 나오게 하는 단계예요.'
+        },
+        {
+          name: '본운동 (코트 훈련)', min: 0,
+          how: '랠리 · 드릴 · 게임은 계획한 볼륨대로. 자세가 무너지는 순간이 오면 세트 수를 먼저 줄입니다.'
+        },
+        {
+          name: '마무리 스트레칭', min: 10,
+          how: '허벅지 앞 · 뒤, 종아리, 가슴 · 어깨를 30초씩. 코트에서 바로 나오지 않고 여기서 끝내야 다음 날 다리가 가볍습니다.'
+        }
+      ]
+    },
+    weight: {
+      key: 'weight',
+      title: '웨이트 보강 날',
+      order: '가벼운 실내 자전거 20분 → 스트레칭 → 본 웨이트 → 마무리 폼롤러 30분',
+      steps: [
+        {
+          name: '가벼운 실내 자전거 20분', min: 20,
+          how: '본 웨이트 전 예열. 무릎 · 고관절이 데워진 뒤에 무게를 잡습니다(찬 몸으로 시작하면 무릎이 먼저 아픕니다).'
+        },
+        {
+          name: '스트레칭', min: 10,
+          how: '고관절 · 햄스트링 · 가슴을 풀어 스쿼트와 벤치 자세를 먼저 만듭니다.'
+        },
+        {
+          name: '본 웨이트', min: 50,
+          how: '불가리안 스플릿 스쿼트(양손 덤벨 · 뒷발 받침대 · 뒷무릎이 바닥아래까지 깊이) → 스쿼트 → 레그 익스텐션 → 벤치프레스 → 턱걸이 순서로.',
+          moves: ['불가리안 스플릿 스쿼트 (양손 덤벨 · 뒷발 받침대 · 뒷무릎 아래까지 깊게)', '스쿼트', '레그 익스텐션', '벤치프레스', '턱걸이']
+        },
+        {
+          name: '마무리 폼롤러 30분', min: 30,
+          how: '허벅지 앞 · 옆, 종아리, 등 · 어깨를 폼롤러로 30분 천천히. 근막 이완과 회복을 여기서 끝내고 나옵니다.'
+        }
+      ]
+    },
+    core: {
+      title: '코어 · 허리 보강',
+      when: '웨이트 날 본 웨이트 뒤에 3종, 코트 날은 바닥에서 1~2세트만',
+      items: [
+        {
+          name: '행잉 레그 레이즈', sets: '20회 × 3세트',
+          how: '철봉 · 바 위에 매달려 다리를 듭니다. 몸이 흔들리면 허리로 들지 말고 복압만 잡아 내려 주세요.'
+        },
+        {
+          name: '다리 걸고 윗몸 · 복근 올리기', sets: '20회 × 3세트',
+          how: '디클라인 벤치 · 다리를 고정하고 윗몸(복근)을 올립니다. 목이 아니라 배로 올라가는 느낌으로.'
+        },
+        {
+          name: '백 익스텐션', sets: '15회 × 3세트',
+          how: '다리를 고정하고 허리만 천천히 들었다 내립니다. 스매시 · 하이클리어 뒤 허리를 받쳐 주는 보강이에요.'
+        }
+      ]
+    },
+    endurance: {
+      title: '무릎 충격 줄인 지구력',
+      min: 40,
+      how: '달리기 대신 실내 자전거 40분을 빠르게. 착지 충격이 적어 무릎이 예민한 주에도 지구력을 올릴 수 있습니다.',
+      when: '코트 · 웨이트가 없는 날이나 주 1회 보강으로'
+    }
+  };
+
+  /* offcourtRoutine(discipline)
+   *   → 코트 훈련 날 · 웨이트 보강 날 순서 + 무릎 충격 줄인 지구력 보강
+   * 같은 입력이면 같은 결과(순수 함수) — 카드가 다시 그려져도 흔들리지 않게 매번 새 객체로 돌려줍니다. */
+  function offcourtRoutine(discipline) {
+    var key = disciplineKey(discipline);
+    function copyDay(d) {
+      return {
+        key: d.key, title: d.title, order: d.order,
+        steps: d.steps.map(function (s) {
+          var step = { name: s.name, min: s.min, how: s.how };
+          if (s.moves) step.moves = s.moves.slice();
+          return step;
+        })
+      };
+    }
+    var note = key === '단식'
+      ? '단식은 앞뒤 이동이 많아 웨이트 날 하체(불가리안 스플릿 스쿼트 · 스쿼트) 비중을 조금 더 두세요.'
+      : '복식은 짧은 랠리를 자주 치니 코트 날에도 밴드 보강과 폼롤러 회복을 빠뜨리지 마세요.';
+    return {
+      title: OFFCOURT.title,
+      note: OFFCOURT.note,
+      discipline: key,
+      disciplineNote: note,
+      days: [copyDay(OFFCOURT.court), copyDay(OFFCOURT.weight)],
+      core: {
+        title: OFFCOURT.core.title,
+        when: OFFCOURT.core.when,
+        items: OFFCOURT.core.items.map(function (it) {
+          return { name: it.name, sets: it.sets, how: it.how };
+        })
+      },
+      endurance: {
+        title: OFFCOURT.endurance.title, min: OFFCOURT.endurance.min,
+        how: OFFCOURT.endurance.how, when: OFFCOURT.endurance.when
+      },
+      summary: '코트 날 3단계 · 웨이트 날 4단계 · 코어 3종 · 자전거 40분',
+      source: OFFCOURT.source
+    };
+  }
+
+  /* ---------- 자기 강도 조절 (선수 본인이 브레이크를 잡는다) ----------
+   * 열정으로 끝까지 밀어붙이다 자세가 무너지면 그게 부상으로 이어집니다.
+   * 코치·앱이 대신 정해 주는 게 아니라, 선수 스스로 한 단계 낮추는 판단을 하도록 문장으로 짚어 줍니다. */
+  var SELF_PACE = {
+    label: '자기 강도 조절',
+    rule: '강도는 결국 선수 본인이 조절해야 합니다. 열정으로 끝까지 밀어붙이다 자세가 깨지면 그게 부상의 시작이에요.',
+    brake: '무리해서 끝까지 밀어붙이면 자세가 깨져 다칠 수 있으니, 오늘은 선수 스스로 강도를 한 단계 낮춰 폼과 회복을 챙기세요.',
+    caution: '오늘은 자세가 무너지는 순간이 오면 세트를 줄이세요. 강도는 끝까지 올리는 게 아니라 다음 날 몸까지 보고 정하는 겁니다.',
+    keep: '지금 컨디션이면 계획한 강도로 가도 됩니다. 한 세트라도 폼이 깨지면 그 자리에서 낮추는 건 선수 본인 몫이에요.'
+  };
+
+  /* paceGuide(cond, load, painList, streakDays, intensity)
+   *   level: brake(오늘은 낮춰라) / caution(자세 깨지면 멈춰라) / keep(계획대로)
+   * 기준: 컨디션 ≤ 2 · 주간 부하 급증(1.5배 이상) · 지난주보다 25% 이상 증가 ·
+   *       통증 + 고강도(8 이상) · 5일 연속 훈련 + 고강도 */
+  function paceGuide(cond, load, painList, streakDays, intensity) {
+    var c = cond == null ? null : Number(cond);
+    var i = intensity == null ? null : Number(intensity);
+    var pains = (painList || []).filter(Boolean);
+    var zone = (load && load.zone) || '';
+    var ratio = (load && load.ratio) || 0;
+    var change = (load && load.change) || 0;
+    var streak = streakDays || 0;
+    var reasons = [];
+
+    if (c != null && c <= 2) reasons.push('컨디션 ' + c);
+    else if (c != null && c <= 4) reasons.push('컨디션 ' + c + ' (회복 쪽)');
+    if (zone === 'spike') reasons.push('주간 부하 ' + ratio + '배 급증');
+    else if (zone === 'watch') reasons.push('주간 부하 ' + ratio + '배 (조금 높음)');
+    if (zone && change >= 25) reasons.push('지난주보다 ' + change + '% 증가');
+    if (pains.length) reasons.push('통증 ' + pains.slice(0, 2).join('·'));
+    if (streak >= 5) reasons.push(streak + '일 연속 훈련');
+
+    var brake = (c != null && c <= 2) || zone === 'spike' || (zone && change >= 25) ||
+      (pains.length && i != null && i >= 8) || (streak >= 5 && i != null && i >= 8);
+    var caution = !brake && ((c != null && c <= 4) || zone === 'watch' || pains.length ||
+      streak >= 4 || (i != null && i >= 9));
+    var level = brake ? 'brake' : caution ? 'caution' : 'keep';
+
+    return {
+      level: level,
+      label: SELF_PACE.label,
+      text: level === 'brake' ? SELF_PACE.brake : level === 'caution' ? SELF_PACE.caution : SELF_PACE.keep,
+      rule: SELF_PACE.rule,
+      reasons: reasons
+    };
+  }
+
   /* ---------- 부상별 기준 · 처방 ----------
    * signs: 병원에 가야 하는 신호 / rehab: 집에서 할 수 있는 관리 / stretch / ret: 복귀 수칙
    * 근거: [EHS24] 어깨, [YOUNG05]·[SILVA23] 무릎, [VRI16] 발목, [HEALTHY21]·[TRAV19] 아킬레스 */
@@ -1240,6 +1407,9 @@
     var minutes = draft.minutes == null ? null : draft.minutes;
     var done = draft.done || [];
 
+    /* 자기 강도 조절 — 오늘 이 선수가 스스로 브레이크를 잡아야 하는 날인지 */
+    var pace = paceGuide(cond, load, U.uniq(painToday.concat(repeatedPain)), streakDays, intensity);
+
     /* ---------- 점수 ---------- */
     var scoreIdx = 60;
     if (cond != null) scoreIdx += cond >= 7 ? 10 : cond <= 4 ? -12 : 3;
@@ -1331,6 +1501,17 @@
             : '부하가 평소 범위 안에 있어요. 이 속도를 유지하세요.'
       });
     }
+    if (pace.level === 'brake') {
+      insights.unshift({
+        icon: 'gauge',
+        label: '강도 조절' + (pace.reasons.length ? ' · ' + pace.reasons[0] : ''),
+        detail: pace.text
+      });
+    }
+    if (pace.level === 'brake' && load.zone) {
+      /* 부하 조언에도 같은 브레이크 문구를 맨 앞에 둡니다 */
+      load.tips = [SELF_PACE.brake].concat(load.tips || []).slice(0, 2);
+    }
     insights = insights.slice(0, 6);
 
     /* ---------- 추천드릴 ---------- */
@@ -1368,6 +1549,7 @@
 
     if (ws.rate != null && ws.rate < 40) care.mental.push('오늘 잘된 샷 하나만 떠올려 보세요. 승률은 연습량이 쌓이면 따라옵니다.');
     if (cond != null && cond <= 4) care.mental.push('컨디션이 낮은 날은 "덜 하기"도 훈련입니다. 20분만 하고 끝내도 성공이에요.');
+    if (pace.level === 'brake') care.mental.unshift(SELF_PACE.rule);
     if (painToday.length) care.mental.push('통증은 참지 말고 그 자리에서 멈추는 게 오래 칩니다.');
     if (streakDays >= 5) care.mental.push('5일 넘게 이어졌어요. 내일 하루 쉬면 다음 주 감각이 더 좋아집니다.');
     if (!care.mental.length) {
@@ -1401,6 +1583,7 @@
     if (repeatedPain.length) risk.push({ level: 'warn', text: repeatedPain.join(', ') + ' 통증이 반복되고 있어요. 2주 이상 이어지면 정형외과 상담을 권장합니다.' });
     if (load.zone === 'spike') risk.push({ level: 'warn', text: '최근 7일 부하가 직전 4주 평균의 ' + load.ratio + '배예요. 급증한 주에는 부상 위험이 커지니 다음 주는 볼륨을 유지하세요.' });
     if (streakDays >= 6) risk.push({ level: 'info', text: streakDays + '일 연속 훈련 중이에요. 24시간 휴식을 넣어 주세요.' });
+    if (pace.level === 'brake') risk.push({ level: 'warn', text: pace.text });
     if (!risk.length) risk.push({ level: 'ok', text: '무리한 신호는 없어요. 지금 리듬을 유지하세요.' });
 
     var headline;
@@ -1425,6 +1608,8 @@
       care: care,
       prevent: prevent,
       loadGuide: loadGuide,
+      offcourt: offcourtRoutine(discipline),
+      pace: pace,
       week: week,
       risk: risk,
       /* 시트에 그대로 넣을 수 있는 형태 */
@@ -1460,6 +1645,8 @@
     gradePlan: gradePlan, playbook: playbook,
     gameFlow: gameFlow, loadIndex: loadIndex, scoreModeOf: scoreModeOf,
     preventionWarmup: preventionWarmup, disciplineLoadGuide: disciplineLoadGuide,
+    offcourtRoutine: offcourtRoutine, OFFCOURT: OFFCOURT,
+    paceGuide: paceGuide, SELF_PACE: SELF_PACE,
     disciplineKey: disciplineKey, PREVENT: PREVENT, LOAD_GUIDE: LOAD_GUIDE,
     /* 논문 기준값 — 화면 문구와 같은 숫자 */
     SPLIT_STEP: SPLIT_STEP, DOUBLES_SERVE: DOUBLES_SERVE, DOUBLES_RECEIVE: DOUBLES_RECEIVE
