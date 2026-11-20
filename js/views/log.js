@@ -498,6 +498,110 @@
    * ============================================================ */
   var sbState = null;          /* 닫았다 다시 열어도 이어서 (일지에 넣으면 새로) */
 
+  /* ============================================================
+   * 주간 약점 3회 챌린지 (bm-v1.31.0)
+   *  · ideas.md 2026-11-19 3번 — 최근 2주 일지에서 가장 자주 나온 약점 하나를 골라
+   *    '이번 주 ○○ 3번 연습하기' 스탬프를 루틴 요약 아래에 조용히 둡니다.
+   *  · 스탬프는 그 약점이 '약점기술'·'완료훈련'에 찍힌 일지를 저장하면 자동으로 채워집니다
+   *    (수동 체크 없음 · 저장하면 바로 다시 그려집니다).
+   *  · 3회를 채우면 축하 배지와 '다음 주에 새 약점으로 교체' 안내.
+   *  · 초심이 4주 루틴 1주차를 아직 하는 중이면 첫 화면이 복잡해지지 않게 숨깁니다
+   *    (루틴을 건너뛴 사람에게는 보여 줍니다 — 배울 것이 줄어든 만큼 이어서 볼 거리가 필요해요).
+   * ============================================================ */
+  function challengeOf(state) {
+    var ui = (state && state.ui) || {};
+    /* 화면은 항상 오늘 기준 — ui.challengeNow는 테스트에서 날짜를 고정할 때만 씁니다 */
+    var opts = ui.challengeNow ? { now: ui.challengeNow } : {};
+    return D.weekChallenge((state && state.data && state.data.records) || [], opts);
+  }
+
+  function challengeHidden(state) {
+    if (((state || {}).routinePref) === false) return false;
+    var lvl = state && state.me && state.me.level;
+    if (!BM.beginner || !BM.beginner.isBeginnerGrade(lvl)) return false;
+    if (!BM.routine) return false;
+    var st = BM.routine.stats((state && state.routine) || {});
+    return !(st.weeks[0] && st.weeks[0].complete);
+  }
+
+  function challengeSig(state) {
+    var ch = challengeOf(state);
+    return 'wkch|' + (challengeHidden(state) ? 'h' : 'v') + '|' + (ch.active ? ch.weakness : ch.reason) +
+      '|' + ch.count + '/' + ch.goal + '|' + ch.weekStart;
+  }
+
+  function stampRow(ch) {
+    var out = '';
+    for (var i = 0; i < ch.goal; i++) {
+      var on = i < ch.count;
+      out += '<span class="wkch__stamp' + (on ? ' is-on' : '') + '" aria-hidden="true">' +
+        (on ? '✓' : (i + 1)) + '</span>';
+    }
+    return '<div class="wkch__stamps" role="progressbar" aria-valuemin="0" aria-valuemax="' + ch.goal +
+      '" aria-valuenow="' + Math.min(ch.count, ch.goal) + '" aria-label="이번 주 ' + U.esc(ch.weakness) +
+      ' 연습 ' + Math.min(ch.count, ch.goal) + '회 / ' + ch.goal + '회">' + out + '</div>';
+  }
+
+  /* 오늘 일지에 그 약점이 아직 없으면 — 첫 스탬프를 어떻게 채우는지 한 줄로 */
+  function withParticle(word) {
+    /* 받침이 있으면 '을', 없으면 '를' — '헤어핀을' / '드라이브를' */
+    var s = String(word || '');
+    var c = s.charCodeAt(s.length - 1);
+    if (!(c >= 0xac00 && c <= 0xd7a3)) return s + '을';
+    return s + ((c - 0xac00) % 28 === 0 ? '를' : '을');
+  }
+
+  function challengeHint(state, ch) {
+    var d = (state && state.drafts && state.drafts.log) || {};
+    var ui = (state && state.ui) || {};
+    var todayKey = ui.challengeNow ? String(ui.challengeNow).slice(0, 10) : U.ymd();
+    /* 오늘 몫을 이미 채웠으면 같은 날 또 저장해도 늘지 않는다고 알려 줍니다 */
+    if ((ch.days || []).indexOf(todayKey) >= 0) return '오늘 몫은 채웠어요 · 다음 연습 날 또 남겨 주세요';
+    var todayTagged = (d.weakness || []).indexOf(ch.weakness) >= 0 || (d.done || []).indexOf(ch.weakness) >= 0;
+    if (todayTagged) return '오늘 일지를 저장하면 스탬프가 채워져요';
+    return '일지에 ' + withParticle(ch.weakness) + ' 남기면 자동으로 채워져요';
+  }
+
+  function challengeBlock(state) {
+    if (challengeHidden(state)) return '';
+    var ch = challengeOf(state);
+    var sig = challengeSig(state);
+
+    /* 최근 2주 일지가 아예 없으면 조용히 (첫 화면은 오늘 일지에 집중) */
+    if (!ch.active && ch.reason === 'no_records') return '';
+
+    /* 일지는 있는데 약점 태그가 없을 때 — 한 줄 초대 */
+    if (!ch.active) {
+      return '<section class="card card--wkch is-quiet" data-region="challenge" data-sig="' + U.esc(sig) + '">' +
+        '<div class="wkch">' +
+        '<div class="wkch__top"><span class="wkch__eyebrow">' + UI.icon('spark') + '주간 약점 챌린지</span>' +
+        '<span class="wkch__week">' + U.esc(ch.weekLabel) + '</span></div>' +
+        '<p class="wkch__quiet">일지에 <b>약점 기술</b>을 하나 남기면, 이번 주 3회 챌린지가 열려요.</p>' +
+        '</div></section>';
+    }
+
+    var done = ch.done;
+    var progress = done
+      ? '🎉 3회 채웠어요! 다음 주 월요일에 새 약점으로 바뀌어요'
+      : Math.min(ch.count, ch.goal) + '/' + ch.goal + ' · ' +
+        (ch.left === 1 ? '한 번만 더 채우면 완성!' : (ch.goal - ch.count) + '번 더 남았어요');
+    var hint = done
+      ? (ch.next ? '다음 주 후보 · ' + ch.next : '다음 주에 일지를 보면 다시 골라 드려요')
+      : challengeHint(state, ch);
+
+    return '<section class="card card--wkch' + (done ? ' is-done' : '') + '" data-region="challenge" data-sig="' + U.esc(sig) + '">' +
+      '<div class="wkch">' +
+      '<div class="wkch__top"><span class="wkch__eyebrow">' + UI.icon(done ? 'check' : 'spark') + '주간 약점 챌린지</span>' +
+      '<span class="wkch__week">' + U.esc(ch.weekLabel) + '</span></div>' +
+      '<div class="wkch__mid">' +
+      '<p class="wkch__t">이번 주 <b>' + U.esc(ch.weakness) + '</b> ' + ch.goal + '번 연습하기</p>' +
+      stampRow(ch) +
+      '</div>' +
+      '<p class="wkch__note' + (done ? ' is-done' : '') + '">' + U.esc(progress) + '</p>' +
+      '<p class="wkch__hint">' + U.esc(hint) + '</p>' +
+      '</div></section>';
+  }
+
   function timerWidget(key, name) {
     return BM.timer ? BM.timer.widget(key, name) : '';
   }
@@ -682,6 +786,9 @@
         '</section>' +
 
         routineBlock(state) +
+
+        /* 주간 약점 3회 챌린지 — 루틴 요약 바로 아래(루틴을 건너뛰었거나 초심 1주차 전이면 숨김) */
+        challengeBlock(state) +
 
         beginnerBlock(state) +
 
@@ -1055,6 +1162,16 @@
     },
 
     update: function (root, state) {
+      /* 주간 약점 3회 챌린지 — 일지를 저장하면 스탬프가 스스로 채워집니다 */
+      var chHost = root.querySelector('[data-region="challenge"]');
+      var chHtml = challengeBlock(state);
+      if (chHost) {
+        if (!chHtml) chHost.remove();
+        else if (chHost.getAttribute('data-sig') !== challengeSig(state)) chHost.outerHTML = chHtml;
+      } else if (chHtml) {
+        var chAnchor = root.querySelector('[data-region="routine"]') || root.querySelector('.card--hero');
+        if (chAnchor) chAnchor.insertAdjacentHTML('afterend', chHtml);
+      }
       var rtn = root.querySelector('[data-region="routine"]');
       var rtnHtml = routineBlock(state);
       if (rtn) {
@@ -1120,6 +1237,8 @@
 
   view.recordDetail = recordDetail;
   view.analysisCard = analysisCard;
+  view.challengeBlock = challengeBlock;
+  view.challengeHidden = challengeHidden;
   view.scoreboardHtml = scoreboardHtml;
   view.scoreboardOpen = scoreboardOpen;
   view._resetScoreboard = function () { sbState = null; };

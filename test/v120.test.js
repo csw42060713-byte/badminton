@@ -145,7 +145,8 @@
   });
 
   test('v1.20 활동: 마지막 활동은 채팅·일지·프로필 갱신 중 가장 늦은 값이다', function () {
-    var rows = BM.fixtures.demo();
+    /* 예시 데이터도 고정 시각(NOW)으로 만들어 날짜가 바뀌어도 같은 결과가 나오게 합니다 */
+    var rows = BM.fixtures.demo(NOW);
     var idx = D.index(rows.map(D.fromRow));
     var last = D.lastActiveAt(idx, 'demo_net');
     ok(last, '활동 시각이 있다');
@@ -387,7 +388,7 @@
     if (!hasNode()) return;
     var index = readRoot('index.html');
     includes(index, 'id="notifbar"', '알림 배너 자리');
-    includes(index, 'styles.css?v=20261120-30', '스타일 캐시');
+    includes(index, 'styles.css?v=20261120-31', '스타일 캐시');
     var app = readRoot('app.js');
     includes(app, 'setInterval', '폴링');
     includes(app, 'Notification', '브라우저 알림');
@@ -407,13 +408,13 @@
 
   test('v1.20 버전: sw · app · 스타일 캐시 · README · TWA가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.30.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.30.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261120-30', '스타일 캐시 키');
-    includes(readRoot('README.md'), 'v1.30.0', 'README 변경 이력');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.31.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.31.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261120-31', '스타일 캐시 키');
+    includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.30.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.30.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 30, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.31.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.31.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 31, 'TWA 버전 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

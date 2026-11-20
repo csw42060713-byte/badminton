@@ -505,6 +505,18 @@
     if (y && typeof window !== 'undefined') window.scrollTo(0, y);
   }
 
+  /* 저장하면서 '이번 주 약점 3회' 스탬프가 채워졌으면 저장 토스트에 한 조각 덧붙입니다.
+   * (스탬프 계산은 domain.weekChallenge 순수 함수 — 화면은 다시 그려서 따라옵니다) */
+  function challengeToast(before, records) {
+    var after = BM.domain.weekChallenge(records || [], {});
+    if (!after.active || !before || !before.active) return '';
+    if (before.weakness !== after.weakness) return '';
+    if (after.count <= before.count) return '';
+    if (after.done && !before.done) return ' 🎉 이번 주 ' + after.weakness + ' ' + after.goal + '회 달성!';
+    if (after.done) return '';
+    return ' · 이번 주 ' + after.weakness + ' ' + Math.min(after.count, after.goal) + '/' + after.goal;
+  }
+
   /* ---------- 저장 버튼(연타 잠금 + 즉시 피드백) ---------- */
   function saveLogWithFeedback(btn) {
     if (!store) return;
@@ -517,10 +529,12 @@
     if (label) label.textContent = editing ? '수정 중…' : '저장 중…';
     UI.haptic(12);
 
+    var chBefore = BM.domain.weekChallenge(store.state.data.records || [], {});
     var res = store.actions.saveLog({ keepDraft: true });
     if (res.ok) {
       if (label) label.textContent = res.updated ? '수정됨 ✓' : '저장됨 ✓';
-      UI.toast(res.updated ? '일지를 수정했어요. 같은 기록이 그대로 갱신됐어요.' : '일지를 저장했어요. AI 분석을 준비했어요.');
+      UI.toast((res.updated ? '일지를 수정했어요. 같은 기록이 그대로 갱신됐어요.' : '일지를 저장했어요. AI 분석을 준비했어요.') +
+        challengeToast(chBefore, store.state.data.records));
       setTimeout(function () {
         /* 수정 저장이 끝났으면 입력칸을 새 일지로 돌리고(수정 모드 해제) */
         if (res.updated) { repaint(); return; }
@@ -967,7 +981,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.30.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.31.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

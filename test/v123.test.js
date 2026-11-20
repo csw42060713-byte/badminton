@@ -76,7 +76,7 @@
     eq(w.steps[2].name, '본 웨이트', '3단계 본 웨이트');
     eq(w.steps[3].name, '마무리 폼롤러 30분', '4단계 폼롤러');
     eq(w.steps[3].min, 30, '폼롤러 30분');
-    includes(w.steps[3].how, '근막 이완', '폼롤러 목적');
+    includes(w.steps[3].how, '뭉친 근육을 풀고', '폼롤러 목적');
   });
 
   test('v1.23 오프코트: 본 웨이트 5종 (불가리안 스플릿 스쿼트 · 스쿼트 · 레그 익스텐션 · 벤치프레스 · 턱걸이)', function () {
@@ -247,14 +247,14 @@
    * ========================================================= */
   test('v1.23 버전: sw · app · 스타일 캐시 · README · TWA가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.30.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.30.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261120-30', '스타일 캐시 키');
-    includes(readRoot('README.md'), 'v1.30.0', 'README 변경 이력');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.31.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.31.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261120-31', '스타일 캐시 키');
+    includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.30.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.30.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 30, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.31.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.31.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 31, 'TWA 버전 코드');
     /* 공개 저장소에 시트 ID·토큰을 남기지 않는다 */
     excludes(readRoot('js/ai.js'), '1sqxAM6eskBYS03s', '시트 ID 없음');
     excludes(readRoot('js/ai.js'), '안세영', '선수 실명 없음');

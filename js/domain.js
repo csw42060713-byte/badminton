@@ -1688,6 +1688,121 @@
     };
   }
 
+  /* ---------- 주간 약점 극복 3회 챌린지 (bm-v1.31.0) ----------
+   * ideas.md 2026-11-19 3번 후보 — '이번 주 ○○ 3회 연습하기' 작은 스탬프 챌린지.
+   *  · 최근 2주(오늘 포함 14일) 일지의 '약점기술'에서 가장 자주 나온 약점 1개를 고릅니다.
+   *    동률이면 최근에 남긴 쪽 → 사전(VOCAB.weakness) 순서로 정해 항상 같은 결과가 나옵니다.
+   *  · 스탬프는 그 약점이 '약점기술' 또는 '완료훈련'에 찍힌 일지를 저장하면 자동으로 채워집니다.
+   *    같은 날 일지를 두 번 남겨도 '연습한 날' 1회로 셉니다(날짜 기준).
+   *  · 3회를 채우면 done — 화면은 축하 배지와 '다음 주에 새 약점으로 교체' 안내를 보여 줍니다.
+   *  · 계산만 하므로 새로 저장하는 칸이 없습니다(시트 26칸 · Supabase 스키마 그대로).
+   *  · 같은 입력이면 항상 같은 결과(순수 함수). opts.now로 날짜를 고정할 수 있습니다. */
+  var CHALLENGE_GOAL = 3;
+  var CHALLENGE_DAYS = 14;          /* 최근 2주 */
+
+  /* 날짜 문자열('2026-11-20' · '2026.11.20' · '2026/11/20')을 YYYY-MM-DD로 */
+  function dayKey(v) {
+    var s = String(v == null ? '' : v).trim().slice(0, 10).replace(/[.\/]/g, '-');
+    var m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (!m) return '';
+    return m[1] + '-' + (m[2].length < 2 ? '0' + m[2] : m[2]) + '-' + (m[3].length < 2 ? '0' + m[3] : m[3]);
+  }
+
+  /* 그 주의 월요일 00:00 (배드민턴 주간은 월~일) */
+  function weekStartOf(d) {
+    var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+    return x;
+  }
+
+  function hasTag(list, name) {
+    for (var i = 0; i < (list || []).length; i++) if (String(list[i]) === name) return true;
+    return false;
+  }
+
+  /* weekChallenge(records, {now, goal}) →
+   *   { active, reason, weakness, goal, count, done, left, days,
+   *     weekStart, weekEnd, weekLabel, next, picks, recent }
+   *   reason: 'ok' | 'no_records'(최근 2주 일지 없음) | 'no_weakness'(약점 태그 없음) */
+  function weekChallenge(records, opts) {
+    opts = opts || {};
+    var goal = Math.max(1, U.num(opts.goal, CHALLENGE_GOAL) || CHALLENGE_GOAL);
+    var now = opts.now
+      ? (opts.now instanceof Date ? opts.now : (U.parseYmd(dayKey(opts.now)) || new Date()))
+      : new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var ws = weekStartOf(today);
+    var we = U.addDays(ws, 6);
+    var from = U.addDays(today, -(CHALLENGE_DAYS - 1));
+    var wsKey = U.ymd(ws), weKey = U.ymd(we), fromKey = U.ymd(from), todayKey = U.ymd(today);
+
+    /* 최근 2주 일지만 (날짜가 없는 행은 세지 않습니다) */
+    var recent = [];
+    (records || []).forEach(function (r) {
+      if (!r) return;
+      var k = dayKey(r.date);
+      if (!k || k < fromKey || k > todayKey) return;
+      recent.push({ key: k, weakness: r.weakness || [], done: r.done || [] });
+    });
+
+    var base = {
+      active: false, reason: 'no_records', weakness: '', goal: goal, count: 0, done: false, left: goal,
+      days: [], weekStart: wsKey, weekEnd: weKey, weekLabel: U.shortDay(wsKey) + '~' + U.shortDay(weKey),
+      next: '', picks: [], recent: recent.length
+    };
+    if (!recent.length) return base;
+
+    /* 약점 세기 — 한 일지에 같은 약점이 두 번 있어도 1회 */
+    var counts = {}, lastAt = {};
+    recent.forEach(function (r) {
+      var seen = {};
+      r.weakness.forEach(function (w) {
+        var name = String(w == null ? '' : w).trim();
+        if (!name || seen[name]) return;
+        seen[name] = 1;
+        counts[name] = (counts[name] || 0) + 1;
+        if (!lastAt[name] || r.key > lastAt[name]) lastAt[name] = r.key;
+      });
+    });
+    var order = {};
+    (VOCAB.weakness || []).forEach(function (w, i) { order[w] = i; });
+    var picks = Object.keys(counts).map(function (name) {
+      return { name: name, n: counts[name], last: lastAt[name] || '' };
+    }).sort(function (a, b) {
+      if (b.n !== a.n) return b.n - a.n;
+      if (a.last !== b.last) return a.last < b.last ? 1 : -1;
+      var oa = order[a.name] == null ? 99 : order[a.name];
+      var ob = order[b.name] == null ? 99 : order[b.name];
+      return oa - ob || (a.name < b.name ? -1 : 1);
+    });
+    if (!picks.length) {
+      base.reason = 'no_weakness';
+      return base;
+    }
+
+    var pick = picks[0].name;
+
+    /* 이번 주(월~일) 스탬프 — 약점기술 또는 완료훈련에 그 약점이 찍힌 '날' */
+    var days = [];
+    recent.forEach(function (r) {
+      if (r.key < wsKey || r.key > weKey) return;
+      if (!hasTag(r.weakness, pick) && !hasTag(r.done, pick)) return;
+      if (days.indexOf(r.key) < 0) days.push(r.key);
+    });
+    days.sort();
+
+    var count = days.length;
+    return {
+      active: true, reason: 'ok', weakness: pick, goal: goal,
+      count: count, done: count >= goal, left: Math.max(0, goal - count),
+      days: days, weekStart: wsKey, weekEnd: weKey,
+      weekLabel: U.shortDay(wsKey) + '~' + U.shortDay(weKey),
+      next: picks.length > 1 ? picks[1].name : '',
+      picks: picks.slice(0, 3),
+      recent: recent.length
+    };
+  }
+
   function readPrefs() {
     return normalizePrefs(U.readJSON(PREFS_KEY, null) || {});
   }
@@ -1753,6 +1868,9 @@
     chatDayKey: chatDayKey, chatDayLabel: chatDayLabel,
     presenceFromAt: presenceFromAt, lastActiveAt: lastActiveAt, presenceOf: presenceOf,
     newIncoming: newIncoming, joinedGroupRoom: joinedGroupRoom,
-    PREFS_KEY: PREFS_KEY, normalizePrefs: normalizePrefs, readPrefs: readPrefs, writePrefs: writePrefs, setPref: setPref
+    PREFS_KEY: PREFS_KEY, normalizePrefs: normalizePrefs, readPrefs: readPrefs, writePrefs: writePrefs, setPref: setPref,
+    /* v1.31 */
+    CHALLENGE_GOAL: CHALLENGE_GOAL, CHALLENGE_DAYS: CHALLENGE_DAYS,
+    weekChallenge: weekChallenge, weekStartOf: weekStartOf, dayKey: dayKey
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

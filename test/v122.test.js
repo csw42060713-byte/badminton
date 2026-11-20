@@ -53,10 +53,10 @@
       ['무릎', '한 발 착지 · 감속 런지'],
       ['발목', '발목 균형 감각'],
       ['어깨', '팔 바깥 돌리기 · 어깨 날개 고정'],
-      ['팔꿈치', '전완·손목 예열'],
-      ['손목', '손목 가동범위'],
-      ['허리', '힙힌지 · 흉추 회전'],
-      ['목', '턱 당기기 · 흉추 풀기'],
+      ['팔꿈치', '팔뚝·손목 예열'],
+      ['손목', '손목 풀기'],
+      ['허리', '엉덩이 접기 · 등 돌리기'],
+      ['목', '턱 당기기 · 등 풀기'],
       ['아킬레스건', '종아리 · 발목 예열']
     ];
     cases.forEach(function (c) {
@@ -130,7 +130,7 @@
     includes(g.tips.join(' '), '몸무게 대비 움직이는 양', '단식 부하 설명(쉬운 말)');
     eq(g.stats.singlesWorkES, 0.44, '내부 기준값 유지');
     eq(g.stats.eliteWorkES, 0.88, '내부 기준값 유지');
-    includes(g.drill, '전후 코너 멀티셔틀', '추천 드릴');
+    includes(g.drill, '전후 코너 셔틀콕 연속 받기', '추천 드릴');
     includes(g.source, '10.1080/24748668.2009.11868479', 'Alcock DOI');
     includes(g.source, '10.1080/02640414.2025.2489863', 'Santiano DOI');
     eq(g.stats.stepsSingles, 593.8, '기준값 노출');
@@ -156,7 +156,7 @@
     eq(BM.ai.disciplineKey(''), '복식', '빈 값은 복식');
   });
 
-  test('v1.22 종목 부하: 급수에 따라 멀티셔틀 구수가 달라진다', function () {
+  test('v1.22 종목 부하: 급수에 따라 셔틀콕 연속 받기 구수가 달라진다', function () {
     var low = BM.ai.disciplineLoadGuide('단식', '초심');
     var mid = BM.ai.disciplineLoadGuide('단식', 'C조');
     var high = BM.ai.disciplineLoadGuide('단식', '자강');
@@ -227,7 +227,7 @@
     includes(html, '4가지', '항목 수');
     includes(html, '전신 동적 예열', '항목 이름');
     includes(html, '한 발 착지', '부위별 항목');
-    includes(html, '전후 코너 멀티셔틀', '종목 드릴');
+    includes(html, '전후 코너 셔틀콕 연속 받기', '종목 드릴');
     includes(html, '88.8', '심박 기준');
     includes(html, '근거 · Phomsoupha 2025', '짧은 출처');
     includes(html, 'Alcock', '부하 출처');
@@ -254,14 +254,14 @@
    * ========================================================= */
   test('v1.22 버전: sw · app · 스타일 캐시 · README · TWA가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.30.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.30.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261120-30', '스타일 캐시 키');
-    includes(readRoot('README.md'), 'v1.30.0', 'README 변경 이력');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.31.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.31.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261120-31', '스타일 캐시 키');
+    includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.30.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.30.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 30, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.31.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.31.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 31, 'TWA 버전 코드');
     /* 공개 저장소에 시트 ID·토큰을 남기지 않는다 */
     excludes(readRoot('js/ai.js'), '1sqxAM6eskBYS03s', '시트 ID 없음');
   });
