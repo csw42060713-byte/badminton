@@ -350,12 +350,24 @@
     var auth = BM.auth;
     var cid = auth.googleClientId();
     var origin = (typeof location !== 'undefined' && location.origin) || '';
-    return '<p class="hint">' + (state.mode === 'sheets'
-      ? '구글 시트의 <b>출력결과</b> 탭과 연결되어 있어요. 저장하면 시트에 바로 쌓입니다.'
-      : '이 기기 브라우저에 저장돼요. 시트를 연결하면 계정 기록이 시트에도 쌓입니다.') + '</p>' +
+    var live = state.mode === 'supabase';
+    var signed = !isGuest();
+    var livePill = state.realtime === 'live'
+      ? '<span class="pill pill--ok">실시간 연결됨</span>'
+      : '<span class="pill pill--ghost">연결 중…</span>';
+    var modeText = live
+      ? 'Supabase 실시간 서버(서울)에 연결돼 있어요. 상대가 보낸 메시지·1:1 요청이 1초 안에 도착합니다.'
+      : state.mode === 'sheets'
+        ? '구글 시트의 <b>출력결과</b> 탭과 연결되어 있어요. 저장하면 시트에 바로 쌓입니다.'
+        : '이 기기 브라우저에 저장돼요. 로그인하면 실시간 서버에 쌓입니다.';
+    return '<p class="hint">' + modeText + (live && signed ? ' ' + livePill : '') + '</p>' +
       '<div class="row gap8 mt8">' +
-      '<button class="btn btn--ghost grow" data-act="connect">' + UI.icon('edit') + '시트 연결</button>' +
+      '<button class="btn btn--ghost grow" data-act="connect">' + UI.icon('edit') +
+      (live ? '시트로 바꾸기' : '시트 연결') + '</button>' +
       '<button class="btn btn--ghost grow" data-act="export">JSON 내보내기</button></div>' +
+      (!live && signed
+        ? '<button class="btn btn--primary btn--sm mt8" data-act="use-supabase">실시간 서버(Supabase)로 바꾸기</button>'
+        : '') +
       ((state.mode === 'local' && isGuest()) ? '<button class="linkbtn mt8" data-act="reset-demo">저장된 기록 모두 지우기</button>' : '') +
       '<p class="sync">마지막 동기화 ' + U.esc(state.lastSync || '—') +
       (state.syncState === 'syncing' ? ' · 보내는 중…' : state.syncState === 'error' ? ' · <b class="warn">재시도 대기</b>' : '') + '</p>' +
@@ -578,6 +590,17 @@
         if (ev.target.closest('[data-act="connect"]')) {
           ev.preventDefault();
           openConnectSheet(ctx);
+          return;
+        }
+        if (ev.target.closest('[data-act="use-supabase"]')) {
+          ev.preventDefault();
+          if (!ctx.switchBackend) { UI.toast('이 화면에서는 바꿀 수 없어요', 'error'); return; }
+          UI.toast('서버에 연결하는 중…');
+          ctx.switchBackend('supabase').then(function (res) {
+            if (res && res.ok) { UI.toast('실시간 서버에 연결됐어요'); ctx.refresh(); return; }
+            if (res && res.needLogin) { UI.toast(res.message); return; }
+            UI.toast((res && res.message) || '바꾸지 못했어요', 'error');
+          });
           return;
         }
         if (ev.target.closest('[data-act="export"]')) {

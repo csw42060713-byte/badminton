@@ -359,7 +359,7 @@
    * 시트(서버) 모드에서 보낼 것이 남았거나 연결이 끊겼을 때만 짧게 알려 줍니다.
    * (체험·게스트 모드에 '저장 중… N건 남음'이 뜨던 문제의 원인) */
   function netBarText(state) {
-    var needsNet = state.mode === 'sheets';
+    var needsNet = state.mode === 'sheets' || state.mode === 'supabase';
     if (!needsNet) return null;
     var queued = (state.queue && state.queue.length) || 0;
     var offline = (typeof navigator !== 'undefined' && navigator.onLine === false);
@@ -540,6 +540,65 @@
     }
   }
 
+  /* ---------- 저장소 고르기 (v1.24) ----------
+   * 기본은 Supabase 실시간 서버(서울). MY > 데이터 연결에서 구글 시트로 바꿀 수 있고,
+   * 로그인 없이 둘러보기(guest)는 지금처럼 이 기기에만 저장합니다. */
+  function makeApi(session) {
+    var signed = !!(session && session.kind !== 'guest');
+    var backend = BM.api.backendFor(session);
+    if (backend === 'sheets' && signed) {
+      var saved = BM.api.savedSession() || {};
+      return BM.api.createSheets({ url: saved.url, token: saved.token });
+    }
+    var prof = (session && session.profile) || {};
+    if (backend === 'supabase' && signed) {
+      return BM.api.createSupabase({
+        meKey: BM.auth.meKeyFor(session),
+        me: {
+          email: session.email || '',
+          nick: session.name || prof.nick || '',
+          level: prof.level || '',
+          discipline: prof.discipline || '',
+          region: prof.region || '',
+          club: prof.club || ''
+        }
+      });
+    }
+    var ident = signed ? {
+      email: session.email || '',
+      nick: session.name || prof.nick || '',
+      level: prof.level || '',
+      discipline: prof.discipline || '',
+      region: prof.region || '',
+      club: prof.club || ''
+    } : null;
+    return BM.api.createLocal({ latency: 120, rowsKey: BM.auth.rowsKeyFor(session), meKey: BM.auth.meKeyFor(session), me: ident });
+  }
+
+  /* MY > 데이터 연결: 서버(Supabase) ↔ 구글 시트 전환 */
+  function switchBackend(kind) {
+    if (!store) return Promise.resolve({ ok: false, message: '앱을 먼저 열어 주세요.' });
+    var session = BM.auth.session();
+    if (!session || session.kind === 'guest') {
+      return Promise.resolve({ ok: false, needLogin: true, message: '로그인하면 실시간 서버에 연결돼요.' });
+    }
+    if (kind === 'sheets') {
+      var saved = BM.api.savedSession();
+      if (!saved || !saved.token || !saved.url) return Promise.resolve({ ok: false, needConnect: true, message: 'sheet' });
+    }
+    U.writeJSON(BM.api.BACKEND_KEY, kind === 'sheets' ? 'sheets' : 'supabase');
+    var api = makeApi(session);
+    store._replaceApi(api);
+    U.writeJSON('bm_mode_v1', api.mode);
+    return store.actions.reload().then(function () {
+      if (api.mode === 'supabase') store.actions.listen();
+      paintNetBar(store.state);
+      return { ok: true, mode: api.mode };
+    }).catch(function (err) {
+      return { ok: false, mode: api.mode, message: (err && err.message) || '저장소를 바꾸지 못했어요.' };
+    });
+  }
+
   /* ---------- 실제 시트 연결 ---------- */
   function connectSheets(url, email, password, nick) {
     var api = BM.api.createSheets({ url: url });
@@ -548,6 +607,7 @@
       if (BM.auth.session()) BM.auth.signInEmailAccount({ email: email, name: (res.me && res.me.nick) || nick, token: res.token, source: 'sheets' });
       store._replaceApi(api);
       U.writeJSON('bm_mode_v1', 'sheets');
+      U.writeJSON(BM.api.BACKEND_KEY, 'sheets');
       return store.actions.reload().then(function () {
         return { ok: true, me: res.me };
       });
@@ -694,29 +754,14 @@
     /* 시작화면/온보딩 리스너를 떼어 냅니다(본문 클릭과 겹치지 않게) */
     if (BM.views.start && BM.views.start.unmount) BM.views.start.unmount();
 
-    var saved = BM.api.savedSession();
-    var sheets = !!(session && session.kind !== 'guest' && saved && saved.token && saved.url);
-    var api;
-    if (sheets) {
-      api = BM.api.createSheets({ url: saved.url, token: saved.token });
-    } else {
-      var ident = session && session.kind !== 'guest' ? {
-        email: session.email || '',
-        nick: session.name || '',
-        level: (session.profile && session.profile.level) || '',
-        discipline: (session.profile && session.profile.discipline) || '',
-        region: (session.profile && session.profile.region) || '',
-        club: (session.profile && session.profile.club) || ''
-      } : null;
-      api = BM.api.createLocal({ latency: 120, rowsKey: BM.auth.rowsKeyFor(session), meKey: BM.auth.meKeyFor(session), me: ident });
-    }
-
+    var api = makeApi(session);
     store = BM.store.createStore({ api: api });
     ctx = {
       store: store,
       actions: store.actions,
       saveLog: saveLogWithFeedback,
       connectSheets: connectSheets,
+      switchBackend: switchBackend,
       deleteAccount: deleteAccount,
       repaint: repaint,
       refresh: repaint,
@@ -734,6 +779,8 @@
       if (!store) return;
       paintChrome(store.state);
       paintDm(store.state);
+      /* v1.24 — 실시간 서버면 시작하자마자 구독합니다(온보딩 중에도 쌓임) */
+      if (store.state.mode === 'supabase') store.actions.listen();
       var s = BM.auth.session();
       if (BM.auth.needsOnboarding(s, store.state.me)) {
         showOnboarding(s);
@@ -750,6 +797,7 @@
   /* ---------- 계정 전환 ---------- */
   function signOut() {
     var sess = BM.auth.session();
+    if (store) store.actions.stopListening();
     if (sess && sess.kind !== 'guest') {
       var saved = BM.api.savedSession();
       if (saved && saved.url && saved.token) {
@@ -905,7 +953,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.23.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.24.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

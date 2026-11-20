@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v123.test.js — v1.23.0 (2026-11-20)
+ * test/v123.test.js — v1.24.0 (2026-11-20)
  *  1) offcourtRoutine: 코트 훈련 날 순서(밴드 보강 + 스트레칭 → 본운동 → 마무리 스트레칭)
  *  2) offcourtRoutine: 웨이트 보강 날 순서(자전거 20분 → 스트레칭 → 본 웨이트 → 폼롤러 30분)
  *  3) 코어 · 허리 보강 3종(행잉 레그 레이즈 · 다리 걸고 윗몸 · 백 익스텐션) 세트·횟수
@@ -247,14 +247,14 @@
    * ========================================================= */
   test('v1.23 버전: sw · app · 스타일 캐시 · README · TWA가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.23.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.23.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261120-23', '스타일 캐시 키');
-    includes(readRoot('README.md'), 'v1.23.0', 'README 변경 이력');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.24.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.24.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261120-24', '스타일 캐시 키');
+    includes(readRoot('README.md'), 'v1.24.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.23.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.23.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 23, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.24.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.24.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 24, 'TWA 버전 코드');
     /* 공개 저장소에 시트 ID·토큰을 남기지 않는다 */
     excludes(readRoot('js/ai.js'), '1sqxAM6eskBYS03s', '시트 ID 없음');
     excludes(readRoot('js/ai.js'), '안세영', '선수 실명 없음');
