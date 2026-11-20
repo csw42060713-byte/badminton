@@ -3786,14 +3786,14 @@ body.has-notif.has-netbar .main { padding-top: calc(var(--hdr-h) + var(--safe-t)
   border: 1px solid var(--line-2);
   overflow: hidden;
 }
-/* 봉투 윗면은 은은한 띠로만 — 한마디 글자를 가로지르는 선은 두지 않습니다 */
+/* 봉투는 테두리·모서리·우표로만 표현합니다 (글자 위를 지나는 선·띠는 두지 않음) */
 .env::before {
   content: '';
   position: absolute;
-  left: 0; right: 0; top: 0;
-  height: 54px;
+  left: 14px; right: 14px; top: 0;
+  height: 1px;
   pointer-events: none;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 40%, transparent), transparent);
 }
 .env__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .env__stamp {
