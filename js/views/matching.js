@@ -787,9 +787,10 @@
     var why = opts.why || (need >= D.HEART_RULES.MATCH_COST
       ? '1:1 매칭은 <b>상대가 수락할 때</b> 하트 ' + need + '개가 차감돼요.'
       : '하트 선물에는 <b>하트 ' + need + '개</b>가 필요해요.');
-
-    var intro = '<p class="sheet__text">' + why + ' 지금 <b>' + balance + '개</b> 있어요.' +
-      (short ? ' <span class="warn">' + short + '개 부족</span>' : '') + '</p>';
+    var intro = function (s) {
+      return '<p class="sheet__text">' + why + ' 지금 <b>' + s.balance + '개</b> 있어요.' +
+        (s.balance < need ? ' <span class="warn">' + (need - s.balance) + '개 부족</span>' : '') + '</p>';
+    };
 
     if (BM.ads && typeof BM.ads.openHeartSheet === 'function') {
       return BM.ads.openHeartSheet(ctx, {
