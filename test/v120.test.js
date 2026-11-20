@@ -394,6 +394,7 @@
     includes(app, 'navigator', '알림 API 사용');
     includes(app, 'touchActivity', '활동 시각 갱신');
     includes(app, 'paintNotify', '배너 그리기');
+    includes(app, 'notifyClosedSig', '닫은 배너는 다시 띄우지 않는다');
     var store = readRoot('js/store.js');
     includes(store, 'poll: function', 'store 폴링');
     includes(store, 'touchActivity: function', 'store 활동 시각');
