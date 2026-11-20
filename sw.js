@@ -16,8 +16,9 @@
  * 2026-11-20: 지난 일지 수정·삭제 · 코치 피드백 요청에 최근 일지 요약 · MY 꾸미기 입구 하나로.
  * 2026-11-20: 시트 연결 버튼 연타 잠금(연결 요청이 두 번 나가지 않게).
  * 2026-11-20: 시트 연결 웹 앱 URL·이메일·닉네임 기본값 자동 채움.
+ * 2026-11-20: 채팅 보낸 시각·날짜 구분선 · 새 메시지/요청 알림 · 활동 상태 · 편지지 요청과 끄기 설정.
  * ============================================================ */
-var VERSION = 'bm-v1.19.0';
+var VERSION = 'bm-v1.20.0';
 var SHELL = [
   './',
   './index.html',
@@ -72,6 +73,22 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('message', function (event) {
   var data = event.data || {};
   if (data && data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+/* v1.20 — 새 메시지 알림을 누르면 앱 창을 앞으로 (안드로이드 크롬은 이 경로로만 알림이 뜹니다) */
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+      for (var i = 0; i < list.length; i++) {
+        var c = list[i];
+        if (c && typeof c.focus === 'function') {
+          return c.focus().then(function () { return c; });
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow('./');
+    }).catch(function () { /* 무시 */ })
+  );
 });
 
 /* styles.css?v=… 처럼 물음표가 붙은 요청은 파일 이름으로 한 번 더 찾습니다 */

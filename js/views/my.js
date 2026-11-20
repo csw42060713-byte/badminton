@@ -313,6 +313,37 @@
     return (t && t.name) || '기본 코트';
   }
 
+  /* ---------- 알림 · 편지지 설정 (v1.20) ----------
+   * 둘 다 기기에만 저장되고 기본은 켜짐입니다. 끄면 편지지·알림 없이 그대로 동작해요. */
+  function prefOn(state, key) {
+    return !(state && state.prefs && state.prefs[key] === false);
+  }
+
+  function prefRow(state, key, title, desc) {
+    var on = prefOn(state, key);
+    return '<div class="prefrow" data-pref-row="' + key + '">' +
+      '<div class="prefrow__t"><strong>' + U.esc(title) + '</strong><p>' + U.esc(desc) + '</p></div>' +
+      '<button type="button" class="switch' + (on ? ' is-on' : '') + '" role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
+      ' aria-label="' + U.esc(title + ' ' + (on ? '끄기' : '켜기')) + '" data-act="toggle-' + key + '">' +
+      '<i aria-hidden="true"></i><span>' + (on ? '켬' : '끔') + '</span></button></div>';
+  }
+
+  function alarmPanel(state) {
+    var perm = (typeof Notification !== 'undefined' && Notification.permission) || 'unsupported';
+    var hint = perm === 'granted' ? '<p class="hint">브라우저 알림이 허용되어 있어요. 다른 탭·백그라운드에서도 알려 줘요.</p>'
+      : perm === 'denied' ? '<p class="hint">브라우저 알림이 차단되어 있어요. 앱 안 배너와 진동으로만 알려 드려요.</p>'
+      : perm === 'default' ? '<button type="button" class="linkbtn" data-act="allow-notify">브라우저 알림 허용하기</button>'
+      : '<p class="hint">이 브라우저는 시스템 알림을 지원하지 않아요. 앱 안 배너로 알려 드려요.</p>';
+    return prefRow(state, 'notify', '새 메시지 알림', '상대의 새 메시지·1:1 요청이 오면 앱 안 배너·브라우저 알림·짧은 진동으로 알려 줘요.') +
+      hint +
+      prefRow(state, 'letter', '편지지 형식 사용', '끄면 1:1 요청을 보낼 때와 받을 때 모두 편지지 대신 간단한 요청 카드로 보여요.') +
+      '<p class="hint">이 기기에만 저장돼요. 끄고 켜도 보낸 요청과 기록은 그대로예요.</p>';
+  }
+
+  function alarmSummary(state) {
+    return '알림 ' + (prefOn(state, 'notify') ? '켬' : '끔') + ' · 편지지 ' + (prefOn(state, 'letter') ? '켬' : '끔');
+  }
+
   /* 데이터 연결 — 안내 문구는 짧게, 버튼은 크게.
    * 개발자용 Google Client ID 입력은 첫 화면을 어지럽히지 않게 이 묶음 맨 아래에 둡니다. */
   function dataPanel(state) {
@@ -398,6 +429,8 @@
 
         accountCard(state) +
 
+        group('alarm', 'bell', '알림 · 편지지', alarmSummary(state), alarmPanel(state)) +
+
         group('theme', 'palette', '테마', themeName(theme), themeSwatches(state)) +
         group('data', 'chart', '데이터 연결', '시트 연결 · 내보내기', dataPanel(state)) +
         group('legal', 'shield', '개인정보 · 계정', '', legalCard(state)) +
@@ -417,6 +450,29 @@
         if (sw) {
           ev.preventDefault();
           pickTheme(ctx, sw.getAttribute('data-theme'));
+          return;
+        }
+        if (ev.target.closest('[data-act="toggle-notify"]') || ev.target.closest('[data-act="toggle-letter"]')) {
+          ev.preventDefault();
+          var isNotify = !!ev.target.closest('[data-act="toggle-notify"]');
+          var which = isNotify ? 'notify' : 'letter';
+          var next = !prefOn(ctx.store.state, which);
+          ctx.actions.setPref(which, next);
+          UI.haptic(8);
+          UI.toast(isNotify
+            ? (next ? '새 메시지 알림을 켰어요' : '새 메시지 알림을 껐어요')
+            : (next ? '편지지 형식을 켰어요' : '편지지 형식을 껐어요'));
+          if (isNotify && next && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+            try { Notification.requestPermission(); } catch (e) { /* 무시 */ }
+          }
+          return;
+        }
+        if (ev.target.closest('[data-act="allow-notify"]')) {
+          ev.preventDefault();
+          if (typeof Notification !== 'undefined') {
+            try { Notification.requestPermission(); } catch (e) { /* 무시 */ }
+          }
+          UI.toast('브라우저 알림을 허용하면 다른 탭에서도 알려 드려요');
           return;
         }
         if (ev.target.closest('[data-act="checkin"]')) {
@@ -1172,4 +1228,6 @@
   BM.views.my.decorateBody = decorateBody;     /* 테스트·점검용 (꾸미기 시트 본문) */
   BM.views.my.openConnectSheet = openConnectSheet;   /* 테스트·점검용 (시트 연결 기본값) */
   BM.views.my.connectDefaults = connectDefaults;     /* 테스트·점검용 (기본 채움 값) */
+  BM.views.my.alarmPanel = alarmPanel;               /* 테스트·점검용 (알림·편지지 설정) */
+  BM.views.my.prefRow = prefRow;                     /* 테스트·점검용 */
 })(typeof globalThis !== 'undefined' ? globalThis : this);

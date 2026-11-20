@@ -12,10 +12,7 @@
   BM.views = BM.views || {};
 
   function hhmm(ts) {
-    var d = ts ? new Date(String(ts).replace(' ', 'T')) : null;
-    if (!d || isNaN(d.getTime())) return '';
-    var h = d.getHours(), m = d.getMinutes();
-    return (h < 12 ? '오전 ' : '오후 ') + (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m;
+    return D.chatTime(ts);
   }
 
   function findThread(state, roomId) {
@@ -61,6 +58,7 @@
     var me = (state.me && state.me.key) || '';
     var isGroup = t.kind === 'group';
     var p = isGroup ? null : UI.person(state, t.other);
+    var pres = isGroup ? null : D.presenceOf(state.data.idx, t.other);
     var preview = t.last
       ? (t.last.userKey === me ? '나: ' : (isGroup ? (t.last.nick || '') + ': ' : '')) + t.last.text
       : '대화를 시작해 보세요';
@@ -73,39 +71,60 @@
       (isGroup ? '<span class="dmroom__n">' + (t.memberCount || 0) + '명</span>' : '') +
       (!isGroup && p.level ? '<span class="pill pill--grade">' + U.esc(p.level) + '</span>' : '') +
       kindPill(t.kind) + '</div>' +
-      '<p class="' + (t.unread ? 'is-unread' : '') + '">' + U.esc(U.truncate(preview, 42)) + '</p></div>' +
+      '<p class="' + (t.unread ? 'is-unread' : '') + '">' + U.esc(U.truncate(preview, 42)) + '</p>' +
+      (pres ? UI.presence(pres, { cls: 'presence--row' }) : '') +
+      '</div>' +
       '<div class="dmroom__right">' +
-      (t.at ? '<time>' + U.timeAgo(t.at) + '</time>' : '') +
+      (t.at ? '<time>' + U.esc(D.chatListTime(t.at)) + '</time>' : '') +
       (t.unread ? '<span class="badge">' + (t.unread > 9 ? '9+' : t.unread) + '</span>' : '') +
       '</div></li>';
   }
 
-  /* 받은 1:1 매칭 요청 — 편지지 카드(매칭 화면과 같은 모양)로 알려 줍니다 */
+  /* 받은 1:1 매칭 요청 — 편지지 카드(매칭 화면과 같은 모양)로 알려 줍니다.
+   * 편지지 형식을 꺼 둔 사람에게는 군더더기 없는 일반 요청 카드로 보입니다(v1.20). */
   function matchLetters(state) {
     var me = (state.me && state.me.key) || '';
     var list = U.sortBy((state.data.requests || []).filter(function (r) {
       return r.target === me && r.status === '대기';
     }), function (r) { return r.createdAt || ''; }, true);
     if (!list.length) return '';
+    var letter = !(state.prefs && state.prefs.letter === false);
     var V = (BM.views.matching && BM.views.matching.letterHtml) ? BM.views.matching : null;
     var html = list.map(function (r) {
-      return V ? V.letterHtml(state, r, { compact: true }) :
-        '<li class="dmreq" data-letter="' + U.esc(r.id) + '">' + U.esc(r.nick || '') +
-        '<button class="btn btn--primary btn--sm" data-accept="' + U.esc(r.id) + '">수락</button></li>';
+      if (!letter) return simpleRequest(r, state);
+      return V ? V.letterHtml(state, r, { compact: true }) : simpleRequest(r, state);
     }).join('');
     return '<section class="dmsec">' +
       '<h3 class="dmsec__t">받은 매칭 요청 <span class="badge">' + list.length + '</span></h3>' +
-      '<div class="dmletters">' + html + '</div></section>';
+      (letter ? '<div class="dmletters">' + html + '</div>' : '<ul class="dmreqs">' + html + '</ul>') + '</section>';
+  }
+
+  /* 편지지 형식이 꺼져 있을 때의 일반 요청 카드 */
+  function simpleRequest(r, state) {
+    var p = UI.person(state, r.userKey);
+    var note = (r.payload && r.payload.note) || '';
+    return '<li class="dmreq dmreq--simple" data-from="' + U.esc(r.userKey) + '" data-open-profile="' + U.esc(r.userKey) + '">' +
+      UI.avatar(p, 44) +
+      '<div class="dmreq__mid"><strong>' + U.esc(p.nick || '회원') + '</strong>' +
+      '<p>' + U.esc(U.truncate(note || '1:1 매칭 요청', 34)) + ' · ' + U.esc(U.timeAgo(r.createdAt) || '방금') + '</p></div>' +
+      '<div class="dmreq__act">' +
+      '<button class="btn btn--ghost btn--sm" data-decline="' + U.esc(r.id) + '">거절</button>' +
+      '<button class="btn btn--primary btn--sm" data-accept="' + U.esc(r.id) + '">수락</button>' +
+      '</div></li>';
   }
 
   function listHtml(state) {
     var reqs = state.data.friendRequests || [];
     var threads = state.data.threads || [];
+    var notifyOn = !(state.prefs && state.prefs.notify === false);
     return '' +
       '<header class="dmhead">' +
       '<button class="iconbtn" data-dm-close aria-label="채팅 닫기">' + UI.icon('close') + '</button>' +
       '<div class="dmhead__title"><strong>채팅</strong>' +
       '<span>' + (threads.length ? threads.length + '개 대화' : '카톡처럼 1:1 대화') + '</span></div>' +
+      '<button class="iconbtn dmhead__bell' + (notifyOn ? ' is-on' : ' is-off') + '" data-dm-notify' +
+      ' aria-pressed="' + (notifyOn ? 'true' : 'false') + '" aria-label="새 메시지 알림 ' + (notifyOn ? '끄기' : '켜기') + '"' +
+      ' title="새 메시지 알림 ' + (notifyOn ? '켜짐' : '꺼짐') + '">' + UI.icon('bell') + '</button>' +
       '<button class="iconbtn" data-dm-find aria-label="매칭에서 친구 찾기">' + UI.icon('plus') + '</button>' +
       '</header>' +
       '<div class="dm__scroll" data-dm-scroll>' +
@@ -134,8 +153,24 @@
       '<div class="dmsg__col">' +
       (group && !mine ? '<span class="dmsg__nick">' + U.esc(m.nick || p.nick || '회원') + '</span>' : '') +
       '<div class="dbubble">' + U.esc(m.text).replace(/\n/g, '<br>') + '</div>' +
-      '<time>' + hhmm(m.createdAt) + '</time>' +
+      '<time>' + U.esc(D.chatStamp(m.createdAt)) + '</time>' +
       '</div></div>';
+  }
+
+  /* 말풍선 목록 — 날짜가 바뀌는 곳에 날짜 구분선을 둡니다.
+   * (같은 날은 '오후 2:20', 다른 날은 '11/18 14:20'으로 시각 자체에도 날짜가 붙어
+   *  구분선을 못 보는 곳에서도 언제 보낸 글인지 알 수 있습니다) */
+  function messagesHtml(messages, state, otherKey, group) {
+    var html = '', lastDay = '';
+    (messages || []).forEach(function (m) {
+      var day = D.chatDayKey(m.createdAt);
+      if (day && day !== lastDay) {
+        html += '<div class="dmsgday"><span>' + U.esc(D.chatDayLabel(m.createdAt)) + '</span></div>';
+        lastDay = day;
+      }
+      html += messageHtml(m, state, otherKey, group);
+    });
+    return html;
   }
 
   /* 모집 글 단체방 — 글 정보·참여자·대화가 함께 보입니다 */
@@ -164,7 +199,7 @@
       '<div class="dm__scroll dm__scroll--chat" data-dm-scroll>' +
       (messages.length
         ? '<div class="dm__groupnote">' + UI.icon('bolt') + U.esc(note || title) + '</div>' +
-          '<div class="dm__msgs">' + messages.map(function (m) { return messageHtml(m, state, '', true); }).join('') + '</div>'
+          '<div class="dm__msgs">' + messagesHtml(messages, state, '', true) + '</div>'
         : '<div class="dm__start"><span class="dmgroupav dmgroupav--big" aria-hidden="true">' + UI.icon('users') + '</span>' +
           '<p class="dm__start-t">' + U.esc(title) + '</p>' +
           '<p class="dm__start-s">' + (note ? U.esc(note) + '<br>' : '') + '첫 인사를 남기면 참여자로 함께 보여요.</p></div>') +
@@ -193,12 +228,13 @@
       '<button class="dmhead__who" data-dm-profile="' + U.esc(other) + '">' +
       UI.avatar(p, 34) +
       '<div><strong>' + U.esc(p.nick || '상대') + '</strong>' +
-      '<span>' + U.esc([p.level, room && room.kind === 'friend' ? '친구' : (room && room.kind === 'match' ? '매칭' : (room && room.kind === 'coach' ? '코치' : ''))].filter(Boolean).join(' · ') || '1:1 대화') + '</span></div>' +
-      '</button>' +
+      '<span>' + U.esc([p.level, room && room.kind === 'friend' ? '친구' : (room && room.kind === 'match' ? '매칭' : (room && room.kind === 'coach' ? '코치' : ''))].filter(Boolean).join(' · ') || '1:1 대화') + '</span>' +
+      UI.presence(D.presenceOf(state.data.idx, other), { cls: 'presence--head' }) +
+      '</div></button>' +
       '</header>' +
       '<div class="dm__scroll dm__scroll--chat" data-dm-scroll>' +
       (messages.length
-        ? '<div class="dm__msgs">' + messages.map(function (m) { return messageHtml(m, state, other); }).join('') + '</div>'
+        ? '<div class="dm__msgs">' + messagesHtml(messages, state, other) + '</div>'
         : '<div class="dm__start">' + UI.avatar(p, 64) +
           '<p class="dm__start-t">' + U.esc((p.nick || '상대') + '님과의 대화') + '</p>' +
           '<p class="dm__start-s">' + (canChat ? '첫 메시지를 보내 보세요.' : '친구가 되거나 매칭이 성사되면 대화할 수 있어요.') + '</p></div>') +
@@ -215,8 +251,13 @@
 
   function render(host, state) {
     if (!host) return;
-    host.innerHTML = '<div class="dm__panel">' +
+    var html = '<div class="dm__panel">' +
       (state.ui.chatRoom ? roomHtml(state) : listHtml(state)) + '</div>';
+    /* 내용이 같으면 다시 그리지 않습니다 — 폴링으로 화면이 갱신될 때
+     * 보고 있던 위치와 입력 중인 글이 그대로 남습니다. */
+    if (host.__dmHtml === html) return;
+    host.__dmHtml = html;
+    host.innerHTML = html;
     var scroll = host.querySelector('[data-dm-scroll]');
     if (scroll) scroll.scrollTop = scroll.scrollHeight;
   }
@@ -234,6 +275,18 @@
 
     host.addEventListener('click', function (ev) {
       ctx = host.__dmCtx || ctx;
+      /* 새 메시지 알림 켜기/끄기 (채팅 목록 상단 종) */
+      if (ev.target.closest('[data-dm-notify]')) {
+        ev.preventDefault();
+        var notifyOn = !(ctx.store.state.prefs && ctx.store.state.prefs.notify !== false);
+        ctx.actions.setPref('notify', notifyOn);
+        UI.haptic(8);
+        UI.toast(notifyOn ? '새 메시지 알림을 켰어요' : '새 메시지 알림을 껐어요');
+        if (notifyOn && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+          try { Notification.requestPermission(); } catch (e) { /* 무시 */ }
+        }
+        return;
+      }
       if (ev.target.closest('[data-dm-close]')) {
         ev.preventDefault();
         ctx.actions.closeChats();
@@ -357,7 +410,8 @@
 
   BM.views.chat = {
     render: render, bind: bind,
-    listHtml: listHtml, roomHtml: roomHtml, messageHtml: messageHtml,
+    listHtml: listHtml, roomHtml: roomHtml, messageHtml: messageHtml, messagesHtml: messagesHtml,
+    simpleRequest: simpleRequest,
     findThread: findThread, hhmm: hhmm
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

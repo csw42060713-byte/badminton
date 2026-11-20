@@ -162,11 +162,20 @@
       syncError: null,
       syncState: 'idle',
       lastSync: null,
+      /* v1.20 — 알림 · 편지지 설정(기기 저장)과 새 소식 */
+      prefs: D.readPrefs(),
+      notifySince: '',          /* 이 시각 이후에 들어온 메시지·요청만 새 소식으로 칩니다 */
+      inbox: { messages: [], requests: [], friendRequests: [], total: 0, at: '' },
+      activityAt: '',           /* 내 활동 시각(마지막으로 남긴 기록) */
+      lastActivityWrite: 0,     /* 시트에 활동 시각을 적은 마지막 시각(ms) — 과도한 쓰기 방지 */
       stats: { writes: 0, blocked: 0, failed: 0 }
     };
     var subs = [];
     var flushing = false;
+    var polling = false;
     var apiRef = api;
+    /* 활동 시각을 시트에 다시 적는 최소 간격 (3분) — 열어 두기만 해도 3분마다 한 번 */
+    var ACTIVITY_WRITE_MS = 180000;
 
     /* 예전 버전(v1.0)을 쓰던 기기에 남은 전송 대기열 정리.
      * 기기 저장 모드에는 보낼 서버가 없으므로 대기열 자체를 지웁니다. */
@@ -450,6 +459,9 @@
           U.writeJSON(CACHE_KEY, { rows: state.rows, me: state.me, at: state.lastSync });
           U.writeJSON(MODE_KEY, state.mode);
           recompute();
+          /* 처음 열 때는 지금 시각을 기준으로 잡습니다 — 지난 메시지는 알리지 않습니다 */
+          state.notifySince = U.stamp();
+          state.activityAt = D.lastActiveAt(state.idx, state.me && state.me.key) || '';
           emit();
           flush();
           return state;
@@ -463,6 +475,8 @@
             loadRoutine();
             state.syncError = (err && err.message) || '오프라인 상태예요.';
             recompute();
+            state.notifySince = U.stamp();
+            state.activityAt = D.lastActiveAt(state.idx, state.me && state.me.key) || '';
             emit();
           }
           return state;
@@ -501,6 +515,85 @@
 
       setTab: function (tab) {
         state.ui.tab = tab; emit();
+      },
+
+      /* ---------- v1.20: 사용자 설정 (알림 · 편지지) ---------- */
+      setPref: function (key, value) {
+        state.prefs = D.setPref(state.prefs, key, value);
+        emit();
+        return state.prefs;
+      },
+
+      /* ---------- v1.20: 새 소식 폴링 ----------
+       * 시트(서버) 모드에서는 다른 기기의 메시지가 시트에 쌓이므로, 40~60초마다
+       * bootstrap으로 새 행을 받아 '직전 확인 이후 새로 늘어난 것'만 골라 알립니다.
+       * 기기 저장 모드에서도 그대로 동작하지만(같은 기기 데이터), 새로 늘 일은 없습니다. */
+      poll: function () {
+        if (!apiRef || !state.ready || polling) return Promise.resolve({ ok: false, reason: 'busy' });
+        /* 아직 서버로 보내지 못한 쓰기가 있으면 기다립니다.
+         * (방금 보낸 메시지가 폴링 때문에 화면에서 사라지는 일 방지) */
+        if ((state.queue && state.queue.length) || flushing) return Promise.resolve({ ok: false, reason: 'pending' });
+        polling = true;
+        var since = state.notifySince || U.stamp();
+        return apiRef.bootstrap().then(function (res) {
+          polling = false;
+          if (res && res.me) state.me = normalizeMe(res.me);
+          if (res && res.rows) state.rows = res.rows;
+          state.lastSync = (res && res.syncedAt) || U.stamp();
+          state.syncError = null;
+          recompute();
+          var fresh = D.newIncoming(state.idx, state.me && state.me.key, since);
+          state.notifySince = U.stamp();
+          state.activityAt = D.lastActiveAt(state.idx, state.me && state.me.key) || state.activityAt;
+          if (fresh.total) {
+            state.inbox = {
+              messages: fresh.messages, requests: fresh.requests, friendRequests: fresh.friendRequests,
+              total: fresh.total, at: state.notifySince
+            };
+          }
+          U.writeJSON(CACHE_KEY, { rows: state.rows, me: state.me, at: state.lastSync });
+          emit();
+          return { ok: true, fresh: fresh };
+        }).catch(function (err) {
+          polling = false;
+          state.syncError = (err && err.message) || '새 소식을 확인하지 못했어요.';
+          emit();
+          return { ok: false, reason: 'error', message: state.syncError };
+        });
+      },
+
+      dismissInbox: function () {
+        state.inbox = { messages: [], requests: [], friendRequests: [], total: 0, at: '' };
+        emit();
+        return { ok: true };
+      },
+
+      /* ---------- v1.20: 내 활동 시각 ----------
+       * 앱이 열려 있는 동안 가끔 내 매칭프로필의 소셜글(JSON)에 lastActiveAt을 적어 둡니다.
+       * (26칸은 그대로 — 새 열·새 행 유형을 만들지 않습니다. 3분에 한 번만 씁니다.)
+       * 매칭프로필이 없는 계정은 기기에만 적고 넘어갑니다. */
+      touchActivity: function (opts) {
+        opts = opts || {};
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        var nowMs = Date.now();
+        if (!opts.force && state.lastActivityWrite && nowMs - state.lastActivityWrite < ACTIVITY_WRITE_MS) {
+          return { ok: true, mode: 'throttled' };
+        }
+        state.lastActivityWrite = nowMs;
+        state.activityAt = U.stamp();
+        var mp = (state.data.matchProfiles || []).filter(function (m) { return m.userKey === me; })[0];
+        var row = mp && mp.rowId ? state.idx.byId[mp.rowId] : null;
+        if (!row) return { ok: true, mode: 'local-only' };
+        var payload = {};
+        Object.keys(row.payload || {}).forEach(function (k) { payload[k] = row.payload[k]; });
+        payload.lastActiveAt = state.activityAt;
+        var cells = { '소셜글': JSON.stringify(payload) };
+        patchRowById(row.id, cells);
+        enqueue({ kind: 'update', id: row.id, cells: cells, clientId: U.clientId() });
+        recompute();
+        emit();
+        return { ok: true, mode: 'sheets', at: state.activityAt };
       },
 
       setDraft: function (patch) {

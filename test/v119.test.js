@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v119.test.js — v1.19.0 (2026-11-20)
+ * test/v119.test.js — v1.20.0 (2026-11-20)
  *  1) 시트 연결 시트의 '웹 앱 URL'이 기본 브리지(/exec) 주소로 미리 채워진다
  *  2) 저장해 둔 브리지 주소가 있으면 그 주소를 채운다
  *  3) 로그인한 세션이면 이메일·닉네임도 미리 채운다 (사용자가 고칠 수 있는 칸 그대로)
@@ -127,13 +127,13 @@
 
   test('v1.19 버전: sw · app · 스타일 캐시 · TWA가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.19.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.19.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261120-19', '스타일 캐시 키');
-    includes(readRoot('README.md'), 'v1.19.0', 'README 변경 이력');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.20.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.20.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261120-20', '스타일 캐시 키');
+    includes(readRoot('README.md'), 'v1.20.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.19.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.19.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 19, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.20.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.20.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 20, 'TWA 버전 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

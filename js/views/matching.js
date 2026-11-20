@@ -363,8 +363,18 @@
       '<div class="rq__act">' + act + '</div></li>';
   }
 
+  /* 받은 요청 — 편지지 형식(기본)이면 편지지 카드, 꺼 두었으면 일반 요청 카드 */
   function reqList(state, kind) {
     var list = kind === 'in' ? pendingIncoming(state) : sentRequests(state);
+    var letter = !(state.prefs && state.prefs.letter === false);
+    if (kind === 'in' && !letter) {
+      var simple = list.concat(acceptedIncoming(state));
+      if (!simple.length) {
+        return UI.emptyState('community', '받은 요청이 없어요', '요청을 보내면 상대가 수락할 때 대화가 열려요.',
+          '<button type="button" class="btn btn--ghost btn--sm mt8" data-match-tab="find">플레이어 찾기</button>');
+      }
+      return '<ul class="rqlist rqlist--simple">' + simple.map(function (r) { return simpleRequestRow(state, r); }).join('') + '</ul>';
+    }
     if (!list.length) {
       return kind === 'in'
         ? acceptedBlock(state) || UI.emptyState('community', '받은 요청이 없어요', '요청을 보내면 상대가 수락할 때 대화가 열려요.',
@@ -377,6 +387,31 @@
         acceptedBlock(state);
     }
     return '<ul class="rqlist">' + list.map(function (r) { return reqRow(state, r, kind); }).join('') + '</ul>';
+  }
+
+  /* 편지지 형식을 꺼 둔 사람이 받는 요청 — 군더더기 없는 한 줄 카드 */
+  function simpleRequestRow(state, r) {
+    var other = r.userKey;
+    var p = personOf(state, other);
+    var note = (r.payload && r.payload.note) || '';
+    var status = r.status || '대기';
+    var act;
+    if (status === '대기') {
+      act = '<button type="button" class="btn btn--ghost btn--sm" data-decline="' + U.esc(r.id) + '">거절</button>' +
+        '<button type="button" class="btn btn--primary btn--sm" data-accept="' + U.esc(r.id) + '">수락</button>';
+    } else if (status === '수락') {
+      act = '<button type="button" class="btn btn--ghost btn--sm" data-open-chat="' + U.esc(r.id) + '" data-other="' + U.esc(other) + '">채팅하기</button>';
+    } else {
+      act = '<span class="rq__status is-off">' + U.esc(status) + '</span>';
+    }
+    return '<li class="rq rq--simple" data-open-profile="' + U.esc(other) + '">' + UI.avatar(p, 44) +
+      '<div class="rq__mid">' +
+      '<div class="rq__name">' + U.esc(p.nick) + gradePill(p) +
+      (p.discipline ? '<span class="rq__disc">' + U.esc(p.discipline) + '</span>' : '') + '</div>' +
+      (note ? '<p class="rq__note">' + U.esc(note) + '</p>' : '') +
+      '<p class="rq__meta">' + U.esc(U.timeAgo(r.createdAt) || '방금') +
+      UI.presence(D.presenceOf(state.data.idx, other), { cls: 'presence--row' }) + '</p></div>' +
+      '<div class="rq__act">' + act + '</div></li>';
   }
 
   /* 수락한 편지 묶음 — 누르면 편지지가 열리고, 버튼으로 바로 대화방에 들어갑니다 */
@@ -419,8 +454,9 @@
         '<div class="room__mid"><strong>' + U.esc(group ? (r.title || D.MEET.roomLabel) : rp.nick) +
         (group ? ' <span class="pill pill--ok">단체</span>' : '') +
         (!group && rp.level ? ' <span class="pill pill--grade">' + U.esc(rp.level) + '</span>' : '') + '</strong>' +
-        '<p>' + U.esc(U.truncate((r.last && r.last.text) || '대화를 시작해 보세요', 34)) + '</p></div>' +
-        '<div class="room__right"><time>' + U.timeAgo(r.at) + '</time>' +
+        '<p>' + U.esc(U.truncate((r.last && r.last.text) || '대화를 시작해 보세요', 34)) + '</p>' +
+        (group ? '' : UI.presence(D.presenceOf(state.data.idx, r.other), { cls: 'presence--row' })) + '</div>' +
+        '<div class="room__right"><time>' + U.esc(D.chatListTime(r.at)) + '</time>' +
         (r.unread ? '<span class="badge">' + r.unread + '</span>' : '') + '</div></li>';
     }).join('') + '</ul>';
   }
@@ -482,6 +518,8 @@
     var sent = st.mine && st.mine.status !== '거절' ? st.mine : null;
     var short = balance < cost;
     var canRequest = !st.incoming && !st.canChat && !sent;
+    /* 편지지 형식을 꺼 둔 사람은 한마디만 적어 바로 보내는 일반 요청 카드로 */
+    var letterOn = !(state.prefs && state.prefs.letter === false);
 
     var footer;
     if (st.incoming) {
@@ -499,6 +537,8 @@
       footer = '<div class="pp__note">' + UI.icon('clock') + '보낸 요청이에요 · 상태 <b>' + U.esc(sent.status) + '</b></div>' +
         '<button class="btn btn--ghost btn--big mt8" data-close>닫기</button>';
     } else {
+      /* 한마디는 여기서 적고, 편지지 형식이 켜져 있으면 '요청 보내기'가
+       * 봉투 미리보기(편지지 작성 시트)로 이어집니다. 꺼져 있으면 바로 보내요. */
       footer = '<label class="flabel">한마디 남기기 <span class="muted">(선택)</span>' +
         '<input type="text" data-note maxlength="60" placeholder="토요일 오전 어떠세요?" value="' + U.esc(noteDrafts[p.userKey] || '') + '"></label>' +
         '<p class="pp__cost">보유 하트 <b class="' + (short ? 'down' : 'up') + '">' + balance + '개</b> · 수락 시 <b>' + cost + '개</b>가 차감돼요' +
@@ -507,9 +547,13 @@
         '<button class="btn btn--ghost grow" data-close>닫기</button>' +
         (short
           ? '<button class="btn btn--primary grow" data-charge-hearts="' + key + '">하트 충전하기</button>'
-          : '<button class="btn btn--primary grow" data-send-request="' + key + '">요청 보내기</button>') +
+          : '<button class="btn btn--primary grow" data-send-request="' + key + '">' +
+            (letterOn ? UI.icon('mail') : '') + '요청 보내기</button>') +
         '</div>' +
-        (short ? '' : '<button class="linkbtn mt8" data-gift-in-sheet="' + key + '">하트 선물하기 (' + D.HEART_RULES.GIFT_COST + '개)</button>');
+        (short ? '' : '<button class="linkbtn mt8" data-gift-in-sheet="' + key + '">하트 선물하기 (' + D.HEART_RULES.GIFT_COST + '개)</button>') +
+        (short ? '' : '<p class="hint mt8">' + (letterOn
+          ? '편지지 형식이 켜져 있어요. 요청 보내기를 누르면 상대에게 갈 편지지를 미리 보고 보낼 수 있어요.'
+          : '편지지 형식이 꺼져 있어 요청이 바로 전송돼요. MY > 알림·편지지에서 다시 켤 수 있어요.') + '</p>');
     }
 
     return '<div class="pp" data-profile="' + key + '">' +
@@ -517,6 +561,7 @@
       '<div class="pp__id"><div class="pp__name">' + U.esc(p.nick) + '</div>' +
       '<div class="pp__pills">' + gradePill(p) + genderPill(p) + '</div>' +
       '<p class="pp__meta">' + U.esc([p.region, p.club].filter(Boolean).join(' · ') || '지역 미입력') + '</p>' +
+      UI.presence(D.presenceOf(state.data.idx, p.userKey), { cls: 'presence--profile' }) +
       '</div></div>' +
       '<p class="pp__match">궁합 <b>' + scored.score + '</b>' +
       (scored.reasons.length ? '<span class="pp__why">' + U.esc(scored.reasons.slice(0, 3).join(' · ')) + '</span>' : '') + '</p>' +
@@ -542,6 +587,86 @@
       (p.bio ? '<p class="pp__bio">' + U.esc(p.bio) + '</p>' : '') +
       '<div class="pp__social">' + (BM.views.profile ? BM.views.profile.buttons(state, p.userKey, { noHint: true }) : '') + '</div>' +
       '<div class="pp__foot">' + footer + '</div></div>';
+  }
+
+  /* ---------- 이: 요청 보내기 (편지지 / 바로 보내기) ----------
+   * requestMatch는 그대로(하트는 수락 시 차감)이고, 보내는 모양만 설정을 따릅니다. */
+  function releaseRequest(ctx, p, note, opts) {
+    opts = opts || {};
+    var res = ctx.actions.requestMatch(p.userKey, note);
+    UI.closeSheet();
+    if (res.ok) {
+      UI.toast((opts.letter ? '편지지를 보냈어요. ' : '요청을 보냈어요. ') +
+        '상대가 수락하면 하트 ' + (res.cost || D.HEART_RULES.MATCH_COST) + '개가 차감되고 대화가 열려요.');
+    } else if (res.reason === 'hearts') {
+      openHeartSheet(ctx, p.userKey, { need: D.HEART_RULES.MATCH_COST, continueLabel: '프로필로 돌아가기' });
+    } else if (res.reason === 'already') UI.toast('이미 요청한 상대예요.');
+    else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+    else UI.toast('요청을 보내지 못했어요', 'error');
+    return res;
+  }
+
+  /* 봉투 모양 미리보기 — 적는 즉시 미리보기에 반영됩니다. */
+  function letterComposeBody(state, p, note) {
+    var me = myProfile(state);
+    var cost = D.HEART_RULES.MATCH_COST;
+    var balance = (state.data.hearts && state.data.hearts.balance) || 0;
+    var key = U.esc(p.userKey);
+    return '<div class="env" data-env>' +
+      '<div class="env__top"><span class="env__stamp">매칭 요청</span>' +
+      '<span class="env__to">' + U.esc(p.nick) + '님에게</span></div>' +
+      '<p class="env__note" data-env-note>' + (note ? U.esc(note) : '<span class="muted">한마디를 적어 보내 보세요.</span>') + '</p>' +
+      '<div class="env__foot">' + U.esc((me && me.nick) || '나') + ' · 수락 시 보낸 분의 하트 ' + cost + '개 차감</div>' +
+      '</div>' +
+      '<label class="flabel mt8">한마디 <span class="muted">(선택 · 60자)</span>' +
+      '<input type="text" data-note maxlength="60" placeholder="토요일 오전 어떠세요?" value="' + U.esc(note) + '"></label>' +
+      '<p class="pp__cost">보유 하트 <b class="' + (balance < cost ? 'down' : 'up') + '">' + balance + '개</b></p>' +
+      '<div class="row gap8 mt8">' +
+      '<button type="button" class="btn btn--ghost grow" data-close>취소</button>' +
+      '<button type="button" class="btn btn--primary grow" data-letter-send="' + key + '">편지 보내기</button></div>' +
+      '<button type="button" class="linkbtn mt8" data-letter-off="' + key + '">편지지 없이 바로 보내기 (편지지 형식 끄기)</button>';
+  }
+
+  function openLetterCompose(ctx, p) {
+    var state = ctx.store.state;
+    var note = noteDrafts[p.userKey] || '';
+    UI.openSheet({
+      title: '편지지로 요청 보내기',
+      body: letterComposeBody(state, p, note),
+      onMount: function (wrap) {
+        var input = wrap.querySelector('[data-note]');
+        var preview = wrap.querySelector('[data-env-note]');
+        if (input) {
+          input.addEventListener('input', function () {
+            noteDrafts[p.userKey] = input.value;
+            if (preview) {
+              preview.innerHTML = input.value ? U.esc(input.value) : '<span class="muted">한마디를 적어 보내 보세요.</span>';
+            }
+          }, { passive: true });
+        }
+        wrap.addEventListener('click', function (ev) {
+          var send = ev.target.closest('[data-letter-send]');
+          if (send) {
+            ev.preventDefault();
+            if (send.disabled) return;
+            releaseRequest(ctx, p, input ? input.value : note, { letter: true });
+            return;
+          }
+          var off = ev.target.closest('[data-letter-off]');
+          if (off) {
+            ev.preventDefault();
+            ctx.actions.setPref('letter', false);
+            releaseRequest(ctx, p, input ? input.value : note, { letter: false });
+            UI.toast('편지지 형식을 꺼 두었어요. 다음부터는 바로 보내요.');
+            return;
+          }
+          if (ev.target.closest('[data-close]')) {
+            ev.preventDefault();
+            UI.closeSheet();
+          }
+        });
+      }
+    });
   }
 
   /* 하트 선물 — 모자라면 공용 충전 시트로 이어 주고, 채우면 다시 선물할 수 있게 합니다 */
@@ -577,18 +702,14 @@
             var note = input ? input.value : (noteDrafts[p.userKey] || '');
             noteDrafts[p.userKey] = note;
             if (send.disabled) return;
-            var res = ctx.actions.requestMatch(send.getAttribute('data-send-request'), note);
-            UI.closeSheet();
-            if (res.ok) UI.toast('요청을 보냈어요. 상대가 수락하면 하트 ' + (res.cost || D.HEART_RULES.MATCH_COST) + '개가 차감되고 대화가 열려요.');
-            else if (res.reason === 'already') UI.toast('이미 요청한 상대예요.');
-            else if (res.reason === 'hearts') {
-              /* 하트가 모자라면 토스트로 끝내지 않고 공용 충전 시트로 이어 줍니다 */
-              openHeartSheet(ctx, p.userKey, {
-                need: D.HEART_RULES.MATCH_COST,
-                continueLabel: '프로필로 돌아가기'
-              });
+            /* 편지지 형식이 켜져 있으면 바로 보내지 않고 봉투 미리보기(작성 시트)를 거칩니다 */
+            var letterOn = !(ctx.store.state.prefs && ctx.store.state.prefs.letter === false);
+            if (letterOn) {
+              UI.closeSheet();
+              openLetterCompose(ctx, p);
+              return;
             }
-            else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+            releaseRequest(ctx, p, note, { letter: false });
             return;
           }
           var charge = ev.target.closest('[data-charge-hearts]');
@@ -1110,6 +1231,9 @@
     playerCard: playerCard,
     letterHtml: letterHtml,
     letterBody: letterBody,
+    openLetterCompose: openLetterCompose,
+    letterComposeBody: letterComposeBody,
+    simpleRequestRow: simpleRequestRow,
     openLetterSheet: openLetterSheet,
     statusOf: statusOf,
     resultsHtml: resultsHtml,
