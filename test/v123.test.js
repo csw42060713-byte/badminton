@@ -247,14 +247,14 @@
    * ========================================================= */
   test('v1.23 버전: sw · app · 스타일 캐시 · README · TWA가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.26.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.26.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261120-26', '스타일 캐시 키');
-    includes(readRoot('README.md'), 'v1.26.0', 'README 변경 이력');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.27.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.27.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261120-27', '스타일 캐시 키');
+    includes(readRoot('README.md'), 'v1.27.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.26.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.26.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 26, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.27.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.27.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 27, 'TWA 버전 코드');
     /* 공개 저장소에 시트 ID·토큰을 남기지 않는다 */
     excludes(readRoot('js/ai.js'), '1sqxAM6eskBYS03s', '시트 ID 없음');
     excludes(readRoot('js/ai.js'), '안세영', '선수 실명 없음');

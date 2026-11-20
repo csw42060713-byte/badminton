@@ -180,6 +180,37 @@
       '</div></details>';
   }
 
+  /* 관절 보호 체크 — 어꺤 GIRD·하지 피로 구간을 논문 기준 수치로 점검하는 접기 */
+  function guardBlock(b) {
+    var thresholds = (b.thresholds || []).map(function (t) {
+      return '<li>' + U.esc(t) + '</li>';
+    }).join('');
+    var checks = (b.checks || []).map(function (c) {
+      return '<li><b>' + U.esc(c.name) + '</b> — ' + U.esc(c.how) + '</li>';
+    }).join('');
+    var guides = (b.guides || []).map(function (c) {
+      return '<li><b>' + U.esc(c.name) + '</b> — ' + U.esc(c.how) + '</li>';
+    }).join('');
+    return '<div class="planbox mt8"><p class="planbox__t">' + U.esc(b.title) + '</p>' +
+      '<p class="planbox__v">' + U.esc(b.reason) + '</p>' +
+      (b.window ? '<p class="planbox__v">' + U.esc(b.window) + '</p>' : '') +
+      '<p class="planbox__t mt8">기준</p><ul class="bullets">' + thresholds + '</ul>' +
+      '<p class="planbox__t mt8">자가 체크</p><ul class="bullets">' + checks + '</ul>' +
+      '<p class="planbox__t mt8">오늘 할 것</p><ul class="bullets">' + guides + '</ul>' +
+      '<p class="planbox__v">근거 · ' + U.esc(b.sourceShort || b.source) + '</p></div>';
+  }
+
+  function guardFold(an) {
+    var g = an && an.guard;
+    if (!g) return '';
+    var blocks = [g.shoulder, g.lower].filter(function (b) { return b && b.on; });
+    if (!blocks.length) return '';
+    return '<details class="fold fold--ai" data-fold="guard">' +
+      '<summary class="fold__sum"><span>관절 보호 체크 <small>' + U.esc(g.label) + '</small></span>' +
+      '<i class="fold__val">' + blocks.length + '부위</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' + blocks.map(guardBlock).join('') + '</div></details>';
+  }
+
   /* 실전 선수 오프코트 루틴 — 코트 날 · 웨이트 날 순서 + 코어·허리 보강 3종 + 자전거 40분 */
   function offcourtFold(an) {
     var oc = an && an.offcourt;
@@ -242,6 +273,7 @@
       }).join('') + '</ol>' +
       analysisDetails(an) +
       preventFold(an) +
+      guardFold(an) +
       offcourtFold(an) +
       '<details class="fold fold--ai" data-fold="week">' +
       '<summary class="fold__sum"><span>이번 주 루틴 <small>다음 훈련 · 실전</small></span>' +
