@@ -641,7 +641,12 @@
                   .then(function (yes) {
                     if (!yes) return;
                     var res = ctx.actions.deleteLog(id);
-                    if (res && res.ok) { UI.toast('일지를 삭제했어요'); UI.haptic(12); }
+                    if (res && res.ok) {
+                      UI.toast('일지를 삭제했어요');
+                      UI.haptic(12);
+                      /* 지운 일지의 AI 카드·공유 카드가 화면에 남지 않게 다시 그립니다 */
+                      if (ctx.repaint) ctx.repaint();
+                    }
                     else if (res && res.reason === 'not_mine') UI.toast('내 일지만 삭제할 수 있어요', 'error');
                     else if (res && res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
                     else UI.toast('일지를 찾지 못했어요', 'error');
