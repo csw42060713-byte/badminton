@@ -76,6 +76,14 @@ with sync_playwright() as p:
         page.wait_for_timeout(1500)
     check('일지 3건 저장 (파트너 조환비·민수)', saved and all(saved), saved)
 
+    # 저장 뒤 화면을 새로 그립니다 (이미 열려 있는 탭을 다시 누르면 다시 그리지 않습니다)
+    page.reload(wait_until='load')
+    page.wait_for_timeout(2600)
+    for _ in range(3):
+        if page.query_selector('#sheet .sheet__head [data-close]'):
+            page.click('#sheet .sheet__head [data-close]')
+            page.wait_for_timeout(400)
+
     def shot(name, sel=None):
         path = OUT + '/' + name
         if sel:
