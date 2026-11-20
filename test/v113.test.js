@@ -240,7 +240,7 @@
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     includes(sw, "var VERSION = 'bm-v1.17.0'", 'sw.js');
     includes(app, "version: 'v1.17.0'", 'app.js');
-    includes(index, 'styles.css?v=20261120-14', '스타일 캐시 갱신');
+    includes(index, 'styles.css?v=20261120-15', '스타일 캐시 갱신');
     includes(app, 'BM.views.my', 'MY 화면 유지');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

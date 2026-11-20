@@ -3510,7 +3510,7 @@ input[type="date"] {
 .group__t { font-size: 14.5px; font-weight: 800; letter-spacing: -0.35px; }
 .group__body { padding: 0 17px 17px; }
 
-/* 테마 고르기 — 형광 그라데이션 대신 두 색 타일 */
+/* 테마 고르기 — 테마 바탕에 포인트 색 두 점 (실제 앱의 모양 고르기처럼) */
 .themes { gap: 9px; }
 .theme {
   padding: 9px;
@@ -3520,15 +3520,30 @@ input[type="date"] {
 }
 .theme.is-on { border-color: var(--accent); background: var(--card); box-shadow: 0 0 0 2px var(--accent-soft); }
 .theme__dot {
-  height: 40px;
-  border-radius: 10px;
+  height: 44px;
+  border-radius: 11px;
   margin-bottom: 8px;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+  background-repeat: no-repeat;
+  background-position: 30% 50%, 58% 50%;
+  background-size: 18px 18px, 18px 18px;
+  box-shadow: inset 0 0 0 1px rgba(12, 26, 20, 0.08);
 }
-.swatch--th_def .theme__dot { background: linear-gradient(135deg, #ffffff 0 56%, #0b7a4b 56% 100%); }
-.swatch--th_night .theme__dot { background: linear-gradient(135deg, #111816 0 56%, #c6f24e 56% 100%); }
-.swatch--th_court .theme__dot { background: linear-gradient(135deg, #0c2a1c 0 56%, #d4ff4f 56% 100%); }
-.swatch--th_sakura .theme__dot { background: linear-gradient(135deg, #fff1f6 0 56%, #d92f7e 56% 100%); }
+.swatch--th_def .theme__dot {
+  background-color: #f6f8f6;
+  background-image: radial-gradient(circle, #ffffff 0 44%, transparent 46%), radial-gradient(circle, #0b7a4b 0 44%, transparent 46%);
+}
+.swatch--th_night .theme__dot {
+  background-color: #0b1210;
+  background-image: radial-gradient(circle, #22302b 0 44%, transparent 46%), radial-gradient(circle, #c6f24e 0 44%, transparent 46%);
+}
+.swatch--th_court .theme__dot {
+  background-color: #06170f;
+  background-image: radial-gradient(circle, #12402a 0 44%, transparent 46%), radial-gradient(circle, #d4ff4f 0 44%, transparent 46%);
+}
+.swatch--th_sakura .theme__dot {
+  background-color: #fff1f6;
+  background-image: radial-gradient(circle, #ffffff 0 44%, transparent 46%), radial-gradient(circle, #d92f7e 0 44%, transparent 46%);
+}
 .theme__name { font-size: 12.5px; font-weight: 800; letter-spacing: -0.3px; }
 .theme__hint { font-size: 10.5px; color: var(--muted); }
 .version { font-size: 10.5px; color: var(--muted); padding: 12px 0 6px; }
