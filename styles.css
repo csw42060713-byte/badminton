@@ -3517,6 +3517,9 @@ input[type="date"] {
   border-radius: 14px;
   border: 1px solid var(--line);
   background: var(--card-2);
+  /* 각 타일은 그 테마의 바탕·글자색을 그대로 미리 보여 줍니다
+     (data-theme이 버튼에도 걸려 있어 변수가 그 테마 값으로 잡힘) */
+  color: var(--text);
 }
 .theme.is-on { border-color: var(--accent); background: var(--card); box-shadow: 0 0 0 2px var(--accent-soft); }
 .theme__dot {
