@@ -653,8 +653,8 @@
   /* 파트너 이름이 앱 회원 닉네임과 같으면 그 사람 프로필 시트로 잇습니다 (bm-v1.34.0)
    *  · 일지에는 이름만 적히므로(회원 키 없음) 정확히 같은 닉네임이 한 명일 때만 버튼으로.
    *  · 같은 이름이 둘이거나 회원이 아니면 그냥 글자 — 잘못된 사람에게 연결하지 않습니다. */
-  function partnerRow(p, top, state) {
-    var key = state ? D.memberByName(state.data && state.data.idx, p.name, { meKey: state.me && state.me.key }) : '';
+  function partnerRow(p, top, keys) {
+    var key = (keys && keys[p.name]) || '';
     return '<li class="ptn__row">' +
       '<span class="ptn__name">' + (key
         ? '<button type="button" class="ptn__link" data-partner="' + U.esc(key) + '" ' +
@@ -665,10 +665,22 @@
       '<b class="ptn__rate">' + p.rate + '%</b></li>';
   }
 
+  /* 이름→회원 키를 카드 한 번에 계산합니다 (줄마다 다시 훑지 않게) */
+  function partnerKeys(state, list) {
+    var keys = {};
+    (function () {
+      var idx = state && state.data && state.data.idx;
+      var meKey = state && state.me && state.me.key;
+      (list || []).forEach(function (p) { keys[p.name] = D.memberByName(idx, p.name, { meKey: meKey }); });
+    })();
+    return keys;
+  }
+
   function partnerBlock(state) {
     var list = partnerStatsOf(state);
     if (!list.length) return '';
     var top = list[0];
+    var keys = partnerKeys(state, list);
     return '<section class="card card--ptn" data-region="partner" data-sig="' + U.esc(partnerSig(state)) + '">' +
       '<details class="ptn" data-ptn>' +
       '<summary class="ptn__sum">' +
@@ -678,10 +690,9 @@
       UI.icon('arrow', 'ptn__car') +
       '</summary>' +
       '<div class="ptn__body">' +
-      '<ul class="ptn__list">' + list.map(function (p) { return partnerRow(p, p === top, state); }).join('') + '</ul>' +
+      '<ul class="ptn__list">' + list.map(function (p) { return partnerRow(p, p === top, keys); }).join('') + '</ul>' +
       '<p class="ptn__note">일지 게임 점수에 파트너 이름을 적으면 자동으로 쌓여요' +
-      (list.some(function (p) { return !!D.memberByName(state.data && state.data.idx, p.name, { meKey: state.me && state.me.key }); })
-        ? ' · 이름을 누르면 프로필' : '') + '</p>' +
+      (list.some(function (p) { return !!keys[p.name]; }) ? ' · 이름을 누르면 프로필' : '') + '</p>' +
       '</div></details></section>';
   }
 
