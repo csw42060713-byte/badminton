@@ -115,6 +115,22 @@
     return '<dt>' + U.esc(label) + '</dt><dd>' + U.esc(value || '—') + '</dd>';
   }
 
+  /* 받은 매너 한 줄 태그 (bm-v1.29.0) — 집계는 domain.mannerReceived(순수 함수).
+   * 상대가 경기 후 남긴 태그를 최대 3개까지 건수와 함께 조용한 배지로 보여 주고,
+   * 아직 없으면 한 줄만 남겨 시트가 길어지지 않게 합니다. */
+  function mannerBlock(state, userKey) {
+    var sum = D.mannerReceived(state.data.idx, userKey, D.MANNER_MAX_BADGES);
+    if (!sum.total) {
+      return '<p class="pp__manner-empty">' + UI.icon('heart') + '아직 받은 매너 태그가 없어요</p>';
+    }
+    var tags = sum.tags.map(function (t) {
+      return '<span class="mannerbadge">' + U.esc(t.label) + '<b>' + t.count + '</b></span>';
+    }).join('');
+    return '<div class="pp__manner">' +
+      '<p class="pp__label">받은 매너 ' + sum.total + '</p>' +
+      '<div class="mannerbadges">' + tags + '</div></div>';
+  }
+
   /* 사람 프로필 시트 열기 */
   function open(userKey, ctx) {
     var state = ctx.store.state;
@@ -134,6 +150,7 @@
       '<p class="pp__meta">' + U.esc([mp && mp.region, mp && mp.club].filter(Boolean).join(' · ') || '지역 미입력') + '</p>' +
       '</div></div>' +
       (p.bio ? '<p class="pp__bio">' + U.esc(p.bio) + '</p>' : '') +
+      mannerBlock(state, userKey) +
       '<dl class="kv kv--tight">' +
       infoRow('성별', (mp && mp.gender) || '비공개') +
       infoRow('플레이 스타일', mp && mp.style) +
@@ -152,5 +169,5 @@
     });
   }
 
-  BM.views.profile = { open: open, buttons: buttons, bind: bind, roomFor: roomFor };
+  BM.views.profile = { open: open, buttons: buttons, bind: bind, roomFor: roomFor, mannerBlock: mannerBlock };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

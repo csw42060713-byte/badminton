@@ -817,6 +817,29 @@
         return { ok: true, liked: true };
       },
 
+      /* 매너 한 줄 태그 (bm-v1.29.0) — 매칭이 성사된 1:1 대화방에서 경기 후 한 번.
+       * 정해진 4종만(자유 입력 없음), 같은 상대에게는 하루 1회.
+       * 새 칸 없이 '유형=매너 · 대상=상대 키 · 팀=태그 코드 · 좋아요=1'로 적습니다. */
+      giveManner: function (otherKey, code) {
+        var me = state.me || {};
+        if (!me.key) return { ok: false, reason: 'no_login' };
+        if (!otherKey || String(otherKey) === String(me.key)) return { ok: false, reason: 'no_target' };
+        var tag = D.mannerTag(code);
+        if (!tag) return { ok: false, reason: 'unknown' };
+        if (!D.canChatWith(state.idx, me.key, otherKey)) return { ok: false, reason: 'not_allowed' };
+        if (!tryLock('manner:' + otherKey, 1500)) return { ok: false, reason: 'locked' };
+        if (D.mannerGivenToday(state.idx, me.key, otherKey)) {
+          var sent = D.mannerToday(state.idx, me.key, otherKey);
+          return { ok: false, reason: 'daily', label: (sent && sent.label) || '' };
+        }
+        pushRow(meEntity({
+          type: D.MANNER_TYPE, id: U.uid(), clientId: U.clientId(), date: U.ymd(),
+          target: String(otherKey), team: tag.code, likes: 1
+        }));
+        commit();
+        return { ok: true, code: tag.code, label: tag.label };
+      },
+
       addReply: function (postId, text) {
         text = (text || '').trim();
         if (!text) return { ok: false, reason: 'empty' };
