@@ -302,7 +302,11 @@
     cardLabel: '번개 모집',
     roomLabel: '번개 단체방',
     joinLabel: '참여 문의',
-    openLabel: '단체방 열기'
+    openLabel: '단체방 열기',
+    /* 정원이 차면 (bm-v1.29.0) — 배지와 버튼 글자가 바뀝니다 */
+    closedLabel: '마감',
+    waitLabel: '대기 문의',
+    waitTopic: '대기하고 싶어요!'
   };
 
   function normalizeTopic(v) {
@@ -324,7 +328,9 @@
     if (!m || typeof m !== 'object') return out;
     out.when = meetLine(m.when);
     out.place = meetLine(m.place);
-    var cap = String(m.cap == null ? '' : m.cap).replace(/[^0-9]/g, '').slice(0, 3);
+    /* '몇 명'은 cap으로 적습니다. 다른 이름(max)으로 들어온 글도 같이 읽습니다. */
+    var rawCap = (m.cap == null || m.cap === '') ? m.max : m.cap;
+    var cap = String(rawCap == null ? '' : rawCap).replace(/[^0-9]/g, '').slice(0, 3);
     if (cap) out.cap = String(U.clamp(parseInt(cap, 10), 1, 99));
     return out;
   }
@@ -352,6 +358,142 @@
     var t = post.plan && post.plan.topic;
     if (t) return normalizeTopic(t);
     return post.target ? '일지' : '자유';
+  }
+
+  /* ---------- 모집 정원 (2026-11-20, bm-v1.29.0) ----------
+   * '몇 명'은 새 글에서 meet.cap, 예전 글·다른 이름(meet.max)도 함께 읽습니다.
+   * 참여자는 따로 행을 만들지 않고 '글쓴이 + 단체방에 한마디 남긴 사람'으로 셉니다
+   * (v1.12의 단체방 규칙 그대로 — 시트 26칸·Supabase 스키마를 늘리지 않습니다).
+   * 정원은 방 인원 총원(글쓴이 포함)이라, 6명 글이면 6명이 모이면 마감입니다. */
+  function meetCap(m) {
+    var v = m ? (m.cap != null && m.cap !== '' ? m.cap : m.max) : '';
+    var digits = String(v == null ? '' : v).replace(/[^0-9]/g, '');
+    if (!digits) return 0;
+    var n = parseInt(digits.slice(0, 3), 10);
+    return isFinite(n) && n > 0 ? n : 0;
+  }
+
+  /* 참여자 = 글쓴이 + 이 글 단체방에 한마디 남긴 사람 (글쓴이가 먼저) */
+  function meetMembers(idx, post, meKey) {
+    if (!post || !post.id) return [];
+    var list = ((idx && idx.byType && idx.byType['매칭채팅']) || []).filter(function (m) {
+      return String(m.team || '') === String(post.id);
+    });
+    return groupMembers(idx, post, list, meKey);
+  }
+
+  /* 모집 글의 지금 상태 — 정원·참여자·마감 여부 (화면은 이 값만 그립니다) */
+  function meetStatus(idx, post, meKey) {
+    var m = (post && post.meet) || meetOf(post);
+    var cap = meetCap(m);
+    var members = meetMembers(idx, post, meKey);
+    var count = members.length;
+    var author = (post && post.userKey) || '';
+    return {
+      cap: cap,
+      count: count,
+      /* 글쓴이를 뺀 '참여 문의한 사람' 수 */
+      guests: Math.max(0, count - (author ? 1 : 0)),
+      members: members,
+      mine: !!(meKey && author && String(author) === String(meKey)),
+      /* 정원이 있고 그 수만큼 모이면 자동 마감 (버튼은 '대기 문의'로 바뀝니다) */
+      closed: cap > 0 && count >= cap
+    };
+  }
+
+  /* ---------- 매너 한 줄 태그 (2026-11-20, bm-v1.29.0) ----------
+   * 매칭이 성사된 1:1 대화방에서 경기 후 한 줄 남깁니다. 정해진 4종만(자유 입력 없음).
+   * 새 칸을 만들지 않고 '유형=매너 · 대상=받는 사람 키 · 팀=태그 코드 · 좋아요=1'로 적어
+   * 시트 26칸·Supabase 스키마를 그대로 씁니다. 악용 방지로 같은 상대에게는 하루 1회.
+   * 받은 태그 집계는 아래 mannerReceived(순수 함수)로만 계산합니다. */
+  var MANNER_TYPE = '매너';
+  var MANNER_TAGS = [
+    { code: 'time', label: '시간 약속 정확' },
+    { code: 'care', label: '배려 넘침' },
+    { code: 'similar', label: '실력이 비슷해요' },
+    { code: 'good', label: '매너 굿' }
+  ];
+  var MANNER_MAX_BADGES = 3;
+
+  function mannerTag(code) {
+    var s = String(code == null ? '' : code).trim();
+    for (var i = 0; i < MANNER_TAGS.length; i++) {
+      if (MANNER_TAGS[i].code === s) return MANNER_TAGS[i];
+    }
+    return null;
+  }
+
+  function mannerLabel(code) {
+    var t = mannerTag(code);
+    return t ? t.label : '';
+  }
+
+  /* 매너 행 고르기 — 보낸 사람(from) · 받는 사람(to) · 그날(day) */
+  function mannerRows(idx, opts) {
+    var list = (idx && idx.byType && idx.byType[MANNER_TYPE]) || [];
+    return list.filter(function (r) {
+      if (!opts) return true;
+      if (opts.to != null && String(r.target || '') !== String(opts.to)) return false;
+      if (opts.from != null && String(r.userKey || '') !== String(opts.from)) return false;
+      if (opts.day != null && String(r.date || r.createdAt || '').slice(0, 10) !== String(opts.day)) return false;
+      return true;
+    });
+  }
+
+  function mannerDay(nowMs) {
+    return U.ymd(nowMs ? new Date(nowMs) : new Date());
+  }
+
+  /* 오늘 이 상대에게 이미 남겼는지 (하루 1회 제한) */
+  function mannerGivenToday(idx, fromKey, toKey, nowMs) {
+    if (!fromKey || !toKey) return false;
+    return mannerRows(idx, { from: fromKey, to: toKey, day: mannerDay(nowMs) }).length > 0;
+  }
+
+  /* 오늘 남긴 태그 — 있으면 { code, label, at }, 없으면 null */
+  function mannerToday(idx, fromKey, toKey, nowMs) {
+    if (!fromKey || !toKey) return null;
+    var list = U.sortBy(mannerRows(idx, { from: fromKey, to: toKey, day: mannerDay(nowMs) }),
+      function (r) { return r.createdAt || ''; });
+    var last = list[list.length - 1];
+    if (!last) return null;
+    return { code: String(last.team || ''), label: mannerLabel(last.team), at: last.createdAt || '' };
+  }
+
+  /* 받은 매너 태그 집계 — 순수 함수(화면은 이 값만 그립니다).
+   * 태그별 건수·마지막으로 받은 시각·준 사람 수를 세고, 많이 받은 순으로 정렬합니다.
+   * 정해진 4종에 없는 코드(예전·깨진 값)는 세지 않습니다. */
+  function mannerReceived(idx, userKey, limit) {
+    var rows = mannerRows(idx, { to: userKey }).filter(function (r) { return !!mannerTag(r.team); });
+    var by = {};
+    rows.forEach(function (r) {
+      var code = String(r.team);
+      var b = by[code] || (by[code] = { code: code, label: mannerLabel(code), count: 0, lastAt: '', givers: {} });
+      b.count += 1;
+      var from = String(r.userKey || '');
+      if (from && from !== String(userKey)) b.givers[from] = 1;
+      var at = String(r.createdAt || '');
+      if (at > b.lastAt) b.lastAt = at;
+    });
+    var tags = Object.keys(by).map(function (k) {
+      var b = by[k];
+      return {
+        code: b.code, label: b.label, count: b.count, lastAt: b.lastAt,
+        givers: Object.keys(b.givers).length
+      };
+    });
+    tags.sort(function (a, b) {
+      if (b.count !== a.count) return b.count - a.count;
+      return (a.lastAt || '') < (b.lastAt || '') ? 1 : -1;
+    });
+    var givers = {};
+    rows.forEach(function (r) { var k = String(r.userKey || ''); if (k && k !== String(userKey)) givers[k] = 1; });
+    return {
+      total: rows.length,
+      givers: Object.keys(givers).length,
+      tags: tags.slice(0, limit == null ? MANNER_MAX_BADGES : Math.max(0, limit)),
+      all: tags
+    };
   }
 
   /* 멘토 심사는 관리자 계정만 할 수 있습니다.
@@ -1596,6 +1738,11 @@
     coachRoomId: coachRoomId, coachChatAllowed: coachChatAllowed,
     POST_TOPICS: POST_TOPICS, MEET: MEET, normalizeTopic: normalizeTopic, topicOf: topicOf,
     normalizeMeet: normalizeMeet, meetFilled: meetFilled, meetOf: meetOf, meetText: meetText,
+    meetCap: meetCap, meetMembers: meetMembers, meetStatus: meetStatus,
+    /* v1.29 */
+    MANNER_TYPE: MANNER_TYPE, MANNER_TAGS: MANNER_TAGS, MANNER_MAX_BADGES: MANNER_MAX_BADGES,
+    mannerTag: mannerTag, mannerLabel: mannerLabel, mannerRows: mannerRows,
+    mannerGivenToday: mannerGivenToday, mannerToday: mannerToday, mannerReceived: mannerReceived,
     groupRoomId: groupRoomId, groupPostOf: groupPostOf, isGroupRoom: isGroupRoom,
     groupTitle: groupTitle, groupNote: groupNote, groupMembers: groupMembers,
     groupThread: groupThread, groupThreadById: groupThreadById,

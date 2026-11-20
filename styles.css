@@ -4012,3 +4012,81 @@ body.has-notif.has-netbar .main { padding-top: calc(var(--hdr-h) + var(--safe-t)
 }
 .easy__p { margin: 5px 0 0; font-size: 12.5px; line-height: 1.62; color: var(--text-2); }
 .easy__p b { color: var(--text); }
+
+/* ============================================================
+ * v1.29.0 — 매너 한 줄 태그 · 모집 정원 자동 마감
+ *  - 1:1 대화방 상단: 경기 후 상대에게 남기는 매너 태그 4칩 (정해진 4종만)
+ *  - 프로필 시트: 받은 매너 배지 (최대 3개 + 건수)
+ *  - 모집 글: 참여 인원 · 마감 배지 · 글쓴이의 참여자 명단
+ * ============================================================ */
+.manner {
+  flex: none; display: grid; gap: 6px;
+  padding: 8px 14px 9px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.manner__t {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+  font-size: 11px; font-weight: 800; color: var(--text-2); letter-spacing: -0.1px;
+}
+.manner__t .ico { width: 13px; height: 13px; color: var(--accent); }
+.manner__t small { font-weight: 700; color: var(--muted); }
+.manner__chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.manner__chip {
+  min-height: 30px; padding: 0 11px;
+  border-radius: 999px; border: 1px solid var(--accent-line);
+  background: var(--card); color: var(--text);
+  font-size: 11.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.manner__chip:active { transform: scale(0.95); }
+.manner--done {
+  grid-auto-flow: column; align-items: center; justify-content: start;
+  font-size: 11px; font-weight: 700; color: var(--muted);
+}
+.manner--done .ico { width: 13px; height: 13px; color: var(--good); }
+.manner--done b { color: var(--text); font-weight: 800; }
+
+.pp__manner { margin-top: 10px; }
+.pp__manner .pp__label { margin: 0 0 6px; }
+.mannerbadges { display: flex; flex-wrap: wrap; gap: 5px; }
+.mannerbadge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent); font-size: 11.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.mannerbadge b {
+  padding: 0 5px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  font-size: 10.5px;
+}
+.pp__manner-empty {
+  display: flex; align-items: center; gap: 5px; margin-top: 10px;
+  font-size: 11.5px; font-weight: 700; color: var(--muted);
+}
+.pp__manner-empty .ico { width: 13px; height: 13px; }
+
+.pill--closed { background: color-mix(in srgb, var(--text) 12%, transparent); color: var(--text-2); font-weight: 800; }
+.vite--closed {
+  border-color: var(--line);
+  background: var(--card-2);
+}
+.vite__row--cap { gap: 5px; }
+.vite__members { flex: none; margin-left: auto; font-size: 11px; font-weight: 800; color: var(--accent); }
+
+.members { display: grid; gap: 10px; }
+.members__t {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: var(--text-2);
+}
+.members__t .ico { width: 14px; height: 14px; color: var(--accent); }
+.members__t b { color: var(--text); font-weight: 800; }
+.members__list { display: grid; gap: 4px; }
+.members__who {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border-radius: 14px;
+  background: var(--card-2); color: var(--text); text-align: left;
+}
+.members__who strong { display: block; font-size: 13.5px; font-weight: 800; letter-spacing: -0.25px; }
+.members__who small { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
+.members__empty { font-size: 12px; color: var(--muted); line-height: 1.55; }

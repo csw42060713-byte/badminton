@@ -76,28 +76,88 @@
 
   /* ---------- 번개 모집 ----------
    * 글 위에 일시·장소·인원을 스포츠 앱처럼 한 카드로 묶고,
-   * `참여 문의`는 작성자 1:1 DM이 아니라 이 글 전용 단체방을 엽니다. */
+   * `참여 문의`는 작성자 1:1 DM이 아니라 이 글 전용 단체방을 엽니다.
+   * v1.29: 정원이 차면 자동으로 '마감' 배지 + 버튼이 '대기 문의'로 바뀌고,
+   *        글쓴이에게는 '참여자 N명'과 명단 보기를 보여 줍니다.
+   *        (참여자 = 글쓴이 + 단체방에 한마디 남긴 사람 — 따로 행을 만들지 않습니다) */
   function meetCard(p, state) {
     var m = p.meet;
     var me = (state.me && state.me.key) || '';
-    var mine = !!me && p.userKey === me;
+    var st = D.meetStatus(state.data.idx, p, me);
+    var mine = st.mine;
     var joined = (state.data.threads || []).some(function (t) {
       return t.kind === 'group' && String(t.roomId) === String(p.id);
     });
-    return '<div class="vite">' +
+    /* 정원이 있으면 지금 인원을 함께 (글쓴이는 '참여자 N명'으로) */
+    var capLine = st.cap
+      ? (mine ? '참여자 ' + st.count + '명' : '참여 ' + st.count + '/' + st.cap + '명')
+      : (mine && st.guests ? '참여자 ' + st.count + '명' : '');
+    var label = mine ? D.MEET.openLabel : (st.closed ? D.MEET.waitLabel : D.MEET.joinLabel);
+    return '<div class="vite' + (st.closed ? ' vite--closed' : '') + '">' +
       '<div class="vite__info">' +
       '<p class="vite__t">' + UI.icon('bolt') + U.esc(D.MEET.cardLabel) +
-      (m.cap ? '<b>' + U.esc(m.cap) + '명</b>' : '') + '</p>' +
+      (m.cap ? '<b>' + U.esc(m.cap) + '명</b>' : '') +
+      (st.closed ? '<span class="pill pill--closed">' + U.esc(D.MEET.closedLabel) + '</span>' : '') + '</p>' +
       '<p class="vite__row">' + UI.icon('clock') + '<span>' + U.esc(m.when || '일시는 문의해서 정해요') + '</span></p>' +
       '<p class="vite__row">' + UI.icon('pin') + '<span>' + U.esc(m.place || '장소는 문의해서 정해요') + '</span></p>' +
+      (capLine
+        ? '<p class="vite__row vite__row--cap">' + UI.icon('users') + '<span>' + U.esc(capLine) + '</span>' +
+          (mine && st.members.length
+            ? '<button type="button" class="linkbtn vite__members" data-vite-members="' + U.esc(p.id) + '"' +
+              ' aria-label="참여자 명단 보기">명단 보기</button>'
+            : '') + '</p>'
+        : '') +
       '</div>' +
       (p.userKey
         ? '<button type="button" class="btn btn--primary btn--sm vite__btn" data-vite-group="' + U.esc(p.id) + '"' +
           ' aria-label="' + U.esc(p.nick) + '님 글의 ' + U.esc(D.MEET.roomLabel) + ' 열기">' +
-          UI.icon('users') + '<span>' + U.esc(mine ? D.MEET.openLabel : D.MEET.joinLabel) + '</span>' +
+          UI.icon('users') + '<span>' + U.esc(label) + '</span>' +
           (joined ? '<i class="vite__dot" aria-hidden="true"></i>' : '') + '</button>'
         : '') +
       '</div>';
+  }
+
+  /* 정원이 찬 글에 '대기 문의'로 들어올 때 미리 채우는 문구 */
+  function waitDraft(post) {
+    var when = post && post.meet && post.meet.when ? String(post.meet.when) : '';
+    if (when.length > 16) when = '';
+    return D.MEET.topic + ' ' + D.MEET.waitTopic + (when ? ' (' + when + ')' : '');
+  }
+
+  /* 글쓴이용 — 참여자 명단 (간단한 시트). 누르면 그 사람 프로필(친구·채팅)로 이어집니다.
+   * 명단은 새로 저장하지 않고 이 글 단체방에 한마디 남긴 사람들로 그립니다. */
+  function openMembers(ctx, postId) {
+    var state = ctx.store.state;
+    var post = (state.data.posts || []).filter(function (p) { return String(p.id) === String(postId); })[0];
+    if (!post) { UI.toast('글을 찾지 못했어요', 'error'); return; }
+    var st = D.meetStatus(state.data.idx, post, state.me && state.me.key);
+    var rows = st.members.map(function (mem) {
+      var isAuthor = String(mem.key) === String(post.userKey);
+      return '<li><button type="button" class="members__who" data-vite-member="' + U.esc(mem.key) + '">' +
+        UI.avatar(UI.person(state, mem.key), 34) +
+        '<span><strong>' + U.esc(mem.nick) + '</strong>' +
+        '<small>' + (isAuthor ? '글쓴이' : '참여 문의') + (mem.me ? ' · 나' : '') + '</small></span></button></li>';
+    }).join('');
+    var body = '<div class="members">' +
+      '<p class="members__t">' + UI.icon('users') + '참여자 <b>' + st.count + '명</b>' +
+      (st.cap ? ' · 정원 ' + st.cap + '명' : '') +
+      (st.closed ? ' · <b>' + U.esc(D.MEET.closedLabel) + '</b>' : '') + '</p>' +
+      (rows ? '<ul class="members__list">' + rows + '</ul>' : '') +
+      (st.guests ? '' : '<p class="members__empty">아직 참여 문의가 없어요. 단체방에 한마디 남긴 사람부터 여기에 보여요.</p>') +
+      '</div>';
+    UI.openSheet({
+      title: '참여자 명단',
+      body: body,
+      onMount: function (wrap) {
+        wrap.addEventListener('click', function (ev) {
+          var b = ev.target.closest('[data-vite-member]');
+          if (!b) return;
+          ev.preventDefault();
+          var key = b.getAttribute('data-vite-member');
+          if (key && BM.views.profile) BM.views.profile.open(key, ctx);
+        });
+      }
+    });
   }
 
   /* 참여 문의 문구 — 한 줄 입력창에 들어가도록 날짜까지만(길면 생략) */
@@ -260,10 +320,21 @@
           var gpost = (vst.data.posts || []).filter(function (x) { return String(x.id) === String(gid); })[0] || null;
           /* 내가 올린 번개면 인사 문구를 미리 채우지 않습니다 (방장 인사) */
           var mine = !!(gpost && gpost.userKey === meKey);
-          var res = ctx.actions.openGroupChat(gid, mine ? '' : inquiryDraft(gpost));
+          /* 정원이 찬 글은 '대기 문의'로 들어옵니다 (문구도 대기로) */
+          var gstatus = gpost ? D.meetStatus(vst.data.idx, gpost, meKey) : null;
+          var draft = '';
+          if (!mine && gpost) draft = (gstatus && gstatus.closed) ? waitDraft(gpost) : inquiryDraft(gpost);
+          var res = ctx.actions.openGroupChat(gid, draft);
           if (!res || !res.ok) { UI.toast('이 글의 단체방을 찾지 못했어요', 'error'); return; }
           ctx.actions.markChatRead(res.roomId, '');
           UI.haptic(8);
+          return;
+        }
+        /* 글쓴이의 참여자 명단 보기 */
+        var mlist = ev.target.closest('[data-vite-members]');
+        if (mlist) {
+          ev.preventDefault();
+          openMembers(ctx, mlist.getAttribute('data-vite-members'));
           return;
         }
         var like = ev.target.closest('[data-like]');
@@ -401,7 +472,9 @@
     /* 테스트·점검용 (화면 안에서만 쓰는 말머리 상태) */
     _visiblePosts: visiblePosts,
     _setTopicFilter: function (t) { topicFilter = !t || t === '전체' ? '전체' : D.normalizeTopic(t); return topicFilter; },
-    _inquiryDraft: inquiryDraft
+    _inquiryDraft: inquiryDraft,
+    _waitDraft: waitDraft,
+    _meetStatus: D.meetStatus
   };
 
   BM.views.community = view;

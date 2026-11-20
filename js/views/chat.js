@@ -214,6 +214,27 @@
         : '<div class="dm__locked">' + UI.icon('clock') + '로그인하면 단체방에서 대화할 수 있어요</div>');
   }
 
+  /* ---------- 매너 한 줄 태그 (bm-v1.29.0) ----------
+   * 매칭이 성사된 1:1 방 상단에서 경기 후 한 번 남깁니다. 정해진 4종만 보여 주고
+   * (자유 입력 없음), 오늘 이미 남겼으면 조용한 한 줄로 바뀝니다.
+   * 코치 방은 수업 피드백 자리라 태그를 두지 않습니다. */
+  function mannerHtml(state, other, canChat, kind) {
+    var me = (state.me && state.me.key) || '';
+    if (!me || !other || !canChat || kind === 'coach') return '';
+    var sent = D.mannerToday(state.data.idx, me, other);
+    if (sent) {
+      return '<div class="manner manner--done" data-manner>' + UI.icon('check') +
+        '<span>오늘 <b>' + U.esc(UI.person(state, other).nick || '상대') + '</b>님에게 남긴 매너 · <b>' +
+        U.esc(sent.label || '한 줄') + '</b></span></div>';
+    }
+    return '<div class="manner" data-manner>' +
+      '<p class="manner__t">' + UI.icon('heart') + '같이 친 경기 어땠어요? <small>한 개만 골라 주세요</small></p>' +
+      '<div class="manner__chips">' + D.MANNER_TAGS.map(function (t) {
+        return '<button type="button" class="manner__chip" data-manner-tag="' + U.esc(t.code) + '">' +
+          U.esc(t.label) + '</button>';
+      }).join('') + '</div></div>';
+  }
+
   function roomHtml(state) {
     var roomId = state.ui.chatRoom;
     if (roomId && D.isGroupRoom(state.data.idx, roomId)) return groupRoomHtml(state);
@@ -232,6 +253,7 @@
       UI.presence(D.presenceOf(state.data.idx, other), { cls: 'presence--head' }) +
       '</div></button>' +
       '</header>' +
+      mannerHtml(state, other, canChat, room && room.kind) +
       '<div class="dm__scroll dm__scroll--chat" data-dm-scroll>' +
       (messages.length
         ? '<div class="dm__msgs">' + messagesHtml(messages, state, other) + '</div>'
@@ -308,6 +330,22 @@
         ev.preventDefault();
         var key = prof.getAttribute('data-dm-profile');
         if (key && BM.views.profile) BM.views.profile.open(key, ctx);
+        return;
+      }
+      /* 매너 한 줄 태그 — 한 번 누르면 그 자리에서 남기고 화면이 바뀝니다 */
+      var mtag = ev.target.closest('[data-manner-tag]');
+      if (mtag) {
+        ev.preventDefault();
+        var mstate = ctx.store.state;
+        var mroom = findThread(mstate, mstate.ui.chatRoom);
+        var mto = (mroom && mroom.other) || mstate.ui.chatOther || '';
+        var mgive = ctx.actions.giveManner(mto, mtag.getAttribute('data-manner-tag'));
+        if (mgive.ok) { UI.haptic(12); UI.toast('매너 태그를 남겼어요 · ' + mgive.label); }
+        else if (mgive.reason === 'daily') UI.toast('오늘은 이미 남겼어요' + (mgive.label ? ' · ' + mgive.label : '') + '. 내일 다시 남길 수 있어요.');
+        else if (mgive.reason === 'no_login') UI.toast('로그인하면 매너 태그를 남길 수 있어요', 'error');
+        else if (mgive.reason === 'not_allowed') UI.toast('친구이거나 매칭이 성사된 상대에게만 남길 수 있어요', 'error');
+        else if (mgive.reason === 'locked') UI.toast('잠시만요');
+        else UI.toast('태그를 남기지 못했어요', 'error');
         return;
       }
       /* 받은 매칭 요청(편지지) — 카드를 누르면 상세 편지지, 여기서는 바로 수락/거절 */
@@ -411,6 +449,7 @@
   BM.views.chat = {
     render: render, bind: bind,
     listHtml: listHtml, roomHtml: roomHtml, messageHtml: messageHtml, messagesHtml: messagesHtml,
+    mannerHtml: mannerHtml,
     simpleRequest: simpleRequest,
     findThread: findThread, hhmm: hhmm
   };
