@@ -17,6 +17,9 @@
   var MODE_KEY = 'bm_mode_v1';
   var AD_DAILY_LIMIT = D.HEART_RULES ? D.HEART_RULES.AD_PER_DAY : 5;
 
+  /* 서버에 보내는 모드 — 시트 브리지와 Supabase 는 같은 큐·재시도를 씁니다 */
+  function isRemoteMode(mode) { return mode === 'sheets' || mode === 'supabase'; }
+
   /* ---------- 파생 데이터 (순수 함수: 테스트에서도 그대로 사용) ---------- */
     function derive(rows, meKey, meInfo) {
     var idx = D.index(rows.map(function (r) { return Array.isArray(r) ? D.fromRow(r) : r; }));
@@ -159,11 +162,13 @@
       /* 전송 대기열은 시트(서버) 모드에서만 씁니다.
        * 기기 저장(체험·게스트) 모드에서 예전 버전이 남긴 대기열을 그대로 읽으면
        * '저장 중… 35건 남음'처럼 보이거나 실패만 반복합니다. */
-      queue: (api && api.mode === 'sheets') ? (U.readJSON(QUEUE_KEY, []) || []) : [],
+      queue: isRemoteMode(api && api.mode) ? (U.readJSON(QUEUE_KEY, []) || []) : [],
       locks: {},
       syncError: null,
       syncState: 'idle',
       lastSync: null,
+      /* v1.24 — 실시간 구독 상태: live(붙음) · off(안 붙음) */
+      realtime: 'off',
       /* v1.20 — 알림 · 편지지 설정(기기 저장)과 새 소식 */
       prefs: D.readPrefs(),
       notifySince: '',          /* 이 시각 이후에 들어온 메시지·요청만 새 소식으로 칩니다 */
@@ -181,9 +186,10 @@
 
     /* 예전 버전(v1.0)을 쓰던 기기에 남은 전송 대기열 정리.
      * 기기 저장 모드에는 보낼 서버가 없으므로 대기열 자체를 지웁니다. */
-    if ((api && api.mode) !== 'sheets') U.storage.removeItem(QUEUE_KEY);
+    if (!isRemoteMode(api && api.mode)) U.storage.removeItem(QUEUE_KEY);
 
     function isSheets() { return !!(apiRef && apiRef.mode === 'sheets'); }
+    function isRemote() { return isRemoteMode(apiRef && apiRef.mode); }
 
     function defaultDraft() {
       /* 아무것도 미리 채우지 않습니다. (예전에는 60분·21:18·'승'이 채워져 있어
@@ -299,7 +305,7 @@
     /* ---------- 큐 ---------- */
     function persistQueue() {
       /* 기기 저장 모드: 대기열을 localStorage에 남기지 않습니다 */
-      if (!isSheets()) return;
+      if (!isRemote()) return;
       U.writeJSON(QUEUE_KEY, state.queue);
     }
 
@@ -348,7 +354,7 @@
           op.attempts = (op.attempts || 0) + 1;
           op.lastError = err && err.message;
           state.stats.failed++;
-          if (!isSheets()) {
+          if (!isRemote()) {
             /* 기기 저장 모드에는 다시 보낼 서버가 없습니다.
              * 실패한 요청은 버리고 다음 요청으로 넘어갑니다(무한 재시도·대기 표시 없음). */
             state.queue.shift();
@@ -1467,8 +1473,88 @@
       _state: function () { return state; },
       _flush: function () { return flush(); },
       _api: function () { return apiRef; },
-      _replaceApi: function (next) { apiRef = next; state.mode = next.mode; }
+      _replaceApi: function (next) {
+        actions.stopListening();
+        apiRef = next;
+        state.mode = next.mode;
+      },
+
+      /* ---------- v1.24: 실시간 구독 (Supabase postgres_changes) ----------
+       * 상대가 새 메시지·1:1 요청를 보내면 WebSocket 이 먼저 알려 줍니다.
+       * 45초 폴링을 기다리지 않고 바로 화면과 상단 배너에 반영합니다.
+       * (끊기면 어댑터가 스스로 다시 붙고, 그동안은 폴링이 메꿉니다) */
+      listen: function () {
+        if (realtimeSub || !apiRef || typeof apiRef.subscribe !== 'function') return false;
+        var sub = apiRef.subscribe(function (change) { applyRemoteChange(change); }, function (status) {
+          if (state.realtime === status) return;
+          state.realtime = status;
+          emit();
+        });
+        if (!sub) return false;
+        realtimeSub = sub;
+        state.realtime = 'live';
+        return true;
+      },
+      stopListening: function () {
+        if (realtimeSub && realtimeSub.close) { try { realtimeSub.close(); } catch (e) { /* 무시 */ } }
+        realtimeSub = null;
+        if (remoteRefresh && typeof clearTimeout === 'function') { clearTimeout(remoteRefresh); remoteRefresh = null; }
+        if (state.realtime !== 'off') { state.realtime = 'off'; }
+      }
     };
+
+    /* ---------- 실시간으로 받은 행 반영 ----------
+     * 1) 새 행(INSERT)이면 화면 상태에 바로 넣고 알림 배너까지 띄웁니다.
+     * 2) 내가 이미 가진 행이면(=내가 보낸 메시지·재전송) 두 번 넣지 않습니다.
+     * 3) 다른 기기의 수정·삭제(겹쳐 읽는 '수정'·'삭제' 행)는 전체를 다시 받아 맞춥니다. */
+    var realtimeSub = null;
+    var remoteRefresh = null;
+
+    function scheduleRemoteRefresh() {
+      if (remoteRefresh && typeof clearTimeout === 'function') clearTimeout(remoteRefresh);
+      remoteRefresh = setTimeout(function () {
+        remoteRefresh = null;
+        actions.poll();
+      }, 250);
+    }
+
+    function remoteCells(record) {
+      try {
+        if (apiRef && typeof apiRef.recordToRow === 'function') return apiRef.recordToRow(record);
+        if (BM.api && BM.api.recordToRow) return BM.api.recordToRow(record);
+      } catch (e) { /* 아래에서 무시 */ }
+      return null;
+    }
+
+    function applyRemoteChange(change) {
+      if (!state.ready || !change || !change.record) return;
+      var type = String(change.record.type || '');
+      if (type === '수정' || type === '삭제' || change.type === 'DELETE') { scheduleRemoteRefresh(); return; }
+      var cells = remoteCells(change.record);
+      if (!cells || !cells[0]) return;
+      var id = String(cells[0]);
+      for (var i = 0; i < state.rows.length; i++) {
+        if (String(state.rows[i][0]) !== id) continue;
+        if (change.type !== 'UPDATE') return;        /* 이미 가진 행 */
+        state.rows[i] = cells;
+        recompute();
+        emit();
+        return;
+      }
+      state.rows.unshift(cells);
+      var since = state.notifySince || U.stamp();
+      state.notifySince = U.stamp();
+      state.lastSync = state.notifySince;
+      recompute();
+      var fresh = D.newIncoming(state.idx, state.me && state.me.key, since);
+      if (fresh && fresh.total) {
+        state.inbox = {
+          messages: fresh.messages, requests: fresh.requests, friendRequests: fresh.friendRequests,
+          total: fresh.total, at: state.notifySince
+        };
+      }
+      emit();
+    }
 
     function subscribe(fn) {
       subs.push(fn);

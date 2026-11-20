@@ -359,7 +359,7 @@ node test/run.js
 
 - **정적 호스팅**(GitHub Pages, Netlify, Vercel 등)에 이 폴더를 그대로 올리면 끝입니다. 빌드 과정 없음.
 - https 주소에서 열면 브라우저 메뉴의 **홈 화면에 추가**로 앱처럼 설치됩니다(아이콘·전체 화면·오프라인 껍데기).
-- 파일을 고치면 `sw.js`의 `VERSION`을 올려 주세요(현재 `bm-v1.23.0`). 그래야 사용자 기기에 새 파일이 반영됩니다.
+- 파일을 고치면 `sw.js`의 `VERSION`을 올려 주세요(현재 `bm-v1.24.0`). 그래야 사용자 기기에 새 파일이 반영됩니다.
 - `sw.js`는 **화면·JS·CSS를 네트워크 우선**으로 받고(오프라인일 때만 캐시), 새 버전은 `skipWaiting()`으로 바로 넘어간 뒤 화면이 한 번만 새로고침합니다.
 - 휴대폰에 앱처럼 설치되는 조건: **https** + `manifest.webmanifest`(아이콘·`display: standalone`) + **서비스워커**.
 - 안드로이드 앱(.aab)으로 내려면 `PLAY_STORE_GUIDE.md`를 따라가세요.
@@ -817,9 +817,58 @@ v1.9.6에서 남겨 둔 네 가지를 정리했습니다. 기능·시트 형식�
 
 ---
 
+## 15-24. v1.24.0 Supabase 실시간 서버 연결 · 1초 채팅 (2026-11-20)
+
+서울 리전 Supabase 무료 프로젝트(`https://mwgpakntlollndfluwgg.supabase.co`)를 앱의 **기본 백엔드**로 연결했습니다. 기존 구글 시트 브리지(`sheets`)와 기기 저장(`local`) 인터페이스는 그대로 두고 **같은 인터페이스의 세 번째 구현**(`supabase`)만 더했습니다 — `store`·화면 코드는 어느 저장소인지 모릅니다.
+
+### 1) `js/api.js` — Supabase 모드
+
+| 앱 메서드 | Supabase 구현 |
+|---|---|
+| `bootstrap()` | `GET /rest/v1/app_records?select=*&order=created_at.asc` (1000행씩 `Range`로 나눠 읽기) → 시트와 같은 **26칸 행 배열**로 변환 |
+| `append(row)` | `POST` (행 ID가 기본 키 → 같은 ID 재전송은 409를 **중복 성공**으로 처리, 연타·재시도 안전) |
+| `update(id, cells)` | ① `PATCH ?id=eq.<id>&user_key=eq.<me>` 시도 → ② 0행이면 **`수정` 기록 행**을 덧붙임 |
+| `remove(id)` | ① `DELETE` 시도 → ② 0행이면 **`삭제` 기록 행**을 덧붙임 |
+| `deleteAccount()` | 내 행 전체 `DELETE` 시도 → 0행이면 내 행 전부에 `삭제` 기록 |
+| `ping()` | `select=id&limit=1` 왕복 시간 |
+| `subscribe(fn)` | Realtime WebSocket(`postgres_changes`) |
+
+- **칸 매핑**: `ID→id`, `유형→type`, `작성일시→created_at`, `날짜→date`, `닉네임→nick`, `실력→level`, `주력종목→discipline`, `훈련계획→plan(jsonb)`, `컨디션→cond`, `훈련강도→intensity`, `운동시간(분)→minutes`, `완료훈련→done`, `게임점수→score`, `승패→win`, `아픈부위→pain`, `맞춤처방→prescription(jsonb)`, `약점기술→weakness`, `추천드릴→drills(jsonb)`, `소셜글→note / payload(jsonb)`, `좋아요→likes`, `사용자ID→user_key`, `대상→target`, `팀→team`, `자기소개→bio`, `꾸미기→theme(jsonb)`. `비밀번호` 칸은 **DB에 두지 않습니다**(앱 로그인은 그대로 시작화면 `auth.js`).
+- **시각**: DB는 UTC `timestamptz`, 앱은 `YYYY-MM-DD HH:mm:ss` 문자열을 비교·정렬하므로 읽을 때 기기 시간대로 바꿔 넘기고, 쓸 때는 UTC ISO로 보냅니다(왕복해도 같은 값).
+- **RLS 한계와 대응**: 현재 정책은 `anon` = SELECT/INSERT만, UPDATE/DELETE는 `authenticated` 본인만입니다. 그래서 anon 상태의 수정·삭제는 **덧붙이는 기록 행**(`수정` = `payload.cells`, `삭제` = `target`)으로 남기고, 읽을 때 원래 행에 겹쳐 읽고 가립니다. 겹치기는 **같은 `user_key`의 행에만** 적용해 남의 기록을 건드릴 수 없습니다. 나중에 Supabase Auth를 붙이면 1단계에서 시도한 진짜 `PATCH`/`DELETE`가 성공해 기록 행이 쌓이지 않습니다(코드는 그대로).
+- **공개 키만**: 앱에는 `sb_publishable_…`(없으면 예전 `anon` JWT)만 들어가고, `service_role`·DB 비밀번호는 넣지 않습니다(테스트가 JWT 역할까지 확인).
+
+### 2) 실시간 채팅·요청 (1초)
+
+- `postgres_changes`(INSERT/UPDATE/DELETE, `public.app_records`)를 WebSocket으로 구독합니다. join → 하트비트 25초 → 끊기면 1초부터 최대 15초까지 지수 백오프로 **스스로 다시 붙습니다**.
+- 새 행이 오면 `store`가 상태에 바로 넣고 `recompute()` → 화면 다시 그리기 → `D.newIncoming()`으로 **상단 알림 배너·진동·소리·브라우저 알림**(v1.20 흐름 그대로)을 띄웁니다. 이미 가진 행(내가 보낸 메시지·재전송)은 두 번 넣지 않습니다.
+- 다른 기기의 `수정`·`삭제` 기록 행은 250ms 안에 한 번만 전체를 다시 받아 맞춥니다.
+- 45초 폴링은 그대로 남겨 **안전망**으로 둡니다(탭이 숨겨졌거나 소켓이 막힌 망에서도 알림이 옵니다).
+
+### 3) 저장소 선택 (MY → 데이터 연결)
+
+- 기본: 로그인 계정 = **Supabase**, 둘러보기(guest) = **기기 저장**.
+- 예전에 `MY > 데이터 연결`에서 **구글 시트를 직접 연결한 기기**는 그대로 시트를 씁니다(데이터가 있는 곳을 말없이 바꾸지 않음).
+- 패널에서 **실시간 서버(Supabase)로 바꾸기** / **시트로 바꾸기**(주소·이메일·비밀번호로 연결)를 오갈 수 있고, 선택은 `bm_backend_v1`에 남습니다.
+- 동기화 막대·재시도 큐는 `supabase`도 서버 모드로 취급합니다(`sheets`와 같은 큐·백오프).
+
+### 4) 검증
+
+- `node --check` (api · store · app · views/my) 통과, `node test/run.js` **376/376 통과**(기존 360 + `test/v124.test.js` 16개).
+- 실서버 점검(공개 키, 실제 왕복): ping 0.5초 · bootstrap/SELECT 200 · INSERT 201 · 같은 ID 재전송 409→중복 처리 · PATCH/DELETE 0행→`수정`/`삭제` 기록 · 탈퇴 처리 · Realtime INSERT 수신까지 확인. **점검 행은 모두 지웠습니다(현재 두 표 0행).**
+- 390×844 라이브에서 콘솔 오류 0건 확인.
+- `sw.js` `bm-v1.24.0`, `app.js` `v1.24.0`, `styles.css?v=20261120-24`, `twa-manifest.json` `1.24.0`/`24`, `privacy.html`(보관 위치·수탁 업체에 Supabase 서울 추가) 정합성 갱신.
+
+### 5) 남은 것
+
+- 하트 적립/꾸미기 구매/광고 보상은 아직 클라이언트가 직접 INSERT합니다(anon 신뢰 수준 = 기존 브리지와 같음). 서버 검증이 필요하면 Supabase Edge Function(`service_role`)으로 옮겨야 합니다.
+- 시트에 쌓인 옛 데이터 이관(현재 두 표 0행), Supabase Auth 연결(수정·삭제를 진짜 UPDATE/DELETE로), 푸시(FCM).
+
+---
+
 ## 16. 아직 안 된 것 / 다음 단계
 
-- **실시간 동기화(부분)**: v1.20부터 채팅·매칭 요청은 45초 폴링으로 새 소식을 확인합니다. 커뮤니티 글은 여전히 화면을 다시 열 때 갱신됩니다(푸시(FCM)는 미연결).
+- **실시간 동기화(부분)**: v1.24부터 채팅·매칭 요청은 Supabase Realtime으로 1초 안에 도착합니다(45초 폴링은 안전망). 커뮤니티 글은 화면을 다시 그릴 때 갱신됩니다(푸시(FCM)는 미연결).
 - **알림(부분)**: 앱 배너·브라우저 알림·진동은 앱이 열려 있을 때 동작합니다. 앱을 완전히 닫은 상태의 푸시 알림은 FCM 연결이 필요합니다.
 - **관리자 구분 단순화**: 지금은 앱에서 누구나 심사 화면을 볼 수 있습니다(브리지에서 관리자만 승인하도록 막혀 있습니다). 화면도 관리자에게만 보이게 하려면 `isAdmin`을 서버 응답으로 받아오면 됩니다.
 - **이미지 업로드 없음**: 프로필은 아바타 이모지로 대신합니다(시트에 이미지 URL 칸이 없음).
