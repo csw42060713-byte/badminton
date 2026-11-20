@@ -1583,7 +1583,7 @@
     if (repeatedPain.length) risk.push({ level: 'warn', text: repeatedPain.join(', ') + ' 통증이 반복되고 있어요. 2주 이상 이어지면 정형외과 상담을 권장합니다.' });
     if (load.zone === 'spike') risk.push({ level: 'warn', text: '최근 7일 부하가 직전 4주 평균의 ' + load.ratio + '배예요. 급증한 주에는 부상 위험이 커지니 다음 주는 볼륨을 유지하세요.' });
     if (streakDays >= 6) risk.push({ level: 'info', text: streakDays + '일 연속 훈련 중이에요. 24시간 휴식을 넣어 주세요.' });
-    if (pace.level === 'brake') risk.push({ level: 'warn', text: pace.text });
+    if (pace.level === 'brake') risk.unshift({ level: 'warn', text: pace.text });
     if (!risk.length) risk.push({ level: 'ok', text: '무리한 신호는 없어요. 지금 리듬을 유지하세요.' });
 
     var headline;
