@@ -283,7 +283,11 @@
     }
 
     function introHtml(s) {
-      if (opts.intro) return opts.intro;
+      /* 함수로 받으면 시트를 다시 열 때마다 그 순간의 잔액으로 문장을 새로 만듭니다 */
+      if (typeof opts.intro === 'function') {
+        try { return String(opts.intro(s) || ''); } catch (e) { return ''; }
+      }
+      if (opts.intro) return String(opts.intro);
       var short = Math.max(0, need - s.balance);
       return '<p class="sheet__text">이번엔 <b>하트 ' + need + '개</b>가 필요해요. 지금 <b>' + s.balance + '개</b> 있어요.' +
         (short ? ' <span class="warn">' + short + '개 부족</span>' : '') + '</p>';

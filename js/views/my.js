@@ -72,11 +72,14 @@
       }
       if (res && res.reason === 'hearts') {
         /* 테마도 공용 충전 시트에서 바로 채우고 이어서 다시 시도합니다 */
+        var themeName = U.esc((D.themeById(id) || {}).name || '테마');
         openHeartSheet(ctx, {
           need: price,
-          intro: '<p class="sheet__text">' + U.esc((D.themeById(id) || {}).name || '테마') +
-            ' 테마는 <b>하트 ' + price + '개</b>로 열 수 있어요. 지금 <b>' + balance + '개</b> 있어요.' +
-            (res.need ? ' <span class="warn">' + res.need + '개 부족</span>' : '') + '</p>',
+          intro: function (s) {
+            return '<p class="sheet__text">' + themeName +
+              ' 테마는 <b>하트 ' + price + '개</b>로 열 수 있어요. 지금 <b>' + s.balance + '개</b> 있어요.' +
+              (s.balance < price ? ' <span class="warn">' + (price - s.balance) + '개 부족</span>' : '') + '</p>';
+          },
           continueLabel: '테마 열기',
           onContinue: apply
         });
@@ -625,12 +628,15 @@
     }
     if (res.reason === 'hearts') {
       var d = decoOf(ctx.store.state, kind, value);
-      var balance = (ctx.store.state.data.hearts && ctx.store.state.data.hearts.balance) || 0;
+      var decoName = U.esc(D.decoName(d.id));
+      var decoPrice = d.price || res.price || (res.need + ((ctx.store.state.data.hearts && ctx.store.state.data.hearts.balance) || 0));
       openHeartSheet(ctx, {
-        need: d.price || res.price || (res.need + balance),
-        intro: '<p class="sheet__text">' + U.esc(D.decoName(d.id)) + ' — <b>하트 ' + (d.price) +
-          '개</b>로 열 수 있어요. 지금 <b>' + balance + '개</b> 있어요.' +
-          (res.need ? ' <span class="warn">' + res.need + '개 부족</span>' : '') + '</p>',
+        need: decoPrice,
+        intro: function (s) {
+          return '<p class="sheet__text">' + decoName + ' — <b>하트 ' + decoPrice +
+            '개</b>로 열 수 있어요. 지금 <b>' + s.balance + '개</b> 있어요.' +
+            (s.balance < decoPrice ? ' <span class="warn">' + (decoPrice - s.balance) + '개 부족</span>' : '') + '</p>';
+        },
         continueLabel: '열기',
         onContinue: function () { buyDeco(ctx, kind, value, onDone); }
       });

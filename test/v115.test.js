@@ -161,6 +161,28 @@
     eq(BM.ads.openHeartSheet(null, { need: 2 }), null, '상태가 없으면 열지 않는다');
   });
 
+  test('v1.15 공용 충전 시트: 다시 열면 그 순간 잔액으로 다시 쓴다', function () {
+    var st = stateOf({
+      balance: 1, checkinReward: 1, checkedInToday: false, canCheckIn: true,
+      adReward: 1, adLimit: 5, adUsedToday: 2, adRemaining: 3,
+      adCooldownSec: 30, nextAdInSec: 0, nextAdAt: 0
+    });
+    var ctx = { store: { state: st, actions: {} }, actions: {}, refresh: function () {} };
+    var intro = function (s) { return '<p>지금 ' + s.balance + '개</p>'; };
+    var first = captureSheet(function () {
+      BM.ads.openHeartSheet(ctx, { need: 2, intro: intro });
+    });
+    includes(first.body, '지금 1개', '열 때 잔액');
+
+    st.data.hearts.balance = 2;   /* 출석·광고로 채운 뒤 */
+    var second = captureSheet(function () {
+      BM.ads.openHeartSheet(ctx, { need: 2, intro: intro });
+    });
+    includes(second.body, '지금 2개', '다시 열면 새 잔액');
+    includes(second.body, 'data-charge="continue"', '이어서 버튼');
+    excludes(second.body, '부족', '부족 안내 없음');
+  });
+
   /* ---------- 4. MY 하트 카드 ---------- */
 
   test('v1.15 MY 하트 카드: 오늘 남은 무료 하트 배지와 실시간 쿨타임', function () {
