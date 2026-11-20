@@ -256,7 +256,7 @@
     eq(twa.appVersion, '1.23.0', 'TWA appVersion');
     eq(twa.appVersionCode, 23, 'TWA 버전 코드');
     /* 공개 저장소에 시트 ID·토큰을 남기지 않는다 */
-    excludes(readRoot('js/ai.js'), '1sqxAM6eskBYS03s-rxXCkKEdEINI2toL4pCAQA5YCHs', '시트 ID 없음');
+    excludes(readRoot('js/ai.js'), '1sqxAM6eskBYS03s', '시트 ID 없음');
     excludes(readRoot('js/ai.js'), '안세영', '선수 실명 없음');
     excludes(readRoot('js/views/log.js'), '서승재', '선수 실명 없음');
   });
