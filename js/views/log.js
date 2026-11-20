@@ -151,6 +151,35 @@
       '</div></details>';
   }
 
+  /* 근거 기반 예방 워밍업 + 종목별 부하 기준 — 한 접기, 짧은 4줄 안으로 */
+  function preventFold(an) {
+    var pv = an && an.prevent;
+    var lg = an && an.loadGuide;
+    if (!pv || !pv.items || !pv.items.length) return '';
+    var areas = (pv.areas && pv.areas.length ? pv.areas.join('·') : '전신');
+    var items = pv.items.map(function (it) {
+      return '<li><b>' + U.esc(it.name) + '</b> — ' + U.esc(it.how) + '</li>';
+    }).join('');
+    return '<details class="fold fold--ai" data-fold="prevent">' +
+      '<summary class="fold__sum"><span>부상 예방 · 종목 부하 <small>코트 전 ' + U.esc(pv.label) + ' · ' + U.esc(areas) + '</small></span>' +
+      '<i class="fold__val">' + pv.items.length + '가지</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' +
+      '<div class="planbox"><p class="planbox__t">' + U.esc(pv.title) + ' · ' + U.esc(pv.label) + '</p>' +
+      '<ul class="bullets">' + items + '</ul>' +
+      '<p class="planbox__v">' + U.esc(pv.reason) + '</p>' +
+      '<p class="planbox__v">근거 · ' + U.esc(pv.sourceShort || pv.source) + '</p></div>' +
+      (lg
+        ? '<div class="planbox mt8"><p class="planbox__t">' + U.esc(lg.discipline) + ' · 랠리 ' + U.esc(lg.rally) + '</p>' +
+          '<p class="planbox__v">' + U.esc(lg.workRest) + '</p>' +
+          '<p class="planbox__v">' + U.esc(lg.drill + ' · ' + lg.reps) + '</p>' +
+          '<p class="planbox__v">' + U.esc(lg.heart + ' · ' + lg.steps) + '</p>' +
+          bulletList(lg.tips) +
+          '<p class="planbox__v">' + U.esc(lg.levelNote) + '</p>' +
+          '<p class="planbox__v">근거 · ' + U.esc(lg.sourceShort || lg.source) + '</p></div>'
+        : '') +
+      '</div></details>';
+  }
+
   function analysisCard(an, state) {
     if (!an) return '';
     var drills = (an.drills && an.drills.drills) || [];
@@ -175,6 +204,7 @@
           '<p class="drill__method">' + U.esc(d.method) + '</p></div></li>';
       }).join('') + '</ol>' +
       analysisDetails(an) +
+      preventFold(an) +
       '<details class="fold fold--ai" data-fold="week">' +
       '<summary class="fold__sum"><span>이번 주 루틴 <small>다음 훈련 · 실전</small></span>' +
       '<i class="fold__val">' + an.week.length + '회차</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
