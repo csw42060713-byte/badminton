@@ -598,6 +598,7 @@ v1.9.6에서 남겨 둔 네 가지를 정리했습니다. 기능·시트 형식�
 - `<head>` 맨 앞에 **첫 페인트 전 테마 스크립트**를 넣었습니다. `localStorage`의 `bm_cache_v1`에서 마지막 테마를 읽어 `data-theme`와 `theme-color`를 CSS·첫 그림 전에 칠합니다(읽기 실패 시 `th_def`).
 - `app.js`의 `paintChrome`이 테마를 바꿀 때마다 `meta[name="theme-color"]`도 함께 바꿉니다(`THEME_CHROME`). 값은 CSS의 `--bg`와 같습니다 — 테스트가 네 테마 모두에서 두 값을 대조합니다.
 - `color-scheme`은 `light dark`(밝은 우선)로 바꾸고 테마별로 `color-scheme: light/dark`가 덮습니다. 날짜 입력칸·스크롤바도 테마를 따라갑니다.
+- **설치형 앱의 실행 화면**도 검정이었습니다. `manifest.json`·`manifest.webmanifest`의 `background_color`·`theme_color`가 `#080b0a`였는데, 이제 밝은 기본 바탕 `#f6f8f6`입니다(첫 화면이 하얗게 뜨고, 앱 안에서는 테마에 맞춰 다시 칠해집니다).
 - `html, body { overflow-x: clip }`과 `html { scrollbar-color: … }`로 가로 스크롤 띠와 검정 스크롤바를 없앴습니다.
 - 다크 테마(`th_night`·`th_court`)에서도 같은 규칙이 반대로 동작하는지 확인했습니다(html 배경 = `#080b0a`/`#06170f`).
 
@@ -620,7 +621,7 @@ v1.9.6에서 남겨 둔 네 가지를 정리했습니다. 기능·시트 형식�
 ### 3) 검증
 
 - `node --check app.js`·`sw.js`·`test/v117.test.js` 통과.
-- 테스트 6개 추가(`test/v117.test.js`: 검정 배경 제거 · 첫 페인트 테마 · CSS `--bg`와 크롬 색 대조 · html 바탕/가로 넘침 · 폴리싱 값 · 기존 규칙 회귀) — **296/296 통과**. `sw.js` `bm-v1.17.0`, `app.js` `v1.17.0`, `styles.css?v=20261120-13`.
+- 테스트 6개 추가(`test/v117.test.js`: 검정 배경 제거 · 설치형 앱 바탕 · 첫 페인트 테마 · CSS `--bg`와 크롬 색 대조 · html 바탕/가로 넘침 · 폴리싱 값 · 기존 규칙 회귀) — **297/297 통과**. `sw.js` `bm-v1.17.0`, `app.js` `v1.17.0`, `styles.css?v=20261120-17`.
 
 ---
 
