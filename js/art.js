@@ -73,11 +73,11 @@
     return svg(
       shuttle(48, 24, 1.25, -32, 'st-a') +
       '<path class="st-d" d="M62 32q24 10 34 20"/>' +
-      '<g transform="translate(44 52)">' +
-      '<path class="st" d="M0 0h82v38H0z"/>' +
+      '<g transform="translate(46 56) rotate(-7)">' +
+      '<path class="st" d="M0 0h82v36H0z"/>' +
       '<path class="st" d="M0 10h82"/>' +
       '<path class="st-f" d="M4 10v-5M12 10v-5M20 10v-5M28 10v-5M36 10v-5M46 10v-5M54 10v-5M62 10v-5M70 10v-5M78 10v-5"/>' +
-      '<path class="st-f" d="M0 24h82M41 10v28"/>' +
+      '<path class="st-f" d="M0 23h82M41 10v26"/>' +
       '</g>' +
       '<circle class="st-f" cx="146" cy="26" r="2.2"/>'
     );
