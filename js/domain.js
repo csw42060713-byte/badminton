@@ -1440,6 +1440,7 @@
     else if (mins <= PRESENCE.RECENT_MIN) { out.state = 'recent'; out.label = '방금 전 활동'; }
     else if (mins <= PRESENCE.HOUR_MIN) { out.state = 'minutes'; out.label = mins + '분 전 활동'; }
     else if (sameDay(d, now)) { out.state = 'today'; out.label = '오늘 활동'; }
+    else if (sameDay(d, U.addDays(now, -1))) { out.state = 'yesterday'; out.label = '어제 활동'; }
     else if (mins <= PRESENCE.DAY_MIN * PRESENCE.OLD_DAYS) {
       out.state = 'days'; out.label = Math.max(1, Math.floor(mins / PRESENCE.DAY_MIN)) + '일 전 활동';
     } else { out.state = 'old'; out.label = '오래전'; }
