@@ -485,7 +485,7 @@
         group('data', 'chart', '데이터 연결', '시트 연결 · 내보내기', dataPanel(state)) +
         group('legal', 'shield', '개인정보 · 계정', '', legalCard(state)) +
 
-        '<p class="version">배드민턴 · ' + U.esc((BM.app && BM.app.version) || 'v1.9.1') + ' · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : 'localStorage') + '</p>';
+        '<p class="version">배드민턴 · ' + U.esc((BM.app && BM.app.version) || 'v1.9.1') + ' · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : (state.mode === 'supabase' ? 'Supabase 서울' : '이 기기 저장')) + '</p>';
     },
 
     mount: function (root, ctx) {
