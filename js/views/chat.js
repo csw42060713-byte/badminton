@@ -153,7 +153,7 @@
       (mine ? '' : '<span class="dmsg__av">' + UI.avatar(p, 28) + '</span>') +
       '<div class="dmsg__col">' +
       (group && !mine && !run ? '<span class="dmsg__nick">' + U.esc(m.nick || p.nick || '회원') + '</span>' : '') +
-      '<div class="dbubble">' + U.esc(m.text).replace(/\n/g, '<br>') + '</div>' +
+      '<div class="dbubble">' + D.linkify(m.text) + '</div>' +
       '<time>' + U.esc(D.chatStamp(m.createdAt)) + '</time>' +
       '</div></div>';
   }

@@ -422,6 +422,20 @@
       '</section>';
   }
 
+  /* 주간 약점 챌린지 연속 달성 배지 (bm-v1.34.0)
+   *  · 집계는 D.challengeStreak 순수 함수 — 최근 주에 3회를 채운 주가 몇 주 연속인지.
+   *  · 2주부터만 배지로 보입니다(1주는 '이번 주 달성' 한 줄). 0주면 조용히 숨김 —
+   *    처음 하는 사람에게는 일지 탭의 챌린지 카드가 이미 안내를 합니다. */
+  function streakBadge(state) {
+    var ui = (state && state.ui) || {};
+    var opts = ui.challengeNow ? { now: ui.challengeNow } : {};
+    var st = D.challengeStreak((state && state.data && state.data.records) || [], opts);
+    if (!st.weeks) return '';
+    var text = st.weeks === 1 ? '이번 주 챌린지 달성' : st.weeks + '주 연속 챌린지 달성';
+    return '<p class="mystreak" data-streak="' + st.weeks + '" title="주간 약점 3회 챌린지를 연속으로 채운 주">' +
+      '<b>🔥 ' + U.esc(text) + '</b></p>';
+  }
+
   var view = {
     title: 'MY',
     render: function (state) {
@@ -471,7 +485,7 @@
         '<div class="stat"><strong>' + (s.count || 0) + '</strong><span>총 기록</span></div>' +
         '<div class="stat"><strong>' + (s.minutesMonth || 0) + '</strong><span>이번 달(분)</span></div>' +
         '<div class="stat"><strong>' + (s.winRate == null ? '—' : s.winRate + '%') + '</strong><span>승률</span></div>' +
-        '</div></section>' +
+        '</div>' + streakBadge(state) + '</section>' +
 
         routinePrefCard(state) +
 
