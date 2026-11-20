@@ -1,19 +1,36 @@
 <!DOCTYPE html>
-<html lang="ko" data-theme="th_night" style="background:#080b0a">
+<html lang="ko" data-theme="th_def">
 <head>
 <meta charset="utf-8">
 <title>배드민턴 · 일지 & 매칭</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#080b0a">
-<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#f6f8f6">
+<meta name="color-scheme" content="light dark">
 <meta name="description" content="일지·AI 분석·1:1 매칭·커뮤니티·코치 피드백을 한 화면에 담은 모바일 배드민턴 앱">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="mobile-web-app-capable" content="yes">
+<!-- 첫 페인트 전에 저장된 테마를 먼저 칠합니다.
+     예전에는 <html>에 검정 배경이 박혀 있어 밝은 테마에서도 양옆·아래로 검정이 비쳤습니다. -->
+<script>
+(function () {
+  var BG = { th_def: '#f6f8f6', th_night: '#080b0a', th_court: '#06170f', th_sakura: '#fff8fa' };
+  var theme = 'th_def';
+  try {
+    var cache = JSON.parse(localStorage.getItem('bm_cache_v1') || 'null');
+    var saved = cache && cache.me && cache.me.theme && cache.me.theme.theme;
+    if (saved && BG[saved]) theme = saved;
+  } catch (e) { /* 저장소를 못 읽어도 기본 코트로 칠합니다 */ }
+  var de = document.documentElement;
+  de.setAttribute('data-theme', theme);
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', BG[theme]);
+})();
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=20261120-12">
+<link rel="stylesheet" href="styles.css?v=20261120-13">
 <link rel="preconnect" href="https://accounts.google.com">
 <link rel="privacy-policy" href="privacy.html">
 </head>
