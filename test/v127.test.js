@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v127.test.js — bm-v1.31.0
+ * test/v127.test.js — bm-v1.32.0
  *   배드민턴 선수에게 가장 흔한 두 부위(어깨 · 무릎/발목)의
  *   '검증된 논문 수치 기준'을 AI 분석과 화면에 보강합니다.
  *
@@ -11,7 +11,7 @@
  *
  *   실행: node test/run.js
  *
- *   ※ bm-v1.31.0에서 화면 문구를 '쉬운 코트 말투'로 다듬었습니다.
+ *   ※ bm-v1.32.0에서 화면 문구를 '쉬운 코트 말투'로 다듬었습니다.
  *     논문 수치는 내부 stats에 그대로 남고, 화면 검사는 쉬운 문구 기준입니다.
  * ============================================================ */
 (function (root) {
@@ -265,12 +265,12 @@
    * ========================================================= */
   test('v1.27 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.31.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.31.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261120-31', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.32.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.32.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-32', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.31.0', 'TWA 버전 이름');
-    eq(twa.appVersionCode, 31, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.32.0', 'TWA 버전 이름');
+    eq(twa.appVersionCode, 32, 'TWA 버전 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

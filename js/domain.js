@@ -582,6 +582,135 @@
     return win ? '승' : '패';
   }
 
+  /* ============================================================
+   * 일지 부가 정보 — 복식 파트너 · 영상 링크 (bm-v1.32.0)
+   *  · 시트 26칸·Supabase 컬럼을 늘리지 않고 '팀' 칸에 JSON 한 줄로 적습니다.
+   *      팀 = {"partner":"조환비","video":{"url":"https://…","label":"스매시 폼"}}
+   *    '기록'(일지) 행에서 '팀' 칸은 달리 쓰이지 않으므로 안전합니다.
+   *  · 영상은 링크만 저장합니다(http/https). javascript:·data: 같은 주소는
+   *    읽을 때도, 쓸 때도 걸러 내 화면에 href로 나가지 않습니다.
+   * ============================================================ */
+  var PARTNER_MAX = 20;         /* 파트너 이름 글자 수 */
+  var VIDEO_URL_MAX = 500;      /* 링크 길이 상한 */
+  var VIDEO_LABEL_MAX = 60;     /* 한 줄 체크 포인트 */
+
+  function tidyText(v, max) {
+    var s = String(v == null ? '' : v)
+      .replace(/[\u0000-\u001f\u007f]+/g, ' ')   /* 줄바꿈·제어문자는 한 칸으로 */
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (max && s.length > max) s = s.slice(0, max).trim();
+    return s;
+  }
+
+  function cleanPartner(v) {
+    return tidyText(v, PARTNER_MAX);
+  }
+
+  function cleanVideoLabel(v) {
+    return tidyText(v, VIDEO_LABEL_MAX);
+  }
+
+  /* 영상 링크 — http(s)만. 주소에 공백·꺾쇠·따옴표가 있으면 버립니다. */
+  function safeVideoUrl(v) {
+    var s = String(v == null ? '' : v).trim();
+    if (!s || s.length > VIDEO_URL_MAX) return '';
+    if (/[\s<>"'`]/.test(s)) return '';
+    var m = s.match(/^([a-z][a-z0-9+.\-]*):\/\/([^\s\/?#]+)/i);
+    if (!m) return '';
+    var scheme = m[1].toLowerCase();
+    if (scheme !== 'http' && scheme !== 'https') return '';   /* javascript: · data: · file: 차단 */
+    var host = m[2].toLowerCase();
+    if (host.indexOf('.') < 0) return '';                     /* localhost 같은 주소는 영상 링크가 아님 */
+    return s;
+  }
+
+  function emptyMeta() { return { partner: '', video: { url: '', label: '' } }; }
+
+  /* 일지 한 줄(또는 '팀' 칸 문자열) → { partner, video:{url,label} }
+   * 예전에 '팀' 칸에 이름만 적힌 일지도 파트너로 읽습니다(값을 잃지 않게). */
+  function logMeta(recOrTeam) {
+    var out = emptyMeta();
+    var raw = recOrTeam && typeof recOrTeam === 'object' ? recOrTeam.team : recOrTeam;
+    if (raw == null || raw === '') return out;
+    var text = String(raw).trim();
+    var obj = looksJson(text) ? U.jsonParse(text, null) : null;
+    if (obj && typeof obj === 'object' && !(obj instanceof Array)) {
+      out.partner = cleanPartner(obj.partner);
+      var v = obj.video;
+      if (typeof v === 'string') v = { url: v };
+      if (v && typeof v === 'object') {
+        out.video.url = safeVideoUrl(v.url);
+        out.video.label = out.video.url ? cleanVideoLabel(v.label) : '';
+      }
+      return out;
+    }
+    out.partner = cleanPartner(text);
+    return out;
+  }
+
+  /* { partner, video } → '팀' 칸에 넣을 JSON 문자열 (둘 다 비면 '' — 칸을 비웁니다) */
+  function logExtraJson(o) {
+    o = o || {};
+    var partner = cleanPartner(o.partner);
+    var video = o.video || {};
+    var url = safeVideoUrl(video.url);
+    var label = url ? cleanVideoLabel(video.label) : '';
+    if (!partner && !url) return '';
+    var out = {};
+    if (partner) out.partner = partner;
+    if (url) out.video = { url: url, label: label };
+    return JSON.stringify(out);
+  }
+
+  /* 파트너별 승률 — 일지에 파트너 이름을 적은 기록만 셉니다.
+   *  · 한 일지에 여러 게임이 있으면 그 게임 수만큼 셉니다(승/패/무도 게임 단위).
+   *  · 점수 없이 '승패'만 적힌 일지는 1경기로 셉니다.
+   *  · 승률은 승+패로 나눕니다(무승부는 분모에서 뺌).
+   *  정렬: 승률 높은 순 → 함께 친 경기 많은 순 → 이름 순. */
+  function partnerStats(records, opts) {
+    opts = opts || {};
+    var limit = Math.max(1, U.num(opts.limit, 5) || 5);
+    var map = {}, order = [];
+    (records || []).forEach(function (r) {
+      if (!r) return;
+      var meta = logMeta(r);
+      var name = meta.partner;
+      if (!name) return;
+      var games = (r.games && r.games.length) ? cleanGames(r.games) : (r.score ? cleanGames([r.score]) : []);
+      var sum = gamesSummary(games);
+      var count = sum.count, wins = sum.wins, losses = sum.losses, draws = sum.draws;
+      if (!count) {
+        var res = String(r.result || '');
+        if (res === '승') { count = 1; wins = 1; }
+        else if (res === '패') { count = 1; losses = 1; }
+        else if (res === '무') { count = 1; draws = 1; }
+      }
+      if (!count) return;
+      var e = map[name];
+      if (!e) { e = map[name] = { name: name, games: 0, wins: 0, losses: 0, draws: 0, days: [], last: '' }; order.push(name); }
+      e.games += count; e.wins += wins; e.losses += losses; e.draws += draws;
+      var day = dayKey(r.date);
+      if (day) {
+        if (e.days.indexOf(day) < 0) e.days.push(day);
+        if (day > e.last) e.last = day;
+      }
+    });
+    var list = order.map(function (name) {
+      var e = map[name];
+      var decided = e.wins + e.losses;
+      e.rate = decided ? Math.round((e.wins / decided) * 100) : 0;
+      e.line = e.games + '전 ' + e.wins + '승' + (e.draws ? ' ' + e.draws + '무' : '') + ' ' + e.losses + '패';
+      return e;
+    });
+    list.sort(function (a, b) {
+      if (b.rate !== a.rate) return b.rate - a.rate;
+      if (b.games !== a.games) return b.games - a.games;
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+    });
+    return list.slice(0, limit);
+  }
+
   /* --- 시트 한 줄 → 앱 객체 --- */
   function fromRow(row) {
     var c = asCells(row);
@@ -638,6 +767,7 @@
       : (rec.score ? [{ a: String(rec.score.a), b: String(rec.score.b) }] : [{ a: '', b: '' }]);
     if (!games.length) games = [{ a: '', b: '' }];
     var mode = (rec.games && rec.games[0] && rec.games[0].mode === 25) ? 25 : 21;
+    var meta = logMeta(rec);
     return {
       date: rec.date || U.ymd(),
       cond: rec.cond == null ? null : rec.cond,
@@ -650,6 +780,9 @@
       result: rec.result || '',
       pain: (rec.pain || []).slice(),
       weakness: (rec.weakness || []).slice(),
+      partner: meta.partner,
+      video: meta.video.url,
+      videoNote: meta.video.label,
       note: rec.text || ''
     };
   }
@@ -669,7 +802,9 @@
       '승패': e.result ? String(e.result) : '',
       '아픈부위': (e.pain && e.pain.length) ? e.pain.join(',') : '',
       '약점기술': (e.weakness && e.weakness.length) ? e.weakness.join(',') : '',
-      '소셜글': e.text ? String(e.text) : ''
+      '소셜글': e.text ? String(e.text) : '',
+      /* 파트너·영상은 '팀' 칸 JSON 한 줄로 — 비우면 칸도 비웁니다 */
+      '팀': e.team == null ? '' : String(e.team)
     };
     if (e.prescription) cells['맞춤처방'] = JSON.stringify(e.prescription);
     if (e.drills) cells['추천드릴'] = JSON.stringify(e.drills);
@@ -1803,6 +1938,15 @@
     };
   }
 
+  /* 챌린지 자랑 문구 — 3회를 채운 카드에서 커뮤니티 글로 그대로 들어갑니다.
+   *  예) '이번 주 헤어핀 3회 연습 달성! 🎉' */
+  function challengeShareText(ch) {
+    var w = String((ch && ch.weakness) || '').trim();
+    if (!w) return '';
+    var goal = Math.max(1, U.num(ch && ch.goal, CHALLENGE_GOAL) || CHALLENGE_GOAL);
+    return '이번 주 ' + w + ' ' + goal + '회 연습 달성! 🎉';
+  }
+
   function readPrefs() {
     return normalizePrefs(U.readJSON(PREFS_KEY, null) || {});
   }
@@ -1836,6 +1980,9 @@
     JSON_TYPES: JSON_TYPES,
     fromRow: fromRow, toRow: toRow, asCells: asCells,
     recordDraft: recordDraft, logCells: logCells,
+    logMeta: logMeta, logExtraJson: logExtraJson, partnerStats: partnerStats,
+    cleanPartner: cleanPartner, safeVideoUrl: safeVideoUrl, cleanVideoLabel: cleanVideoLabel,
+    PARTNER_MAX: PARTNER_MAX, VIDEO_URL_MAX: VIDEO_URL_MAX, VIDEO_LABEL_MAX: VIDEO_LABEL_MAX,
     parseScore: parseScore, parseGames: parseGames, cleanGames: cleanGames,
     gamesSummary: gamesSummary, formatGames: formatGames,
     resultFromScore: resultFromScore, splitList: splitList,
@@ -1871,6 +2018,7 @@
     PREFS_KEY: PREFS_KEY, normalizePrefs: normalizePrefs, readPrefs: readPrefs, writePrefs: writePrefs, setPref: setPref,
     /* v1.31 */
     CHALLENGE_GOAL: CHALLENGE_GOAL, CHALLENGE_DAYS: CHALLENGE_DAYS,
-    weekChallenge: weekChallenge, weekStartOf: weekStartOf, dayKey: dayKey
+    weekChallenge: weekChallenge, weekStartOf: weekStartOf, dayKey: dayKey,
+    challengeShareText: challengeShareText
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -200,7 +200,9 @@
         gameMode: 21,
         games: [{ a: '', b: '' }],
         score: null, result: '',
-        pain: [], weakness: [], note: ''
+        pain: [], weakness: [], note: '',
+        /* 복식 파트너 이름 · 스윙·경기 영상 링크와 한 줄 체크 포인트 (선택) */
+        partner: '', video: '', videoNote: ''
       };
     }
 
@@ -280,7 +282,9 @@
         done: built.d.done, score: built.score, scoreRaw: built.scoreRaw,
         result: built.result, pain: built.d.pain, weakness: built.d.weakness,
         prescription: built.an.care, drills: built.an.drills,
-        text: built.d.note || ''
+        text: built.d.note || '',
+        /* 파트너·영상은 '팀' 칸 JSON — 고칠 때 비우면 칸도 함께 비워집니다 */
+        team: D.logExtraJson({ partner: built.d.partner, video: { url: built.d.video, label: built.d.videoNote } })
       };
       var cells = D.logCells(entity);
       patchRowById(id, cells);
@@ -659,7 +663,9 @@
           done: built.d.done, score: built.score, scoreRaw: built.scoreRaw, games: built.games, gameMode: built.d.gameMode,
           result: built.result,
           pain: built.d.pain, weakness: built.d.weakness,
-          prescription: built.an.care, drills: built.an.drills
+          prescription: built.an.care, drills: built.an.drills,
+          /* 복식 파트너 · 영상 링크 — 새 칸 없이 '팀' 칸에 JSON 한 줄 */
+          team: D.logExtraJson({ partner: built.d.partner, video: { url: built.d.video, label: built.d.videoNote } })
         });
         if (built.d.note) entity.text = built.d.note;   /* 메모는 소셜글 칸에 남깁니다 */
         pushRow(entity);
@@ -1456,6 +1462,17 @@
       setCoachTab: function (tab) { state.ui.coachTab = tab; emit(); },
       setComposer: function (text) { state.ui.composer = text; emit(); },
       setComposerTopic: function (topic) { state.ui.composerTopic = D.normalizeTopic(topic); emit(); },
+      /* 주간 약점 챌린지 3회 달성 → 커뮤니티 글쓰기로 한 번에 (bm-v1.32.0)
+       * 글은 여기서 올리지 않습니다. 문구·말머리만 채워 두고 화면만 옮겨,
+       * 올릴지는 사람이 '올리기'로 정합니다. */
+      startChallengeShare: function (text, topic) {
+        var body = String(text == null ? '' : text);
+        state.ui.composer = body;
+        state.ui.composerTopic = D.normalizeTopic(topic || '일지');
+        state.ui.tab = 'community';
+        emit();
+        return { ok: true, text: body, topic: state.ui.composerTopic };
+      },
       /* 번개 모집 입력칸 — 글자마다 화면을 다시 그리면 포커스가 끊기므로 저장만 합니다 */
       setComposerMeet: function (field, value) {
         if (field !== 'when' && field !== 'place' && field !== 'cap') return;
