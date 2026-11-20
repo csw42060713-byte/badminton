@@ -12,6 +12,14 @@
     return Math.round((U.clamp(v == null ? 5 : v, 1, 10) - 1) / 9 * 100);
   }
 
+  /* 영상 링크 입력칸 아래 한 줄 안내 — http(s)가 아니면 저장되지 않는다고 미리 알려 줍니다 */
+  function videoHintOf(v) {
+    var raw = String(v == null ? '' : v).trim();
+    if (!raw) return { text: '링크만 저장해요 · 영상 파일은 앱에 올리지 않아요', bad: false };
+    if (!D.safeVideoUrl(raw)) return { text: 'http:// 또는 https:// 주소만 열 수 있어요', bad: true };
+    return { text: '저장한 일지에서 ‘영상 보기’로 새 창에 열려요', bad: false };
+  }
+
   /* ---------- 게임 점수 (여러 게임 · 21/25점제) ---------- */
   function draftGames(d) {
     if (d.games && d.games.length) return d.games;
@@ -58,6 +66,13 @@
       '<div class="gamelist" data-gamelist>' + gamesRows(games) + '</div>' +
       '<button type="button" class="addgame" data-act="add-game">' + UI.icon('plus') + '게임 추가</button>' +
       '<p class="gamesum" data-gamesum>' + gamesSummaryText(games) + '</p>' +
+      /* 복식 파트너 — 선택 입력. 새 칸 없이 '팀' 칸 JSON으로 저장하고
+       * 일지 & AI의 '파트너별 승률'이 이 이름으로 집계합니다. (bm-v1.32.0) */
+      '<div class="ptnfield" data-partner-field>' +
+      '<label class="ptnfield__lab" for="log-partner">복식 파트너</label>' +
+      '<input id="log-partner" type="text" maxlength="' + D.PARTNER_MAX + '" enterkeyhint="done" data-field="partner" ' +
+        'value="' + U.esc((d && d.partner) || '') + '" placeholder="함께 친 사람 (선택)" aria-label="복식 파트너 이름">' +
+      '</div>' +
       '</div>';
   }
 
@@ -123,16 +138,21 @@
   }
 
   /* 진단 · 경기 흐름 · 부하 점검을 한 접기로 (저장 직후 화면이 길어지지 않게) */
-  function analysisDetails(an) {
+  function analysisDetails(an, partners) {
     var drills = (an.drills && an.drills.drills) || [];
     var bits = [(an.insights || []).length + '개 진단'];
     if (an.flow && an.flow.count) bits.push('경기 흐름');
     if (an.load && an.load.zone) bits.push('부하 점검');
+    if (partners && partners.length) bits.push('파트너 승률');
     return '<details class="fold fold--ai" data-fold="ai-detail">' +
       '<summary class="fold__sum"><span>자세히 보기 <small>' + U.esc(bits.join(' · ')) + '</small></span>' +
       UI.icon('arrow', 'fold__car') + '</summary>' +
       '<div class="fold__body">' +
       ((an.insights || []).length ? '<ul class="insights">' + an.insights.map(insightRow).join('') + '</ul>' : '') +
+      (partners && partners.length
+        ? '<div class="care__col mt8" data-partner-lines><h4>파트너별 승률</h4><ul class="ptnlist">' +
+          partners.map(function (p) { return partnerRow(p, false); }).join('') + '</ul></div>'
+        : '') +
       ((an.risk || []).length
         ? '<div class="care__col mt8"><h4>점검</h4>' + bulletList(an.risk.map(function (r) { return r.text; })) + '</div>' : '') +
       (an.flow && an.flow.count && an.flow.tips && an.flow.tips.length
@@ -274,7 +294,7 @@
           '<p class="drill__method">' + U.esc(d.method) + '</p>' +
           '<div class="drill__foot">' + timerWidget('drill:' + i, d.name) + '</div></div></li>';
       }).join('') + '</ol>' +
-      analysisDetails(an) +
+      analysisDetails(an, D.partnerStats(((state && state.data && state.data.records) || []), { limit: 3 })) +
       preventFold(an) +
       guardFold(an) +
       offcourtFold(an) +
@@ -477,12 +497,19 @@
       : '';
     var tagTxt = [].concat(r.pain || [], r.weakness || []).slice(0, 2).join(' · ');
     var doneTxt = (r.done || []).slice(0, 3).join('·');
-    var sub = [tagTxt, doneTxt].filter(Boolean).join(' · ');
+    var meta = D.logMeta(r);
+    var sub = [meta.partner ? '함께 ' + meta.partner : '', tagTxt, doneTxt].filter(Boolean).join(' · ');
     return '<li class="logrow" data-record="' + U.esc(r.id) + '">' +
       '<div class="logrow__date"><strong>' + U.shortDay(r.date) + '</strong><span>' + U.relDay(r.date) + '</span></div>' +
       '<div class="logrow__mid"><p class="logrow__title">' + (r.cond != null ? '컨디션 ' + r.cond : '훈련') +
       (r.minutes ? ' · ' + r.minutes + '분' : '') + '</p>' +
       (sub ? '<p class="logrow__sub">' + U.esc(sub) + '</p>' : '') +
+      /* 영상 링크 — 한 번 누르면 새 창에서 바로 (rel="noopener noreferrer") */
+      (meta.video.url
+        ? '<a class="logrow__vid" data-video href="' + U.esc(meta.video.url) + '" target="_blank" rel="noopener noreferrer" ' +
+          'aria-label="' + U.esc((meta.video.label || '오늘 영상') + ' 새 창에서 보기') + '">' + UI.icon('camera') +
+          '<span>영상 보기 ↗</span></a>'
+        : '') +
       '</div>' +
       (scoreTxt
         ? '<div class="logrow__score"><span class="score ' + (win === '승' ? 'is-win' : win === '패' ? 'is-loss' : '') + '">' + U.esc(scoreTxt) + '</span>' +
@@ -599,7 +626,54 @@
       '</div>' +
       '<p class="wkch__note' + (done ? ' is-done' : '') + '">' + U.esc(progress) + '</p>' +
       '<p class="wkch__hint">' + U.esc(hint) + '</p>' +
+      /* 3회를 채웠으면 — 커뮤니티 글쓰기로 한 번에 (문구만 채우고 올리기는 사람이) */
+      (done
+        ? '<div class="wkch__acts"><button type="button" class="btn btn--primary btn--sm" data-act="challenge-share">' +
+          UI.icon('community') + '<span>커뮤니티에 자랑하기</span></button></div>'
+        : '') +
       '</div></section>';
+  }
+
+  /* ============================================================
+   * 복식 파트너별 승률 (bm-v1.32.0)
+   *  · 일지에 파트너 이름을 적은 기록만 셉니다(집계는 D.partnerStats 순수 함수).
+   *  · 파트너 이름이 한 번도 없으면 카드 자체를 그리지 않아 첫 화면이 짧습니다.
+   *  · 요약줄에는 승률이 가장 높은 파트너 한 명만, 펼치면 최대 5명.
+   * ============================================================ */
+  function partnerStatsOf(state) {
+    return D.partnerStats((state && state.data && state.data.records) || [], { limit: 5 });
+  }
+
+  function partnerSig(state) {
+    return 'ptn|' + partnerStatsOf(state).map(function (p) {
+      return p.name + ':' + p.games + ':' + p.wins + ':' + p.losses + ':' + p.draws;
+    }).join('|');
+  }
+
+  function partnerRow(p, top) {
+    return '<li class="ptn__row">' +
+      '<span class="ptn__name">' + U.esc(p.name) +
+      (top && p.games >= 3 ? '<i class="pill pill--ok ptn__best">찰떡</i>' : '') + '</span>' +
+      '<span class="ptn__rec">' + U.esc(p.line) + '</span>' +
+      '<b class="ptn__rate">' + p.rate + '%</b></li>';
+  }
+
+  function partnerBlock(state) {
+    var list = partnerStatsOf(state);
+    if (!list.length) return '';
+    var top = list[0];
+    return '<section class="card card--ptn" data-region="partner" data-sig="' + U.esc(partnerSig(state)) + '">' +
+      '<details class="ptn" data-ptn>' +
+      '<summary class="ptn__sum">' +
+      '<span class="ptn__sum-main">' +
+      '<span class="ptn__t">' + UI.icon('users') + '파트너별 승률<small>복식</small></span>' +
+      '<span class="ptn__sum-s">' + U.esc(top.name + ' ' + top.line + ' · ' + top.rate + '%') + '</span></span>' +
+      UI.icon('arrow', 'ptn__car') +
+      '</summary>' +
+      '<div class="ptn__body">' +
+      '<ul class="ptn__list">' + list.map(function (p) { return partnerRow(p, p === top); }).join('') + '</ul>' +
+      '<p class="ptn__note">일지 게임 점수에 파트너 이름을 적으면 자동으로 쌓여요</p>' +
+      '</div></details></section>';
   }
 
   function timerWidget(key, name) {
@@ -790,6 +864,9 @@
         /* 주간 약점 3회 챌린지 — 루틴 요약 바로 아래(루틴을 건너뛰었거나 초심 1주차 전이면 숨김) */
         challengeBlock(state) +
 
+        /* 복식 파트너별 승률 — 파트너 이름을 적은 일지가 있을 때만 */
+        partnerBlock(state) +
+
         beginnerBlock(state) +
 
         '<section class="card" data-form="log">' +
@@ -831,6 +908,16 @@
 
         '<div class="field"><div class="field__label"><span>메모</span><small>선택</small></div>' +
         '<textarea rows="2" data-field="note" placeholder="오늘 느낀 점 한 줄">' + U.esc(d.note || '') + '</textarea></div>' +
+
+        /* 스윙·경기 영상 — 링크만 저장합니다(앱에 올리지 않음). http(https)만 허용. */
+        '<div class="field" data-video-field>' +
+        '<div class="field__label"><span>영상 링크</span><small>유튜브·드라이브 · 선택</small></div>' +
+        '<input type="url" inputmode="url" maxlength="' + D.VIDEO_URL_MAX + '" data-field="video" ' +
+          'value="' + U.esc(d.video || '') + '" placeholder="https://youtu.be/…" aria-label="영상 링크">' +
+        '<p class="field__hint' + (videoHintOf(d.video).bad ? ' is-warn' : '') + '" data-video-hint>' + U.esc(videoHintOf(d.video).text) + '</p>' +
+        '<input type="text" maxlength="' + D.VIDEO_LABEL_MAX + '" class="mt8" data-field="videoNote" ' +
+          'value="' + U.esc(d.videoNote || '') + '" placeholder="영상에서 볼 한 줄 (예: 스매시 손목 각도)" aria-label="영상 체크 포인트">' +
+        '</div>' +
 
         '<div class="submit-wrap savebar">' +
         '<button class="btn btn--primary btn--big" data-act="save-log">' +
@@ -929,6 +1016,19 @@
           ctx.actions.setDraft({ date: el.value });
         } else if (f === 'note') {
           ctx.actions.setDraft({ note: el.value });
+        } else if (f === 'partner') {
+          /* 이름은 저장할 때 정리합니다(20자·줄바꿈 제거) — 입력 중 커서가 끊기지 않게 그대로 둡니다 */
+          ctx.actions.setDraft({ partner: el.value });
+        } else if (f === 'video') {
+          ctx.actions.setDraft({ video: el.value });
+          var vh = form.querySelector('[data-video-hint]');
+          if (vh) {
+            var hint = videoHintOf(el.value);
+            vh.textContent = hint.text;
+            vh.classList.toggle('is-warn', hint.bad);
+          }
+        } else if (f === 'videoNote') {
+          ctx.actions.setDraft({ videoNote: el.value });
         }
       }, { passive: true });
 
@@ -1111,6 +1211,26 @@
           ctx.actions.dismissShare();
           return;
         }
+        /* 주간 약점 챌린지 3회 달성 → 커뮤니티 글쓰기(말머리 '일지')로 이동 */
+        if (ev.target.closest('[data-act="challenge-share"]')) {
+          ev.preventDefault();
+          var chNow = challengeOf(ctx.store.state);
+          if (!chNow.active || !chNow.done) { UI.toast('3회를 채우면 자랑할 수 있어요'); return; }
+          var text = D.challengeShareText(chNow);
+          UI.haptic(12);
+          if (ctx.actions.startChallengeShare) {
+            ctx.actions.startChallengeShare(text, '일지');
+            UI.toast('커뮤니티 글쓰기에 문구를 채웠어요 · 올리기만 누르면 돼요');
+          } else {
+            ctx.actions.setComposer(text);
+            ctx.actions.setComposerTopic('일지');
+            ctx.actions.setTab('community');
+            UI.toast('커뮤니티 글쓰기로 옮겼어요');
+          }
+          return;
+        }
+        /* 영상 링크는 브라우저가 새 창으로 열게 두고, 일지 상세 시트는 열지 않습니다 */
+        if (ev.target.closest('a[data-video]')) return;
         var row = ev.target.closest('[data-record]');
         if (!row) return;
         var id = row.getAttribute('data-record');
@@ -1172,6 +1292,16 @@
         var chAnchor = root.querySelector('[data-region="routine"]') || root.querySelector('.card--hero');
         if (chAnchor) chAnchor.insertAdjacentHTML('afterend', chHtml);
       }
+      /* 복식 파트너별 승률 — 일지를 저장하면 그 자리에서 숫자가 바뀝니다 */
+      var ptnHost = root.querySelector('[data-region="partner"]');
+      var ptnHtml = partnerBlock(state);
+      if (ptnHost) {
+        if (!ptnHtml) ptnHost.remove();
+        else if (ptnHost.getAttribute('data-sig') !== partnerSig(state)) ptnHost.outerHTML = ptnHtml;
+      } else if (ptnHtml) {
+        var ptnAnchor = root.querySelector('[data-region="challenge"]') || root.querySelector('[data-region="routine"]') || root.querySelector('.card--hero');
+        if (ptnAnchor) ptnAnchor.insertAdjacentHTML('afterend', ptnHtml);
+      }
       var rtn = root.querySelector('[data-region="routine"]');
       var rtnHtml = routineBlock(state);
       if (rtn) {
@@ -1209,18 +1339,29 @@
 
   function recordDetail(rec) {
     var games = (rec.games && rec.games.length) ? rec.games : (rec.score ? [rec.score] : []);
+    var meta = D.logMeta(rec);
     var gameText = games.map(function (g, i) {
       return (games.length > 1 ? (i + 1) + '게임 ' : '') + (g.mode === 25 ? '25점제 ' : '') + g.a + ':' + g.b;
     }).join(' / ');
     var rows = [
       ['컨디션', rec.cond], ['훈련강도', rec.intensity], ['운동시간', rec.minutes ? rec.minutes + '분' : ''],
-      ['완료훈련', (rec.done || []).join(', ')], ['게임점수', gameText || rec.scoreRaw || ''], ['결과', rec.result],
+      ['완료훈련', (rec.done || []).join(', ')], ['복식 파트너', meta.partner],
+      ['게임점수', gameText || rec.scoreRaw || ''], ['결과', rec.result],
       ['아픈부위', (rec.pain || []).join(', ')], ['약점기술', (rec.weakness || []).join(', ')]
     ].filter(function (r) { return r[1] !== '' && r[1] != null; });
     var care = rec.prescription || null;
     return '<dl class="kv">' + rows.map(function (r) {
       return '<dt>' + U.esc(r[0]) + '</dt><dd>' + U.esc(r[1]) + '</dd>';
     }).join('') + '</dl>' +
+      /* 스윙·경기 영상 — 한 줄 체크 포인트 + 버튼 하나로 새 창 */
+      (meta.video.url
+        ? '<div class="vidbox" data-video-box>' +
+          '<p class="vidbox__head">' + UI.icon('camera') + '영상 체크</p>' +
+          (meta.video.label ? '<p class="vidbox__label">' + U.esc(meta.video.label) + '</p>' : '') +
+          '<a class="btn btn--primary btn--sm vidbox__btn" data-video href="' + U.esc(meta.video.url) + '" ' +
+            'target="_blank" rel="noopener noreferrer">영상 보기 ↗</a>' +
+          '<p class="vidbox__url">' + U.esc(meta.video.url) + '</p></div>'
+        : '') +
       (care ? '<h3 class="sec-title">저장된 처방</h3><div class="care">' +
         (care.warmup && care.warmup.length ? '<div class="care__col"><h4>웜업</h4>' + bulletList(care.warmup) + '</div>' : '') +
         '<div class="care__col"><h4>회복</h4>' + bulletList(care.rehab) + '</div>' +
@@ -1239,6 +1380,9 @@
   view.analysisCard = analysisCard;
   view.challengeBlock = challengeBlock;
   view.challengeHidden = challengeHidden;
+  view.partnerBlock = partnerBlock;
+  view.partnerStatsOf = partnerStatsOf;
+  view.videoHintOf = videoHintOf;
   view.scoreboardHtml = scoreboardHtml;
   view.scoreboardOpen = scoreboardOpen;
   view._resetScoreboard = function () { sbState = null; };
