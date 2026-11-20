@@ -1171,5 +1171,5 @@
   BM.views.my.decorateDraft = decorateDraft;   /* 테스트·점검용 (꾸미기 시트 초기값) */
   BM.views.my.decorateBody = decorateBody;     /* 테스트·점검용 (꾸미기 시트 본문) */
   BM.views.my.openConnectSheet = openConnectSheet;   /* 테스트·점검용 (시트 연결 기본값) */
-  BM.views.my.connectDefaults = connectDefaults;     /* 테스트·점검용 (기본 채움 값) */   /* 매칭 화면의 하트 충전 시트도 같은 광고 흐름을 씁니다 */
+  BM.views.my.connectDefaults = connectDefaults;     /* 테스트·점검용 (기본 채움 값) */
 })(typeof globalThis !== 'undefined' ? globalThis : this);
