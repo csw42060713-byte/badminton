@@ -150,6 +150,7 @@
         chatRoom: null, chatOther: '', chatOpen: false, chatDraft: '',
         coachTab: '', coachPlayer: null, composer: '', composerTopic: '자유', composerMeet: { when: '', place: '', cap: '' }, replyTo: null,
         routineWeek: 0,          /* 초보자 루틴: 보고 있는 주차 (0이면 아직 덜 끝낸 주차) */
+        editLogId: null,         /* 수정 중인 일지 ID (있으면 저장은 새 줄이 아니라 갱신) */
         lastSavedLog: null       /* 방금 저장한 일지 → 커뮤니티 원탭 공유 */
       },
       analysis: null,
@@ -211,6 +212,62 @@
     function commit() {
       recompute();
       emit();
+    }
+
+    /* ---------- 일지 저장/수정이 함께 쓰는 계산 ----------
+     * 게임 점수: 한 일지에 여러 경기를 남길 수 있습니다.
+     * 점수가 비어 있는 게임은 저장하지 않고, 예전처럼 한 경기만 넣어도 됩니다. */
+    function buildLog(src) {
+      var d = JSON.parse(JSON.stringify(src || {}));
+      var games = D.cleanGames(d.games);
+      if (!games.length && d.score) games = D.cleanGames([d.score]);
+      var gsum = D.gamesSummary(games);
+      var score = gsum.first;
+      var result = gsum.result || d.result || '';
+      var scoreRaw = games.length ? D.formatGames(games, d.gameMode) : '';
+      var draftForAi = JSON.parse(JSON.stringify(d));
+      draftForAi.games = games;
+      draftForAi.score = score;
+      draftForAi.result = result;
+      var an = BM.ai.analyze({
+        draft: draftForAi, records: state.data.records, level: (state.me && state.me.level) || d.level,
+        discipline: (state.me && state.me.discipline) || d.discipline,
+        nick: state.me && state.me.nick
+      });
+      return { d: d, games: games, score: score, result: result, scoreRaw: scoreRaw, an: an };
+    }
+
+    /* 수정 저장: 기존 행을 같은 자리에서 갱신합니다(새 행 없음).
+     * 시트 모드에서는 update 요청 한 건으로 나가고, 브리지가 아직 예전 버전이면
+     * 바꿀 수 있는 칸만 반영되고 나머지는 다음 동기화에 그대로 남습니다(앱은 깨지지 않음). */
+    function saveLogEdit() {
+      var id = state.ui.editLogId;
+      var rec = (state.rows || []).map(function (r) { return Array.isArray(r) ? D.fromRow(r) : r; })
+        .filter(function (r) { return String(r.id) === String(id); })[0];
+      if (!rec) {                     /* 그 사이에 지워졌다면 수정 모드를 끝냅니다 */
+        state.ui.editLogId = null;
+        state.drafts.log = defaultDraft();
+        emit();
+        return { ok: false, reason: 'not_found' };
+      }
+      var built = buildLog(state.drafts.log);
+      var entity = {
+        date: built.d.date || rec.date || U.ymd(),
+        cond: built.d.cond, intensity: built.d.intensity, minutes: built.d.minutes,
+        done: built.d.done, score: built.score, scoreRaw: built.scoreRaw,
+        result: built.result, pain: built.d.pain, weakness: built.d.weakness,
+        prescription: built.an.care, drills: built.an.drills,
+        text: built.d.note || ''
+      };
+      var cells = D.logCells(entity);
+      patchRowById(id, cells);
+      enqueue({ kind: 'update', id: id, cells: cells, clientId: U.clientId() });
+      state.ui.editLogId = null;
+      state.drafts.log = defaultDraft();
+      state.ui.lastSavedLog = null;     /* 수정 저장에서는 공유 카드를 띄우지 않습니다 */
+      state.analysis = built.an;
+      commit();
+      return { ok: true, updated: true, id: id, cells: cells, analysis: built.an };
     }
 
     /* ---------- 잠금(연타 방지) ---------- */
@@ -474,44 +531,88 @@
       saveLog: function (opts) {
         opts = opts || {};
         if (!tryLock('log', 1200)) return { ok: false, reason: 'locked' };
-        var d = JSON.parse(JSON.stringify(state.drafts.log));
-        /* 게임 점수: 한 일지에 여러 경기를 남길 수 있습니다.
-         * 점수가 비어 있는 게임은 저장하지 않고, 예전처럼 한 경기만 넣어도 됩니다. */
-        var games = D.cleanGames(d.games);
-        if (!games.length && d.score) games = D.cleanGames([d.score]);
-        var gsum = D.gamesSummary(games);
-        var score = gsum.first;
-        var result = gsum.result || d.result || '';
-        var scoreRaw = games.length ? D.formatGames(games, d.gameMode) : '';
-        var draftForAi = JSON.parse(JSON.stringify(d));
-        draftForAi.games = games;
-        draftForAi.score = score;
-        draftForAi.result = result;
-        var an = BM.ai.analyze({
-          draft: draftForAi, records: state.data.records, level: (state.me && state.me.level) || d.level,
-          discipline: (state.me && state.me.discipline) || d.discipline,
-          nick: state.me && state.me.nick
-        });
+        /* 수정 중이면 새 줄을 만들지 않고 그 일지를 갱신합니다 */
+        if (state.ui.editLogId) return saveLogEdit();
+        var built = buildLog(state.drafts.log);
+        if (!built) return { ok: false, reason: 'bad' };
         var entity = meEntity({
           type: '기록',
-          date: d.date || U.ymd(),
+          date: built.d.date || U.ymd(),
           id: U.uid(),
           clientId: U.clientId(),
-          cond: d.cond, intensity: d.intensity, minutes: d.minutes,
-          done: d.done, score: score, scoreRaw: scoreRaw, games: games, gameMode: d.gameMode,
-          result: result,
-          pain: d.pain, weakness: d.weakness,
-          prescription: an.care, drills: an.drills
+          cond: built.d.cond, intensity: built.d.intensity, minutes: built.d.minutes,
+          done: built.d.done, score: built.score, scoreRaw: built.scoreRaw, games: built.games, gameMode: built.d.gameMode,
+          result: built.result,
+          pain: built.d.pain, weakness: built.d.weakness,
+          prescription: built.an.care, drills: built.an.drills
         });
-        if (d.note) entity.text = d.note;          /* 메모는 소셜글 칸에 남깁니다 */
+        if (built.d.note) entity.text = built.d.note;   /* 메모는 소셜글 칸에 남깁니다 */
         pushRow(entity);
-        state.analysis = an;
+        state.analysis = built.an;
         state.ui.tab = 'log';
         state.ui.lastSavedLog = entity;   /* 저장 직후 '커뮤니티에 공유' 카드용 */
         commit();
         if (opts.keepDraft !== true) state.drafts.log = defaultDraft();
-        return { ok: true, entity: entity, analysis: an };
+        return { ok: true, entity: entity, analysis: built.an };
       },
+
+      /* ---------- 지난 일지 수정 · 삭제 ----------
+       * 수정: 그 날 일지의 기존 값을 입력칸으로 불러오고(값은 그대로),
+       *       저장할 때 새 줄을 붙이지 않고 그 줄만 갱신합니다.
+       * 삭제: 한 번 확인한 뒤 그 줄만 지웁니다(로컬·시트 모두 같은 큐를 씁니다). */
+      startEditLog: function (id) {
+        var rec = (state.rows || []).map(function (r) { return Array.isArray(r) ? D.fromRow(r) : r; })
+          .filter(function (r) { return String(r.id) === String(id); })[0];
+        if (!rec) return { ok: false, reason: 'not_found' };
+        if (rec.type && rec.type !== '기록') return { ok: false, reason: 'not_found' };
+        if (state.me && rec.userKey && String(rec.userKey) !== String(state.me.key)) {
+          return { ok: false, reason: 'not_mine' };
+        }
+        state.drafts.log = D.recordDraft(rec);
+        state.ui.editLogId = rec.id;
+        state.ui.tab = 'log';
+        state.ui.lastSavedLog = null;
+        state.analysis = null;
+        emit();
+        return { ok: true, id: rec.id, draft: state.drafts.log };
+      },
+
+      cancelEditLog: function () {
+        if (!state.ui.editLogId) return { ok: false };
+        state.ui.editLogId = null;
+        state.drafts.log = defaultDraft();
+        state.analysis = null;
+        emit();
+        return { ok: true };
+      },
+
+      deleteLog: function (id) {
+        if (!id) return { ok: false, reason: 'not_found' };
+        var key = String(id);
+        var rec = (state.rows || []).map(function (r) { return Array.isArray(r) ? D.fromRow(r) : r; })
+          .filter(function (r) { return String(r.id) === key; })[0];
+        if (!rec) return { ok: false, reason: 'not_found' };
+        if (rec.type && rec.type !== '기록') return { ok: false, reason: 'not_found' };
+        if (state.me && rec.userKey && String(rec.userKey) !== String(state.me.key)) {
+          return { ok: false, reason: 'not_mine' };
+        }
+        if (!tryLock('del:' + key, 1500)) return { ok: false, reason: 'locked' };
+        state.rows = state.rows.filter(function (r) { return String(r[0]) !== key; });
+        if (state.ui.editLogId && String(state.ui.editLogId) === key) {
+          state.ui.editLogId = null;
+          state.drafts.log = defaultDraft();
+        }
+        if (state.ui.lastSavedLog && String(state.ui.lastSavedLog.id) === key) state.ui.lastSavedLog = null;
+        /* 서버(시트)에도 알립니다. 브리지가 없거나 예전 버전이어도 화면은 이미 지워졌고,
+         * 기기 저장 모드에서는 로컬 저장소에서 바로 빠집니다. */
+        enqueue({ kind: 'remove', id: key, clientId: U.clientId() });
+        state.analysis = null;
+        commit();
+        return { ok: true, id: key };
+      },
+
+      /* 수정 저장 — 새 행을 만들지 않고 기존 일지 한 줄만 갱신합니다 */
+      updateLog: function () { return saveLogEdit(); },
 
       /* 일지 → 커뮤니티 공유: 저장 직후 카드에서 한 번에 올립니다.
        * 같은 일지는 두 번 올리지 않고(대상 칸에 일지 ID), 점수·시간만 담백하게 적습니다. */

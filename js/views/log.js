@@ -335,6 +335,7 @@
     render: function (state) {
       var d = state.drafts.log;
       var an = state.analysis;
+      var editing = !!(state.ui && state.ui.editLogId);
       var recent = (state.data.records || []).slice(0, 8);
       var stats = state.data.stats || {};
       return '' +
@@ -351,8 +352,15 @@
         routineCard(state) +
 
         '<section class="card" data-form="log">' +
-        '<header class="card__head"><h2>오늘 일지</h2>' +
+        '<header class="card__head"><h2>' + (editing ? '지난 일지 수정' : '오늘 일지') + '</h2>' +
         '<label class="datepick"><input type="date" data-field="date" value="' + U.esc(d.date) + '"></label></header>' +
+
+        (editing
+          ? '<div data-edit-banner>' +
+            '<div class="pp__note pp__note--info">' + UI.icon('edit') +
+            '<span><b>' + U.esc(U.dayLabel(d.date)) + ' 일지를 고치는 중이에요.</b> 저장하면 새 기록이 쌓이지 않고 이 일지만 바뀝니다.</span></div>' +
+            '<div class="row mt8"><button type="button" class="linkbtn" data-act="cancel-edit">수정 취소</button></div></div>'
+          : '') +
 
         '<div class="fieldgrid">' +
         '<div class="field"><div class="field__label"><span>컨디션</span><b data-out="cond"' + (d.cond == null ? ' class="is-unset"' : '') + '>' + (d.cond == null ? '미입력' : d.cond) + '</b></div>' +
@@ -385,8 +393,8 @@
 
         '<div class="submit-wrap savebar">' +
         '<button class="btn btn--primary btn--big" data-act="save-log">' +
-        UI.icon('check') + '<span>저장하고 AI 분석</span></button>' +
-        '<p class="hint">비워 둔 항목은 저장하지 않아요</p></div>' +
+        UI.icon('check') + '<span>' + (editing ? '수정 저장' : '저장하고 AI 분석') + '</span></button>' +
+        '<p class="hint">' + (editing ? '바뀐 칸만 새로 계산해 이 일지에 반영합니다' : '비워 둔 항목은 저장하지 않아요') + '</p></div>' +
         '</section>' +
 
         analysisCard(an, state) +
@@ -567,6 +575,15 @@
           UI.haptic(6);
           return;
         }
+        /* 수정 중인 일지를 그만 고치기 — 입력칸을 비우고 새 일지로 돌아갑니다 */
+        if (ev.target.closest('[data-act="cancel-edit"]')) {
+          ev.preventDefault();
+          ctx.actions.cancelEditLog();
+          UI.toast('수정을 그만됐어요');
+          UI.haptic(6);
+          if (ctx.repaint) ctx.repaint();
+          return;
+        }
         if (ev.target.closest('[data-act="routine-reset"]')) {
           ev.preventDefault();
           UI.confirm('체크한 내용을 모두 지울까요?', '지우기').then(function (yes) {
@@ -599,7 +616,40 @@
         if (!rec) return;
         UI.openSheet({
           title: U.dayLabel(rec.date) + ' 기록',
-          body: recordDetail(rec)
+          body: recordDetail(rec),
+          onMount: function (node) {
+            node.addEventListener('click', function (e2) {
+              if (e2.target.closest('[data-act="edit-log"]')) {
+                e2.preventDefault();
+                /* 시트를 먼저 닫고 그 날 일지를 입력칸으로 불러옵니다 */
+                UI.closeSheet();
+                var res = ctx.actions.startEditLog(id);
+                if (!res || !res.ok) { UI.toast(res && res.reason === 'not_mine' ? '내 일지만 수정할 수 있어요' : '일지를 불러오지 못했어요', 'error'); return; }
+                UI.haptic(8);
+                if (ctx.repaint) ctx.repaint();
+                setTimeout(function () {
+                  var form = document.querySelector('[data-form="log"]');
+                  if (form && form.scrollIntoView) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 90);
+                UI.toast('기존 내용을 불러왔어요. 고친 뒤 수정 저장을 눌러 주세요');
+                return;
+              }
+              if (e2.target.closest('[data-act="delete-log"]')) {
+                e2.preventDefault();
+                UI.closeSheet();
+                UI.confirm(U.shortDay(rec.date) + ' 일지를 삭제할까요? 지우면 되돌릴 수 없어요.', '삭제')
+                  .then(function (yes) {
+                    if (!yes) return;
+                    var res = ctx.actions.deleteLog(id);
+                    if (res && res.ok) { UI.toast('일지를 삭제했어요'); UI.haptic(12); }
+                    else if (res && res.reason === 'not_mine') UI.toast('내 일지만 삭제할 수 있어요', 'error');
+                    else if (res && res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+                    else UI.toast('일지를 찾지 못했어요', 'error');
+                  });
+                return;
+              }
+            });
+          }
         });
       });
     },
@@ -651,7 +701,12 @@
         '<div class="care__col"><h4>스트레칭</h4>' + bulletList(care.stretch) + '</div>' +
         '</div>' : '') +
       (rec.drills && rec.drills.drills ? '<h3 class="sec-title">추천드릴</h3><ul class="bullets">' +
-        rec.drills.drills.map(function (d) { return '<li><b>' + U.esc(d.name) + '</b> · ' + U.esc(d.sets) + '</li>'; }).join('') + '</ul>' : '');
+        rec.drills.drills.map(function (d) { return '<li><b>' + U.esc(d.name) + '</b> · ' + U.esc(d.sets) + '</li>'; }).join('') + '</ul>' : '') +
+      /* 지난 일지 고치기 — 닫기(시트 상단 X) 말고 수정·삭제를 바로 둡니다 */
+      '<div class="row gap8 mt16" data-log-actions>' +
+      '<button type="button" class="btn btn--ghost grow" data-act="edit-log">' + UI.icon('edit') + '수정</button>' +
+      '<button type="button" class="btn btn--ghost grow" data-act="delete-log">' + UI.icon('trash') + '삭제</button>' +
+      '</div>';
   }
 
   view.recordDetail = recordDetail;

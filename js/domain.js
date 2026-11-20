@@ -486,6 +486,54 @@
     return isNaN(n) ? null : n;
   }
 
+  /* --- 일지 수정: 저장된 한 줄 → 입력칸 초안 ---
+   * '최근 기록'에서 수정을 누르면 이 함수가 기존 값을 그대로 입력칸 모양으로 돌려줍니다.
+   * (화면은 순수 함수만 쓰고, 시트·저장소 사정은 몰라도 됩니다) */
+  function recordDraft(rec) {
+    rec = rec || {};
+    var games = (rec.games && rec.games.length)
+      ? rec.games.map(function (g) { return { a: g.a == null ? '' : String(g.a), b: g.b == null ? '' : String(g.b) }; })
+      : (rec.score ? [{ a: String(rec.score.a), b: String(rec.score.b) }] : [{ a: '', b: '' }]);
+    if (!games.length) games = [{ a: '', b: '' }];
+    var mode = (rec.games && rec.games[0] && rec.games[0].mode === 25) ? 25 : 21;
+    return {
+      date: rec.date || U.ymd(),
+      cond: rec.cond == null ? null : rec.cond,
+      intensity: rec.intensity == null ? null : rec.intensity,
+      minutes: rec.minutes == null ? null : rec.minutes,
+      done: (rec.done || []).slice(),
+      gameMode: mode,
+      games: games,
+      score: rec.score || null,
+      result: rec.result || '',
+      pain: (rec.pain || []).slice(),
+      weakness: (rec.weakness || []).slice(),
+      note: rec.text || ''
+    };
+  }
+
+  /* --- 일지 수정: 바뀐 값만 시트 칸 이름으로 ---
+   * 비운 입력은 빈 값('')으로 보내 칸을 비웁니다. 다른 칸(ID·사용자ID·닉네임)은
+   * 건드리지 않으므로 26칸 스키마와 행 순서는 그대로입니다. */
+  function logCells(e) {
+    e = e || {};
+    var cells = {
+      '날짜': e.date ? String(e.date) : '',
+      '컨디션': e.cond == null || e.cond === '' ? '' : String(e.cond),
+      '훈련강도': e.intensity == null || e.intensity === '' ? '' : String(e.intensity),
+      '운동시간(분)': e.minutes == null || e.minutes === '' ? '' : String(e.minutes),
+      '완료훈련': (e.done && e.done.length) ? e.done.join(',') : '',
+      '게임점수': e.scoreRaw ? String(e.scoreRaw) : '',
+      '승패': e.result ? String(e.result) : '',
+      '아픈부위': (e.pain && e.pain.length) ? e.pain.join(',') : '',
+      '약점기술': (e.weakness && e.weakness.length) ? e.weakness.join(',') : '',
+      '소셜글': e.text ? String(e.text) : ''
+    };
+    if (e.prescription) cells['맞춤처방'] = JSON.stringify(e.prescription);
+    if (e.drills) cells['추천드릴'] = JSON.stringify(e.drills);
+    return cells;
+  }
+
   /* --- 앱 객체 → 시트 한 줄 --- */
   function toRow(e) {
     var c = [];
@@ -1313,6 +1361,7 @@
     BASE_HEARTS: BASE_HEARTS, HEART_COST_MATCH: HEART_COST_MATCH,
     JSON_TYPES: JSON_TYPES,
     fromRow: fromRow, toRow: toRow, asCells: asCells,
+    recordDraft: recordDraft, logCells: logCells,
     parseScore: parseScore, parseGames: parseGames, cleanGames: cleanGames,
     gamesSummary: gamesSummary, formatGames: formatGames,
     resultFromScore: resultFromScore, splitList: splitList,

@@ -315,18 +315,21 @@
     btn.dataset.busy = '1';
     btn.classList.add('is-busy');
     var label = btn.querySelector('span');
-    if (label) label.textContent = '저장 중…';
+    var editing = !!(store.state.ui && store.state.ui.editLogId);
+    if (label) label.textContent = editing ? '수정 중…' : '저장 중…';
     UI.haptic(12);
 
     var res = store.actions.saveLog({ keepDraft: true });
     if (res.ok) {
-      if (label) label.textContent = '저장됨 ✓';
-      UI.toast('일지를 저장했어요. AI 분석을 준비했어요.');
+      if (label) label.textContent = res.updated ? '수정됨 ✓' : '저장됨 ✓';
+      UI.toast(res.updated ? '일지를 수정했어요. 같은 기록이 그대로 갱신됐어요.' : '일지를 저장했어요. AI 분석을 준비했어요.');
       setTimeout(function () {
+        /* 수정 저장이 끝났으면 입력칸을 새 일지로 돌리고(수정 모드 해제) */
+        if (res.updated) { repaint(); return; }
         btn.dataset.busy = '0';
         btn.classList.remove('is-busy');
         if (label) label.textContent = '저장하고 AI 분석';
-      }, 1100);
+      }, res.updated ? 520 : 1100);
       setTimeout(function () {
         var an = el('main') && el('main').querySelector('[data-region="analysis"]');
         if (an && an.scrollIntoView) an.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -689,7 +692,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.15.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.16.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

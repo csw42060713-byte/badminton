@@ -285,17 +285,29 @@
       '<button class="btn btn--primary btn--big mt16" data-act="go-log">' + UI.icon('log') + '오늘 일지 남기기</button>' +
       (coaches.length
         ? '<ul class="coachcards mt16">' + coaches.slice(0, 6).map(function (c) { return coachCard(c, state); }).join('') + '</ul>'
-        : '<p class="hint">아직 활동 중인 코치가 없어요. 내가 먼저 멘토로 신청할 수 있어요.</p>') +
-      '<button class="linkbtn mt8" data-coachtab="apply">' + UI.icon('coach') + ' 멘토로 신청하기</button>' +
+        : '<p class="hint">아직 활동 중인 코치가 없어요. 위 <b>멘토 신청</b> 탭에서 내가 먼저 신청할 수 있어요.</p>') +
       '</section>';
   }
 
-  /* 피드백 요청 문구 — 내 최근 일지를 짧게 붙여 코치가 바로 알게 합니다 */
+  /* 피드백 요청 문구 — 내 최근 일지 핵심을 한 줄로 붙여 코치가 바로 알게 합니다.
+   * 날짜 · 점수/승패 · 약점 기술 · 아픈 부위 (최근 일지가 없으면 예전 문구 그대로) */
   function feedbackAskText(state) {
     var r = (state.data.records || [])[0];
     if (!r) return '코치님, 일지 피드백 부탁드려요. 이번 주 훈련에서 먼저 볼 점을 알려 주세요.';
-    var tags = [].concat(r.weakness || [], r.pain || []).slice(0, 2).join('·');
-    return '코치님, ' + U.shortDay(r.date) + ' 일지' + (tags ? '(' + tags + ')' : '') + ' 보고 한 줄 피드백 부탁드려요.';
+    var bits = [];
+    var games = (r.games && r.games.length) ? r.games : (r.score ? [r.score] : []);
+    var sum = D.gamesSummary(games);
+    if (sum.count) {
+      bits.push(sum.count > 1
+        ? sum.count + '경기 ' + sum.wins + '승 ' + sum.losses + '패' + (sum.draws ? ' ' + sum.draws + '무' : '')
+        : (r.scoreRaw || (games[0].a + ':' + games[0].b)) + (sum.result ? ' ' + sum.result : ''));
+    } else if (r.result) {
+      bits.push(r.result);
+    }
+    if (r.weakness && r.weakness.length) bits.push('약점 ' + r.weakness.slice(0, 2).join('·'));
+    if (r.pain && r.pain.length) bits.push('아픈 곳 ' + r.pain.slice(0, 2).join('·'));
+    return '코치님, ' + U.shortDay(r.date) + ' 일지' + (bits.length ? '(' + bits.join(' · ') + ')' : '') +
+      ' 보고 한 줄 피드백 부탁드려요.';
   }
 
   var view = {
@@ -522,4 +534,5 @@
   };
 
   BM.views.coach = view;
+  view.feedbackAskText = feedbackAskText;   /* 테스트·점검용 (피드백 요청 한 줄 요약) */
 })(typeof globalThis !== 'undefined' ? globalThis : this);
