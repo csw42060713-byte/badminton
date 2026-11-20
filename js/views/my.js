@@ -414,6 +414,8 @@
       '<i aria-hidden="true"></i><span>' + (on ? '켬' : '끔') + '</span></button>' +
       '</div>' +
       '<p class="hint">' + hint + '</p>' +
+      /* 처음이라면 — 초심이 아니어도 언제든 용어 사전·기초 가이드를 펼칩니다 */
+      '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="beginner-open" data-beg-tab="intro">🏸 처음이라면 · 용어 사전 &amp; 기초 가이드</button>' +
       '</section>';
   }
 
@@ -518,6 +520,19 @@
             try { Notification.requestPermission(); } catch (e) { /* 무시 */ }
           }
           UI.toast('브라우저 알림을 허용하면 다른 탭에서도 알려 드려요');
+          return;
+        }
+
+        if (ev.target.closest('[data-act="beginner-open"]')) {
+          ev.preventDefault();
+          var begBtn = ev.target.closest('[data-act="beginner-open"]');
+          if (BM.beginner) {
+            BM.beginner.open({
+              tab: begBtn.getAttribute('data-beg-tab') || 'intro',
+              skill: begBtn.getAttribute('data-beg-skill') || ''
+            });
+          }
+          UI.haptic(8);
           return;
         }
 

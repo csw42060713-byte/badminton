@@ -234,6 +234,7 @@
       (warn ? '<div class="risk risk--' + warn.level + '">' + UI.icon('alert') +
         '<span>' + U.esc(warn.text) + '</span></div>' : '') +
       '<h3 class="sec-title">' + UI.icon('check') + '추천 드릴</h3>' +
+      easyGuide(an, drills) +
       '<ol class="drills drills--core">' + drills.map(function (d, i) {
         return '<li class="drill drill--core"><div class="drill__no">' + (i + 1) + '</div><div class="drill__body">' +
           '<div class="drill__top"><strong>' + U.esc(d.name) + '</strong><span class="pill pill--ghost">' + U.esc(d.sets) + '</span></div>' +
@@ -279,6 +280,15 @@
           '<button type="button" class="btn btn--ghost" data-act="dismiss-share">나중에</button></div></div>'
         : '') +
       '</section>';
+  }
+
+  /* 약점이 드라이브·헤어핀·스매시·클리어·언더와 맞물리면
+   * 초보용 원문(쉬운 설명)을 먼저 펼쳐 두고, 그 아래에 논문 근거 드릴을 잇습니다.
+   * (옛 약점 탭의 순서 그대로 — 왜 이렇게 하는지 → 어떻게 하는지) */
+  function easyGuide(an, drills) {
+    if (!BM.beginner) return '';
+    var names = (drills || []).map(function (d) { return d.name; }).concat(an.weakness || []);
+    return BM.beginner.easyGuideHtml(names);
   }
 
   /* 공유 미리보기 — 일지에서 시간·훈련·전적만 담백하게 */
@@ -412,6 +422,18 @@
     return routineCard(state);
   }
 
+  /* 처음이라면 — 용어 사전 & 기초 가이드 입구 (2026-11-20, bm-v1.25.0)
+   *  · 초심 급수: 히어로·루틴 카드 바로 아래에 큰 카드로
+   *  · 그 위 급수: 한 줄 보조 카드로만 두어 첫 화면을 어지럽히지 않습니다 (MY에서도 열림) */
+  function beginnerBlock(state) {
+    return BM.beginner ? BM.beginner.entryHtml(state) : '';
+  }
+
+  function beginnerSig(state) {
+    var me = state && state.me;
+    return 'beg|' + (BM.beginner && BM.beginner.isBeginnerGrade(me && me.level) ? '1' : '0');
+  }
+
   function recentRow(r) {
     var games = (r.games && r.games.length) ? r.games : (r.score ? [r.score] : []);
     var win = (r.result || (games.length === 1 ? D.resultFromScore(games[0]) : ''));
@@ -453,6 +475,8 @@
         '</div></section>' +
 
         routineBlock(state) +
+
+        beginnerBlock(state) +
 
         '<section class="card" data-form="log">' +
         '<header class="card__head"><h2>' + (editing ? '지난 일지 수정' : '오늘 일지') + '</h2>' +
@@ -671,6 +695,19 @@
       });
 
       root.addEventListener('click', function (ev) {
+        /* 처음이라면 — 초보자 튜토리얼 · 용어 사전 · 기술 가이드 패널 */
+        var begBtn = ev.target.closest('[data-act="beginner-open"]');
+        if (begBtn) {
+          ev.preventDefault();
+          if (BM.beginner) {
+            BM.beginner.open({
+              tab: begBtn.getAttribute('data-beg-tab') || 'intro',
+              skill: begBtn.getAttribute('data-beg-skill') || ''
+            });
+          }
+          UI.haptic(8);
+          return;
+        }
         /* 선택 카드 — 시작하기 / 건너뛰기 */
         if (ev.target.closest('[data-act="routine-start"]')) {
           ev.preventDefault();
@@ -787,6 +824,14 @@
       } else if (rtnHtml) {
         var hero = root.querySelector('.card--hero');
         if (hero) hero.insertAdjacentHTML('afterend', rtnHtml);       /* 다시 켜기 → 카드 복귀 */
+      }
+      var beg = root.querySelector('[data-region="beginner"]');
+      var begHtml = beginnerBlock(state);
+      if (beg) {
+        if (begHtml && beg.getAttribute('data-sig') !== beginnerSig(state)) beg.outerHTML = begHtml;
+      } else if (begHtml) {
+        var begHost = root.querySelector('[data-region="routine"]') || root.querySelector('.card--hero');
+        if (begHost) begHost.insertAdjacentHTML('afterend', begHtml);
       }
       var anRegion = root.querySelector('[data-region="analysis"]');
       var html = analysisCard(state.analysis, state);
