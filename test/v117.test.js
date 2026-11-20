@@ -58,6 +58,15 @@
     includes(app, 'themeMeta.setAttribute', '테마를 바꾸면 크롬 색도 바뀐다');
   });
 
+  test('v1.17 설치형 앱: 실행 화면 바탕도 검정이 아니다', function () {
+    if (!hasNode()) return;
+    ['manifest.json', 'manifest.webmanifest'].forEach(function (file) {
+      var m = JSON.parse(readRoot(file));
+      eq(m.background_color, '#f6f8f6', file + ' 실행 바탕');
+      eq(m.theme_color, '#f6f8f6', file + ' 테마 색');
+    });
+  });
+
   test('v1.17 테마 색: CSS 바탕색과 앱 크롬 색이 테마마다 같다', function () {
     if (!hasNode()) return;
     var css = readRoot('styles.css');
