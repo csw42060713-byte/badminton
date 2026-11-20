@@ -717,7 +717,7 @@
       var upper = areas.some(function (a) { return a === '어깨' || a === '팔꿈치' || a === '손목'; });
       reason = areas.join('·') + ' 준비를 넣었어요. ' +
         (lower ? '방향 전환에서 발목 접질림(' + PREVENT.ankleSprainPct + '%)·무릎 힘줄 통증(' + PREVENT.patellarPct +
-          '%)이 많이 나고, 부상의 절반 이상(' + PREVENT.lowerBodyPct + '%)이 다리예요. ' : '') +
+          '%)이 많이 나고, 부상의 절반 이상(' + Math.round(PREVENT.lowerBodyPct) + '%)이 다리예요. ' : '') +
         (upper ? '주로 쓰는 어깨 부상이 ' + PREVENT.shoulderPct + '%나 돼요. ' : '') +
         '준비운동을 자주 할수록 부상이 적었어요.';
     } else {
@@ -795,7 +795,7 @@
       thresholds: [
         '주로 치는 어깨가 반대쪽보다 안으로 덜 돌아가면 어깨 부상 위험이 커져요',
         '라켓을 휘두른 뒤 브레이크 잡아 주는 뒤쪽 힘이 약해도 위험이 커져요',
-        '어깨를 안으로 돌리는 각도가 ' + SHOULDER_RISK.irRomDeg + '도도 안 되면 1년 안에 어깨 통증이 올 확률이 ' + SHOULDER_RISK.irRomProbPct + '%였어요'
+        '어깨를 안으로 돌리는 각도가 ' + SHOULDER_RISK.irRomDeg + '도가 안 되면 1년 안에 어깨 통증이 올 확률이 ' + SHOULDER_RISK.irRomProbPct + '%였어요'
       ],
       checks: [
         { name: '누워서 어깨 양쪽 비교하기', how: '똑바로 누워 팔을 90도로 벌리고 손바닥을 바닥 쪽으로 내려 보세요. 주로 치는 쪽 팔이 반대쪽보다 눈에 띄게 덜 내려가면 어깨 뒤쪽이 굳은 신호예요.' },
