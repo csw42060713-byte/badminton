@@ -342,6 +342,8 @@
     var chatOff = BM.views.chat.listHtml(off);
     includes(chatOff, 'dmreq--simple', '채팅 목록도 일반 카드');
     excludes(chatOff, 'data-open-letter', '편지지 열기 없음');
+    /* 설정을 바꾸면 받은 요청 영역도 다시 그려지도록 키에 설정을 넣는다 */
+    includes(readRoot('js/views/matching.js'), "state.prefs.letter === false ? 'simple' : 'letter'", '요청 목록 다시 그리기 키');
   });
 
   /* =========================================================

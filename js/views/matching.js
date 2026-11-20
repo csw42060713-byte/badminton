@@ -432,9 +432,10 @@
   }
 
   function reqSig(state, kind) {
-    return kind + '|' + (state.data.requests || []).map(function (r) {
-      return r.id + ':' + r.status;
-    }).join(',') + '|' + (state.data.matchProfiles || []).length;
+    return kind + '|' + (state.prefs && state.prefs.letter === false ? 'simple' : 'letter') + '|' +
+      (state.data.requests || []).map(function (r) {
+        return r.id + ':' + r.status;
+      }).join(',') + '|' + (state.data.matchProfiles || []).length;
   }
 
   /* ---------- 대화 탭 ---------- */
