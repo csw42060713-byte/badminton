@@ -582,7 +582,7 @@
       var out = [], offset = 0;
       function page() {
         var range = offset + '-' + (offset + SB.pageSize - 1);
-        return rest('GET', SB.table + '?select=*&order=created_at.asc', { range: range }).then(function (data) {
+        return rest('GET', SB.table + '?select=*&order=created_at.asc,id.asc', { range: range }).then(function (data) {
           var list = Array.isArray(data) ? data : [];
           out = out.concat(list);
           if (list.length < SB.pageSize) return out;
