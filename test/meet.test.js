@@ -246,7 +246,7 @@
     var index = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
     ok(/var VERSION = 'bm-v1\.17\.0'/.test(sw), 'sw.js bm-v1.17.0');
     includes(app, "version: 'v1.17.0'", 'app.js v1.17.0');
-    includes(index, 'styles.css?v=20261120-15', 'styles.css 쿼리 갱신');
+    includes(index, 'styles.css?v=20261120-16', 'styles.css 쿼리 갱신');
     includes(index, 'js/routine.js', '루틴 파일 유지');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

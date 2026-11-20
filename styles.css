@@ -3524,25 +3524,31 @@ input[type="date"] {
   border-radius: 11px;
   margin-bottom: 8px;
   background-repeat: no-repeat;
-  background-position: 30% 50%, 58% 50%;
-  background-size: 18px 18px, 18px 18px;
   box-shadow: inset 0 0 0 1px rgba(12, 26, 20, 0.08);
 }
 .swatch--th_def .theme__dot {
   background-color: #f6f8f6;
-  background-image: radial-gradient(circle, #ffffff 0 44%, transparent 46%), radial-gradient(circle, #0b7a4b 0 44%, transparent 46%);
+  background-image:
+    radial-gradient(circle 9px at 32% 50%, #e4ebe6 98%, transparent 100%),
+    radial-gradient(circle 9px at 62% 50%, #0b7a4b 98%, transparent 100%);
 }
 .swatch--th_night .theme__dot {
   background-color: #0b1210;
-  background-image: radial-gradient(circle, #22302b 0 44%, transparent 46%), radial-gradient(circle, #c6f24e 0 44%, transparent 46%);
+  background-image:
+    radial-gradient(circle 9px at 32% 50%, #22302b 98%, transparent 100%),
+    radial-gradient(circle 9px at 62% 50%, #c6f24e 98%, transparent 100%);
 }
 .swatch--th_court .theme__dot {
   background-color: #06170f;
-  background-image: radial-gradient(circle, #12402a 0 44%, transparent 46%), radial-gradient(circle, #d4ff4f 0 44%, transparent 46%);
+  background-image:
+    radial-gradient(circle 9px at 32% 50%, #12402a 98%, transparent 100%),
+    radial-gradient(circle 9px at 62% 50%, #d4ff4f 98%, transparent 100%);
 }
 .swatch--th_sakura .theme__dot {
   background-color: #fff1f6;
-  background-image: radial-gradient(circle, #ffffff 0 44%, transparent 46%), radial-gradient(circle, #d92f7e 0 44%, transparent 46%);
+  background-image:
+    radial-gradient(circle 9px at 32% 50%, #ffd9e7 98%, transparent 100%),
+    radial-gradient(circle 9px at 62% 50%, #d92f7e 98%, transparent 100%);
 }
 .theme__name { font-size: 12.5px; font-weight: 800; letter-spacing: -0.3px; }
 .theme__hint { font-size: 10.5px; color: var(--muted); }
