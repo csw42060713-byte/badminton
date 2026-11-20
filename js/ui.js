@@ -120,6 +120,26 @@
   }
 
   /* ---------- 바텀시트 ---------- */
+  /* 시트가 닫힐 때(닫기·배경·뒤로 가기·다른 시트로 교체) 함께 정리할 일을 등록합니다.
+   * 1초 카운트다운처럼 시트가 사라진 뒤에도 도는 타이머를 여기서 끕니다. */
+  var sheetCleanups = [];
+
+  function onSheetClose(fn) {
+    if (typeof fn !== 'function') return function () {};
+    sheetCleanups.push(fn);
+    return function () {
+      var i = sheetCleanups.indexOf(fn);
+      if (i >= 0) sheetCleanups.splice(i, 1);
+    };
+  }
+
+  function runSheetCleanups() {
+    if (!sheetCleanups.length) return;
+    var list = sheetCleanups;
+    sheetCleanups = [];
+    list.forEach(function (fn) { try { fn(); } catch (e) { /* 무시 */ } });
+  }
+
   function closeSheetDom() {
     if (!hasDom) return;
     var root = $('#sheet');
@@ -131,6 +151,7 @@
 
   function closeSheet() {
     if (!hasDom) return;
+    runSheetCleanups();
     closeSheetDom();
     overlayClose();
   }
@@ -144,7 +165,8 @@
 
   function openSheet(opts) {
     if (!hasDom) return null;
-    /* 이미 열린 시트를 바꿔 열 때는 기록을 건드리지 않고 화면만 교체합니다 */
+    /* 앞서 열려 있던 시트의 타이머 정리 → 기록은 건드리지 않고 화면만 교체합니다 */
+    runSheetCleanups();
     removeSheetNow();
     var wrap = document.createElement('div');
     wrap.id = 'sheet';
@@ -280,6 +302,7 @@
   BM.ui = {
     $: $, $$: $$, icon: icon, toast: toast, haptic: haptic,
     openSheet: openSheet, closeSheet: closeSheet, confirm: confirmSheet,
+    onSheetClose: onSheetClose,
     paint: paint, chips: chips, readChips: readChips, toggleChip: toggleChip,
     avatar: avatar, emptyState: emptyState, stars: stars, person: person, hasDom: hasDom,
     overlay: {
@@ -297,6 +320,7 @@
       if (!hasDom || !document.getElementById('sheet')) return;
       lastSheetBackAt = Date.now();
       overlayDepth = Math.max(0, overlayDepth - 1);
+      runSheetCleanups();
       closeSheetDom();
     });
   }
