@@ -70,8 +70,19 @@
         UI.toast(res.purchased ? '하트 ' + res.price + '개로 테마를 열었어요' : '테마를 적용했어요');
         return;
       }
-      if (res && res.reason === 'hearts') UI.toast('하트가 ' + res.need + '개 부족해요. 광고·출석으로 모아 주세요.', 'error');
-      else if (res && res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+      if (res && res.reason === 'hearts') {
+        /* 테마도 공용 충전 시트에서 바로 채우고 이어서 다시 시도합니다 */
+        openHeartSheet(ctx, {
+          need: price,
+          intro: '<p class="sheet__text">' + U.esc((D.themeById(id) || {}).name || '테마') +
+            ' 테마는 <b>하트 ' + price + '개</b>로 열 수 있어요. 지금 <b>' + balance + '개</b> 있어요.' +
+            (res.need ? ' <span class="warn">' + res.need + '개 부족</span>' : '') + '</p>',
+          continueLabel: '테마 열기',
+          onContinue: apply
+        });
+        return;
+      }
+      if (res && res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
       else UI.toast('테마를 바꾸지 못했어요', 'error');
     }
 
@@ -80,10 +91,29 @@
       .then(function (yes) { if (yes) apply(); });
   }
 
+  /* ---------- 하트 충전(공용 시트) ----------
+   * MY 안에서도 하트가 모자란 자리(테마·프레임·배지)는 토스트로 끝내지 않고
+   * js/ads.js 의 공용 충전 시트를 열어 출석·광고로 바로 채우게 합니다. */
+  function openHeartSheet(ctx, opts) {
+    if (BM.ads && typeof BM.ads.openHeartSheet === 'function') {
+      return BM.ads.openHeartSheet(ctx, opts || {});
+    }
+    UI.toast('MY 하트 카드에서 충전할 수 있어요', 'error');
+    return null;
+  }
+
+  function liveHearts(hearts) {
+    return (BM.ads && typeof BM.ads.getStatus === 'function')
+      ? BM.ads.getStatus(hearts)
+      : hearts;
+  }
+
   function adLabel(hearts) {
-    if (!hearts.adRemaining) return '오늘 모두 받았어요';
-    if (hearts.nextAdInSec > 0) return '+' + hearts.adReward + ' · ' + hearts.nextAdInSec + '초 후';
-    return '+' + hearts.adReward + ' · 남은 ' + hearts.adRemaining + '회';
+    var h = liveHearts(hearts);
+    if (BM.ads && typeof BM.ads.adText === 'function') return BM.ads.adText(h);
+    if (!h.adRemaining) return '오늘 모두 받았어요';
+    if (h.nextAdInSec > 0) return '다음 광고까지 ' + h.nextAdInSec + '초';
+    return '남은 ' + h.adRemaining + '회';
   }
 
   /* 연속 출석 안내 — 하트 카드 · 꾸미기 패널이 함께 씁니다 */
@@ -95,10 +125,13 @@
   }
 
   function heartCard(hearts) {
+    var live = liveHearts(hearts);
     var adPct = hearts.adLimit ? Math.round((hearts.adUsedToday / hearts.adLimit) * 100) : 0;
-    var adDisabled = !hearts.canWatchAd ? ' disabled' : '';
+    var adDisabled = !live.canWatchAd ? ' disabled' : '';
     var checkDisabled = !hearts.canCheckIn ? ' disabled' : '';
     var recent = (hearts.history || []).slice(0, 3);
+    var free = (BM.ads && typeof BM.ads.freeText === 'function') ? BM.ads.freeText(live) : '';
+    var freeD = (BM.ads && typeof BM.ads.freeDetail === 'function') ? BM.ads.freeDetail(live) : '';
     return '<section class="card card--heart" data-region="heart">' +
       '<header class="card__head"><h2>' + UI.icon('heart') + '하트</h2>' +
       '<span class="heartchip">' + hearts.balance + '</span></header>' +
@@ -108,6 +141,11 @@
       '<div><strong>' + hearts.balance + '</strong><span>잔액</span></div>' +
       '<div><strong>' + hearts.adUsedToday + '/' + hearts.adLimit + '</strong><span>오늘 광고</span></div>' +
       '</div>' +
+
+      /* 오늘 남은 무료 적립분을 한 줄로 — 이 숫자가 광고 쿨타임과 함께 1초마다 갱신됩니다 */
+      '<p class="freeline" data-free-line' + (live.freeHeartsLeft > 0 ? '' : ' is-done') + '>' + UI.icon('spark') +
+      '<span data-free>' + U.esc(free) + '</span>' +
+      '<span class="freeline__d" data-free-d>' + U.esc(freeD) + '</span></p>' +
 
       '<div class="heartacts">' +
       '<button class="btn btn--ghost grow heartact" data-act="checkin"' + checkDisabled + '>' +
@@ -205,27 +243,41 @@
     if (!btn) return;
     var sub = btn.querySelector('[data-ad-sub]');
     if (sub) sub.textContent = adLabel(hearts);
-    btn.disabled = !hearts.canWatchAd;
+    btn.disabled = !liveHearts(hearts).canWatchAd;
   }
 
-  /* 30초 쿨다운 동안 버튼 글자를 1초마다 갱신 */
-  function startAdTicker(root, ctx) {
+  function stopAdTicker() {
     if (adTimer) { clearInterval(adTimer); adTimer = null; }
-    var hearts = (ctx.store.state.data.hearts || {});
-    var left = hearts.nextAdInSec || 0;
-    if (left <= 0) return;
+  }
+
+  /* 광고 쿨타임을 1초마다 다시 계산합니다.
+   *  · nextAdAt(절대 시각)에서 남은 초를 다시 구해 "다음 광고까지 N초"가 줄어듭니다.
+   *  · 0초가 되면 버튼을 바로 열고 화면을 한 번 다시 그립니다.
+   *  · 화면이 사라지면(탭 이동 등) 타이머를 끕니다 — adTimer 누수 방지. */
+  function startAdTicker(root, ctx) {
+    stopAdTicker();
+    if (typeof setInterval !== 'function') return;
+    var heartsNow = function () { return (ctx.store.state.data.hearts || {}); };
+    if (!liveHearts(heartsNow()).nextAdInSec) return;
+
     adTimer = setInterval(function () {
-      left -= 1;
+      if (!root || (typeof root.isConnected === 'boolean' && !root.isConnected)) { stopAdTicker(); return; }
+      var hearts = heartsNow();
+      var h = liveHearts(hearts);
       var btn = root.querySelector('[data-ad-btn]');
-      if (!btn) { clearInterval(adTimer); adTimer = null; return; }
-      if (left > 0) {
-        var sub = btn.querySelector('[data-ad-sub]');
-        if (sub) sub.textContent = '+' + hearts.adReward + ' · ' + left + '초 후';
-      } else {
-        clearInterval(adTimer);
-        adTimer = null;
-        ctx.refresh();     /* 쿨다운이 끝나면 잔액·버튼 상태를 다시 계산 */
-      }
+      if (!btn) { stopAdTicker(); return; }
+      var sub = btn.querySelector('[data-ad-sub]');
+      if (sub) sub.textContent = adLabel(hearts);
+      var free = root.querySelector('[data-free]');
+      if (free && BM.ads && typeof BM.ads.freeText === 'function') free.textContent = BM.ads.freeText(h);
+      var freeD = root.querySelector('[data-free-d]');
+      if (freeD && BM.ads && typeof BM.ads.freeDetail === 'function') freeD.textContent = BM.ads.freeDetail(h);
+      if (h.nextAdInSec > 0) return;
+
+      /* 0초 — 버튼을 바로 열고, 잔액·오늘 남은 무료 하트를 다시 계산합니다 */
+      btn.disabled = !h.canWatchAd;
+      stopAdTicker();
+      ctx.refresh();
     }, 1000);
   }
 
@@ -379,7 +431,11 @@
           adBtn.classList.add('is-busy');
           playRewardAd().then(function (r) {
             adBtn.classList.remove('is-busy');
-            if (!r || !r.rewarded) { UI.toast('광고를 끝까지 봐야 하트를 받을 수 있어요'); return; }
+            if (!r || !r.rewarded) {
+              if (r && r.busy) UI.toast('광고를 준비하고 있어요. 잠시만요');
+              else UI.toast('광고를 끝까지 봐야 하트를 받을 수 있어요');
+              return;
+            }
             var res = ctx.actions.watchAd({ verified: true, adUnit: r.adUnit });
             if (res.ok) {
               UI.toast('하트 +' + res.gained + ' · 오늘 ' + res.remaining + '회 남음');
@@ -554,19 +610,38 @@
     UI.confirm(D.decoName(d.id) + ' — 하트 ' + d.price + '개로 열까요? 한 번 열면 계속 써요. 지금 하트 ' + balance + '개.', '열기')
       .then(function (yes) {
         if (!yes) { onDone({ ok: false, cancelled: true }); return; }
-        var res = ctx.actions.buyDeco(kind, value);
-        if (res.ok) {
-          UI.toast(res.purchased ? '하트 ' + res.price + '개로 열었어요' : '이미 열려 있어요');
-          UI.haptic(12);
-        } else if (res.reason === 'hearts') {
-          UI.toast('하트가 ' + res.need + '개 부족해요');
-        } else if (res.reason === 'locked') {
-          UI.toast('잠시만요, 처리 중이에요');
-        } else {
-          UI.toast('열지 못했어요', 'error');
-        }
-        onDone(res);
+        buyDeco(ctx, kind, value, onDone);
       });
+  }
+
+  /* 하트가 모자라면 공용 충전 시트를 열고, 채운 뒤에는 이미 확인한 구매를 바로 이어서 진행합니다 */
+  function buyDeco(ctx, kind, value, onDone) {
+    var res = ctx.actions.buyDeco(kind, value);
+    if (res.ok) {
+      UI.toast(res.purchased ? '하트 ' + res.price + '개로 열었어요' : '이미 열려 있어요');
+      UI.haptic(12);
+      onDone(res);
+      return;
+    }
+    if (res.reason === 'hearts') {
+      var d = decoOf(ctx.store.state, kind, value);
+      var balance = (ctx.store.state.data.hearts && ctx.store.state.data.hearts.balance) || 0;
+      openHeartSheet(ctx, {
+        need: d.price || res.price || (res.need + balance),
+        intro: '<p class="sheet__text">' + U.esc(D.decoName(d.id)) + ' — <b>하트 ' + (d.price) +
+          '개</b>로 열 수 있어요. 지금 <b>' + balance + '개</b> 있어요.' +
+          (res.need ? ' <span class="warn">' + res.need + '개 부족</span>' : '') + '</p>',
+        continueLabel: '열기',
+        onContinue: function () { buyDeco(ctx, kind, value, onDone); }
+      });
+      return;
+    }
+    if (res.reason === 'locked') {
+      UI.toast('잠시만요, 처리 중이에요');
+    } else {
+      UI.toast('열지 못했어요', 'error');
+    }
+    onDone(res);
   }
 
   function lockTag(d) {

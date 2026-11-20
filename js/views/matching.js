@@ -544,6 +544,25 @@
       '<div class="pp__foot">' + footer + '</div></div>';
   }
 
+  /* 하트 선물 — 모자라면 공용 충전 시트로 이어 주고, 채우면 다시 선물할 수 있게 합니다 */
+  function sendGift(ctx, p) {
+    UI.confirm('하트 ' + D.HEART_RULES.GIFT_COST + '개를 ' + p.nick + '님에게 선물할까요?').then(function (ok) {
+      if (!ok) return;
+      var r = ctx.actions.giftHeart(p.userKey);
+      if (r.ok) { UI.closeSheet(); UI.toast('하트를 선물했어요'); return; }
+      if (r.reason === 'hearts') {
+        openHeartSheet(ctx, '', {
+          need: D.HEART_RULES.GIFT_COST,
+          why: '하트 선물에는 <b>하트 ' + D.HEART_RULES.GIFT_COST + '개</b>가 필요해요.',
+          continueLabel: '다시 선물하기',
+          onContinue: function () { sendGift(ctx, p); }
+        });
+        return;
+      }
+      UI.toast('선물하지 못했어요', 'error');
+    });
+  }
+
   function openProfile(p, ctx) {
     UI.openSheet({
       title: '선수 프로필',
@@ -562,7 +581,13 @@
             UI.closeSheet();
             if (res.ok) UI.toast('요청을 보냈어요. 상대가 수락하면 하트 ' + (res.cost || D.HEART_RULES.MATCH_COST) + '개가 차감되고 대화가 열려요.');
             else if (res.reason === 'already') UI.toast('이미 요청한 상대예요.');
-            else if (res.reason === 'hearts') UI.toast('하트가 ' + res.need + '개 부족해요.', 'error');
+            else if (res.reason === 'hearts') {
+              /* 하트가 모자라면 토스트로 끝내지 않고 공용 충전 시트로 이어 줍니다 */
+              openHeartSheet(ctx, p.userKey, {
+                need: D.HEART_RULES.MATCH_COST,
+                continueLabel: '프로필로 돌아가기'
+              });
+            }
             else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
             return;
           }
@@ -606,13 +631,7 @@
           if (gift) {
             ev.preventDefault();
             ev.stopPropagation();
-            UI.confirm('하트 ' + D.HEART_RULES.GIFT_COST + '개를 ' + p.nick + '님에게 선물할까요?').then(function (ok) {
-              if (!ok) return;
-              var r = ctx.actions.giftHeart(p.userKey);
-              if (r.ok) { UI.closeSheet(); UI.toast('하트를 선물했어요'); }
-              else if (r.reason === 'hearts') UI.toast('하트가 부족해요', 'error');
-              else UI.toast('선물하지 못했어요', 'error');
-            });
+            sendGift(ctx, p);
             return;
           }
         });
@@ -754,83 +773,36 @@
     UI.toast('요청을 거절했어요.');
   }
 
-  /* ---------- 하트 충전(출석·광고) ---------- */
-  function adLabel(h) {
-    if (!h.adRemaining) return '오늘 다 받았어요';
-    if (h.nextAdInSec > 0) return h.nextAdInSec + '초 후';
-    return '남은 ' + h.adRemaining + '회';
-  }
+  /* ---------- 하트 충전(공용 시트) ----------
+   * 출석·광고·실시간 쿨타임은 js/ads.js 의 openHeartSheet 하나가 맡습니다.
+   * 매칭뿐 아니라 하트 선물·유료 테마·프레임/배지 해금에서도 같은 시트가 열립니다. */
+  function openHeartSheet(ctx, backKey, opts) {
+    opts = opts || {};
+    var hearts = (ctx.store.state.data && ctx.store.state.data.hearts) || {};
+    var balance = hearts.balance || 0;
+    var need = Math.max(1, Math.round(Number(opts.need) || D.HEART_RULES.MATCH_COST));
+    var back = backKey || '';
+    var p = back ? profileOf(ctx.store.state, back) : null;
+    var short = Math.max(0, need - balance);
+    var why = opts.why || (need >= D.HEART_RULES.MATCH_COST
+      ? '1:1 매칭은 <b>상대가 수락할 때</b> 하트 ' + need + '개가 차감돼요.'
+      : '하트 선물에는 <b>하트 ' + need + '개</b>가 필요해요.');
 
-  function openHeartSheet(ctx, backKey) {
-    var h = ctx.store.state.data.hearts || {};
-    var cost = D.HEART_RULES.MATCH_COST;
-    var balance = h.balance || 0;
-    var enough = balance >= cost;
-    var body = '<p class="sheet__text">1:1 매칭은 <b>상대가 수락할 때</b> 하트 ' + cost + '개가 차감돼요. 지금 <b>' + balance + '개</b> 있어요.</p>' +
-      '<div class="charge">' +
-      '<button type="button" class="charge__row" data-charge="checkin"' + (h.canCheckIn ? '' : ' disabled') + '>' +
-      '<span class="charge__t">출석 체크</span>' +
-      '<span class="charge__d">' + (h.checkedInToday ? '오늘 완료' : '하루 1회') + '</span>' +
-      '<b class="charge__n">+' + (h.checkinReward || D.HEART_RULES.CHECKIN) + '</b></button>' +
-      '<button type="button" class="charge__row" data-charge="ad"' + (h.canWatchAd ? '' : ' disabled') + '>' +
-      '<span class="charge__t">광고 보고 받기</span>' +
-      '<span class="charge__d">' + U.esc(adLabel(h)) + '</span>' +
-      '<b class="charge__n">+' + (h.adReward || D.HEART_RULES.AD_REWARD) + '</b></button>' +
-      '</div>' +
-      '<p class="hint">' + (enough ? '지금 바로 요청을 보낼 수 있어요.' : '두 개를 모두 받으면 ' + (cost - balance) + '개를 채울 수 있어요.') + '</p>' +
-      (backKey && enough ? '<button type="button" class="btn btn--primary btn--big mt8" data-charge="back">프로필로 돌아가기</button>'
-        : '<button type="button" class="btn btn--ghost btn--big mt8" data-charge="my">MY에서 잔액 보기</button>');
+    var intro = '<p class="sheet__text">' + why + ' 지금 <b>' + balance + '개</b> 있어요.' +
+      (short ? ' <span class="warn">' + short + '개 부족</span>' : '') + '</p>';
 
-    UI.openSheet({
-      title: '하트 충전',
-      body: body,
-      onMount: function (wrap) {
-        wrap.addEventListener('click', function (ev) {
-          var b = ev.target.closest('[data-charge]');
-          if (!b) return;
-          ev.preventDefault();
-          var kind = b.getAttribute('data-charge');
-          if (b.disabled) return;
-          if (kind === 'my') {
-            UI.closeSheet();
-            ctx.actions.setTab('my');
-            UI.toast('MY 화면 하트 카드에서 충전할 수 있어요');
-            return;
-          }
-          if (kind === 'back') {
-            UI.closeSheet();
-            var p = profileOf(ctx.store.state, backKey);
-            if (p) openProfile(p, ctx);
-            return;
-          }
-          if (kind === 'checkin') {
-            var ci = ctx.actions.checkIn();
-            if (ci.ok) { UI.toast('출석 체크 완료 · 하트 +' + ci.gained); UI.haptic(12); UI.closeSheet(); openHeartSheet(ctx, backKey); }
-            else if (ci.reason === 'done') UI.toast('오늘은 이미 출석했어요');
-            else UI.toast('잠시만요');
-            return;
-          }
-          if (kind === 'ad') {
-            /* js/ads.js 어댑터: 네이티브 브리지가 있으면 그쪽, 웹에서는 3초 미리보기 */
-            var myView = BM.views.my;
-            if (b.classList.contains('is-busy')) return;
-            b.classList.add('is-busy');
-            var play = (BM.ads && BM.ads.showRewarded)
-              ? BM.ads.showRewarded({ unit: 'heart_reward' })
-              : ((myView && myView.playRewardAd) ? myView.playRewardAd() : Promise.resolve(null));
-            play.then(function (r) {
-              if (!r || !r.rewarded) { b.classList.remove('is-busy'); return; }
-              var res = ctx.actions.watchAd({ verified: true, adUnit: r.adUnit });
-              b.classList.remove('is-busy');
-              if (res.ok) { UI.toast('하트 +' + res.gained); UI.haptic(12); UI.closeSheet(); openHeartSheet(ctx, backKey); }
-              else if (res.reason === 'limit') UI.toast('오늘 몫을 모두 받았어요');
-              else if (res.reason === 'cooldown') UI.toast(res.retryAfter + '초 뒤에 다시 시도해 주세요');
-              else UI.toast('잠시만요');
-            });
-          }
-        });
-      }
-    });
+    if (BM.ads && typeof BM.ads.openHeartSheet === 'function') {
+      return BM.ads.openHeartSheet(ctx, {
+        need: need,
+        title: opts.title || '하트 충전',
+        intro: intro,
+        continueLabel: opts.continueLabel || (p ? '프로필로 돌아가기' : '닫기'),
+        onContinue: opts.onContinue || (p ? function () { openProfile(p, ctx); } : null)
+      });
+    }
+    /* 광고 모듈을 못 읽은 환경(아주 오래된 캐시)에서는 안내만 남깁니다 */
+    UI.toast('하트가 ' + short + '개 부족해요. MY에서 충전해 주세요', 'error');
+    return null;
   }
 
   /* ---------- 내 매칭 카드 ---------- */

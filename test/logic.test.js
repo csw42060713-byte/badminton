@@ -837,7 +837,7 @@
     rows2.push(D.toRow({ id: U.uid(), type: '광고하트', userKey: BM.seed.ME, date: U.ymd(), likes: 1, createdAt: U.stamp(new Date(Date.now() - 5000)) }));
     var html2 = BM.views.my.render(stateOf(rows2));
     checkHtml(html2, 'MY-쿨다운');
-    includes(html2, '초 후', '쿨다운 표시');
+    includes(html2, '다음 광고까지', '쿨다운 표시(실시간 카운트다운)');
     includes(html2, '1/5', '오늘 광고 1/5');
   });
 

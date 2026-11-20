@@ -685,6 +685,9 @@
       adRemaining: Math.max(0, R.AD_PER_DAY - adToday),
       adCooldownSec: R.AD_COOLDOWN_SEC,
       nextAdInSec: nextAdInSec,
+      /* 다음 광고까지 남은 시간의 기준점(ms). 파생 시각이 지나도
+       * 화면이 1초마다 다시 계산할 수 있게 절대 시각을 함께 넘깁니다. */
+      nextAdAt: nextAdAt,
       canWatchAd: adToday < R.AD_PER_DAY && nextAdInSec <= 0,
 
       matchCost: R.MATCH_COST,
