@@ -4492,3 +4492,98 @@ body.has-notif.has-netbar .main { padding-top: calc(var(--hdr-h) + var(--safe-t)
   font-size: 12.5px; line-height: 1.55; color: var(--text-2);
   word-break: break-word;
 }
+
+/* ============================================================
+ * bm-v1.35.0 — 타 앱 벤치마킹 UX·디자인 정비
+ *  1) 일지 '복식 파트너' 최근 파트너 원탭 칩
+ *  2) 일지 & AI 첫 화면 정보 밀도 — 루틴 선택 카드 압축 · 카드 사이 여백
+ *  3) 5개 탭 공통 — 한국어 줄바꿈(keep-all) · 상단 버튼 터치 영역 · 중복 안내 정리
+ * ============================================================ */
+
+/* ---------- 1) 최근 파트너 칩 ----------
+ *  파트너 입력칸(.ptnfield) 아래 한 줄. 가로로 넘치면 스크롤되고,
+ *  오른쪽 끝은 살짝 흐려 '더 있다'는 것만 알려 줍니다(칩이 잘려 보이지 않게). */
+.ptnchips {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 8px;
+  overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(90deg, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, #000 94%, transparent);
+}
+.ptnchips::-webkit-scrollbar { display: none; }
+.ptnchips__lab {
+  flex: 0 0 auto;
+  font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: -0.1px;
+}
+.ptnchip {
+  flex: 0 0 auto;
+  min-height: 34px; padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--card);
+  color: var(--text-2);
+  font-size: 12.5px; font-weight: 700; letter-spacing: -0.2px;
+  transition: background 120ms, color 120ms, border-color 120ms, transform 90ms;
+}
+.ptnchip:active { transform: scale(0.96); }
+.ptnchip.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent);
+  font-weight: 800;
+}
+[data-theme="th_night"] .ptnchip.is-on,
+[data-theme="th_court"] .ptnchip.is-on { color: var(--accent); }
+
+/* ---------- 2) 일지 & AI 첫 화면 ----------
+ *  카드 사이 14px → 12px, 루틴 선택 카드는 지표 상자를 한 줄 메타로 바꿔 160px 안쪽으로.
+ *  기능은 그대로 두고 '오늘 일지' 입력까지 스크롤만 줄입니다. */
+.view[data-view="log"] { gap: 12px; }
+.card--rtn-ask { padding: 16px 16px 14px; }
+.ask__head { gap: 6px; }
+.ask__t { font-size: 17px; }
+.ask__s { font-size: 12.5px; line-height: 1.55; }
+.ask__meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin-top: 8px;
+}
+.ask__meta span {
+  padding: 3px 9px; border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  border: 1px solid var(--line);
+  font-size: 10.5px; font-weight: 700; color: var(--muted);
+  letter-spacing: -0.1px;
+}
+.ask__meta b { color: var(--text); font-weight: 800; }
+.ask__btns {
+  display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  gap: 8px; margin-top: 12px;
+}
+.ask__btns .btn {
+  min-height: 42px; padding: 0 8px;
+  font-size: 12.5px; letter-spacing: -0.3px;
+}
+.ask__note { margin-top: 7px; }
+
+/* ---------- 3) 5개 탭 공통 정비 ---------- */
+/* 한국어는 단어 중간에서 끊기지 않게 — '줍니다.'·'신청할 수 있어요.'처럼
+ * 한 단어만 다음 줄로 떨어지던 줄바꿈을 단어 경계로 모읍니다.
+ * 긴 주소·영문은 자리가 모자랄 때만 끊습니다(overflow-wrap). */
+body {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+/* 상단 채팅·하트 — 손가락으로 누르기 좋게 4px씩 (모양·자리는 그대로) */
+.hdr__chat.iconbtn { width: 38px; height: 38px; }
+.heartchip { height: 34px; }
+
+/* 커뮤니티 작성 카드의 말머리 칩 — 아래 '목록 거르기' 칩과 같은 줄로 보이지 않게
+ *  '분류' 이름표를 붙여 어느 쪽이 글의 분류인지 한눈에 구분합니다. */
+.topicpick-line { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.topicpick-line .topicpick { margin-top: 0; }
+.topicpick-line .chips { flex: 1; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.topicpick-line .chips::-webkit-scrollbar { display: none; }
+.topicpick__lab { flex: 0 0 auto; font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: -0.1px; }
