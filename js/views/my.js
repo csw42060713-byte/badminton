@@ -1085,16 +1085,33 @@
     return wrap;
   }
 
+  /* MY > 데이터 연결 > 구글 시트 연결
+   *  주소·이메일은 미리 채워 둡니다 — 사용자가 /exec 주소를 찾아 넣지 않아도 되게.
+   *  (다른 브리지를 쓰는 사람은 채워진 주소만 바꾸면 됩니다) */
+  function connectDefaults() {
+    var saved = BM.api.savedSession() || {};
+    var mine = (BM.auth && typeof BM.auth.session === 'function' ? BM.auth.session() : null) || {};
+    var auth = BM.auth || {};
+    var url = saved.url || (typeof auth.bridgeUrl === 'function' ? auth.bridgeUrl() : '') || '';
+    /* 체험(게스트) 세션의 '체험 사용자'는 시트 계정이 아니므로 이메일·닉네임은 비워 둡니다 */
+    var real = mine.kind && mine.kind !== 'guest';
+    return {
+      url: String(url || ''),
+      email: real ? String(mine.email || '') : '',
+      nick: real ? String(mine.name || '') : ''
+    };
+  }
+
   function openConnectSheet(ctx) {
-    var sess = BM.api.savedSession() || {};
+    var def = connectDefaults();
     UI.openSheet({
       title: '구글 시트 연결',
-      body: '<p class="sheet__text">Apps Script를 웹 앱으로 배포한 뒤 나온 <b>/exec</b> 주소를 넣어 주세요. ' +
+      body: '<p class="sheet__text">기본 연결 주소가 채워져 있어요. 다른 브리지를 쓸 때만 바꿔 주세요. ' +
         '메일과 비밀번호는 브리지에서만 확인되고, 비밀번호는 해시로 저장됩니다.</p>' +
-        '<label class="flabel">웹 앱 URL (…/exec)<input type="url" data-c="url" placeholder="https://script.google.com/macros/s/…/exec" value="' + U.esc(sess.url || '') + '"></label>' +
-        '<label class="flabel">이메일<input type="email" data-c="email" inputmode="email" placeholder="you@example.com"></label>' +
+        '<label class="flabel">웹 앱 URL (…/exec)<input type="url" data-c="url" placeholder="https://script.google.com/macros/s/…/exec" value="' + U.esc(def.url) + '"></label>' +
+        '<label class="flabel">이메일<input type="email" data-c="email" inputmode="email" placeholder="you@example.com" value="' + U.esc(def.email) + '"></label>' +
         '<label class="flabel">비밀번호<input type="password" data-c="password" placeholder="처음이면 새 비밀번호로 가입"></label>' +
-        '<label class="flabel">닉네임 (처음 가입 시)<input type="text" data-c="nick" maxlength="12" placeholder="시트에 표시될 이름"></label>' +
+        '<label class="flabel">닉네임 (처음 가입 시)<input type="text" data-c="nick" maxlength="12" placeholder="시트에 표시될 이름" value="' + U.esc(def.nick) + '"></label>' +
         '<div class="row gap8 mt16"><button class="btn btn--ghost grow" data-close>취소</button>' +
         '<button class="btn btn--primary grow" data-act="do-connect">연결</button></div>',
       onMount: function (wrap) {
@@ -1152,5 +1169,7 @@
   BM.views.my = view;
   BM.views.my.playRewardAd = playRewardAd;   /* 매칭 화면의 하트 충전 시트도 같은 광고 흐름을 씁니다 */
   BM.views.my.decorateDraft = decorateDraft;   /* 테스트·점검용 (꾸미기 시트 초기값) */
-  BM.views.my.decorateBody = decorateBody;     /* 테스트·점검용 (꾸미기 시트 본문) */   /* 매칭 화면의 하트 충전 시트도 같은 광고 흐름을 씁니다 */
+  BM.views.my.decorateBody = decorateBody;     /* 테스트·점검용 (꾸미기 시트 본문) */
+  BM.views.my.openConnectSheet = openConnectSheet;   /* 테스트·점검용 (시트 연결 기본값) */
+  BM.views.my.connectDefaults = connectDefaults;     /* 테스트·점검용 (기본 채움 값) */   /* 매칭 화면의 하트 충전 시트도 같은 광고 흐름을 씁니다 */
 })(typeof globalThis !== 'undefined' ? globalThis : this);
