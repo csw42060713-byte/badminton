@@ -141,6 +141,7 @@
       if (!host.hidden) {
         host.hidden = true;
         host.innerHTML = '';
+        host.__dmHtml = '';
         host.dataset.sig = '';
         document.body.classList.remove('no-scroll');
       }
@@ -148,8 +149,14 @@
     }
     var active = document.activeElement;
     var keep = null;
-    if (active && active.matches && active.matches('[data-dm-input]')) {
-      keep = { value: active.value, pos: active.selectionStart };
+    /* 입력 중인 글은 다시 그려도 그대로 남깁니다(새 소식 폴링으로 화면이 갱신될 때) */
+    var liveInput = host.querySelector('[data-dm-input]');
+    if (liveInput && (liveInput.value || (active && active === liveInput))) {
+      keep = {
+        value: liveInput.value,
+        pos: liveInput.selectionStart,
+        focused: !!(active && active === liveInput)
+      };
     }
     host.hidden = false;
     dmPushHistory();
@@ -160,11 +167,189 @@
       var inp = host.querySelector('[data-dm-input]');
       if (inp) {
         inp.value = keep.value;
-        inp.focus();
-        try { inp.setSelectionRange(keep.pos, keep.pos); } catch (e) { /* noop */ }
+        if (keep.focused) {
+          inp.focus();
+          try { inp.setSelectionRange(keep.pos, keep.pos); } catch (e) { /* noop */ }
+        }
       }
     }
     document.body.classList.add('no-scroll');
+  }
+
+  /* ---------- v1.20: 새 메시지·요청 알림 ----------
+   * 순서: 앱 안 배너(보고 있을 때) → 브라우저 알림(다른 탭·백그라운드)
+   *       → 짧은 진동 · 작은 띵음. 모두 MY > 알림·편지지의 '새 메시지 알림'을 따릅니다.
+   * 알림은 '직전 확인 이후 새로 들어온 것'만 씁니다(처음 열 때 지난 메시지는 제외). */
+  var notifyTimer = null;
+  var lastNotifiedAt = '';
+
+  function notifEnabled() {
+    return !!(store && store.state.prefs && store.state.prefs.notify !== false);
+  }
+
+  function notifItemOf(state) {
+    var inbox = (state && state.inbox) || {};
+    var all = [].concat(inbox.messages || [], inbox.requests || [], inbox.friendRequests || []);
+    if (!all.length) return null;
+    return all.slice().sort(function (a, b) { return String(a.at || '') < String(b.at || '') ? -1 : 1; })[all.length - 1];
+  }
+
+  function notifText(item) {
+    if (!item) return '';
+    if (item.kind === 'message') return (item.nick || '회원') + '님에게서 새 메시지가 왔어요';
+    if (item.kind === 'match') return (item.nick || '회원') + '님이 1:1 매칭을 요청했어요';
+    return (item.nick || '회원') + '님이 친구 요청을 보냈어요';
+  }
+
+  function hideNotify() {
+    var bar = el('notifbar');
+    if (!bar || bar.hidden) return;
+    bar.hidden = true;
+    bar.innerHTML = '';
+    bar.dataset.sig = '';
+    if (document.body) document.body.classList.remove('has-notif');
+  }
+
+  function paintNotify(state) {
+    var bar = el('notifbar');
+    if (!bar) return;
+    var item = (state && state.ready && !gated && notifEnabled()) ? notifItemOf(state) : null;
+    /* 지금 보고 있는 방의 메시지는 배너로 또 알리지 않습니다 */
+    if (item && item.kind === 'message' && state.ui.chatOpen && String(state.ui.chatRoom) === String(item.roomId)) item = null;
+    if (!item) { hideNotify(); return; }
+    var sig = item.kind + '|' + (item.roomId || item.id) + '|' + item.at;
+    if (bar.dataset.sig === sig && !bar.hidden) return;
+    bar.dataset.sig = sig;
+    var sub = item.kind === 'message'
+      ? U.truncate(item.text || '', 40)
+      : (item.kind === 'match' ? '눌러서 받은 요청 보기' : '눌러서 확인하기');
+    bar.className = 'notifbar notifbar--' + (item.kind === 'message' ? 'msg' : 'req');
+    bar.innerHTML =
+      '<button type="button" class="notifbar__body" data-notif-open>' +
+      '<span class="notifbar__dot" aria-hidden="true"></span>' +
+      '<span class="notifbar__text"><strong>' + U.esc(notifText(item)) + '</strong>' +
+      (sub ? '<span>' + U.esc(sub) + '</span>' : '') + '</span></button>' +
+      '<button type="button" class="iconbtn notifbar__x" data-notif-close aria-label="알림 닫기">' + UI.icon('close') + '</button>';
+    bar.hidden = false;
+    if (document.body) document.body.classList.add('has-notif');
+    if (notifyTimer) clearTimeout(notifyTimer);
+    notifyTimer = setTimeout(hideNotify, 8000);
+  }
+
+  function openNotifItem(item) {
+    if (!item || !store) return;
+    hideNotify();
+    UI.haptic(8);
+    if (item.kind === 'message') {
+      store.actions.openChat(item.roomId, item.from || '');
+      store.actions.markChatRead(item.roomId, item.from || '');
+      return;
+    }
+    if (item.kind === 'match') {
+      store.actions.closeChats();
+      store.actions.setTab('matching');
+      store.actions.setMatchTab('in');
+      return;
+    }
+    store.actions.openChats();
+  }
+
+  function beep() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      var ac = new AC();
+      var osc = ac.createOscillator(), gain = ac.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      var t = ac.currentTime;
+      gain.gain.exponentialRampToValueAtTime(0.06, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      osc.start(t);
+      osc.stop(t + 0.18);
+      setTimeout(function () { try { ac.close(); } catch (e) { /* 무시 */ } }, 500);
+    } catch (e) { /* 무음·자동재생 차단 브라우저 */ }
+  }
+
+  function browserNotify(item) {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') return;
+    var title = '배드민턴 · ' + notifText(item);
+    var options = {
+      body: item.kind === 'message' ? U.truncate(item.text || '', 90) : '앱을 열어 확인해 보세요.',
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+      tag: 'bm-' + (item.roomId || item.id || 'news'),
+      data: { roomId: item.roomId || '', kind: item.kind }
+    };
+    /* 안드로이드 크롬은 new Notification() 대신 서비스워커 알림만 됩니다 */
+    try {
+      if (typeof navigator !== 'undefined' && navigator.serviceWorker && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready.then(function (reg) {
+          if (reg && typeof reg.showNotification === 'function') return reg.showNotification(title, options);
+        }).catch(function () { /* 권한·지원 문제는 조용히 넘어감 */ });
+        return;
+      }
+    } catch (e) { /* 서비스워커 없이도 아래로 시도 */ }
+    try {
+      var n = new Notification(title, options);
+      n.onclick = function () { try { window.focus(); } catch (e) { /* 무시 */ } openNotifItem(item); try { n.close(); } catch (e) { /* 무시 */ } };
+    } catch (e) { /* 알림을 못 띄우는 브라우저 */ }
+  }
+
+  function onIncoming(state) {
+    var inbox = (state && state.inbox) || null;
+    if (!inbox || !inbox.total || !inbox.at || inbox.at === lastNotifiedAt) return;
+    lastNotifiedAt = inbox.at;
+    if (!notifEnabled()) return;
+    var item = notifItemOf(state);
+    if (!item) return;
+    UI.haptic(35);
+    beep();
+    browserNotify(item);
+  }
+
+  function askNotifyPermission() {
+    if (typeof Notification === 'undefined') return;
+    if (Notification.permission !== 'default') return;
+    try {
+      var p = Notification.requestPermission();
+      if (p && typeof p.catch === 'function') p.catch(function () { /* 사용자가 닫음 */ });
+    } catch (e) { /* 구형 브라우저 */ }
+  }
+
+  /* ---------- v1.20: 새 소식 폴링 · 활동 시각 ----------
+   * 45초마다 새 메시지를 확인하고(탭이 숨겨져 있어도 알림을 위해 계속),
+   * 1분마다 내 활동 시각을 갱신합니다(시트에는 3분에 한 번만 씁니다). */
+  var pollTimer = null;
+  var heartTimer = null;
+
+  function startWatchers() {
+    if (typeof setInterval !== 'function') return;
+    if (!pollTimer) {
+      pollTimer = setInterval(function () {
+        if (!store || gated || !store.state.ready) return;
+        store.actions.poll();
+      }, 45000);
+    }
+    if (!heartTimer) {
+      heartTimer = setInterval(function () {
+        if (!store || gated || !store.state.ready) return;
+        if (typeof document !== 'undefined' && document.hidden) return;   /* 숨은 탭은 활동으로 치지 않음 */
+        store.actions.touchActivity();
+      }, 60000);
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState !== 'visible') return;
+        if (!store || gated || !store.state.ready) return;
+        store.actions.touchActivity();
+        store.actions.poll();
+      });
+    }
   }
 
   /* ---------- 오프라인 · 동기화 안내 막대 ----------
@@ -292,6 +477,8 @@
     paintChrome(state);
     paintNetBar(state);
     paintDm(state);
+    paintNotify(state);
+    onIncoming(state);
     if (painting) return;
     if (state.ui.tab !== currentTab) {
       mountView(state.ui.tab);
@@ -551,6 +738,7 @@
       }
       mountView(store.state.ui.tab);
       paintNetBar(store.state);
+      startWatchers();
       if (store.state.syncError) UI.toast(store.state.syncError, 'error');
       if (!U.readJSON('bm_seen_v1', false)) welcome();
     });
@@ -656,6 +844,7 @@
         var id = btn.getAttribute('data-tab');
         UI.haptic(6);
         store.actions.setTab(id);
+        store.actions.touchActivity();
       });
     }
     var heartsBtn = el('hdrHearts');
@@ -669,8 +858,20 @@
     if (chatBtn) chatBtn.addEventListener('click', function () {
       if (!store || gated) return;
       UI.haptic(6);
+      /* 알림을 켜 둔 사람이 채팅을 처음 열 때 브라우저 알림 권한을 자연스럽게 물어봅니다 */
+      if (notifEnabled()) askNotifyPermission();
       if (store.state.ui.chatOpen) store.actions.closeChats();
       else store.actions.openChats();
+    });
+
+    /* 새 소식 배너 — 누르면 해당 방·받은 요청으로, X를 누르면 닫습니다 */
+    var notif = el('notifbar');
+    if (notif) notif.addEventListener('click', function (ev) {
+      if (ev.target.closest('[data-notif-close]')) { ev.preventDefault(); hideNotify(); return; }
+      if (ev.target.closest('[data-notif-open]')) {
+        ev.preventDefault();
+        if (store) openNotifItem(notifItemOf(store.state));
+      }
     });
 
     /* 안드로이드 뒤로 가기: 시트를 닫은 back이면 채팅은 그대로 두고,
@@ -701,7 +902,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.19.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.20.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

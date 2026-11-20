@@ -40,7 +40,9 @@
     shield: '<path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
     bolt: '<path d="M13 3L6 13h4.5L10 21l7-10h-4.5z"/>',
     users: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.5 14.4c2.1.7 3.5 2.6 3.5 5.6"/>',
-    refresh: '<path d="M20 11a8 8 0 1 0-2.3 6.1"/><path d="M20 4v7h-7"/>'
+    refresh: '<path d="M20 11a8 8 0 1 0-2.3 6.1"/><path d="M20 4v7h-7"/>',
+    bell: '<path d="M18 15V10a6 6 0 1 0-12 0v5l-2 3h16z"/><path d="M10 21h4"/>',
+    mail: '<path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/>'
   };
 
   function icon(name, cls) {
@@ -271,6 +273,15 @@
       '<span class="avx__inner">' + inner + '</span>' + badge + '</span>';
   }
 
+  /* 활동 상태 배지 — '활동 중'이면 초록 점이 살아 있습니다 */
+  function presence(p, opts) {
+    p = p || { state: 'none', label: '활동 정보 없음' };
+    var cls = 'presence presence--' + U.esc(p.state || 'none');
+    if (opts && opts.cls) cls += ' ' + opts.cls;
+    var dot = (opts && opts.noDot) ? '' : '<i class="presence__dot" aria-hidden="true"></i>';
+    return '<span class="' + cls + '" title="' + U.esc(p.at || '') + '">' + dot + U.esc(p.label || '활동 정보 없음') + '</span>';
+  }
+
   function emptyState(iconName, title, sub, actionHtml) {
     return '<div class="empty">' + icon(iconName || 'spark') +
       '<p class="empty__t">' + U.esc(title) + '</p>' +
@@ -304,7 +315,7 @@
     openSheet: openSheet, closeSheet: closeSheet, confirm: confirmSheet,
     onSheetClose: onSheetClose,
     paint: paint, chips: chips, readChips: readChips, toggleChip: toggleChip,
-    avatar: avatar, emptyState: emptyState, stars: stars, person: person, hasDom: hasDom,
+    avatar: avatar, presence: presence, emptyState: emptyState, stars: stars, person: person, hasDom: hasDom,
     overlay: {
       open: overlayOpen, close: overlayClose, reset: overlayReset,
       depth: function () { return overlayDepth; },

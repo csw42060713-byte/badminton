@@ -1346,8 +1346,224 @@
     return null;
   }
 
+  /* ============================================================
+   * v1.20 — 채팅 시각 · 활동 상태 · 새 메시지 감지 · 사용자 설정
+   * 화면(DOM) 없이 계산만 합니다. 테스트에서 그대로 돌려볼 수 있습니다.
+   * ============================================================ */
+
+  /* ---------- 1) 보낸 시각 표기 ----------
+   * 말풍선·방 목록 어디서든 같은 규칙을 씁니다.
+   *  · 같은 날      : '오후 2:20'
+   *  · 다른 날      : '11/18 14:20'
+   *  · 방 목록     : 오늘이면 '오후 2:20', 어제면 '어제', 그 전이면 '11/18'
+   *  · 날짜 구분선 : '오늘' / '어제' / '11월 18일 (화)' */
+  function timeOf(ts) {
+    if (!ts) return null;
+    if (ts instanceof Date) return isNaN(ts.getTime()) ? null : ts;
+    var d = new Date(String(ts).replace(' ', 'T'));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function clock12(d) {
+    var h = d.getHours(), m = d.getMinutes();
+    return (h < 12 ? '오전 ' : '오후 ') + (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m;
+  }
+
+  function clock24(d) {
+    return U.pad2(d.getHours()) + ':' + U.pad2(d.getMinutes());
+  }
+
+  function sameDay(a, b) {
+    return !!a && !!b && U.ymd(a) === U.ymd(b);
+  }
+
+  function chatTime(ts) {
+    var d = timeOf(ts);
+    return d ? clock12(d) : '';
+  }
+
+  /* 말풍선 아래 시각 — 오늘이 아니면 날짜를 함께 적습니다 */
+  function chatStamp(ts, nowMs) {
+    var d = timeOf(ts);
+    if (!d) return '';
+    var now = nowMs ? new Date(nowMs) : new Date();
+    return sameDay(d, now) ? clock12(d) : U.shortDay(U.ymd(d)) + ' ' + clock24(d);
+  }
+
+  /* 대화 목록 오른쪽 시각 */
+  function chatListTime(ts, nowMs) {
+    var d = timeOf(ts);
+    if (!d) return '';
+    var now = nowMs ? new Date(nowMs) : new Date();
+    if (sameDay(d, now)) return clock12(d);
+    if (sameDay(d, U.addDays(now, -1))) return '어제';
+    if (d.getFullYear() === now.getFullYear()) return U.shortDay(U.ymd(d));
+    return d.getFullYear() + '.' + U.shortDay(U.ymd(d));
+  }
+
+  function chatDayKey(ts) {
+    var d = timeOf(ts);
+    return d ? U.ymd(d) : '';
+  }
+
+  function chatDayLabel(ts, nowMs) {
+    var d = timeOf(ts);
+    if (!d) return '';
+    var now = nowMs ? new Date(nowMs) : new Date();
+    if (sameDay(d, now)) return '오늘';
+    if (sameDay(d, U.addDays(now, -1))) return '어제';
+    return U.dayLabel(U.ymd(d));
+  }
+
+  /* ---------- 2) 활동 상태 ----------
+   * 기준: 5분 이내 '활동 중' · 15분 이내 '방금 전 활동' · 1시간 이내 'N분 전 활동'
+   *       오늘 '오늘 활동' · 7일 이내 'N일 전 활동' · 그 뒤 '오래전' · 기록 없음 '활동 정보 없음'
+   * 활동 시각은 채팅·일지·출석·꾸미기·프로필 갱신 같은 '그 사람이 남긴 행'의
+   * 최신 작성일시와 매칭프로필에 적어 둔 lastActiveAt 중 가장 늦은 값입니다. */
+  var PRESENCE = { ACTIVE_MIN: 5, RECENT_MIN: 15, HOUR_MIN: 60, DAY_MIN: 1440, OLD_DAYS: 7 };
+
+  var ACTIVITY_TYPES = [
+    '매칭채팅', '채팅읽음', '기록', '경기', '출석하트', '광고하트', '하트', '내하트사용',
+    '선물하트', '하트합치기', '꾸미기구매', '달력메모', '프로필', '매칭프로필',
+    '소셜', '답글', '매칭신청', '친구요청', '친구수락', '코치피드백'
+  ];
+
+  function presenceFromAt(at, nowMs) {
+    var out = { state: 'none', label: '활동 정보 없음', at: at || '', minutes: null, dot: false };
+    var d = timeOf(at);
+    if (!d) return out;
+    var now = nowMs ? new Date(nowMs) : new Date();
+    var mins = Math.floor((now.getTime() - d.getTime()) / 60000);
+    if (mins < 0) mins = 0;
+    out.minutes = mins;
+    if (mins <= PRESENCE.ACTIVE_MIN) { out.state = 'on'; out.label = '활동 중'; }
+    else if (mins <= PRESENCE.RECENT_MIN) { out.state = 'recent'; out.label = '방금 전 활동'; }
+    else if (mins <= PRESENCE.HOUR_MIN) { out.state = 'minutes'; out.label = mins + '분 전 활동'; }
+    else if (sameDay(d, now)) { out.state = 'today'; out.label = '오늘 활동'; }
+    else if (mins <= PRESENCE.DAY_MIN * PRESENCE.OLD_DAYS) {
+      out.state = 'days'; out.label = Math.max(1, Math.floor(mins / PRESENCE.DAY_MIN)) + '일 전 활동';
+    } else { out.state = 'old'; out.label = '오래전'; }
+    out.dot = out.state === 'on';
+    return out;
+  }
+
+  function lastActiveAt(idx, userKey) {
+    if (!idx || !userKey) return '';
+    var best = '';
+    ACTIVITY_TYPES.forEach(function (type) {
+      (idx.byType[type] || []).forEach(function (r) {
+        if (!r || r.userKey !== userKey) return;
+        var at = r.createdAt || '';
+        if (at > best) best = at;
+      });
+    });
+    var mp = matchProfileOf(idx, userKey) || {};
+    if (mp.lastActiveAt && String(mp.lastActiveAt) > best) best = String(mp.lastActiveAt);
+    return best;
+  }
+
+  function presenceOf(idx, userKey, nowMs) {
+    if (userKey && typeof userKey === 'object') return presenceFromAt(userKey.at, nowMs);
+    return presenceFromAt(lastActiveAt(idx, userKey), nowMs);
+  }
+
+  /* ---------- 3) 새 메시지 · 새 요청 감지 ----------
+   * since(작성일시 문자열) 이후에 들어온, '내가 보낸 것이 아닌' 메시지와 요청만 골라냅니다.
+   * 처음 앱을 열 때는 since = 지금 시각이라 지난 메시지는 알리지 않습니다. */
+  function joinedGroupRoom(idx, roomId, meKey) {
+    if (!meKey) return false;
+    var post = groupPostOf(idx, roomId);
+    if (!post) return false;
+    if (post.userKey === meKey) return true;
+    var read = (idx.byType['채팅읽음'] || []).some(function (r) {
+      return r.userKey === meKey && String(r.team || r.target || '') === String(roomId);
+    });
+    if (read) return true;
+    return (idx.byType['매칭채팅'] || []).some(function (m) {
+      return String(m.team || '') === String(roomId) && m.userKey === meKey;
+    });
+  }
+
+  function newIncoming(idx, meKey, since) {
+    var out = { messages: [], requests: [], friendRequests: [], total: 0 };
+    if (!idx || !meKey) return out;
+    var after = String(since || '');
+    function fresh(r) { return !!r && !!r.createdAt && r.createdAt > after; }
+
+    (idx.byType['매칭채팅'] || []).forEach(function (m) {
+      if (!fresh(m) || m.userKey === meKey) return;
+      var roomId = String(m.team || m.id || '');
+      if (!roomId) return;
+      var group = isGroupRoom(idx, roomId);
+      if (group) {
+        if (!joinedGroupRoom(idx, roomId, meKey)) return;
+      } else if (m.target !== meKey) return;
+      out.messages.push({
+        kind: 'message', roomId: roomId, from: m.userKey || '',
+        nick: m.nick || nickOf(idx, m.userKey) || '회원',
+        text: String(m.text || ''), at: m.createdAt, group: group
+      });
+    });
+
+    (idx.byType['매칭신청'] || []).forEach(function (r) {
+      if (!fresh(r) || r.userKey === meKey || r.target !== meKey) return;
+      if ((r.status || '대기') !== '대기') return;
+      out.requests.push({
+        kind: 'match', id: r.id, from: r.userKey || '',
+        nick: r.nick || nickOf(idx, r.userKey) || '회원',
+        note: (r.payload && r.payload.note) || '', at: r.createdAt
+      });
+    });
+
+    (idx.byType['친구요청'] || []).forEach(function (r) {
+      if (!fresh(r) || r.userKey === meKey || r.target !== meKey) return;
+      if (friendState(idx, meKey, r.userKey).state !== 'received') return;
+      out.friendRequests.push({
+        kind: 'friend', id: r.id, from: r.userKey || '',
+        nick: r.nick || nickOf(idx, r.userKey) || '회원', at: r.createdAt
+      });
+    });
+
+    out.messages = U.sortBy(out.messages, function (m) { return m.at || ''; });
+    out.requests = U.sortBy(out.requests, function (m) { return m.at || ''; });
+    out.friendRequests = U.sortBy(out.friendRequests, function (m) { return m.at || ''; });
+    out.total = out.messages.length + out.requests.length + out.friendRequests.length;
+    return out;
+  }
+
+  /* ---------- 4) 사용자 설정 (알림 · 편지지) ----------
+   * 기기에 저장합니다(계정과 무관). 기본은 둘 다 켜짐이고,
+   * 저장된 값이 false일 때만 꺼집니다(예전 기기·깨진 값은 켜짐으로). */
+  var PREFS_KEY = 'bm_prefs_v1';
+  var PREFS_DEFAULTS = { notify: true, letter: true };
+
+  function normalizePrefs(o) {
+    o = o || {};
+    return {
+      notify: o.notify === false ? false : true,
+      letter: o.letter === false ? false : true
+    };
+  }
+
+  function readPrefs() {
+    return normalizePrefs(U.readJSON(PREFS_KEY, null) || {});
+  }
+
+  function writePrefs(p) {
+    var n = normalizePrefs(p);
+    U.writeJSON(PREFS_KEY, n);
+    return n;
+  }
+
+  function setPref(list, key, value) {
+    var p = normalizePrefs(list || readPrefs());
+    if (!Object.prototype.hasOwnProperty.call(PREFS_DEFAULTS, key)) return p;
+    p[key] = value !== false;
+    return writePrefs(p);
+  }
+
   BM.domain = {
-    COLS: COLS, COL: COL, VOCAB: VOCAB, GRADES: GRADES, GENDERS: GENDERS, THEMES: THEMES, AVATAR: AVATAR,
+    COLS: COLS, COL: COL, VOCAB: VOCAB, GRADES: GRADES, GENDERS: GENDERS, THEMES: THEMES, AVATAR: AVATAR, PRESENCE: PRESENCE, PREFS_DEFAULTS: PREFS_DEFAULTS,
     normalizeGrade: normalizeGrade, normalizeGender: normalizeGender, normalizeStyle: normalizeStyle,
     STYLES: STYLES,
     normalizeAvatar: normalizeAvatar, avatarOf: avatarOf,
@@ -1383,6 +1599,12 @@
     groupTitle: groupTitle, groupNote: groupNote, groupMembers: groupMembers,
     groupThread: groupThread, groupThreadById: groupThreadById,
     chatThreads: chatThreads, threadById: threadById, chatUnread: chatUnread,
-    matchProfileOf: matchProfileOf
+    matchProfileOf: matchProfileOf,
+    /* v1.20 */
+    chatTime: chatTime, chatStamp: chatStamp, chatListTime: chatListTime,
+    chatDayKey: chatDayKey, chatDayLabel: chatDayLabel,
+    presenceFromAt: presenceFromAt, lastActiveAt: lastActiveAt, presenceOf: presenceOf,
+    newIncoming: newIncoming, joinedGroupRoom: joinedGroupRoom,
+    PREFS_KEY: PREFS_KEY, normalizePrefs: normalizePrefs, readPrefs: readPrefs, writePrefs: writePrefs, setPref: setPref
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
