@@ -79,7 +79,7 @@
     includes(txt, '한 발 서기', '발목 항목');
     excludes(txt, '팔 바깥 돌리기', '세 번째 부위는 넣지 않는다');
     eq(pv.areas.length, 2, '반영 부위 2개');
-    includes(pv.reason, '52.15', '하체 부상 비중 근거');
+    includes(pv.reason, '52%', '하체 부상 비중 근거(쉬운 말)');
     includes(pv.reason, '23.5', '발목 염좌 근거');
     includes(pv.reason, '준비운동을 자주 할수록', '준비운동 근거 문구(쉬운 말)');
     /* 하체 통증만 있으면 남은 자리는 하체 기본(발목·무릎)으로 */
