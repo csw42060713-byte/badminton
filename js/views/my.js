@@ -1099,16 +1099,33 @@
         '<button class="btn btn--primary grow" data-act="do-connect">연결</button></div>',
       onMount: function (wrap) {
         wrap.addEventListener('click', function (ev) {
-          if (!ev.target.closest('[data-act="do-connect"]')) return;
+          var btn = ev.target.closest('[data-act="do-connect"]');
+          if (!btn) return;
+          ev.preventDefault();
+          /* 손가락 연타: 연결 요청이 두 번 나가지 않게 버튼을 잠급니다 */
+          if (btn.dataset.busy === '1') return;
           var url = wrap.querySelector('[data-c="url"]').value.trim();
           var email = wrap.querySelector('[data-c="email"]').value.trim();
           var password = wrap.querySelector('[data-c="password"]').value;
           var nick = wrap.querySelector('[data-c="nick"]').value.trim();
           if (!url || !email || !password) { UI.toast('주소·이메일·비밀번호를 모두 입력해 주세요'); return; }
+          btn.dataset.busy = '1';
+          btn.disabled = true;
+          var label = btn.textContent;
+          btn.textContent = '연결 중…';
+          function release() {
+            btn.dataset.busy = '0';
+            btn.disabled = false;
+            btn.textContent = label;
+          }
           UI.toast('연결하는 중…');
           ctx.connectSheets(url, email, password, nick).then(function (res) {
-            if (res.ok) { UI.closeSheet(); UI.toast('시트와 연결됐어요'); }
-            else UI.toast(res.message || '연결하지 못했어요', 'error');
+            if (res.ok) { UI.closeSheet(); UI.toast('시트와 연결됐어요'); return; }
+            release();
+            UI.toast(res.message || '연결하지 못했어요', 'error');
+          }, function () {
+            release();
+            UI.toast('연결하지 못했어요', 'error');
           });
         });
       }
