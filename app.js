@@ -506,14 +506,15 @@
   }
 
   /* 저장하면서 '이번 주 약점 3회' 스탬프가 채워졌으면 저장 토스트에 한 조각 덧붙입니다.
-   * (스탬프 계산은 domain.weekChallenge 순수 함수 — 화면은 다시 그려서 따라옵니다) */
+   * (스탬프 계산은 domain.weekChallenge 순수 함수 — 화면은 다시 그려서 따라옵니다)
+   * 첫 일지로 챌린지가 새로 열린 경우도 0 → 1로 채워진 것이라 같이 알려 줍니다. */
   function challengeToast(before, records) {
     var after = BM.domain.weekChallenge(records || [], {});
-    if (!after.active || !before || !before.active) return '';
-    if (before.weakness !== after.weakness) return '';
-    if (after.count <= before.count) return '';
-    if (after.done && !before.done) return ' 🎉 이번 주 ' + after.weakness + ' ' + after.goal + '회 달성!';
-    if (after.done) return '';
+    if (!after.active) return '';
+    var same = !!(before && before.active && before.weakness === after.weakness);
+    var was = same ? before.count : 0;
+    if (after.count <= was) return '';
+    if (after.done && !(same && before.done)) return ' 🎉 이번 주 ' + after.weakness + ' ' + after.goal + '회 달성!';
     return ' · 이번 주 ' + after.weakness + ' ' + Math.min(after.count, after.goal) + '/' + after.goal;
   }
 
