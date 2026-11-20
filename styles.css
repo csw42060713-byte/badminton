@@ -729,7 +729,7 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 }
 .card--hero, .card--match, .card--composer, .card--profile, .card--coach { position: relative; }
 .card--hero::after, .card--match::after, .card--profile::after, .card--coach::after {
-  content: ''; position: absolute; right: -16px; bottom: -12px;
+  content: ''; position: absolute; right: -6px; bottom: -6px;
   width: 146px; height: 110px;
   background: var(--accent); opacity: 0.075;
   -webkit-mask: var(--courtmark) no-repeat right bottom / contain;
@@ -738,12 +738,12 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 }
 /* MY 프로필 카드 · 코치 카드: 글자가 몰린 아래 대신 이름·제목 옆 빈 자리에 깝니다 */
 .card--profile::after, .card--coach::after {
-  top: -10px; bottom: auto; right: -16px;
+  top: -10px; bottom: auto; right: -6px;
   width: 134px; height: 101px;
   -webkit-mask-position: right top; mask-position: right top;
 }
 .card--composer::after {
-  content: ''; position: absolute; right: -14px; top: 0; bottom: auto;
+  content: ''; position: absolute; right: -6px; top: 0; bottom: auto;
   width: 124px; height: 93px;
   background: var(--accent); opacity: 0.06;
   -webkit-mask: var(--courtmark) no-repeat right top / contain;
@@ -751,8 +751,8 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
   pointer-events: none;
 }
 [data-theme="th_def"] .card--hero::after, [data-theme="th_def"] .card--match::after,
-[data-theme="th_def"] .card--profile::after, [data-theme="th_def"] .card--coach::after { opacity: 0.085; }
-[data-theme="th_def"] .card--composer::after { opacity: 0.07; }
+[data-theme="th_def"] .card--profile::after, [data-theme="th_def"] .card--coach::after { opacity: 0.07; }
+[data-theme="th_def"] .card--composer::after { opacity: 0.065; }
 
 .skeleton { display: grid; gap: 12px; }
 .sk {
