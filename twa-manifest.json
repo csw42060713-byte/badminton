@@ -4,18 +4,18 @@
   "name": "배드민턴 분석",
   "launcherName": "배드민턴",
   "display": "standalone",
-  "themeColor": "#080B0A",
-  "themeColorDark": "#000000",
-  "navigationColor": "#080B0A",
-  "navigationColorDark": "#000000",
-  "backgroundColor": "#080B0A",
+  "themeColor": "#F6F8F6",
+  "themeColorDark": "#080B0A",
+  "navigationColor": "#F6F8F6",
+  "navigationColorDark": "#080B0A",
+  "backgroundColor": "#F6F8F6",
   "enableNotifications": false,
   "startUrl": "/badminton/index.html",
   "iconUrl": "https://csw42060713-byte.github.io/badminton/store-assets/icon-512.png",
   "maskableIconUrl": "https://csw42060713-byte.github.io/badminton/icons/icon-maskable-512.png",
   "splashScreenFadeOutDuration": 300,
-  "appVersionName": "1.0.0",
-  "appVersionCode": 1,
+  "appVersionName": "1.18.0",
+  "appVersionCode": 18,
   "shortcuts": [
     {
       "name": "오늘 일지 쓰기",
@@ -42,5 +42,5 @@
     "path": "./android.keystore",
     "alias": "android"
   },
-  "appVersion": "1.0.0"
+  "appVersion": "1.18.0"
 }

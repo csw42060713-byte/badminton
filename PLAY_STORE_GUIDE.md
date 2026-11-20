@@ -163,8 +163,8 @@ bubblewrap build
 | Short name | 배드민턴 |
 | Application ID | `io.github.csw42060713_byte.badminton` (**한 번 정하면 변경 불가**) |
 | Display mode | `standalone` |
-| Status bar / navigation color | `#080B0A` |
-| Splash color | `#080B0A` |
+| Status bar / navigation color | `#F6F8F6` (나이트 테마는 `#080B0A`) |
+| Splash color | `#F6F8F6` |
 | Include support for offine | Yes |
 | Signing key | 새로 만들기(권장) 또는 기존 `android.keystore` |
 | Key alias | `android` |
