@@ -28,6 +28,7 @@
 <script src="../js/util.js"></script>
 <script src="../js/domain.js"></script>
 <script src="../js/seed.js"></script>
+<script src="../js/api.js"></script>
 <script src="../js/store.js"></script>
 <script src="../js/ui.js"></script>
 <script src="../js/views/profile.js"></script>
@@ -91,6 +92,66 @@
   });
 
   var view = (location.search.match(/view=([a-z-]+)/) || [])[1] || 'meet';
+
+  if (view === 'interact') {
+    /* 저장소·이벤트까지 실제로 돌려 보는 점검용 (칩을 누르면 행이 생기고 화면이 바뀝니다) */
+    ['bm_rows_v1', 'bm_queue_v1', 'bm_cache_v1', 'bm_me_v1', 'bm_mode_v1', 'bm_auth_v1'].forEach(function (k) {
+      U.storage.removeItem(k);
+    });
+    U.writeJSON('bm_rows_v1', BM.fixtures.demo());
+    var store = BM.store.createStore({ api: BM.api.createLocal({ latency: 0 }) });
+    store.actions.init().then(function () {
+      var st = store.state;
+      var th = st.data.threads.filter(function (x) { return x.kind === 'match' && x.other === 'demo_net'; })[0];
+      store.actions.openChat(th.roomId, th.other);
+      var host = document.createElement('div');
+      host.className = 'dm';
+      host.style.cssText = 'position:absolute;inset:0;';
+      frame.appendChild(host);
+      var ictx = { store: store, actions: store.actions, refresh: function () {} };
+      BM.views.chat.bind(host, ictx);
+      BM.views.chat.render(host, store.state);
+      store.subscribe(function () {
+        BM.views.chat.render(host, store.state);
+        var sc = host.querySelector('[data-dm-scroll]');
+        if (sc) sc.scrollTop = sc.scrollHeight;
+      });
+      window.__store = store;
+      document.title = '매너 태그 누름 점검';
+    });
+    return;
+  }
+
+  if (view === 'interact-meet') {
+    /* 정원이 찬 남의 번개 글에서 '대기 문의'를 누르면 대기 문구가 채워지는지 */
+    ['bm_rows_v1', 'bm_queue_v1', 'bm_cache_v1', 'bm_me_v1', 'bm_mode_v1', 'bm_auth_v1'].forEach(function (k) {
+      U.storage.removeItem(k);
+    });
+    var mrows = BM.fixtures.demo();
+    mrows.push(D.toRow({
+      id: '930000000000001', type: '소셜', createdAt: U.stamp(), date: U.ymd(),
+      nick: '발놀림장인', userKey: 'demo_foot', text: '토요일 아침 2:2 복식 한 팀 구합니다.',
+      plan: { topic: '번개', meet: { when: '11/22(토) 08:00', place: '강서 SH 체육관', cap: '2' } }
+    }));
+    mrows.push(D.toRow({
+      id: '930000000000002', type: '매칭채팅', createdAt: U.stamp(), date: U.ymd(),
+      nick: '셔틀버스', userKey: 'demo_suttle', target: BM.seed.ME, team: '930000000000001', text: '참여하고 싶어요!'
+    }));
+    U.writeJSON('bm_rows_v1', mrows);
+    var mstore = BM.store.createStore({ api: BM.api.createLocal({ latency: 0 }) });
+    mstore.actions.init().then(function () {
+      var main = document.createElement('div');
+      main.className = 'main';
+      main.innerHTML = '<div class="view">' + BM.views.community.render(mstore.state) + '</div>';
+      frame.appendChild(main);
+      var mctx = { store: mstore, actions: mstore.actions, refresh: function () {} };
+      BM.views.community.mount(main, mctx);
+      window.__store = mstore;
+      document.title = '대기 문의 점검';
+    });
+    return;
+  }
+
   var me = { key: BM.seed.ME, nick: '나래', level: 'C조', discipline: '복식', theme: { theme: 'th_night', avatar: '🦋' } };
   var data = BM.store.derive(rows, me.key, me);
   var state = {
