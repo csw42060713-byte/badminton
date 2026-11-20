@@ -496,4 +496,15 @@
     var idx = readRoot('index.html');
     includes(idx, 'js/views/log.js', 'index.html 로드');
   });
+
+  test('v1.32 시트 다리: 일지 수정 때 팀 칸(파트너·영상)도 받는다', function () {
+    if (!hasNode) return;
+    var gs = readRoot('APPS_SCRIPT_BRIDGE.gs');
+    var block = gs.match(/'기록':\s*\[[^\]]*\]/);
+    ok(block, '기록 수정 허용 칸 목록');
+    includes(block[0], "'팀'", '팀 칸');
+    includes(block[0], "'게임점수'", '기존 칸 유지');
+    excludes(block[0], "'사용자ID'", '사용자ID는 못 바꿈');
+    excludes(block[0], "'비밀번호'", '비밀번호는 못 바꿈');
+  });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
