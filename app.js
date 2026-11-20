@@ -28,6 +28,9 @@
 
   function el(id) { return document.getElementById(id); }
 
+  /* 테마별 크롬 색 — CSS의 --bg 값과 같게 유지합니다 */
+  var THEME_CHROME = { th_def: '#f6f8f6', th_night: '#080b0a', th_court: '#06170f', th_sakura: '#fff8fa' };
+
   function tabMeta(id) {
     for (var i = 0; i < TABS.length; i++) if (TABS[i].id === id) return TABS[i];
     return TABS[0];
@@ -75,6 +78,12 @@
     var theme = (state.me && state.me.theme && state.me.theme.theme) || 'th_def';
     if (document.documentElement.getAttribute('data-theme') !== theme) {
       document.documentElement.setAttribute('data-theme', theme);
+    }
+    /* 안드로이드 크롬 주소창·작업 전환기 색도 테마를 따라갑니다.
+       (예전에는 항상 #080b0a라 밝은 테마에서 검정 띠가 남았습니다) */
+    var themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta && THEME_CHROME[theme] && themeMeta.getAttribute('content') !== THEME_CHROME[theme]) {
+      themeMeta.setAttribute('content', THEME_CHROME[theme]);
     }
     /* 상단 오른쪽 채팅 아이콘: 안 읽은 메시지 + 친구 요청 배지 */
     var chatBtn = el('hdrChat');
@@ -692,7 +701,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.16.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.17.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);
