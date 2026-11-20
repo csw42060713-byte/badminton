@@ -64,9 +64,16 @@
       (openRec ? '<div class="player__detail">' +
         '<h4 class="sec-title">최근 기록</h4><ul class="loglist loglist--tight">' +
         p.records.slice(0, 4).map(function (r) {
+          var vid = D.logMeta(r).video;
           return '<li class="logrow"><div class="logrow__date"><strong>' + U.shortDay(r.date) + '</strong><span>' + U.relDay(r.date) + '</span></div>' +
             '<div class="logrow__mid"><p class="logrow__title">컨디션 ' + (r.cond == null ? '—' : r.cond) + ' · 강도 ' + (r.intensity == null ? '—' : r.intensity) + ' · ' + (r.minutes || 0) + '분</p>' +
-            '<div class="tags">' + [].concat(r.pain || [], r.weakness || []).map(function (t) { return '<span class="tag">' + U.esc(t) + '</span>'; }).join('') + '</div></div>' +
+            '<div class="tags">' + [].concat(r.pain || [], r.weakness || []).map(function (t) { return '<span class="tag">' + U.esc(t) + '</span>'; }).join('') + '</div>' +
+            /* 영상이 있으면 코치가 여기서 바로 열어 봅니다 (bm-v1.34.0) */
+            (vid.url
+              ? '<a class="logrow__vid" data-video href="' + U.esc(vid.url) + '" target="_blank" rel="noopener noreferrer" ' +
+                'aria-label="' + U.esc((vid.label || '선수 영상') + ' 새 창에서 보기') + '">' + UI.icon('camera') +
+                '<span>영상 보기 ↗</span></a>' : '') +
+            '</div>' +
             '<div class="logrow__score"><span class="score ' + (r.result === '승' ? 'is-win' : r.result === '패' ? 'is-loss' : '') + '">' + U.esc(r.scoreRaw || '—') + '</span></div></li>';
         }).join('') + '</ul>' +
         '<div class="coachbox" data-coachbox="' + U.esc(p.key) + '">' +
@@ -290,8 +297,16 @@
   }
 
   /* 피드백 요청 문구 — 내 최근 일지 핵심을 한 줄로 붙여 코치가 바로 알게 합니다.
-   * 날짜 · 점수/승패 · 약점 기술 · 아픈 부위 (최근 일지가 없으면 예전 문구 그대로) */
-  function feedbackAskText(state) {
+   * 날짜 · 점수/승패 · 약점 기술 · 아픈 부위 (최근 일지가 없으면 예전 문구 그대로)
+   * bm-v1.34.0 — 최근 일지의 영상 링크·체크 포인트도 뒤에 붙입니다(opts.video === false로 뺌). */
+  function videoAskLine(rec) {
+    var v = rec ? D.logMeta(rec).video : { url: '', label: '' };
+    if (!v.url) return '';
+    return ' 영상 ' + v.url + (v.label ? ' · 체크 포인트: ' + v.label : '');
+  }
+
+  function feedbackAskText(state, opts) {
+    opts = opts || {};
     var r = (state.data.records || [])[0];
     if (!r) return '코치님, 일지 피드백 부탁드려요. 이번 주 훈련에서 먼저 볼 점을 알려 주세요.';
     var bits = [];
@@ -306,8 +321,64 @@
     }
     if (r.weakness && r.weakness.length) bits.push('약점 ' + r.weakness.slice(0, 2).join('·'));
     if (r.pain && r.pain.length) bits.push('아픈 곳 ' + r.pain.slice(0, 2).join('·'));
-    return '코치님, ' + U.shortDay(r.date) + ' 일지' + (bits.length ? '(' + bits.join(' · ') + ')' : '') +
+    var text = '코치님, ' + U.shortDay(r.date) + ' 일지' + (bits.length ? '(' + bits.join(' · ') + ')' : '') +
       ' 보고 한 줄 피드백 부탁드려요.';
+    if (opts.video !== false) text += videoAskLine(r);
+    return text;
+  }
+
+  /* 코치와 대화를 열며 요청 문구를 입력칸에 채웁니다(보내기는 사람이) */
+  function sendAsk(coachKey, text, ctx) {
+    var r = ctx.actions.openCoachChat(coachKey, text);
+    if (r && r.ok) { UI.toast('메시지를 고친 뒤 보내 주세요'); UI.haptic(10); }
+    else UI.toast('대화를 열지 못했어요', 'error');
+    return r;
+  }
+
+  /* 피드백 요청 — 최근 일지에 영상이 있으면 함께 보낼지 한 번만 묻습니다 (bm-v1.34.0)
+   *  · 영상이 없으면 예전처럼 바로 대화를 열어 문구만 채웁니다(단계를 늘리지 않음).
+   *  · 체크를 풀면 영상·체크 포인트 없이 일지 요약만 갑니다.
+   *  · 코치는 채팅에서 영상 주소를 바로 누를 수 있습니다(D.linkify). */
+  function askFeedback(coachKey, ctx) {
+    var state = ctx.store.state;
+    var rec = (state.data.records || [])[0];
+    var video = rec ? D.logMeta(rec).video : { url: '', label: '' };
+    if (!video.url) { sendAsk(coachKey, feedbackAskText(state), ctx); return; }
+
+    var withVideo = feedbackAskText(state);
+    var plain = feedbackAskText(state, { video: false });
+    UI.openSheet({
+      title: '피드백 요청',
+      body: '<div class="fbask">' +
+        '<p class="fbask__t">' + UI.icon('camera') + '최근 일지에 영상이 있어요. 함께 보낼까요?</p>' +
+        '<div class="vidbox">' +
+          '<p class="vidbox__head">' + UI.icon('camera') + '영상 체크</p>' +
+          (video.label ? '<p class="vidbox__label">' + U.esc(video.label) + '</p>' : '') +
+          '<p class="vidbox__url">' + U.esc(video.url) + '</p>' +
+        '</div>' +
+        '<label class="fbask__toggle"><input type="checkbox" data-video-include checked>' +
+          '<span>영상 링크' + (video.label ? ' · 체크 포인트' : '') + ' 함께 보내기</span></label>' +
+        '<p class="fbask__lab">보낼 메시지</p>' +
+        '<p class="fbask__msg" data-ask-preview>' + U.esc(withVideo) + '</p>' +
+        '<div class="row gap8 mt16">' +
+          '<button type="button" class="btn btn--ghost grow" data-close>취소</button>' +
+          '<button type="button" class="btn btn--primary grow" data-act="ask-send">대화 열기</button>' +
+        '</div></div>',
+      onMount: function (node) {
+        var box = node.querySelector('[data-video-include]');
+        var pv = node.querySelector('[data-ask-preview]');
+        if (box && pv) {
+          box.addEventListener('change', function () { pv.textContent = box.checked ? withVideo : plain; });
+        }
+        node.addEventListener('click', function (ev) {
+          if (!ev.target.closest('[data-act="ask-send"]')) return;
+          ev.preventDefault();
+          var text = (box && !box.checked) ? plain : withVideo;
+          UI.closeSheet();
+          sendAsk(coachKey, text, ctx);
+        });
+      }
+    });
   }
 
   var view = {
@@ -375,14 +446,11 @@
           return;
         }
 
-        /* 코치에게 피드백 요청 — 상단 DM 대화방을 열고 요청 문구를 미리 적어 둡니다 */
+        /* 코치에게 피드백 요청 — 최근 일지 영상도 함께 보낼지 고르고 DM 문구를 채웁니다 */
         var ask = ev.target.closest('[data-coach-ask]');
         if (ask) {
           ev.preventDefault();
-          var askKey = ask.getAttribute('data-coach-ask');
-          var r1 = ctx.actions.openCoachChat(askKey, feedbackAskText(ctx.store.state));
-          if (r1.ok) { UI.toast('메시지를 고친 뒤 보내 주세요'); UI.haptic(10); }
-          else UI.toast('대화를 열지 못했어요', 'error');
+          askFeedback(ask.getAttribute('data-coach-ask'), ctx);
           return;
         }
         var cchat = ev.target.closest('[data-coach-chat]');
@@ -535,4 +603,6 @@
 
   BM.views.coach = view;
   view.feedbackAskText = feedbackAskText;   /* 테스트·점검용 (피드백 요청 한 줄 요약) */
+  view.askFeedback = askFeedback;           /* 테스트·점검용 (영상 동봉 확인 시트) */
+  view.videoAskLine = videoAskLine;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

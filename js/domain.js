@@ -711,6 +711,32 @@
     return list.slice(0, limit);
   }
 
+  /* 파트너 이름 → 앱 회원 키 (bm-v1.34.0)
+   *  · 일지 '팀' 칸에는 이름만 적히므로(회원 키 없음), 닉네임이 정확히 같은 회원이
+   *    한 명뿐일 때만 그 사람 프로필로 잇습니다.
+   *  · 같은 닉네임이 둘 이상이면 엉뚱한 사람에게 연결될 수 있어 잇지 않습니다(빈 문자열).
+   *  · 나 자신은 제외하고, 프로필·매칭프로필 두 곳의 닉네임을 봅니다(회원마다 최신 줄).
+   *  순수 함수 — 같은 입력이면 같은 결과. */
+  function memberByName(idx, name, opts) {
+    opts = opts || {};
+    var want = tidyText(name).toLowerCase();
+    if (!want) return '';
+    var me = String(opts.meKey || '');
+    var types = (idx && idx.byType) || {};
+    var rows = (types['프로필'] || []).concat(types['매칭프로필'] || []);
+    var byKey = {};
+    rows.forEach(function (r) {
+      if (!r || !r.userKey || r.userKey === me) return;
+      var nick = tidyText(r.nick || (r.payload && r.payload.nick) || '');
+      if (!nick) return;
+      var at = String(r.createdAt || '');
+      var cur = byKey[r.userKey];
+      if (!cur || at >= cur.at) byKey[r.userKey] = { nick: nick, at: at };
+    });
+    var hits = Object.keys(byKey).filter(function (k) { return byKey[k].nick.toLowerCase() === want; });
+    return hits.length === 1 ? hits[0] : '';
+  }
+
   /* --- 시트 한 줄 → 앱 객체 --- */
   function fromRow(row) {
     var c = asCells(row);
@@ -1938,6 +1964,57 @@
     };
   }
 
+  /* 연속 주간 챌린지 달성 배지 (bm-v1.34.0)
+   *  · 이번 주부터 최대 STREAK_WEEKS주를 거슬러 올라가며 goal을 채운 주가 몇 주 연속인지 셉니다.
+   *  · 한 주의 달성 판정은 그 주 마지막 날(일요일) 기준 weekChallenge — 지난 주 결과는
+   *    뒤에 바뀌지 않고, 이번 주는 오늘까지만 셉니다.
+   *  · 이번 주가 아직 진행 중이면(미달) 연속을 끊지 않고 지난주까지 셉니다.
+   *  · 일지가 없던 주는 달성으로 세지 않습니다(없는 기록을 성과로 만들지 않음).
+   *  순수 함수. opts.now·opts.weeks·opts.goal로 날짜와 기간을 고정할 수 있습니다.
+   *  → { weeks, goal, best, inProgress, current, list:[{weekStart, weekEnd, label, done, count, weakness}] } */
+  var STREAK_WEEKS = 8;
+
+  function challengeStreak(records, opts) {
+    opts = opts || {};
+    var goal = Math.max(1, U.num(opts.goal, CHALLENGE_GOAL) || CHALLENGE_GOAL);
+    var now = opts.now
+      ? (opts.now instanceof Date ? opts.now : (U.parseYmd(dayKey(opts.now)) || new Date()))
+      : new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var span = Math.min(26, Math.max(1, U.num(opts.weeks, STREAK_WEEKS) || STREAK_WEEKS));
+    var ws = weekStartOf(today);
+    var list = [];
+    for (var i = 0; i < span; i++) {
+      var start = U.addDays(ws, -7 * i);
+      var end = U.addDays(start, 6);
+      /* 이번 주는 오늘까지만 (아직 오지 않은 날은 셀 수 없습니다) */
+      var at = end.getTime() > today.getTime() ? today : end;
+      var ch = weekChallenge(records, { now: at, goal: goal });
+      list.push({
+        weekStart: U.ymd(start), weekEnd: U.ymd(end),
+        label: U.shortDay(U.ymd(start)) + '~' + U.shortDay(U.ymd(end)),
+        done: !!ch.done, count: ch.count || 0, weakness: ch.weakness || '',
+        reason: ch.reason, current: i === 0
+      });
+    }
+    /* 이번 주가 미달이면(진행 중) 지난주부터 셉니다 — 이번 주는 아직 실패가 아닙니다 */
+    var weeks = 0;
+    var from = (list[0] && list[0].done) ? 0 : 1;
+    for (var j = from; j < list.length; j++) {
+      if (!list[j].done) break;
+      weeks++;
+    }
+    var best = 0, run = 0;
+    list.forEach(function (w) {
+      if (w.done) { run++; best = Math.max(best, run); } else run = 0;
+    });
+    return {
+      weeks: weeks, goal: goal, best: best,
+      inProgress: !(list[0] && list[0].done),
+      current: list[0], list: list
+    };
+  }
+
   /* 챌린지 자랑 문구 — 3회를 채운 카드에서 커뮤니티 글로 그대로 들어갑니다.
    *  예) '이번 주 헤어핀 3회 연습 달성! 🎉' */
   function challengeShareText(ch) {
@@ -1945,6 +2022,33 @@
     if (!w) return '';
     var goal = Math.max(1, U.num(ch && ch.goal, CHALLENGE_GOAL) || CHALLENGE_GOAL);
     return '이번 주 ' + w + ' ' + goal + '회 연습 달성! 🎉';
+  }
+
+  /* 채팅 말풍선의 http(s) 주소만 눌러지게 (bm-v1.34.0)
+   *  · 글자를 먼저 이스케이프한 뒤 http/https 주소만 <a>로 감쌉니다
+   *    (javascript:·data: 같은 주소는 글자 그대로 남습니다).
+   *  · 문장 끝의 마침표·쉼표·괄호는 주소에서 떼어 냅니다. 줄바꿈은 <br>.
+   *  코치가 받은 '영상 링크'를 그 자리에서 누를 수 있게 하는 용도입니다. */
+  function linkify(text) {
+    var s = String(text == null ? '' : text);
+    var re = /https?:\/\/[^\s<>"'`]+/gi;
+    var out = '', last = 0, m;
+    while ((m = re.exec(s))) {
+      out += U.esc(s.slice(last, m.index));
+      var whole = m[0], url = whole, trail = '';
+      var tm = whole.match(/[),.!?;:]+$/);
+      if (tm) { trail = tm[0]; url = whole.slice(0, whole.length - trail.length); }
+      if (url.length > 7) {
+        out += '<a class="dlink" href="' + U.esc(url) + '" target="_blank" rel="noopener noreferrer">' + U.esc(url) + '</a>';
+      } else {
+        out += U.esc(whole);
+        trail = '';
+      }
+      out += U.esc(trail);
+      last = m.index + whole.length;
+    }
+    out += U.esc(s.slice(last));
+    return out.replace(/\n/g, '<br>');
   }
 
   function readPrefs() {
@@ -1980,7 +2084,8 @@
     JSON_TYPES: JSON_TYPES,
     fromRow: fromRow, toRow: toRow, asCells: asCells,
     recordDraft: recordDraft, logCells: logCells,
-    logMeta: logMeta, logExtraJson: logExtraJson, partnerStats: partnerStats,
+    logMeta: logMeta, logExtraJson: logExtraJson, partnerStats: partnerStats, memberByName: memberByName,
+    linkify: linkify,
     cleanPartner: cleanPartner, safeVideoUrl: safeVideoUrl, cleanVideoLabel: cleanVideoLabel,
     PARTNER_MAX: PARTNER_MAX, VIDEO_URL_MAX: VIDEO_URL_MAX, VIDEO_LABEL_MAX: VIDEO_LABEL_MAX,
     parseScore: parseScore, parseGames: parseGames, cleanGames: cleanGames,
@@ -2017,8 +2122,8 @@
     newIncoming: newIncoming, joinedGroupRoom: joinedGroupRoom,
     PREFS_KEY: PREFS_KEY, normalizePrefs: normalizePrefs, readPrefs: readPrefs, writePrefs: writePrefs, setPref: setPref,
     /* v1.31 */
-    CHALLENGE_GOAL: CHALLENGE_GOAL, CHALLENGE_DAYS: CHALLENGE_DAYS,
+    CHALLENGE_GOAL: CHALLENGE_GOAL, CHALLENGE_DAYS: CHALLENGE_DAYS, STREAK_WEEKS: STREAK_WEEKS,
     weekChallenge: weekChallenge, weekStartOf: weekStartOf, dayKey: dayKey,
-    challengeShareText: challengeShareText
+    challengeShareText: challengeShareText, challengeStreak: challengeStreak
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

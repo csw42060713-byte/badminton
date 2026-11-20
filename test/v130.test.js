@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v130.test.js — bm-v1.33.0
+ * test/v130.test.js — bm-v1.34.0
  *   고도화 2차 사이클(ideas.md 3순위) + 코트 실사용 타이머
  *
  *   1) 원탭 21점/25점 코트 점수판 → 오늘 일지 자동 채움
@@ -480,18 +480,18 @@
 
   test('v1.30 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.33.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.33.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-33', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.34.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.34.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-34', 'index.html 스타일 캐시');
     includes(readRoot('index.html'), 'js/scoreboard.js', 'scoreboard 스크립트');
     includes(readRoot('index.html'), 'js/timer.js', 'timer 스크립트');
     includes(readRoot('sw.js'), "'./js/scoreboard.js'", '서비스워커 캐시: scoreboard');
     includes(readRoot('sw.js'), "'./js/timer.js'", '서비스워커 캐시: timer');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.33.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.33.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 33, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.34.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.34.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 34, 'TWA 버전 코드');
     includes(readRoot('index.html'), 'js/views/log.js', '일지 화면 파일 유지');
     includes(readRoot('sw.js'), "'./js/views/chat.js'", '서비스워커 캐시 목록 유지');
   });

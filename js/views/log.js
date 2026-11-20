@@ -650,9 +650,16 @@
     }).join('|');
   }
 
-  function partnerRow(p, top) {
+  /* 파트너 이름이 앱 회원 닉네임과 같으면 그 사람 프로필 시트로 잇습니다 (bm-v1.34.0)
+   *  · 일지에는 이름만 적히므로(회원 키 없음) 정확히 같은 닉네임이 한 명일 때만 버튼으로.
+   *  · 같은 이름이 둘이거나 회원이 아니면 그냥 글자 — 잘못된 사람에게 연결하지 않습니다. */
+  function partnerRow(p, top, state) {
+    var key = state ? D.memberByName(state.data && state.data.idx, p.name, { meKey: state.me && state.me.key }) : '';
     return '<li class="ptn__row">' +
-      '<span class="ptn__name">' + U.esc(p.name) +
+      '<span class="ptn__name">' + (key
+        ? '<button type="button" class="ptn__link" data-partner="' + U.esc(key) + '" ' +
+          'aria-label="' + U.esc(p.name) + ' 프로필 열기">' + U.esc(p.name) + '</button>'
+        : U.esc(p.name)) +
       (top && p.games >= 3 ? '<i class="pill pill--ok ptn__best">찰떡</i>' : '') + '</span>' +
       '<span class="ptn__rec">' + U.esc(p.line) + '</span>' +
       '<b class="ptn__rate">' + p.rate + '%</b></li>';
@@ -671,8 +678,10 @@
       UI.icon('arrow', 'ptn__car') +
       '</summary>' +
       '<div class="ptn__body">' +
-      '<ul class="ptn__list">' + list.map(function (p) { return partnerRow(p, p === top); }).join('') + '</ul>' +
-      '<p class="ptn__note">일지 게임 점수에 파트너 이름을 적으면 자동으로 쌓여요</p>' +
+      '<ul class="ptn__list">' + list.map(function (p) { return partnerRow(p, p === top, state); }).join('') + '</ul>' +
+      '<p class="ptn__note">일지 게임 점수에 파트너 이름을 적으면 자동으로 쌓여요' +
+      (list.some(function (p) { return !!D.memberByName(state.data && state.data.idx, p.name, { meKey: state.me && state.me.key }); })
+        ? ' · 이름을 누르면 프로필' : '') + '</p>' +
       '</div></details></section>';
   }
 
@@ -1227,6 +1236,14 @@
             ctx.actions.setTab('community');
             UI.toast('커뮤니티 글쓰기로 옮겼어요');
           }
+          return;
+        }
+        /* 파트너 이름 → 그 사람 프로필 시트(친구 추가·채팅). 같은 닉네임이 둘이면 글자로 남습니다 */
+        var ptn = ev.target.closest('[data-partner]');
+        if (ptn) {
+          ev.preventDefault();
+          if (BM.views.profile) BM.views.profile.open(ptn.getAttribute('data-partner'), ctx);
+          UI.haptic(6);
           return;
         }
         /* 영상 링크는 브라우저가 새 창으로 열게 두고, 일지 상세 시트는 열지 않습니다 */
