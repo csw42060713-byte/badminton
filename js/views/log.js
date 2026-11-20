@@ -157,8 +157,9 @@
     var lg = an && an.loadGuide;
     if (!pv || !pv.items || !pv.items.length) return '';
     var areas = (pv.areas && pv.areas.length ? pv.areas.join('·') : '전신');
-    var items = pv.items.map(function (it) {
-      return '<li><b>' + U.esc(it.name) + '</b> — ' + U.esc(it.how) + '</li>';
+    var items = pv.items.map(function (it, i) {
+      return '<li class="warm"><span class="warm__text"><b>' + U.esc(it.name) + '</b> — ' + U.esc(it.how) + '</span>' +
+        timerWidget('warm:' + i, it.name) + '</li>';
     }).join('');
     return '<details class="fold fold--ai" data-fold="prevent">' +
       '<summary class="fold__sum"><span>부상 예방 · 종목 부하 <small>코트 전 ' + U.esc(pv.label) + ' · ' + U.esc(areas) + '</small></span>' +
@@ -270,7 +271,8 @@
       '<ol class="drills drills--core">' + drills.map(function (d, i) {
         return '<li class="drill drill--core"><div class="drill__no">' + (i + 1) + '</div><div class="drill__body">' +
           '<div class="drill__top"><strong>' + U.esc(d.name) + '</strong><span class="pill pill--ghost">' + U.esc(d.sets) + '</span></div>' +
-          '<p class="drill__method">' + U.esc(d.method) + '</p></div></li>';
+          '<p class="drill__method">' + U.esc(d.method) + '</p>' +
+          '<div class="drill__foot">' + timerWidget('drill:' + i, d.name) + '</div></div></li>';
       }).join('') + '</ol>' +
       analysisDetails(an) +
       preventFold(an) +
@@ -488,6 +490,172 @@
         : '') + '</li>';
   }
 
+  /* ============================================================
+   * 코트 점수판 (bm-v1.30.0)
+   *  · 일지 첫머리 `+ 코트 점수판` 버튼 → 21점/25점 · 듀스 자동 판정 시트
+   *  · 끝난 세트는 '오늘 일지에 넣기'로 일지 입력칸(게임 점수·메모)에 바로 들어감
+   *  · 계산은 js/scoreboard.js (순수 함수)에 두고 화면은 그리기만 합니다.
+   * ============================================================ */
+  var sbState = null;          /* 닫았다 다시 열어도 이어서 (일지에 넣으면 새로) */
+
+  function timerWidget(key, name) {
+    return BM.timer ? BM.timer.widget(key, name) : '';
+  }
+
+  function sbTeam(st, side) {
+    if (side === 'a') return st.type === '단식' ? '나' : '내 팀';
+    return st.type === '단식' ? '상대' : '상대 팀';
+  }
+
+  function sbSeg(attr, values, cur, suffix) {
+    return '<div class="seg seg--wide" data-sb-' + attr + '>' + values.map(function (v) {
+      var on = String(cur) === String(v);
+      return '<button type="button" class="seg__btn' + (on ? ' is-on' : '') + '" data-sb-' + attr + '-val="' + U.esc(v) + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' + U.esc(v) + (suffix || '') + '</button>';
+    }).join('') + '</div>';
+  }
+
+  function scoreboardHtml(src) {
+    var SB = BM.scoreboard;
+    if (!SB) return '';
+    var st = SB.copy(src);
+    st.over = SB.winner(st);            /* 끝났는지는 점수에서 바로 나옵니다 */
+    var list = SB.games(st);
+    var sum = SB.summary(st);
+    var stt = SB.stateText(st);
+    var sets = list.map(function (g, i) {
+      var win = g.a > g.b ? '승' : g.a < g.b ? '패' : '무';
+      return '<li class="sb__set"><span class="sb__setn">' + (i + 1) + '세트</span><b>' + g.a + ':' + g.b + '</b>' +
+        '<i class="sb__res sb__res--' + (win === '승' ? 'w' : win === '패' ? 'l' : 'd') + '">' + win + '</i></li>';
+    }).join('');
+    return '<div class="sb" data-sb>' +
+      '<div class="sb__modes">' + sbSeg('mode', [21, 25], st.mode, '점제') + sbSeg('type', ['복식', '단식'], st.type, '') + '</div>' +
+      '<div class="sb__board">' +
+        '<div class="sb__side"><span class="sb__who">' + U.esc(sbTeam(st, 'a')) + '</span>' +
+          '<b class="sb__num">' + st.a + '</b></div>' +
+        '<span class="sb__colon">:</span>' +
+        '<div class="sb__side sb__side--b"><span class="sb__who">' + U.esc(sbTeam(st, 'b')) + '</span>' +
+          '<b class="sb__num">' + st.b + '</b></div>' +
+      '</div>' +
+      '<p class="sb__state sb__state--' + U.esc(stt.kind) + '">' + U.esc(stt.text) + '</p>' +
+      '<div class="sb__add">' +
+        '<button type="button" class="sb__btn sb__btn--a" data-sb-point="a" aria-label="' +
+          U.esc(sbTeam(st, 'a')) + ' 1점"><b>+1</b><span>' + U.esc(sbTeam(st, 'a')) + '</span></button>' +
+        '<button type="button" class="sb__btn sb__btn--b" data-sb-point="b" aria-label="' +
+          U.esc(sbTeam(st, 'b')) + ' 1점"><b>+1</b><span>' + U.esc(sbTeam(st, 'b')) + '</span></button>' +
+      '</div>' +
+      '<div class="sb__tools">' +
+        '<button type="button" class="linkbtn" data-sb-undo>되돌리기</button>' +
+        '<span class="sb__score">' + (sum.count
+          ? sum.count + '세트 · ' + sum.wins + '승 ' + sum.losses + '패' + (sum.draws ? ' ' + sum.draws + '무' : '')
+          : '아직 끝난 세트가 없어요') + '</span>' +
+      '</div>' +
+      (sets ? '<ul class="sb__sets">' + sets + '</ul>' : '') +
+      '<div class="sb__foot">' +
+        (st.over ? '<button type="button" class="btn btn--ghost grow" data-sb-next>다음 세트</button>' : '') +
+        (list.length
+          ? '<button type="button" class="btn btn--primary grow" data-sb-save>' + UI.icon('check') + '오늘 일지에 넣기</button>'
+          : '<p class="sb__hint">한 세트를 마치면 오늘 일지에 바로 넣을 수 있어요</p>') +
+      '</div></div>';
+  }
+
+  /* 점수판 시트 — 누를 때마다 [data-sb]만 다시 그려 이벤트는 한 번만 겁니다 */
+  function scoreboardOpen(ctx) {
+    var SB = BM.scoreboard;
+    if (!SB) return null;
+    if (!sbState) sbState = SB.create();
+    var node = null;
+
+    function sync() { sbState.over = SB.winner(sbState); }
+    function repaint() {
+      if (!node) return;
+      var host = node.querySelector('[data-sb]');
+      if (host) host.outerHTML = scoreboardHtml(sbState);
+    }
+    function save() {
+      sync();
+      var draft = (ctx.store && ctx.store.state && ctx.store.state.drafts && ctx.store.state.drafts.log) || {};
+      var patch = SB.draftPatch(sbState, draft);
+      if (!patch) { UI.toast('한 세트를 마치면 넣을 수 있어요'); return; }
+      var summary = SB.summary(sbState);
+      UI.closeSheet();
+      sbState = null;                       /* 넣었으니 다음엔 새 점수판으로 */
+      ctx.actions.setDraft(patch);
+      UI.haptic(16);
+      if (ctx.repaint) ctx.repaint();
+      UI.toast((summary.count > 1 ? summary.count + '세트 ' : '') + '점수를 일지에 넣었어요 · 저장을 누르면 AI 분석까지 이어져요');
+      setTimeout(function () {
+        var form = document.querySelector('[data-form="log"]');
+        if (form && form.scrollIntoView) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 160);
+    }
+
+    return UI.openSheet({
+      title: '코트 점수판',
+      body: scoreboardHtml(sbState),
+      onMount: function (n) {
+        node = n;
+        n.addEventListener('click', function (ev) {
+          var el;
+          if ((el = ev.target.closest('[data-sb-point]'))) {
+            ev.preventDefault();
+            sync();
+            sbState = SB.point(sbState, el.getAttribute('data-sb-point'));
+            sync();
+            UI.haptic(sbState.over ? 26 : 8);   /* 세트가 끝나면 조금 긴 진동 — 화면에 '세트 종료'가 이미 보임 */
+            repaint();
+            return;
+          }
+          if ((el = ev.target.closest('[data-sb-mode-val]'))) {
+            ev.preventDefault();
+            var mode = +el.getAttribute('data-sb-mode-val') === 25 ? 25 : 21;
+            if (mode !== sbState.mode) {
+              sbState = SB.copy(sbState);
+              sbState.mode = mode;
+              sync();
+              UI.haptic(6);
+              repaint();
+            }
+            return;
+          }
+          if ((el = ev.target.closest('[data-sb-type-val]'))) {
+            ev.preventDefault();
+            var type = SB.normalType(el.getAttribute('data-sb-type-val'));
+            if (type !== sbState.type) {
+              sbState = SB.copy(sbState);
+              sbState.type = type;
+              sync();
+              UI.haptic(6);
+              repaint();
+            }
+            return;
+          }
+          if (ev.target.closest('[data-sb-undo]')) {
+            ev.preventDefault();
+            sync();
+            sbState = SB.undo(sbState);
+            UI.haptic(6);
+            repaint();
+            return;
+          }
+          if (ev.target.closest('[data-sb-next]')) {
+            ev.preventDefault();
+            sync();
+            sbState = SB.nextSet(sbState);
+            UI.haptic(10);
+            repaint();
+            return;
+          }
+          if (ev.target.closest('[data-sb-save]')) {
+            ev.preventDefault();
+            save();
+            return;
+          }
+        });
+      }
+    });
+  }
+
   var view = {
     title: '일지 & AI',
     render: function (state) {
@@ -505,7 +673,13 @@
         '<div><span>승률</span><strong>' + (stats.winRate == null ? '—' : stats.winRate + '%') + '</strong></div>' +
         '<div><span>이번 달</span><strong>' + (stats.minutesMonth || 0) + '<i>분</i></strong></div>' +
         '<div><span>평균 컨디션</span><strong>' + (stats.avgCond == null ? '—' : stats.avgCond) + '</strong></div>' +
-        '</div></section>' +
+        '</div>' +
+        /* 코트에서 바로 쓰는 점수판 입구 — 계산은 js/scoreboard.js */
+        '<button type="button" class="courttool" data-act="open-scoreboard">' +
+        UI.icon('plus') +
+        '<span class="courttool__t">코트 점수판<small>21·25점 · 듀스 자동 · 끝나면 일지로</small></span>' +
+        UI.icon('arrow', 'courttool__car') + '</button>' +
+        '</section>' +
 
         routineBlock(state) +
 
@@ -728,6 +902,38 @@
       });
 
       root.addEventListener('click', function (ev) {
+        /* 코트 점수판 — 21·25점 시트 */
+        if (ev.target.closest('[data-act="open-scoreboard"]')) {
+          ev.preventDefault();
+          UI.haptic(8);
+          scoreboardOpen(ctx);
+          return;
+        }
+        /* 드릴 · 워밍업 옆 카운트다운 타이머 (한 번에 하나만) */
+        var tStart = ev.target.closest('[data-timer-start]');
+        if (tStart && BM.timer) {
+          ev.preventDefault();
+          var tHost = tStart.closest('[data-dtimer]');
+          var tKey = tStart.getAttribute('data-timer-start');
+          var tMin = +tStart.getAttribute('data-timer-min') || 3;
+          var tName = tHost ? (tHost.getAttribute('data-dtimer-name') || '') : '';
+          var res = BM.timer.start(tKey, tName, tMin);
+          UI.haptic(10);
+          UI.toast(tMin + '분 타이머를 시작했어요' + (res && res.replaced ? ' · 돌던 타이머는 멈췄어요' : ''));
+          return;
+        }
+        if (ev.target.closest('[data-timer-toggle]') && BM.timer) {
+          ev.preventDefault();
+          BM.timer.toggle();
+          UI.haptic(6);
+          return;
+        }
+        if (ev.target.closest('[data-timer-reset]') && BM.timer) {
+          ev.preventDefault();
+          BM.timer.reset();
+          UI.haptic(6);
+          return;
+        }
         /* 처음이라면 — 초보자 튜토리얼 · 용어 사전 · 기술 가이드 패널 */
         var begBtn = ev.target.closest('[data-act="beginner-open"]');
         if (begBtn) {
@@ -914,5 +1120,8 @@
 
   view.recordDetail = recordDetail;
   view.analysisCard = analysisCard;
+  view.scoreboardHtml = scoreboardHtml;
+  view.scoreboardOpen = scoreboardOpen;
+  view._resetScoreboard = function () { sbState = null; };
   BM.views.log = view;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

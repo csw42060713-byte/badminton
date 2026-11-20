@@ -4090,3 +4090,111 @@ body.has-notif.has-netbar .main { padding-top: calc(var(--hdr-h) + var(--safe-t)
 .members__who strong { display: block; font-size: 13.5px; font-weight: 800; letter-spacing: -0.25px; }
 .members__who small { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
 .members__empty { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+/* ---------- 17.16 코트 점수판 · 드릴 타이머 (bm-v1.30.0) ---------- */
+/* 일지 첫머리의 입구 — 코트에서 한 손으로 바로 열도록 한 줄 전체가 버튼 */
+.courttool {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  margin-top: 12px; padding: 11px 13px; min-height: 50px;
+  border-radius: 15px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--text); text-align: left;
+}
+.courttool:active { transform: scale(0.985); }
+.courttool .ico { width: 15px; height: 15px; color: var(--accent); }
+.courttool__t {
+  display: flex; flex-direction: column; gap: 1px;
+  font-size: 13px; font-weight: 800; letter-spacing: -0.25px;
+}
+.courttool__t small { font-size: 10.5px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.courttool .courttool__car { margin-left: auto; width: 14px; height: 14px; color: var(--muted); }
+
+.sb { display: grid; gap: 12px; }
+.sb__modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sb__modes .seg { margin-top: 0; width: 100%; }
+.sb__board {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 8px 12px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  border: 1px solid var(--line);
+}
+.sb__side { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.sb__who { font-size: 11.5px; font-weight: 800; color: var(--muted); letter-spacing: -0.2px; }
+.sb__num {
+  font-size: 46px; line-height: 1; font-weight: 900;
+  font-variant-numeric: tabular-nums; letter-spacing: -2px;
+}
+.sb__side--b .sb__num { color: var(--text-2); }
+.sb__colon { font-size: 24px; font-weight: 800; color: var(--muted); margin-top: 14px; }
+.sb__state { text-align: center; font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: -0.2px; }
+.sb__state--deuce { color: var(--warn); }
+.sb__state--point, .sb__state--over { color: var(--accent); }
+.sb__add { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sb__btn {
+  min-height: 74px; border-radius: 16px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font-weight: 800; color: var(--accent-ink);
+  background: var(--accent);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.sb__btn b { font-size: 22px; line-height: 1; font-weight: 900; letter-spacing: -0.5px; }
+.sb__btn span { font-size: 11.5px; font-weight: 800; }
+.sb__btn:active { transform: scale(0.97); }
+.sb__btn--b {
+  background: var(--card); color: var(--text);
+  border: 1px solid var(--line-2);
+  box-shadow: none;
+}
+.sb__tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sb__score { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.sb__sets { display: grid; gap: 6px; }
+.sb__set {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 11px; border-radius: 11px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  font-size: 12.5px;
+}
+.sb__setn { font-size: 11px; font-weight: 700; color: var(--muted); }
+.sb__set b { font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
+.sb__res {
+  margin-left: auto; font-style: normal;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 800;
+}
+.sb__res--w { background: var(--accent-soft); color: var(--accent); }
+.sb__res--l { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+.sb__res--d { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text-2); }
+.sb__foot { display: flex; align-items: center; gap: 8px; }
+.sb__foot .btn { width: auto; }
+.sb__hint { font-size: 11.5px; color: var(--muted); text-align: center; line-height: 1.55; }
+
+/* 드릴 · 워밍업 옆 원탭 타이머 */
+.dtimer { display: inline-flex; align-items: center; gap: 5px; flex: none; }
+.dtimer__btn {
+  min-height: 30px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 11px; font-weight: 800; letter-spacing: -0.1px;
+  font-variant-numeric: tabular-nums;
+}
+.dtimer__btn:active { transform: scale(0.94); }
+.dtimer__clock {
+  font-size: 13px; font-weight: 900; color: var(--accent);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.2px;
+}
+.dtimer__clock.is-paused { color: var(--warn); }
+.dtimer__icon {
+  width: 30px; height: 30px; border-radius: 999px;
+  border: 1px solid var(--line-2); color: var(--text-2);
+  font-size: 10px; display: grid; place-items: center;
+}
+.dtimer__icon:active { transform: scale(0.94); }
+.dtimer--on {
+  padding: 2px 4px 2px 9px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.drill__foot { margin-top: 7px; }
+.bullets li.warm { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+.warm__text { flex: 1; min-width: 150px; }

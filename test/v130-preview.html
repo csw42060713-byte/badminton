@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko" data-theme="th_night" style="background:#0b1220">
+<head>
+<meta charset="utf-8">
+<title>v1.30 화면 미리보기 — 코트 점수판 · 드릴 타이머</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html, body { margin: 0; background: #0b1220; }
+  body { display: flex; justify-content: center; }
+  .frame {
+    position: relative;
+    width: 100%;
+    max-width: 430px;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+  .frame .main { height: 100dvh; overflow-y: auto; padding: 0 0 40px; }
+  .frame .view { padding: 12px 14px 0; }
+</style>
+</head>
+<body>
+<div class="frame" id="frame"><div class="main" id="scroller"><div class="view" id="viewhost"></div></div></div>
+
+<script src="../js/util.js"></script>
+<script src="../js/domain.js"></script>
+<script src="../js/routine.js"></script>
+<script src="../js/beginner.js"></script>
+<script src="../js/ai.js"></script>
+<script src="../js/seed.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/ads.js"></script>
+<script src="../js/scoreboard.js"></script>
+<script src="../js/timer.js"></script>
+<script src="../js/views/log.js"></script>
+<script src="fixtures.js"></script>
+<script>
+/* v1.30.0 화면 미리보기 — 원탭 코트 점수판 · 드릴 카운트다운 타이머.
+ * 실제 화면 코드(js/views/log.js)를 그대로 그립니다.
+ * (앱 번들·gh-pages 배포에는 들어가지 않습니다.)
+ *   ?view=scoreboard   점수판 시트 열린 화면
+ *   ?view=fill         점수판 → 일지에 넣은 뒤 (게임 점수·메모 채워짐)
+ *   ?view=timer        드릴 타이머가 도는 AI 카드
+ *   기본                일지 첫머리의 + 코트 점수판
+ */
+(function () {
+  var BM = window.BM, U = BM.util;
+  var view = (location.search.match(/view=([a-z-]+)/) || [])[1] || 'log';
+  var host = document.getElementById('viewhost');
+
+  ['bm_rows_v1', 'bm_queue_v1', 'bm_cache_v1', 'bm_me_v1', 'bm_mode_v1', 'bm_auth_v1'].forEach(function (k) {
+    U.storage.removeItem(k);
+  });
+  U.writeJSON('bm_rows_v1', BM.fixtures.demo());
+
+  var store = BM.store.createStore({ api: BM.api.createLocal({ latency: 0 }) });
+  store.actions.init().then(function () {
+    /* 오늘 일지에 한 줄 있어야 AI 카드(드릴·워밍업)가 나옵니다 */
+    store.state.drafts.log.cond = 7;
+    store.state.drafts.log.intensity = 7;
+    store.state.drafts.log.minutes = 70;
+    store.state.drafts.log.weakness = ['리시브'];
+    store.state.drafts.log.pain = ['어깨'];
+    store.state.analysis = BM.ai.analyze({
+      draft: store.state.drafts.log, records: store.state.data.records,
+      level: 'C조', discipline: '복식', nick: '나래'
+    });
+
+    var ctx = {
+      store: store, actions: store.actions,
+      saveLog: function () {
+        var res = store.actions.saveLog({ keepDraft: true });
+        ctx.repaint();                     /* app.js의 저장 버튼처럼 다시 그림 */
+        return res;
+      },
+      repaint: function () {
+        host.innerHTML = BM.views.log.render(store.state);
+        BM.views.log.mount(host, ctx);
+      },
+      refresh: function () {},
+      auth: BM.auth
+    };
+    ctx.repaint();
+    window.__store = store;
+    window.__ctx = ctx;
+
+    if (view === 'scoreboard') {
+      BM.views.log.scoreboardOpen(ctx);
+      document.title = '코트 점수판';
+    } else if (view === 'fill') {
+      /* 점수판으로 한 세트를 끝내고 일지에 넣은 상태를 그대로 재현 */
+      var SB = BM.scoreboard;
+      var st = SB.create();
+      var seq = 'aababababababababababababababababababab';
+      /* 21:17까지 번갈아(양쪽 교대) 친 뒤 마지막 4점은 내 팀 */
+      st = SB.create();
+      var a = 0, b = 0;
+      while (a < 21 || b < 17) {
+        if (a < 21 && (a <= b || b >= 17)) { st = SB.point(st, 'a'); a++; }
+        else { st = SB.point(st, 'b'); b++; }
+      }
+      store.actions.setDraft(SB.draftPatch(st, store.state.drafts.log));
+      ctx.repaint();
+      window.__scoreboardState = st;
+      document.title = '일지에 넣은 뒤';
+    } else if (view === 'timer') {
+      BM.timer.start('drill:0', store.state.analysis.drills.drills[0].name, 3);
+      ctx.repaint();
+      document.title = '드릴 타이머';
+    } else if (view === 'warm') {
+      var fold = host.querySelector('[data-fold="prevent"]');
+      if (fold) fold.open = true;
+      document.title = '부상 예방 워밍업 타이머';
+    } else if (view === 'deuce') {
+      BM.views.log.scoreboardOpen(ctx);
+      var sb = BM.scoreboard;
+      var st = sb.create();
+      var a = 0, b = 0;
+      while (a < 20 || b < 20) {          /* 20-20 듀스 */
+        if (a < 20 && (a <= b || b >= 20)) { st = sb.point(st, 'a'); a++; }
+        else { st = sb.point(st, 'b'); b++; }
+      }
+      window.__sbState = st;
+      document.title = '듀스 20-20';
+      /* 화면에 그대로 반영 (실제 클릭 없이 상태만 옮겨 그림) */
+      var host2 = document.querySelector('#sheet [data-sb]');
+      if (host2) host2.outerHTML = BM.views.log.scoreboardHtml(st);
+    } else {
+      document.title = '코트 점수판 입구';
+    }
+  });
+})();
+</script>
+</body>
+</html>
