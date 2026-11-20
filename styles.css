@@ -4469,7 +4469,7 @@ body.has-notif.has-netbar .main { padding-top: calc(var(--hdr-h) + var(--safe-t)
 .dbubble .dlink {
   color: inherit; font-weight: 800;
   text-decoration: underline; text-underline-offset: 2px;
-  word-break: break-all;
+  overflow-wrap: anywhere;   /* 긴 주소는 말풍선 밖으로 넘치지 않게 */
 }
 
 /* 코치 피드백 요청 — 영상 동봉 확인 시트 */

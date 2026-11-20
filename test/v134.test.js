@@ -415,7 +415,7 @@
     includes(css, '.dbubble .dlink', '말풍선 링크');
     includes(css, '.fbask__toggle', '체크 줄');
     includes(css, '.fbask__msg', '미리보기');
-    includes(css, 'word-break: break-all', '긴 주소 줄바꿈');
+    includes(css, 'overflow-wrap: anywhere', '긴 주소 줄바꿈');
   });
 
   test('v1.34 버전: sw.js·app.js·index.html·twa-manifest가 모두 v1.34', function () {
