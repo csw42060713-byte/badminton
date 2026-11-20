@@ -133,6 +133,7 @@
     eq(D.presenceFromAt(minsAgo(10), NOW.getTime()).label, '방금 전 활동', '15분 이내');
     eq(D.presenceFromAt(minsAgo(30), NOW.getTime()).label, '30분 전 활동', '1시간 이내');
     eq(D.presenceFromAt(minsAgo(180), NOW.getTime()).label, '오늘 활동', '오늘 안');
+    eq(D.presenceFromAt(minsAgo(20 * 60), NOW.getTime()).label, '어제 활동', '20시간 전(어제)');
     eq(D.presenceFromAt(at(2, 9, 0), NOW.getTime()).label, '2일 전 활동', '7일 이내');
     eq(D.presenceFromAt(at(10, 9, 0), NOW.getTime()).label, '오래전', '일주일 넘음');
     var none = D.presenceFromAt('', NOW.getTime());
