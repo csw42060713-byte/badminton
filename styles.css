@@ -3136,8 +3136,7 @@ body.no-scroll { overflow: hidden; }
 
 .linkbtn { color: var(--accent); font-weight: 800; }
 
-/* ---------- 17.6 칩 · 세그먼트 ---------- */
-/* 칩은 테두리 대신 옅은 면 — 줄이 여럿 쌓여도 시끄럽지 않게 */
+/* ---------- 17.6 칩 · 세그먼트 ---------- *//* 칩은 테두리 대신 옅은 면 — 줄이 여럿 쌓여도 시끄럽지 않게 */
 .chip {
   min-height: 34px;
   padding: 0 13px;
@@ -3315,7 +3314,14 @@ input[type="date"] {
   background: var(--card);
   box-shadow: 0 -8px 20px color-mix(in srgb, var(--bg) 70%, transparent);
 }
-.savebar::before { display: none; }
+/* 저장 바 위로 올라오는 내용은 흰색으로 부드럽게 사라집니다 */
+.savebar::before {
+  display: block;
+  content: "";
+  position: absolute; left: 0; right: 0; top: -16px; height: 16px;
+  background: linear-gradient(180deg, transparent, var(--card));
+  pointer-events: none;
+}
 .savebar .hint { font-size: 10.5px; color: var(--muted); }
 
 /* AI 카드 · 지표 · 드릴 */
@@ -3352,6 +3358,15 @@ input[type="date"] {
   border: 1px solid var(--line);
 }
 .searchbar:focus-within { background: var(--card); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.searchbar input,
+.searchbar input:focus {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+  min-height: 0;
+  padding: 0;
+}
 .fbtn {
   min-height: 34px;
   border: 1px solid transparent;
@@ -3374,11 +3389,11 @@ input[type="date"] {
 .rq__name { font-size: 14px; font-weight: 800; }
 .room { padding: 11px 4px; border-radius: 12px; }
 .matchintro {
-  border: 1px solid var(--line);
-  background: var(--card);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-soft);
-  padding: 26px 18px 24px;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  border-radius: 18px;
+  box-shadow: none;
+  padding: 24px 18px 22px;
 }
 .matchintro__ico { width: 46px; height: 46px; border: 1px solid var(--accent-line); }
 .matchintro__t { font-size: 14.5px; font-weight: 800; letter-spacing: -0.4px; }
@@ -3406,7 +3421,33 @@ input[type="date"] {
 .replies { border-top: 1px dashed var(--line-2); }
 .vite { border-radius: 14px; }
 
+/* 최신·인기 — 글 목록 위의 작은 토글 (화면 폭을 다 쓰지 않게) */
+.seg[data-sort] {
+  align-self: flex-end;
+  display: inline-flex;
+  width: auto;
+  margin: -2px 2px;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+}
+.seg[data-sort] .seg__btn {
+  min-height: 30px;
+  padding: 0 13px;
+  border-radius: 999px;
+  font-size: 11.5px;
+}
+.seg[data-sort] .seg__btn.is-on { background: var(--card); box-shadow: var(--shadow-soft); }
+
 /* ---------- 17.11 MY ---------- */
+.coachcard {
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+}
+.coachcard__act .btn { min-height: 38px; border-radius: 11px; }
 .card--profile {
   background: var(--card);
   border-color: var(--line);
@@ -3445,6 +3486,15 @@ input[type="date"] {
 .heartstats strong { font-size: 19px; font-weight: 900; letter-spacing: -0.7px; }
 .heartstats span { font-size: 10px; letter-spacing: 0.1px; }
 .heartrow .card__head h2 .ico { color: var(--bad); }
+.card--heart .heartchip {
+  min-width: 30px;
+  justify-content: center;
+  background: var(--accent-soft);
+  border: 0;
+  color: var(--accent);
+  box-shadow: none;
+  font-size: 12.5px;
+}
 .heartacts { gap: 7px; }
 .heartact { min-height: 56px; border-radius: 13px; }
 .adbar { height: 3px; border-radius: 999px; background: color-mix(in srgb, var(--text) 8%, transparent); }
