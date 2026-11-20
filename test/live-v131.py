@@ -87,6 +87,8 @@ with sync_playwright() as p:
 
     # 1일차 — 3일 전(이번 주 수) 헤어핀
     save_log(3, ['헤어핀'])
+    toast1 = page.evaluate("() => (document.getElementById('toast') || {}).textContent || ''")
+    check('첫 저장 토스트에 1/3 표시', '이번 주 헤어핀 1/3' in toast1, toast1)
     card = page.query_selector('[data-region="challenge"]')
     check('1회 저장 → 챌린지 카드', card is not None)
     text = card.inner_text().replace('\n', ' | ') if card else ''
