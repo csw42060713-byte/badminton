@@ -180,6 +180,42 @@
       '</div></details>';
   }
 
+  /* 실전 선수 오프코트 루틴 — 코트 날 · 웨이트 날 순서 + 코어·허리 보강 3종 + 자전거 40분 */
+  function offcourtFold(an) {
+    var oc = an && an.offcourt;
+    if (!oc || !oc.days || !oc.days.length) return '';
+    var days = oc.days.map(function (d) {
+      var steps = d.steps.map(function (s) {
+        return '<li><b>' + U.esc(s.name) + '</b>' + (s.min > 0 ? ' (' + s.min + '분)' : '') +
+          ' — ' + U.esc(s.how) + '</li>';
+      }).join('');
+      return '<div class="planbox mt8"><p class="planbox__t">' + U.esc(d.title) + '</p>' +
+        '<p class="planbox__v">' + U.esc(d.order) + '</p>' +
+        '<ul class="bullets">' + steps + '</ul></div>';
+    }).join('');
+    var core = oc.core && oc.core.items && oc.core.items.length
+      ? '<div class="planbox mt8"><p class="planbox__t">' + U.esc(oc.core.title) + ' · ' + oc.core.items.length + '종</p>' +
+        '<p class="planbox__v">' + U.esc(oc.core.when) + '</p>' +
+        '<ul class="bullets">' + oc.core.items.map(function (it) {
+          return '<li><b>' + U.esc(it.name) + '</b> ' + U.esc(it.sets) + ' — ' + U.esc(it.how) + '</li>';
+        }).join('') + '</ul></div>'
+      : '';
+    var endurance = oc.endurance
+      ? '<div class="planbox mt8"><p class="planbox__t">' + U.esc(oc.endurance.title) + ' · ' + oc.endurance.min + '분</p>' +
+        '<p class="planbox__v">' + U.esc(oc.endurance.when) + '</p>' +
+        '<p class="planbox__v">' + U.esc(oc.endurance.how) + '</p></div>'
+      : '';
+    return '<details class="fold fold--ai" data-fold="offcourt">' +
+      '<summary class="fold__sum"><span>' + U.esc(oc.title) + ' <small>코트 날 · 웨이트 날 순서</small></span>' +
+      '<i class="fold__val">' + (oc.days.length + (oc.core ? 1 : 0)) + '가지</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' +
+      '<p class="planbox__v">' + U.esc(oc.note) + '</p>' +
+      days + core + endurance +
+      '<p class="planbox__v">' + U.esc(oc.disciplineNote) + '</p>' +
+      '<p class="planbox__v">근거 · ' + U.esc(oc.source) + '</p>' +
+      '</div></details>';
+  }
+
   function analysisCard(an, state) {
     if (!an) return '';
     var drills = (an.drills && an.drills.drills) || [];
@@ -205,6 +241,7 @@
       }).join('') + '</ol>' +
       analysisDetails(an) +
       preventFold(an) +
+      offcourtFold(an) +
       '<details class="fold fold--ai" data-fold="week">' +
       '<summary class="fold__sum"><span>이번 주 루틴 <small>다음 훈련 · 실전</small></span>' +
       '<i class="fold__val">' + an.week.length + '회차</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
