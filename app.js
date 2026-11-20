@@ -182,6 +182,7 @@
    * 알림은 '직전 확인 이후 새로 들어온 것'만 씁니다(처음 열 때 지난 메시지는 제외). */
   var notifyTimer = null;
   var lastNotifiedAt = '';
+  var notifyClosedSig = '';   /* 배너를 닫은 소식 — 같은 소식으로 다시 띄우지 않습니다 */
 
   function notifEnabled() {
     return !!(store && store.state.prefs && store.state.prefs.notify !== false);
@@ -204,9 +205,9 @@
   function hideNotify() {
     var bar = el('notifbar');
     if (!bar || bar.hidden) return;
+    if (bar.dataset.sig) notifyClosedSig = bar.dataset.sig;
     bar.hidden = true;
     bar.innerHTML = '';
-    bar.dataset.sig = '';
     if (document.body) document.body.classList.remove('has-notif');
   }
 
@@ -218,6 +219,7 @@
     if (item && item.kind === 'message' && state.ui.chatOpen && String(state.ui.chatRoom) === String(item.roomId)) item = null;
     if (!item) { hideNotify(); return; }
     var sig = item.kind + '|' + (item.roomId || item.id) + '|' + item.at;
+    if (sig === notifyClosedSig) { hideNotify(); return; }   /* 이미 닫은 소식 */
     if (bar.dataset.sig === sig && !bar.hidden) return;
     bar.dataset.sig = sig;
     var sub = item.kind === 'message'
