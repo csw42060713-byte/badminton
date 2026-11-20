@@ -90,6 +90,25 @@
  *        서브는 몸쪽 67%(A조)·70%(B조), 직선 22%·20%, 대각 11%·10% → 서브 실점 23%·25%.
  *        리시브 기술은 숏 드라이브 46%·38%, 드라이브 21%·34%, 헤어핀 28%·15%(드롭 0%).
  *        두 조 모두 서브 코스와 리시브 구질의 다양화가 필요하다고 결론.
+ * [GUER23] Guermont H., Mittelheisser G., Reboursière E., Gauthier A., Drigny J., <Shoulder muscle imbalance
+ *        as a risk factor for shoulder injury in elite badminton players: A prospective study>,
+ *        Phys Ther Sport 61:149-155, 2023 (DOI: 10.1016/j.ptsp.2023.04.002) — 엘리트 19명(19.4±4.8세) 38주 추적,
+ *        42%가 우세측 주요 어깨 부상(SSI). 사전검사 GIRD > 14°(OR 36.14), FR240 < 0.69(OR 28.0)이 예측 인자.
+ * [CEJ22] Cejudo A., <Risk Factors for, and Prediction of, Shoulder Pain in Young Badminton Players>,
+ *        IJERPH 19(20):13095, 2022 (DOI: 10.3390/ijerph192013095) — U-17 45명 12개월 추적, 47.4%가 어깨 통증.
+ *        내회전 ROM 55° 이하 = 1년 내 어깨 통증 확률 81%(민감도 75.0%, 특이도 83.3%).
+ * [DU20] Du Y., Fan Y., <Changes in the Kinematic and Kinetic Characteristics of Lunge Footwork during the
+ *        Fatiguing Process>, Appl Sci 10(23):8703, 2020 (DOI: 10.3390/app10238703) — 대학 남자 15명.
+ *        피로 후 고관절·무릎·발목의 시상면 초기접촉각·최대각·모멘트·파워·최대각 도달시간 모두 감소,
+ *        무릎이 특히 심함(p < 0.001). 서론: 하지 부상이 전체의 43~86%, 부상은 경기·훈련 후반에 몰림.
+ * [VAL18] Valldecabres R., de Benito A.M., Littler G., Richards J., <An exploration of the effect of
+ *        proprioceptive knee bracing on biomechanics during a badminton lunge to the net…>, PeerJ 6:e6033,
+ *        2018 (DOI: 10.7717/peerj.6033) — 숙련 16명. 백핸드 네트 런지가 포핸드보다 무릎 내회전 속도·
+ *        신전 모멘트가 커 위험 요인이 많음(포핸드는 굴곡 각이 큼). 피로 후 시상면 각속도·모멘트 감소.
+ * [FONG21] Fong D.T.P., Mok K.M., Thompson I.M., Wang Y., Shan W., King M.A., <A lateral ankle sprain during
+ *        a lateral backward step in badminton: A case report of a televised injury incident>,
+ *        J Sport Health Sci 12(1):139-144, 2023 (DOI: 10.1016/j.jshs.2021.03.007) — 측후방 스텝 중 앞발 착지
+ *        (발목 33° 저측굴곡·18° 내회전)가 급성 외측 염좌의 메커니즘. 예방은 앞발 착지 순간의 발목 제어.
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -719,6 +738,169 @@
     };
   }
 
+  /* ---------- 관절 보호 체크 — 어깨 과사용(GIRD) · 하지 피로 구간 ----------
+   * 배드민턴 선수가 가장 자주 다치는 두 부위를 '측정 가능한 기준'으로 점검합니다.
+   * [GUER23] 엘리트 19명(19.4±4.8세) 38주 추적, 42%가 우세측 주요 어깨 부상(SSI).
+   *          사전검사 GIRD > 14°(OR 36.14), FR240 < 0.69(OR 28.0)이 독립 예측 인자.
+   *          → 뒤쪽 관절낭(슬리퍼) 스트레치 + 외회전 원심성 보강.
+   * [CEJ22] U-17 45명 12개월 추적, 47.4%가 어깨 통증 경험. 내회전 ROM 55° 이하 =
+   *          1년 내 통증 확률 81%(민감도 75.0%, 특이도 83.3%).
+   * [DU20] 대학 남자 15명. 피로가 쌓이면 고관절·무릎·발목의 시상면 초기접촉각·최대각·
+   *          모멘트·파워·최대각 도달시간이 모두 줄고, 무릎이 특히 심함(p < 0.001).
+   *          서론: 하지 부상이 전체의 43~86%, 부상은 경기·훈련 후반에 몰림.
+   * [VAL18] 숙련 16명. 백핸드 네트 런지가 포핸드보다 무릎 내회전 속도·신전 모멘트가 커
+   *          위험 요인이 많음(포핸드는 굴곡 각이 큼). 피로 후 시상면 각속도·모멘트 감소.
+   * [FONG21] 측후방 스텝 중 앞발 착지(발목 33° 저측굴곡·18° 내회전)가 급성 외측 염좌의
+   *          메커니즘. 예방은 앞발 착지 순간의 발목 제어·안정성.
+   * 여기 숫자는 화면 문구와 테스트가 함께 씁니다. */
+  var SHOULDER_RISK = {
+    girdDeg: 14,            /* [GUER23] GIRD > 14° */
+    girdOR: 36.14,
+    fr240: 0.69,            /* [GUER23] FR240 < 0.69 */
+    fr240OR: 28.0,
+    irRomDeg: 55,           /* [CEJ22] 내회전 ROM ≤ 55° */
+    irRomProbPct: 81,
+    irRomSensPct: 75,
+    irRomSpecPct: 83.3,
+    eliteN: 19,
+    followWeeks: 38,
+    eliteInjuryPct: 42,
+    youthN: 45,
+    youthPainPct: 47.4
+  };
+  var LOWER_RISK = {
+    lowerSharePct: [43, 86],   /* [DU20] 하지 부상 비중 */
+    kneeMomentP: 0.001,        /* [DU20] 무릎 모멘트·파워 감소 유의수준 */
+    plantarDeg: 33,            /* [FONG21] 착지 순간 저측굴곡 */
+    irDeg: 18,                 /* [FONG21] 착지 순간 내회전 */
+    heavyMinutes: 90,          /* 여기서부터 '피로 구간' 경고 */
+    heavyIntensity: 8
+  };
+  var SHOULDER_SRC = 'Guermont et al., Phys Ther Sport 61:149-155, 2023 (DOI 10.1016/j.ptsp.2023.04.002) · ' +
+    'Cejudo, IJERPH 19(20):13095, 2022 (DOI 10.3390/ijerph192013095)';
+  var SHOULDER_SRC_SHORT = 'Guermont 2023 Phys Ther Sport · Cejudo 2022 IJERPH';
+  var LOWER_SRC = 'Du & Fan, Appl Sci 10(23):8703, 2020 (DOI 10.3390/app10238703) · ' +
+    'Valldecabres et al., PeerJ 6:e6033, 2018 (DOI 10.7717/peerj.6033) · ' +
+    'Fong et al., J Sport Health Sci 12(1):139-144, 2023 (DOI 10.1016/j.jshs.2021.03.007)';
+  var LOWER_SRC_SHORT = 'Du & Fan 2020 Appl Sci · Valldecabres 2018 PeerJ · Fong 2021 J Sport Health Sci';
+
+  function guardShoulder() {
+    return {
+      label: '어깨',
+      title: '어깨 과사용 · 내회전 가동성',
+      thresholds: [
+        '내회전 결손 GIRD > ' + SHOULDER_RISK.girdDeg + '° → 어깨 주요 부상 위험 OR ' + SHOULDER_RISK.girdOR,
+        '외회전 원심성 ÷ 내회전 구심성 FR240 < ' + SHOULDER_RISK.fr240 + ' → OR ' + SHOULDER_RISK.fr240OR.toFixed(1),
+        '내회전 가동범위 ≤ ' + SHOULDER_RISK.irRomDeg + '° → 1년 내 어깨 통증 확률 ' + SHOULDER_RISK.irRomProbPct + '%'
+      ],
+      checks: [
+        { name: 'GIRD 재기', how: '등 대고 누워 어깨를 90° 벌리고 팔꿈치 90°, 손을 아래로 돌려 양쪽 각도를 비교 — 우세측이 ' + SHOULDER_RISK.girdDeg + '° 넘게 좁으면 위험 구간입니다' },
+        { name: '내회전 각도 확인', how: '같은 자세에서 손이 바닥 쪽으로 내려간 각도가 ' + SHOULDER_RISK.irRomDeg + '° 이하이면 1년 안에 어깨 통증을 겪을 확률이 ' + SHOULDER_RISK.irRomProbPct + '%였습니다' },
+        { name: 'FR240은 장비로', how: '외회전 원심성 힘 ÷ 내회전 구심성 힘 — ' + SHOULDER_RISK.fr240 + ' 미만이면 팔을 버티는 힘이 약한 상태라 체력 측정 때 코치에게 함께 봐 달라고 하세요' }
+      ],
+      guides: [
+        { name: '슬리퍼 스트레치(뒤 관절낭)', how: '옆으로 누워 어깨 90°, 반대손으로 손목을 바닥 쪽으로 눌러 30초 × 3 — 통증 3/10 이하로, 하루 1~2회' },
+        { name: '외회전 원심성 강화', how: '밴드를 고정하고 팔꿈치를 몸에 붙인 채 바깥으로 돌렸다가 3초에 걸쳐 천천히 돌아오기 12회 × 3세트, 주 3회' },
+        { name: '견갑 안정 세트', how: '월 슬라이드 10회 × 2 + Y-T 레이즈 10회 — 오버헤드 전에 어깨 날개를 먼저 고정합니다' }
+      ],
+      source: SHOULDER_SRC,
+      sourceShort: SHOULDER_SRC_SHORT,
+      stats: SHOULDER_RISK
+    };
+  }
+
+  function guardLower() {
+    return {
+      label: '무릎·발목',
+      title: '런지 피로 구간 · 무릎·발목',
+      thresholds: [
+        '하지 부상이 전체의 ' + LOWER_RISK.lowerSharePct[0] + '~' + LOWER_RISK.lowerSharePct[1] + '%, 경기·훈련 후반에 몰립니다',
+        '피로가 쌓이면 무릎 신전 모멘트·파워가 먼저 떨어집니다(p < ' + LOWER_RISK.kneeMomentP + ')',
+        '백핸드 네트 런지 > 포핸드 (무릎 내회전 속도·신전 모멘트)',
+        '측후방 스텝의 앞발 착지(발목 ' + LOWER_RISK.plantarDeg + '° 저측굴곡·' + LOWER_RISK.irDeg + '° 내회전) = 급성 외측 염좌'
+      ],
+      checks: [
+        { name: '후반 런지 세기', how: '마지막 세트에서 백핸드 네트 런지 5개를 해 보고 앞으로 무릎이 안으로 무너지거나 발이 미끄러지면 피로 구간입니다' },
+        { name: '착지 확인', how: '측후방으로 나갈 때 앞발 끝만으로 찍지 않고 발바닥 전체로 내려앉는지 — 앞발 착지가 급성 발목 염좌의 핵심 동작입니다' }
+      ],
+      guides: [
+        { name: '대퇴사두 하중 단계', how: '20cm 스텝업 12회 → 앞 런지 10회 → 한 발 내리기 8회 순서로 주 2~3회(무릎이 아프면 앞 단계로)' },
+        { name: '둔근 · 고관절 신전', how: '힙 브리지 15회 × 3 + 사이드 밴드 워크 10보 × 2 — 피로하면 고관절 신전 모멘트부터 빠집니다' },
+        { name: '발목 안정화', how: '한 발 서기 30초 × 2(익숙해지면 눈 감고) + 밴드 4방향 15회 — 앞발 착지 제어를 만듭니다' }
+      ],
+      source: LOWER_SRC,
+      sourceShort: LOWER_SRC_SHORT,
+      stats: LOWER_RISK
+    };
+  }
+
+  /* jointGuard(painList, weakSkills, ctx)
+   *   → { shoulder:{on,level,reason,...}, lower:{on,level,reason,window,...} }
+   * 어깨: 통증에 '어깨'가 있거나 스매시·클리어(오버헤드)를 고른 날
+   * 하지: 무릎·발목·아킬레스건 통증, 풋워크(런지 많은 날), 강도 8 이상·90분 이상, 주간 부하 급증
+   * 같은 입력이면 항상 같은 결과 (순수 함수) */
+  function jointGuard(painList, weakSkills, ctx) {
+    ctx = ctx || {};
+    var pains = (painList || []).slice();
+    var weak = (weakSkills || []).slice();
+    var intensity = ctx.intensity == null ? null : Number(ctx.intensity);
+    var minutes = ctx.minutes == null ? null : Number(ctx.minutes);
+    var zone = (ctx.load && ctx.load.zone) || '';
+    var heavy = (intensity != null && intensity >= LOWER_RISK.heavyIntensity) ||
+      (minutes != null && minutes >= LOWER_RISK.heavyMinutes) || zone === 'spike';
+
+    /* ---- 어깨 ---- */
+    var shoulderPain = pains.indexOf('어깨') >= 0;
+    var overhead = weak.indexOf('스매시') >= 0 || weak.indexOf('클리어') >= 0;
+    var shoulder = guardShoulder();
+    shoulder.on = shoulderPain || overhead;
+    shoulder.level = shoulderPain ? 'pain' : (overhead ? 'overhead' : '');
+    if (shoulderPain) {
+      shoulder.reason = '어깨를 오늘 통증 부위로 남겼어요. 엘리트 선수 ' + SHOULDER_RISK.followWeeks + '주 추적에서 내회전 결손 ' +
+        SHOULDER_RISK.girdDeg + '° 초과(OR ' + SHOULDER_RISK.girdOR + ')나 외회전 원심성 비율 ' + SHOULDER_RISK.fr240 +
+        ' 미만(OR ' + SHOULDER_RISK.fr240OR.toFixed(1) + ')이면 어깨 주요 부상이 크게 늘었습니다. 오늘 스매시·클리어 개수를 절반으로 줄이고 아래 두 가지를 먼저 넣으세요.';
+    } else if (overhead) {
+      shoulder.reason = '스매시·클리어처럼 머리 위로 치는 날은 어깨 뒤쪽 관절낭이 먼저 조여집니다. 코트 전후로 슬리퍼 스트레치와 외회전 원심성을 넣으면 ' +
+        'GIRD ' + SHOULDER_RISK.girdDeg + '° 초과·FR240 ' + SHOULDER_RISK.fr240 + ' 미만 위험 구간에서 멀어지는 데 도움이 됩니다.';
+    } else {
+      shoulder.reason = '';
+    }
+
+    /* ---- 무릎·발목 ---- */
+    var lowerPain = pains.filter(function (p) { return p === '무릎' || p === '발목' || p === '아킬레스건'; });
+    var footwork = weak.indexOf('풋워크') >= 0;
+    var lower = guardLower();
+    lower.on = lowerPain.length > 0 || footwork || heavy;
+    lower.level = lowerPain.length ? 'pain' : (heavy ? 'fatigue' : (footwork ? 'lunge' : ''));
+    lower.pain = lowerPain.slice();
+    lower.window = heavy
+      ? '오늘은 ' + (minutes != null ? minutes + '분' : '훈련') + '·강도 ' + (intensity != null ? intensity : '-') +
+        ' — 길거나 센 날은 마지막 30분에 하지 부상이 몰립니다. 마지막 세트부터 백핸드 네트 런지를 절반으로 줄이고, 측후방 스텝은 발바닥 전체로 착지하세요.'
+      : '';
+    if (lowerPain.length) {
+      lower.reason = lowerPain.join('·') + '을 오늘 통증 부위로 남겼어요. 하지 부상은 전체의 ' + LOWER_RISK.lowerSharePct[0] + '~' +
+        LOWER_RISK.lowerSharePct[1] + '%이고 경기·훈련 후반 피로가 쌓일 때 몰립니다. 오늘은 백핸드 네트 런지와 깊은 런지를 줄이고 아래 보강을 먼저 하세요.';
+    } else if (heavy) {
+      lower.reason = '강도가 높은 날(또는 부하가 급증한 주)에는 피로가 쌓이면서 고관절·무릎·발목의 각도와 모멘트, 최대각에 도달하는 시간이 함께 줄어듭니다 — 특히 무릎(p < ' +
+        LOWER_RISK.kneeMomentP + '). 후반으로 갈수록 런지 질이 먼저 떨어지니 개수보다 착지와 무릎 정렬을 보세요.';
+    } else {
+      lower.reason = '풋워크·런지가 많은 날이에요. 백핸드 네트 런지는 포핸드보다 무릎 내회전 속도와 신전 모멘트가 커 위험이 높고, 측후방 스텝의 앞발 착지가 급성 발목 염좌의 핵심 동작입니다.';
+    }
+
+    var on = [];
+    if (shoulder.on) on.push(shoulder.label);
+    if (lower.on) on.push(lower.label);
+
+    return {
+      title: '관절 보호 체크',
+      areas: on,
+      label: on.length ? on.join(' · ') : '',
+      shoulder: shoulder,
+      lower: lower,
+      heavy: heavy
+    };
+  }
+
   /* ---------- 단식 vs 복식 부하·인터벌 기준 ----------
    * [ALC09] 단식 88.8%/96.8% vs 복식 75.5%/89.0% HRmax, 게임당 593.8 vs 314.5보.
    * [HOFF24] 남자복식·혼합복식 최단 랠리(5.6~6.7초)·최고 타구 빈도, 여자복식 최장 랠리(약 10.1초).
@@ -1024,7 +1206,8 @@
       rehab: [
         '오버헤드(스매시·클리어) 횟수를 오늘 하루 절반으로 줄이기',
         '밴드 외회전 15회 × 2세트, 주 3회 (6주면 통증·기능 개선 근거)',
-        '통증 시 냉찜질 15분, 2주 이상 이어지면 정형외과 상담'
+        '통증 시 냉찜질 15분, 2주 이상 이어지면 정형외과 상담',
+        '내회전이 반대쪽보다 14° 이상 좁거나(GIRD) 내회전 55° 이하면 어깨 위험이 커요 — 슬리퍼 스트레치와 외회전 원심성을 매일'
       ],
       stretch: ['가슴 문 열기 스트레칭 30초 × 2', '어깨 뒤쪽(슬리퍼) 스트레칭 30초 × 2', '어깨 원 그리기 10회씩'],
       ret: ['통증 3/10 이하에서 오버헤드 재개, 스매시 개수는 주당 20%씩만 늘리기']
@@ -1034,7 +1217,8 @@
       rehab: [
         '점프·계단·깊은 런지 횟수를 줄이고 무릎 주변 근육 먼저 강화',
         '하중은 20cm 스텝업 → 런지 → 한 발 내리기 순서로 단계 올리기',
-        '붓기가 있으면 냉찜질 15분, 통증 지속 시 진료'
+        '붓기가 있으면 냉찜질 15분, 통증 지속 시 진료',
+        '경기·훈련 후반(피로 누적)에는 백핸드 네트 런지 수를 줄이세요 — 포핸드보다 무릎 내회전 속도·신전 모멘트가 큽니다'
       ],
       stretch: ['대퇴사두근 스트레칭 30초 × 2', '종아리 스트레칭 30초 × 2', '엉덩이(가위) 스트레칭 30초 × 2'],
       ret: ['통증 5/10까지는 허용, 다음 날 아침에 원래 통증으로 돌아와야 함', '2주 이상 같은 통증이면 진료']
@@ -1069,7 +1253,8 @@
     },
     '발목': {
       signs: ['접질린 뒤 체중을 못 실으면 진료(골절 확인)', '반복해서 접질리면 진료'],
-      rehab: ['한 발 서기 30초 × 3, 눈 감고 15초 × 2 (균형 훈련은 염좌 위험을 40% 줄임)', '접질린 뒤라면 보호대 착용 후 복귀'],
+      rehab: ['한 발 서기 30초 × 3, 눈 감고 15초 × 2 (균형 훈련은 염좌 위험을 40% 줄임)', '접질린 뒤라면 보호대 착용 후 복귀',
+        '측후방 스텝은 앞발 끝이 아니라 발바닥 전체로 착지하세요 — 앞발 착지가 급성 외측 염좌의 핵심 동작입니다'],
       stretch: ['발목 앞뒤로 굽히기 20초 × 3', '발가락 벌리기 10회'],
       ret: ['균형 훈련을 주 3회 유지, 붓기 없이 뛸 수 있으면 경기 복귀']
     }
@@ -1531,6 +1716,7 @@
     var painList = U.uniq(painToday.concat(painCounts.filter(function (p) { return p.n >= 3; }).map(function (p) { return p.name; })));
     /* 통증 부위·종목에 맞춘 예방 워밍업과 종목별 인터벌 기준 (논문 근거) */
     var prevent = preventionWarmup(painList, discipline);
+    var guard = jointGuard(painList, weakSkills, { intensity: intensity, minutes: minutes, load: load });
     var loadGuide = disciplineLoadGuide(discipline, level);
     painList.slice(0, 2).forEach(function (p) {
       var box = INJURY[p];
@@ -1607,6 +1793,7 @@
       drills: { drills: drills },
       care: care,
       prevent: prevent,
+      guard: guard,
       loadGuide: loadGuide,
       offcourt: offcourtRoutine(discipline),
       pace: pace,
@@ -1645,6 +1832,7 @@
     gradePlan: gradePlan, playbook: playbook,
     gameFlow: gameFlow, loadIndex: loadIndex, scoreModeOf: scoreModeOf,
     preventionWarmup: preventionWarmup, disciplineLoadGuide: disciplineLoadGuide,
+    jointGuard: jointGuard, SHOULDER_RISK: SHOULDER_RISK, LOWER_RISK: LOWER_RISK,
     offcourtRoutine: offcourtRoutine, OFFCOURT: OFFCOURT,
     paceGuide: paceGuide, SELF_PACE: SELF_PACE,
     disciplineKey: disciplineKey, PREVENT: PREVENT, LOAD_GUIDE: LOAD_GUIDE,
