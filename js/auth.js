@@ -6,9 +6,11 @@
  *       실제 구글 계정(이메일·이름·사진)으로 로그인/자동 가입됩니다.
  *     - MY > 계정 > 고급에서 다른 OAuth Client ID를 넣으면 그 값이 우선합니다.
  *     - Client ID가 비어 있으면 '데모 Google 계정'으로 미리보기만 합니다.
- *  2) 이메일 로그인 / 회원가입
- *     - 시트 브리지 주소가 저장돼 있으면 브리지의 login / register를 씁니다.
- *     - 없으면 이 기기에만 저장하는 체험 계정으로 동작합니다.
+ *  2) 이메일 로그인 / 회원가입  (v1.26 — Supabase Auth)
+ *     - 기본은 Supabase Auth(/auth/v1)로 직접 가입·로그인하고,
+ *       받은 access_token/refresh_token 으로 RLS의 '본인 행 수정·삭제'까지 통과합니다.
+ *     - MY > 데이터 연결에서 구글 시트로 직접 바꾼 기기만 옛 시트 브리지를 씁니다.
+ *     - 브리지도 없으면 이 기기에만 저장하는 체험 계정으로 동작합니다.
  *  3) 로그인 없이 둘러보기 : 체험 세션(guest).
  *  4) 첫 가입 10초 온보딩 상태(급수·종목을 아직 안 고른 로그인 사용자).
  *
@@ -20,6 +22,10 @@
   var U = BM.util;
 
   var SESSION_KEY = 'bm_auth_v1';
+  /* Supabase Auth 세션(access_token·refresh_token)은 앱 세션과 따로 둡니다.
+     - 앱 세션에는 이메일·닉네임만, 토큰은 여기(같은 기기 저장소)에 보관합니다.
+     - 로그아웃·탈퇴 때 두 키를 함께 지웁니다. */
+  var SB_AUTH_KEY = 'bm_sb_auth_v1';
   var ACCOUNTS_KEY = 'bm_accounts_v1';
   var CLIENT_ID_KEY = 'bm_google_client_id_v1';
   var PROFILE_KEY = 'bm_auth_profile_v1';
@@ -135,6 +141,8 @@
     info = info || {};
     var email = normEmail(info.email);
     if (!email) throw new Error('구글 계정 이메일을 확인하지 못했어요.');
+    /* 구글 ID 토큰도 함께 넘겨 Supabase 세션을 시도합니다(공급자가 켜져 있을 때만 성공, 실패는 무시) */
+    linkGoogleIdToken(info);
     return activate({
       kind: 'google',
       email: email,
@@ -143,6 +151,27 @@
       sub: String(info.sub || ''),
       demo: !!info.demo
     });
+  }
+
+  /* Supabase 프로젝트에 구글 공급자가 켜져 있으면 구글 로그인도 같은 JWT 세션을 받습니다.
+     (아직 꺼져 있으면 조용히 지나가고 예전처럼 앱 세션만 씁니다 — 로그인은 그대로 동작) */
+  function linkGoogleIdToken(info) {
+    if (!info || !info.idToken || info.demo) return Promise.resolve(null);
+    return sbFetch('/token?grant_type=id_token', {
+      method: 'POST', body: { provider: 'google', id_token: info.idToken }
+    }).then(function (data) {
+      var next = sbSessionFrom(data, info.email);
+      if (!next || normEmail(next.email) !== normEmail(info.email)) return null;
+      saveSbAuth(next);
+      var s = session();
+      if (s) {
+        s.token = next.access_token;
+        s.source = 'supabase';
+        saveSession(s);
+        ensureAccount({ nick: s.name });
+      }
+      return next;
+    }).catch(function () { return null; });
   }
 
   function signInEmailAccount(account) {
@@ -158,6 +187,8 @@
   }
 
   function signOut() {
+    signOutRemote();
+    clearSbAuth();
     U.storage.removeItem(SESSION_KEY);
     return true;
   }
@@ -244,7 +275,9 @@
         sub: payload.sub || '',
         email: payload.email,
         name: payload.name || payload.email,
-        picture: payload.picture || ''
+        picture: payload.picture || '',
+        /* Supabase Auth의 signInWithIdToken 에 넘길 원본 토큰(구글 공급자가 켜져 있을 때만 쓰입니다) */
+        idToken: String(token)
       };
     } catch (e) { return null; }
   }
@@ -405,6 +438,12 @@
     if (password.length < 6) {
       return Promise.resolve({ ok: false, code: 'weak_password', message: '비밀번호는 6자 이상으로 정해 주세요.' });
     }
+    /* v1.26 — 기본은 Supabase Auth 로 바로 가입·로그인합니다.
+       · 주소를 넘기지 않았을 때: 시트로 직접 바꾼 기기가 아니면 Supabase
+       · 주소가 ''(빈 문자열)로 명시되면: 예전처럼 이 기기 체험 계정
+       · 주소가 있으면: 그 시트 브리지 */
+    var explicitUrl = opts.url != null;
+    if (!explicitUrl && !prefersSheetsAuth()) return signInEmailSupabase(opts);
     var url = String(opts.url == null ? bridgeUrl() : opts.url).trim();
 
     if (!url) {
@@ -442,6 +481,306 @@
     });
   }
 
+  /* =========================================================
+   * Supabase Auth (이메일 가입·로그인·비밀번호·탈퇴)
+   *
+   *  · 앱에는 공개 키(anon / publishable)만 들어갑니다.
+   *  · 가입/로그인 성공 시 access_token + refresh_token 을 기기에 보관하고,
+   *    만료 60초 전부터 refresh_token 으로 자동 갱신합니다(회전 시 새 값 저장).
+   *  · api.js 는 이 access_token 을 Authorization: Bearer 로 실어 보내,
+   *    RLS 의 '본인 행' 수정·삭제가 실제 PATCH/DELETE 로 통과합니다.
+   *  · 비밀번호는 Supabase Auth 가 해시로 보관하며 앱은 저장하지 않습니다.
+   * ========================================================= */
+  var refreshing = null;
+
+  function sbCfg() {
+    var sb = (BM.api && BM.api.SUPABASE) || {};
+    return {
+      url: String(sb.url || '').replace(/\/+$/, ''),
+      key: String(sb.publishableKey || sb.anonKey || '')
+    };
+  }
+
+  function http() {
+    if (typeof root.fetch === 'function') return root.fetch;
+    if (typeof fetch === 'function') return fetch;            /* eslint-disable-line no-undef */
+    return null;
+  }
+
+  function sbAuthState() { return U.readJSON(SB_AUTH_KEY, null); }
+
+  function saveSbAuth(v) {
+    if (v && v.access_token) U.writeJSON(SB_AUTH_KEY, v);
+    else U.storage.removeItem(SB_AUTH_KEY);
+    return v || null;
+  }
+
+  function clearSbAuth() {
+    refreshing = null;
+    U.storage.removeItem(SB_AUTH_KEY);
+  }
+
+  /* /auth/v1 응답 → 보관할 세션 모양 */
+  function sbSessionFrom(data, email) {
+    if (!data || !data.access_token) return null;
+    var user = data.user || {};
+    var exp = Number(data.expires_at) || 0;
+    if (!exp && data.expires_in) exp = Math.floor(Date.now() / 1000) + Number(data.expires_in);
+    return {
+      access_token: String(data.access_token),
+      refresh_token: String(data.refresh_token || ''),
+      expires_at: exp,
+      uid: String(user.id || ''),
+      email: normEmail(user.email || email || '')
+    };
+  }
+
+  function authErrorOf(status, data) {
+    var code = String((data && (data.error_code || data.code)) || '') || String(status);
+    var msg = String((data && (data.msg || data.message || data.error_description)) || '');
+    if (code === 'invalid_credentials' || /invalid login credentials/i.test(msg)) {
+      return { code: 'bad_password', message: '이메일이나 비밀번호가 맞지 않아요.' };
+    }
+    if (code === 'email_not_confirmed') {
+      return { code: 'confirm_email', message: '메일 확인이 필요한 계정이에요. 받은 편지함의 확인 링크를 먼저 눌러 주세요.' };
+    }
+    if (code === 'user_already_exists' || /already registered|already been registered/i.test(msg)) {
+      return { code: 'exists', message: '이미 가입된 이메일이에요. 로그인해 주세요.' };
+    }
+    if (code === 'weak_password') return { code: 'weak_password', message: '비밀번호가 너무 짧아요. 6자 이상으로 정해 주세요.' };
+    if (code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit' || status === 429) {
+      return { code: 'rate_limit', message: '요청이 너무 잦았어요. 잠시 뒤 다시 시도해 주세요.' };
+    }
+    if (code === 'signup_disabled') return { code: 'signup_disabled', message: '지금은 새 가입을 받지 않고 있어요.' };
+    if (code === 'session_not_found' || code === 'invalid_grant') return { code: 'no_session', message: '로그인이 만료됐어요. 다시 로그인해 주세요.' };
+    if (status >= 500) return { code: 'server', message: '서버가 잠시 응답하지 못했어요. 잠시 뒤 다시 시도해 주세요.' };
+    return { code: code || 'error', message: msg || '로그인하지 못했어요.' };
+  }
+
+  /* /auth/v1 호출. 실패하면 {code, message} 가 붙은 Error 로 거절합니다. */
+  function sbFetch(path, o) {
+    o = o || {};
+    var cfg = sbCfg();
+    var f = http();
+    if (!f || !cfg.url || !cfg.key) {
+      return Promise.reject(authFail('network', '지금은 서버 로그인을 쓸 수 없어요.'));
+    }
+    var headers = { 'apikey': cfg.key, 'Content-Type': 'application/json' };
+    if (o.token) headers['Authorization'] = 'Bearer ' + o.token;
+    var init = { method: o.method || 'GET', headers: headers };
+    if (o.body !== undefined) init.body = JSON.stringify(o.body);
+    return Promise.resolve(f(cfg.url + '/auth/v1' + path, init)).then(function (res) {
+      return Promise.resolve(res.text()).then(function (text) {
+        var data = null;
+        if (text) { try { data = JSON.parse(text); } catch (e) { data = null; } }
+        if (res.ok) return data;
+        var err = authErrorOf(res.status, data);
+        throw authFail(err.code, err.message);
+      });
+    }, function () {
+      throw authFail('network', '서버에 연결하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+    });
+  }
+
+  function authFail(code, message) {
+    var err = new Error(message || '로그인하지 못했어요.');
+    err.code = code || 'error';
+    return err;
+  }
+
+  /* access_token 이 유효한지(만료 60초 전이면 미리 갱신) 확인해 돌려줍니다 */
+  function accessToken() {
+    var cur = sbAuthState();
+    if (!cur || !cur.access_token) return Promise.resolve('');
+    var now = Math.floor(Date.now() / 1000);
+    if (!cur.expires_at || cur.expires_at - 60 > now) return Promise.resolve(String(cur.access_token));
+    return refreshTokens().then(function (next) { return next ? next.access_token : ''; });
+  }
+
+  /* refresh_token 으로 세션 갱신(동시 요청은 하나로 합칩니다) */
+  function refreshTokens() {
+    var cur = sbAuthState();
+    if (!cur || !cur.refresh_token) return Promise.resolve(null);
+    if (refreshing) return refreshing;
+    refreshing = sbFetch('/token?grant_type=refresh_token', {
+      method: 'POST', body: { refresh_token: cur.refresh_token }
+    }).then(function (data) {
+      refreshing = null;
+      var next = sbSessionFrom(data, cur.email);
+      if (!next) return null;
+      if (!next.uid) next.uid = cur.uid;
+      if (!next.email) next.email = cur.email;
+      return saveSbAuth(next);
+    }, function (err) {
+      refreshing = null;
+      /* 갱신 토큰이 죽었으면 세션을 비워 다시 로그인하게 합니다 */
+      if (err && (err.code === 'no_session' || err.code === 'bad_password' || err.code === 'error')) clearSbAuth();
+      return null;
+    });
+    return refreshing;
+  }
+
+  function sbSignUp(email, password, nick) {
+    var body = { email: email, password: password };
+    if (nick) body.data = { nick: nick };
+    return sbFetch('/signup', { method: 'POST', body: body });
+  }
+
+  function sbSignInPassword(email, password) {
+    return sbFetch('/token?grant_type=password', { method: 'POST', body: { email: email, password: password } });
+  }
+
+  /* 이메일 가입·로그인 — Supabase 기본 경로 */
+  function signInEmailSupabase(opts) {
+    var email = normEmail(opts.email);
+    var password = String(opts.password == null ? '' : opts.password);
+    var nick = String(opts.nick || '').trim();
+    return (opts.create ? sbSignUp(email, password, nick) : sbSignInPassword(email, password)).then(function (data) {
+      var next = sbSessionFrom(data, email);
+      if (!next) {
+        /* 확인 메일 설정이 켜진 프로젝트에서는 가입만 되고 세션이 오지 않습니다 */
+        return {
+          ok: false, code: 'confirm_email',
+          message: '가입은 됐어요. 받은 편지함의 확인 링크를 누른 뒤 로그인해 주세요.'
+        };
+      }
+      saveSbAuth(next);
+      var meta = (data && data.user && data.user.user_metadata) || {};
+      var name = nick || meta.nick || email.split('@')[0];
+      var sess = signInEmailAccount({ email: email, name: name, token: next.access_token, source: 'supabase' });
+      /* 내 계정 행(app_users)을 auth.uid() 와 연결 — 본인 행 수정·삭제가 열립니다 */
+      ensureAccount({ nick: name });
+      return { ok: true, me: { nick: name, email: email }, session: sess, uid: next.uid };
+    }).catch(function (err) {
+      return { ok: false, code: (err && err.code) || 'error', message: (err && err.message) || '로그인하지 못했어요.' };
+    });
+  }
+
+  /* 이 기기(iPad·브라우저) 체험/브리지 로그인을 쓸지 — 시트로 직접 바꾼 기기만 true */
+  function prefersSheetsAuth() {
+    var key = (BM.api && BM.api.BACKEND_KEY) || 'bm_backend_v1';
+    if (String(U.readJSON(key, '') || '') !== 'sheets') return false;
+    var saved = BM.api && BM.api.savedSession ? BM.api.savedSession() : null;
+    return !!(saved && saved.url && saved.token);
+  }
+
+  function hasSupabaseAuth() {
+    var cur = sbAuthState();
+    return !!(cur && cur.access_token);
+  }
+
+  /* 내 계정 행(app_users)을 auth.uid() 와 연결합니다.
+     - user_key 는 앱이 쓰는 공개 ID(meKeyFor) 그대로라 기록·친구·매칭이 끊기지 않습니다.
+     - 실패해도 로그인은 그대로 쓸 수 있습니다(수정·삭제만 기록 행 방식으로 내려감). */
+  function ensureAccount(patch) {
+    var cur = sbAuthState();
+    var s = session();
+    if (!cur || !s || s.kind === 'guest') return Promise.resolve(false);
+    var f = http();
+    var cfg = sbCfg();
+    if (!f || !cfg.url) return Promise.resolve(false);
+    return accessToken().then(function (tok) {
+      if (!tok) return false;
+      var row = { user_key: meKeyFor(s), auth_uid: cur.uid };
+      var email = normEmail(s.email || cur.email);
+      if (email) row.email = email;
+      var nick = (patch && patch.nick) || s.name || (s.profile && s.profile.nick) || '';
+      if (nick) row.nick = nick;
+      if (patch && patch.level) row.level = patch.level;
+      if (patch && patch.discipline) row.discipline = patch.discipline;
+      if (patch && patch.region) row.region = patch.region;
+      if (patch && patch.club) row.club = patch.club;
+      var init = {
+        method: 'POST',
+        headers: {
+          'apikey': cfg.key, 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify(row)
+      };
+      return Promise.resolve(f(cfg.url + '/rest/v1/app_users?on_conflict=user_key', init))
+        .then(function (res) { return !!res && res.ok; }, function () { return false; });
+    }).catch(function () { return false; });
+  }
+
+  /* 비밀번호 변경(로그인 상태) */
+  function changePassword(newPassword, currentPassword) {
+    var pw = String(newPassword == null ? '' : newPassword);
+    if (pw.length < 6) return Promise.resolve({ ok: false, code: 'weak_password', message: '비밀번호는 6자 이상으로 정해 주세요.' });
+    return accessToken().then(function (tok) {
+      if (!tok) return { ok: false, code: 'no_session', message: '로그인이 만료됐어요. 다시 로그인한 뒤 시도해 주세요.' };
+      var body = { password: pw };
+      if (currentPassword) body.current_password = String(currentPassword);
+      return sbFetch('/user', { method: 'PUT', body: body, token: tok }).then(function () {
+        return { ok: true };
+      }, function (err) {
+        return { ok: false, code: (err && err.code) || 'error', message: (err && err.message) || '비밀번호를 바꾸지 못했어요.' };
+      });
+    });
+  }
+
+  /* 비밀번호 재설정 메일 보내기 */
+  function recoverPassword(email) {
+    var e = normEmail(email);
+    if (!EMAIL_RE.test(e)) return Promise.resolve({ ok: false, code: 'bad_email', message: '이메일 주소를 확인해 주세요.' });
+    var body = { email: e };
+    try {
+      var here = String((root.location && root.location.href) || '').split('#')[0];
+      if (here) body.redirect_to = here;
+    } catch (err) { /* 주소를 못 읽으면 기본 주소(Site URL)로 보냅니다 */ }
+    return sbFetch('/recover', { method: 'POST', body: body }).then(function () {
+      return { ok: true, message: '재설정 메일을 보냈어요. 받은 편지함(스팸함 포함)을 확인해 주세요.' };
+    }, function (err) {
+      return { ok: false, code: (err && err.code) || 'error', message: (err && err.message) || '메일을 보내지 못했어요.' };
+    });
+  }
+
+  /* 서버 쪽 세션 정리(로그아웃) — 실패해도 기기 세션은 지웁니다 */
+  function signOutRemote() {
+    var cur = sbAuthState();
+    if (!cur || !cur.access_token) return Promise.resolve(false);
+    return sbFetch('/logout', { method: 'POST', token: cur.access_token }).then(function () {
+      clearSbAuth();
+      return true;
+    }, function (err) {
+      if (err && err.code === 'no_session') clearSbAuth();
+      return false;
+    });
+  }
+
+  /* 재설정 메일 링크로 돌아왔을 때: 주소(#access_token=…&type=recovery)에서 세션을 받아옵니다 */
+  function bootstrapRecovery() {
+    if (typeof root.location === 'undefined' || !root.location) return Promise.resolve(null);
+    var hash = String(root.location.hash || '');
+    if (hash.indexOf('access_token=') < 0) return Promise.resolve(null);
+    var q = {};
+    hash.replace(/^#/, '').split('&').forEach(function (kv) {
+      var i = kv.indexOf('=');
+      if (i > 0) q[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1));
+    });
+    if (!q.access_token) return Promise.resolve(null);
+    var next = {
+      access_token: q.access_token,
+      refresh_token: q.refresh_token || '',
+      expires_at: Math.floor(Date.now() / 1000) + (Number(q.expires_in) || 3600),
+      uid: '', email: ''
+    };
+    saveSbAuth(next);
+    try { history.replaceState(null, '', String(root.location.pathname || '#/')); } catch (e) { /* 주소창 정리는 실패해도 됨 */ }
+    return sbFetch('/user', { token: next.access_token }).then(function (user) {
+      var email = normEmail((user && user.email) || '');
+      var cur = sbAuthState() || next;
+      cur.uid = String((user && user.id) || '');
+      cur.email = email;
+      saveSbAuth(cur);
+      /* 이미 앱 세션이 있으면 그대로, 없으면 새로 만듭니다 */
+      var s = session();
+      if (!s || s.kind === 'guest') s = signInEmailAccount({ email: email, name: email.split('@')[0], token: cur.access_token, source: 'supabase' });
+      ensureAccount({});
+      return { email: email, recovery: q.type === 'recovery', session: s };
+    }).catch(function () { return null; });
+  }
+
   /* ---------- 표시 도우미 ---------- */
   function kindLabel(s) {
     s = s || session();
@@ -473,6 +812,14 @@
     session: session, identityKey: identityKey, kindLabel: kindLabel, rowsKeyFor: rowsKeyFor, meKeyFor: meKeyFor,
     signInGuest: signInGuest, signInGoogle: signInGoogle, signInEmail: signInEmail,
     signInEmailAccount: signInEmailAccount,
+    /* v1.26 — Supabase Auth */
+    SB_AUTH_KEY: SB_AUTH_KEY,
+    signInEmailSupabase: signInEmailSupabase,
+    hasSupabaseAuth: hasSupabaseAuth, prefersSheetsAuth: prefersSheetsAuth,
+    accessToken: accessToken, refreshTokens: refreshTokens,
+    ensureAccount: ensureAccount, changePassword: changePassword, recoverPassword: recoverPassword,
+    signOutRemote: signOutRemote, clearSbAuth: clearSbAuth, sbAuthState: sbAuthState,
+    bootstrapRecovery: bootstrapRecovery, signInGoogleIdToken: linkGoogleIdToken,
     signOut: signOut, signOutKeepAccounts: signOutKeepAccounts,
     needsOnboarding: needsOnboarding, markOnboarded: markOnboarded, profileFor: profileFor,
     googleClientId: googleClientId, setGoogleClientId: setGoogleClientId, isGoogleClientId: isGoogleClientId,

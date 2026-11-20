@@ -56,7 +56,6 @@
   function emailHtml() {
     var signup = ui.mode === 'signup';
     var d = ui.draft;
-    var bridge = BM.auth.bridgeUrl();
     return '' +
       '<div class="start start--form">' +
       '<div class="start__top">' +
@@ -80,9 +79,10 @@
       (ui.error ? '<p class="start__error">' + U.esc(ui.error) + '</p>' : '') +
       '<button type="button" class="btn btn--primary btn--big mt16" data-act="submit"' + (ui.busy ? ' disabled' : '') + '>' +
       (ui.busy ? '잠시만요…' : (signup ? '가입하고 시작하기' : '로그인')) + '</button>' +
-      '<p class="hint">' + (bridge
+      (signup ? '' : '<button type="button" class="linkbtn start__forgot" data-act="forgot">비밀번호를 잊었어요</button>') +
+      '<p class="hint">' + (BM.auth.prefersSheetsAuth()
         ? '구글 시트와 연결된 계정으로 확인해요. 비밀번호는 해시로만 저장됩니다.'
-        : '지금은 이 기기에만 저장되는 체험 계정으로 동작해요. MY에서 시트를 연결하면 실제 계정으로 바뀝니다.') + '</p>' +
+        : '이메일·비밀번호는 서버(Supabase · 서울)에서 관리되고, 다른 기기에서도 같은 계정으로 이어집니다.') + '</p>' +
       '</div>' +
       '</div>';
   }
@@ -296,6 +296,30 @@
           repaint();
           return;
         }
+        if (name === 'forgot') {
+          ev.preventDefault();
+          readDraft();
+          if (!BM.auth.isEmail(ui.draft.email)) {
+            ui.error = '가입한 이메일을 먼저 입력해 주세요.';
+            repaint();
+            return;
+          }
+          if (ui.busy) return;
+          ui.busy = true;
+          ui.error = '';
+          repaint();
+          BM.auth.recoverPassword(ui.draft.email).then(function (res) {
+            ui.busy = false;
+            if (res && res.ok) { UI.toast((res && res.message) || '재설정 메일을 보냈어요'); repaint(); return; }
+            ui.error = (res && res.message) || '메일을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.';
+            repaint();
+          }, function () {
+            ui.busy = false;
+            ui.error = '메일을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.';
+            repaint();
+          });
+          return;
+        }
         if (name === 'guest') {
           ev.preventDefault();
           BM.auth.signInGuest();
@@ -430,6 +454,48 @@
     mount(host, ctx);
   }
 
+  /* ---------- 비밀번호 재설정 (메일 링크로 돌아왔을 때) ----------
+   * bootstrapRecovery() 가 세션을 받아 둔 상태이므로 새 비밀번호만 정하면 됩니다. */
+  function openRecovery() {
+    return UI.openSheet({
+      title: '새 비밀번호 정하기',
+      body: '<p class="sheet__text">메일 링크 확인이 끝났어요. 새 비밀번호를 정해 주세요.</p>' +
+        '<label class="flabel">새 비밀번호<input type="password" autocomplete="new-password" data-p="pw" placeholder="6자 이상"></label>' +
+        '<label class="flabel">한 번 더<input type="password" autocomplete="new-password" data-p="pw2" placeholder="같은 비밀번호"></label>' +
+        '<p class="start__error" data-p="err" style="display:none"></p>' +
+        '<div class="row gap8 mt16"><button type="button" class="btn btn--ghost grow" data-close>나중에</button>' +
+        '<button type="button" class="btn btn--primary grow" data-p="save">저장</button></div>',
+      onMount: function (node) {
+        function show(m) {
+          var err = node.querySelector('[data-p="err"]');
+          if (err) { err.textContent = m; err.style.display = ''; }
+        }
+        node.addEventListener('click', function (ev) {
+          var btn = ev.target.closest('[data-p="save"]');
+          if (!btn) return;
+          ev.preventDefault();
+          var pw = node.querySelector('[data-p="pw"]').value;
+          var pw2 = node.querySelector('[data-p="pw2"]').value;
+          if (String(pw).length < 6) { show('비밀번호는 6자 이상으로 정해 주세요.'); return; }
+          if (pw !== pw2) { show('두 비밀번호가 달라요.'); return; }
+          if (btn.dataset.busy === '1') return;
+          btn.dataset.busy = '1';
+          btn.disabled = true;
+          BM.auth.changePassword(pw).then(function (res) {
+            btn.dataset.busy = '0';
+            btn.disabled = false;
+            if (res && res.ok) { UI.closeSheet(); UI.toast('비밀번호를 바꿨어요'); return; }
+            show((res && res.message) || '비밀번호를 바꾸지 못했어요.');
+          }, function () {
+            btn.dataset.busy = '0';
+            btn.disabled = false;
+            show('비밀번호를 바꾸지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+          });
+        });
+      }
+    });
+  }
+
   BM.views.start = {
     render: render,
     mount: mount,
@@ -441,6 +507,8 @@
     mountOnboarding: mountOnboarding,
     unmount: unbind,
     reset: reset,
+    openRecovery: openRecovery,
     state: function () { return ui; }
   };
+  BM.views.start.reset = reset;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

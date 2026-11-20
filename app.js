@@ -554,6 +554,8 @@
     if (backend === 'supabase' && signed) {
       return BM.api.createSupabase({
         meKey: BM.auth.meKeyFor(session),
+        /* 로그인 세션(access_token)을 실어 보내 본인 행 수정·삭제가 진짜 PATCH/DELETE로 통과하게 합니다 */
+        token: BM.auth.accessToken,
         me: {
           email: session.email || '',
           nick: session.name || prof.nick || '',
@@ -661,9 +663,10 @@
       }
       wipeAccountLocal(sess);
       var guest = sess.kind === 'guest';
+      var serverGone = !!(res && res.authDeleted);
       signOut();
       UI.toast(guest ? '이 기기에 저장된 기록을 모두 지웠어요' : '탈퇴가 완료됐어요. 그동안 함께해서 즐거웠어요!');
-      return { ok: true, removed: (res && res.removed) || 0 };
+      return { ok: true, removed: (res && res.removed) || 0, authDeleted: serverGone };
     }).catch(function (err) {
       return { ok: false, message: (err && err.message) || '탈퇴를 처리하지 못했어요.' };
     });
@@ -729,6 +732,8 @@
           gender: patch.gender || '비공개'
         });
         BM.auth.markOnboarded(patch);
+        /* v1.26 — 온보딩 값(급수·종목·지역)을 내 계정 행에도 반영 */
+        if (BM.auth.hasSupabaseAuth()) BM.auth.ensureAccount({ nick: patch.nick, level: patch.level, discipline: patch.discipline, region: patch.region, club: patch.club });
         document.body.classList.remove('is-onboarding');
         setNav(true);
         store.actions.setTab('log');
@@ -947,13 +952,22 @@
     bindChrome();
     bindNetBar();
     bindKeyboardScroll();
-    var sess = BM.auth.session();
-    if (sess) enterApp(sess);
-    else showGate();
+    /* 비밀번호 재설정 메일 링크로 돌아온 경우(#access_token=…&type=recovery):
+       세션을 먼저 받아 두고 시작화면에서 새 비밀번호를 정하게 합니다. */
+    var ready = BM.auth.bootstrapRecovery ? BM.auth.bootstrapRecovery() : Promise.resolve(null);
+    Promise.resolve(ready).catch(function () { return null; }).then(function (rec) {
+      var sess = BM.auth.session();
+      if (sess) enterApp(sess);
+      else showGate();
+      if (rec && rec.recovery) {
+        UI.toast('새 비밀번호를 정해 주세요');
+        if (BM.views.start && BM.views.start.openRecovery) BM.views.start.openRecovery();
+      }
+    });
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.25.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.26.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

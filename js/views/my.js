@@ -193,8 +193,8 @@
       ? '체험 모드 기록은 이 기기에만 저장돼요. 로그인하면 계정별로 따로 보관됩니다.'
       : kind === 'google'
         ? (s.demo ? '데모 Google 계정으로 미리보는 중이에요. 실제 계정은 Client ID를 넣으면 연결됩니다.' : 'Google 계정과 연결되어 있어요.')
-        : kind === 'google'
-          ? (s.demo ? '데모 Google 계정으로 미리보는 중이에요. 실제 계정은 Client ID를 넣으면 연결됩니다.' : 'Google 계정과 연결되어 있어요.')
+        : auth.hasSupabaseAuth()
+          ? '서버(Supabase) 계정으로 로그인했어요. 기록이 다른 기기와 이어집니다.'
           : (live ? '구글 시트 브리지 계정으로 로그인했어요.' : '이 기기에 저장된 체험 계정이에요.');
     return '' +
       '<section class="card" data-region="account">' +
@@ -207,6 +207,9 @@
         ? '<button type="button" class="btn btn--ghost btn--sm" data-act="account-login">로그인</button>'
         : '<button type="button" class="btn btn--ghost btn--sm" data-act="logout">로그아웃</button>') +
       '</div>' +
+      (auth.hasSupabaseAuth()
+        ? '<div class="row gap8 mt8"><button type="button" class="linkbtn" data-act="change-password">' + UI.icon('shield') + '비밀번호 변경</button></div>'
+        : '') +
       '<p class="hint">' + hint + '</p>' +
       '</section>';
   }
@@ -626,6 +629,11 @@
         if (ev.target.closest('[data-act="help"]')) {
           ev.preventDefault();
           openHelpSheet(ctx);
+          return;
+        }
+        if (ev.target.closest('[data-act="change-password"]')) {
+          ev.preventDefault();
+          openPasswordSheet(ctx);
           return;
         }
         if (ev.target.closest('[data-act="delete-account"]')) {
@@ -1154,6 +1162,52 @@
     });
   }
 
+  /* ---------- 비밀번호 변경 (서버 계정 · 로그인 상태) ----------
+   *  Supabase Auth 의 PUT /user 로 바꿉니다. 앱은 비밀번호를 저장하지 않아요. */
+  function openPasswordSheet(ctx) {
+    return UI.openSheet({
+      title: '비밀번호 변경',
+      body: '<p class="sheet__text">새 비밀번호를 정해 주세요. 다음 로그인부터 적용돼요.</p>' +
+        '<label class="flabel">새 비밀번호<input type="password" autocomplete="new-password" data-pw="new" placeholder="6자 이상"></label>' +
+        '<label class="flabel">한 번 더<input type="password" autocomplete="new-password" data-pw="new2" placeholder="같은 비밀번호"></label>' +
+        '<p class="start__error" data-pw="err" style="display:none"></p>' +
+        '<div class="row gap8 mt16"><button type="button" class="btn btn--ghost grow" data-close>취소</button>' +
+        '<button type="button" class="btn btn--primary grow" data-pw="save">변경</button></div>',
+      onMount: function (node) {
+        function show(m) {
+          var err = node.querySelector('[data-pw="err"]');
+          if (err) { err.textContent = m; err.style.display = ''; }
+        }
+        node.addEventListener('click', function (ev) {
+          var btn = ev.target.closest('[data-pw="save"]');
+          if (!btn) return;
+          ev.preventDefault();
+          var a = node.querySelector('[data-pw="new"]').value;
+          var b = node.querySelector('[data-pw="new2"]').value;
+          if (String(a).length < 6) { show('비밀번호는 6자 이상으로 정해 주세요.'); return; }
+          if (a !== b) { show('두 비밀번호가 달라요.'); return; }
+          if (btn.dataset.busy === '1') return;
+          btn.dataset.busy = '1';
+          btn.disabled = true;
+          var label = btn.textContent;
+          btn.textContent = '변경 중…';
+          BM.auth.changePassword(a).then(function (res) {
+            btn.dataset.busy = '0';
+            btn.disabled = false;
+            btn.textContent = label;
+            if (res && res.ok) { UI.closeSheet(); UI.toast('비밀번호를 바꿨어요'); return; }
+            show((res && res.message) || '비밀번호를 바꾸지 못했어요.');
+          }, function () {
+            btn.dataset.busy = '0';
+            btn.disabled = false;
+            btn.textContent = label;
+            show('비밀번호를 바꾸지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+          });
+        });
+      }
+    });
+  }
+
   /* ---------- 회원 탈퇴(계정 삭제) 확인 시트 ----------
    * Play 스토어 정책: 앱 안에서 계정을 지울 수 있어야 하고,
    * 지워지는 범위와 되돌릴 수 없다는 점을 분명히 알려야 합니다.
@@ -1175,7 +1229,9 @@
         '<li>하트·꾸미기 같은 계정 활동 기록</li>' +
         '</ul>' +
         '<p class="hint">삭제한 기록은 <b>되돌릴 수 없어요.</b>' +
-        (guest ? '' : ' 시트(서버)에 있는 내 기록도 함께 지워집니다.') + '</p>' +
+        (guest ? '' : (BM.auth.hasSupabaseAuth()
+          ? ' 서버에 있는 내 기록과 <b>로그인 계정</b>이 함께 삭제되고, 같은 이메일로 다시 가입할 수 있어요.'
+          : ' 시트(서버)에 있는 내 기록도 함께 지워집니다.')) + '</p>' +
         '<label class="flabel">확인을 위해 <b>' + word + '</b>를 입력해 주세요' +
         '<input type="text" data-delete-word autocomplete="off" spellcheck="false" placeholder="' + word + '"></label>' +
         '<p class="start__error" data-delete-error style="display:none"></p>' +
