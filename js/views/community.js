@@ -249,7 +249,8 @@
         '<section class="card card--composer">' +
         '<div class="row">' + UI.avatar({ theme: state.me && state.me.theme }, 34) +
         '<textarea rows="1" data-composer placeholder="오늘 경기 어땠어요? 한 줄 남겨보세요" maxlength="300">' + U.esc(state.ui.composer || '') + '</textarea></div>' +
-        '<div class="chips topicpick" data-topics data-tag="' + U.esc(picked) + '">' + topicChips(picked, 'data-topic', false) + '</div>' +
+        '<div class="topicpick-line"><span class="topicpick__lab">분류</span>' +
+        '<div class="chips topicpick" data-topics data-tag="' + U.esc(picked) + '">' + topicChips(picked, 'data-topic', false) + '</div></div>' +
         meetFields(picked, state) +
         '<div class="row between mt8"><span class="muted sm">욕설·비방은 자제해 주세요</span>' +
         '<button class="btn btn--primary btn--sm" data-act="post">' + UI.icon('send') + '올리기</button></div>' +

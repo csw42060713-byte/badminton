@@ -54,7 +54,61 @@
     return games.map(function (g, i) { return gameRowHtml(g, i, games.length); }).join('');
   }
 
-  function gamesField(d) {
+  /* ---------- 최근·자주 친 복식 파트너 (bm-v1.35.0) ----------
+   *  운동 앱들이 '최근 함께한 상대'를 칩으로 띄우듯, 일지에 적어 둔 파트너 이름을
+   *  자주·최근 순으로 최대 4개 보여 주고 1탭으로 입력합니다.
+   *  · 기록이 4개보다 적으면 친구 목록 닉네임으로 채웁니다(이미 있는 이름·나 자신 제외).
+   *  · 이름만 넣고 점수를 안 적은 일지도 '함께 친 사람'으로 셉니다. */
+  function recentPartnerNames(state, limit) {
+    var max = Math.max(1, U.num(limit, 4) || 4);
+    var me = state && state.me;
+    var myNick = String((me && me.nick) || '').trim();
+    var list = [], byName = {};
+    function add(name, at) {
+      var n = String(name == null ? '' : name).replace(/\s+/g, ' ').trim();
+      /* 깨진 팀 JSON이 이름처럼 남은 값('{...')은 칩으로 띄우지 않습니다 */
+      if (!n || n === myNick || n.indexOf('{') >= 0 || n.indexOf('}') >= 0) return;
+      var e = byName[n];
+      if (!e) { e = byName[n] = { name: n, count: 0, last: '' }; list.push(e); }
+      e.count += 1;
+      if (at && String(at) > e.last) e.last = String(at);
+    }
+    ((state && state.data && state.data.records) || []).forEach(function (r) {
+      var meta = r ? D.logMeta(r) : null;
+      if (meta && meta.partner) add(meta.partner, r.date || r.createdAt || '');
+    });
+    list.sort(function (a, b) {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.last < b.last ? 1 : a.last > b.last ? -1 : 0;
+    });
+    var names = list.slice(0, max).map(function (e) { return e.name; });
+    if (names.length < max) {
+      ((state && state.data && state.data.friends) || []).forEach(function (f) {
+        if (names.length >= max) return;
+        var n = String((f && f.nick) || '').replace(/\s+/g, ' ').trim();
+        if (!n || n === myNick || names.indexOf(n) >= 0) return;
+        names.push(n);
+      });
+    }
+    return names;
+  }
+
+  /* 입력칸 아래 칩 한 줄 — 지금 적힌 이름은 켜진 모양(aria-pressed)입니다 */
+  function partnerChips(state, d) {
+    var names = recentPartnerNames(state, 4);
+    if (!names.length) return '';
+    var cur = String((d && d.partner) || '').replace(/\s+/g, ' ').trim();
+    return '<div class="ptnchips" data-ptnchips>' +
+      '<span class="ptnchips__lab">자주 친 파트너</span>' +
+      names.map(function (n) {
+        var on = n === cur;
+        return '<button type="button" class="ptnchip' + (on ? ' is-on' : '') + '" data-ptn-chip="' + U.esc(n) + '"' +
+          ' aria-pressed="' + (on ? 'true' : 'false') + '">' + U.esc(n) + '</button>';
+      }).join('') +
+      '</div>';
+  }
+
+  function gamesField(d, state) {
     var games = draftGames(d);
     var mode = Number(d.gameMode) === 25 ? 25 : 21;
     return '<div class="field" data-games>' +
@@ -73,6 +127,7 @@
       '<input id="log-partner" type="text" maxlength="' + D.PARTNER_MAX + '" enterkeyhint="done" data-field="partner" ' +
         'value="' + U.esc((d && d.partner) || '') + '" placeholder="함께 친 사람 (선택)" aria-label="복식 파트너 이름">' +
       '</div>' +
+      partnerChips(state, d) +
       '</div>';
   }
 
@@ -82,14 +137,14 @@
     return games.some(function (g) { return (g && g.a !== '' && g.a != null) || (g && g.b !== '' && g.b != null); });
   }
 
-  function gamesFold(d) {
+  function gamesFold(d, state) {
     var open = hasGames(d);
     var sum = D.gamesSummary(D.cleanGames(draftGames(d)));
     var val = sum.count ? sum.count + '경기 ' + sum.wins + '승 ' + sum.losses + '패' : '';
     return '<details class="fold" data-fold="games"' + (open ? ' open' : '') + '>' +
       '<summary class="fold__sum"><span>경기 점수 <small>선택</small></span>' +
       '<i class="fold__val">' + U.esc(val) + '</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
-      '<div class="fold__body">' + gamesField(d) + '</div></details>';
+      '<div class="fold__body">' + gamesField(d, state) + '</div></details>';
   }
 
   function scoreRing(score) {
@@ -365,23 +420,24 @@
    * ============================================================ */
   var routineOpen = false;   /* 루틴 카드를 펼쳤는지 (탭을 옮겼다 와도 기억) */
 
-  /* '아직 안 고름' 상태에서 보여 주는 선택 카드 */
+  /* '아직 안 고름' 상태에서 보여 주는 선택 카드
+   *  v1.35: 첫 화면이 길어지지 않게 한 장을 160px쯤으로 줄였습니다 —
+   *  큰 지표 상자 3개를 한 줄 메타 칩으로, 세로로 쌓인 두 버튼을 한 줄로.
+   *  알려 주던 정보(4주·연습 13개·20~30분·주 2~3회)는 그대로입니다. */
   function routineAskCard(state) {
     return '' +
       '<section class="card card--rtn-ask" data-region="routine" data-sig="' + U.esc(routineSig(state)) + '">' +
       '<div class="ask__head">' +
       '<span class="ask__eyebrow">' + UI.icon('spark') + '처음 시작하는 분께</span>' +
       '<h2 class="ask__t">초보자 4주 루틴, 같이 시작할까요?</h2>' +
-      '<p class="ask__s">라켓을 처음 잡아도 괜찮아요. 주 2~3회, 하루 20~30분이면 4주 동안 기본기를 하나씩 익힐 수 있어요.</p>' +
+      '<p class="ask__s">라켓을 처음 잡아도 괜찮아요. 하루 20~30분이면 기본기를 하나씩 익힐 수 있어요.</p>' +
+      '<div class="ask__meta">' +
+      '<span><b>4주</b> 과정</span><span>연습 <b>13개</b></span><span>주 <b>2~3회</b></span>' +
       '</div>' +
-      '<div class="ask__stats">' +
-      '<div><b>4주</b><span>13개 연습</span></div>' +
-      '<div><b>20~30분</b><span>한 번에</span></div>' +
-      '<div><b>2~3회</b><span>1주일에</span></div>' +
       '</div>' +
       '<div class="ask__btns">' +
-      '<button type="button" class="btn btn--primary btn--big" data-act="routine-start">초보자 루틴 시작하기</button>' +
-      '<button type="button" class="btn btn--ghost btn--big" data-act="routine-skip">괜찮아요, 건너뛰기</button>' +
+      '<button type="button" class="btn btn--primary" data-act="routine-start">초보자 루틴 시작하기</button>' +
+      '<button type="button" class="btn btn--ghost" data-act="routine-skip">괜찮아요, 건너뛰기</button>' +
       '</div>' +
       '<p class="ask__note">나중에 MY에서 언제든 켜고 끌 수 있어요</p>' +
       '</section>';
@@ -613,7 +669,7 @@
       : Math.min(ch.count, ch.goal) + '/' + ch.goal + ' · ' +
         (ch.left === 1 ? '한 번만 더 채우면 완성!' : (ch.goal - ch.count) + '번 더 남았어요');
     var hint = done
-      ? (ch.next ? '다음 주 후보 · ' + ch.next : '다음 주에 일지를 보면 다시 골라 드려요')
+      ? (ch.next ? '다음 주 후보 · ' + ch.next : '')   /* 다음 주 후보가 없으면 윗줄과 같은 말을 되풀이하지 않습니다 (v1.35) */
       : challengeHint(state, ch);
 
     return '<section class="card card--wkch' + (done ? ' is-done' : '') + '" data-region="challenge" data-sig="' + U.esc(sig) + '">' +
@@ -625,7 +681,7 @@
       stampRow(ch) +
       '</div>' +
       '<p class="wkch__note' + (done ? ' is-done' : '') + '">' + U.esc(progress) + '</p>' +
-      '<p class="wkch__hint">' + U.esc(hint) + '</p>' +
+      (hint ? '<p class="wkch__hint">' + U.esc(hint) + '</p>' : '') +
       /* 3회를 채웠으면 — 커뮤니티 글쓰기로 한 번에 (문구만 채우고 올리기는 사람이) */
       (done
         ? '<div class="wkch__acts"><button type="button" class="btn btn--primary btn--sm" data-act="challenge-share">' +
@@ -884,11 +940,10 @@
         /* 주간 약점 3회 챌린지 — 루틴 요약 바로 아래(루틴을 건너뛰었거나 초심 1주차 전이면 숨김) */
         challengeBlock(state) +
 
-        /* 복식 파트너별 승률 — 파트너 이름을 적은 일지가 있을 때만 */
-        partnerBlock(state) +
-
         beginnerBlock(state) +
 
+        /* v1.35: 파트너별 승률은 '저장 결과 요약'이라 오늘 일지 입력 아래로 내렸습니다
+         *  (입력까지 76px 빨라지고, 저장하면 바로 아래에서 숫자가 바뀝니다) */
         '<section class="card" data-form="log">' +
         '<header class="card__head"><h2>' + (editing ? '지난 일지 수정' : '오늘 일지') + '</h2>' +
         '<label class="datepick"><input type="date" data-field="date" value="' + U.esc(d.date) + '"></label></header>' +
@@ -918,7 +973,7 @@
         '<div class="field"><div class="field__label"><span>완료 훈련</span><small>여러 개 선택</small></div>' +
         UI.chips('done', D.VOCAB.done, d.done, { scroll: true }) + '</div>' +
 
-        gamesFold(d) +
+        gamesFold(d, state) +
 
         '<div class="field"><div class="field__label"><span>아픈 부위</span><small>없으면 그대로</small></div>' +
         UI.chips('pain', D.VOCAB.pain, d.pain, { scroll: true }) + '</div>' +
@@ -946,6 +1001,9 @@
         '</section>' +
 
         analysisCard(an, state) +
+
+        /* 복식 파트너별 승률 — 파트너 이름을 적은 일지가 있을 때만 (일지 입력·분석 바로 아래) */
+        partnerBlock(state) +
 
         '<section class="card" data-region="recent">' +
         '<header class="card__head"><h2>최근 기록</h2><span class="muted">' + recent.length + '건</span></header>' +
@@ -1098,6 +1156,24 @@
             b.setAttribute('aria-pressed', on ? 'true' : 'false');
           });
           UI.haptic(6);
+          return;
+        }
+        /* 최근 파트너 칩 — 1탭으로 이름을 넣고, 같은 칩을 다시 누르면 지웁니다 */
+        var ptnChip = ev.target.closest('[data-ptn-chip]');
+        if (ptnChip) {
+          ev.preventDefault();
+          var ptnInput = form.querySelector('[data-field="partner"]');
+          var picked = ptnChip.getAttribute('data-ptn-chip') || '';
+          var now = ptnInput ? String(ptnInput.value || '').replace(/\s+/g, ' ').trim() : '';
+          var next = now === picked ? '' : picked;
+          if (ptnInput) ptnInput.value = next;
+          ctx.actions.setDraft({ partner: next });
+          UI.$$('[data-ptn-chip]', form).forEach(function (b) {
+            var on = next !== '' && b.getAttribute('data-ptn-chip') === next;
+            b.classList.toggle('is-on', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+          UI.haptic(8);
           return;
         }
         var chip = ev.target.closest('[data-chip]');
@@ -1410,6 +1486,8 @@
   view.challengeHidden = challengeHidden;
   view.partnerBlock = partnerBlock;
   view.partnerStatsOf = partnerStatsOf;
+  view.recentPartners = recentPartnerNames;   /* v1.35: 최근 파트너 칩 후보 (테스트·재사용) */
+  view.partnerChips = partnerChips;
   view.videoHintOf = videoHintOf;
   view.scoreboardHtml = scoreboardHtml;
   view.scoreboardOpen = scoreboardOpen;
