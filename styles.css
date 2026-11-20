@@ -3860,3 +3860,153 @@ body.has-notif.has-netbar .main { padding-top: calc(var(--hdr-h) + var(--safe-t)
 .rqlist--simple { display: grid; gap: 8px; }
 .rq--simple { background: var(--card); }
 .rq--simple .rq__meta .presence { margin-left: 6px; }
+
+/* ============================================================
+ * 처음이라면 — 초보자 용어 사전 · 기초 가이드 (2026-11-20, bm-v1.25.0)
+ *  · 일지 & AI: 초심은 큰 카드, 그 위 급수는 한 줄 보조 카드
+ *  · 열면 전체화면 패널 — 고정 검색창 + 용어 카드 43개
+ *  · 색은 테마 변수만 씁니다 (라이트·다크 4종 모두 같은 결)
+ * ============================================================ */
+.card--beg { padding: 0; overflow: hidden; }
+.beg__in {
+  padding: 16px;
+  background:
+    radial-gradient(120% 130% at 0% 0%, var(--accent-soft), transparent 62%),
+    var(--card);
+}
+.beg__eyebrow {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.2px; color: var(--accent);
+}
+.beg__eyebrow .ico { width: 13px; height: 13px; }
+.beg__t { margin: 6px 0 0; font-size: 16px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.35; }
+.beg__s { margin: 6px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--text-2); }
+.beg__stats { display: flex; gap: 8px; margin-top: 12px; }
+.beg__stats > div {
+  flex: 1; min-width: 0;
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--card-2); padding: 8px 10px;
+}
+.beg__stats b { display: block; font-size: 15px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.beg__stats span { font-size: 10.5px; color: var(--muted); }
+.beg__open { width: 100%; margin-top: 12px; }
+
+.card--beg-slim { padding: 0; }
+.beg-slim {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 12px 14px; border: 0; background: none; text-align: left;
+  color: var(--text); font: inherit; cursor: pointer;
+}
+.beg-slim__t { flex: 1; min-width: 0; display: grid; gap: 2px; font-size: 13px; font-weight: 800; letter-spacing: -0.25px; }
+.beg-slim__t small { font-size: 10.5px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.beg-slim__car { flex: 0 0 auto; width: 15px; height: 15px; color: var(--muted); }
+.beg-slim:active { background: var(--accent-soft); }
+
+/* ---------- 전체화면 패널 ---------- */
+.bgp {
+  position: fixed; inset: 0; z-index: 95;
+  display: flex; align-items: center; justify-content: center;
+}
+.bgp__backdrop {
+  position: absolute; inset: 0;
+  background: color-mix(in srgb, var(--text) 42%, transparent);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  opacity: 0; transition: opacity 200ms;
+}
+.bgp.is-on .bgp__backdrop { opacity: 1; }
+.bgp__panel {
+  position: relative;
+  width: 100%; max-width: 760px; height: 100dvh;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+  opacity: 0; transform: translateY(14px);
+  transition: opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.bgp.is-on .bgp__panel { opacity: 1; transform: none; }
+@media (min-width: 560px) {
+  .bgp { padding: 16px; }
+  .bgp__panel { height: auto; max-height: 92dvh; border-radius: var(--r-lg); border: 1px solid var(--line); box-shadow: var(--shadow); }
+}
+.bgp__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--card);
+}
+.bgp__head h2 { font-size: 16px; font-weight: 800; letter-spacing: -0.4px; }
+.bgp__tabs { display: flex; gap: 6px; padding: 10px 14px 0; background: var(--bg); }
+.bgp__tab {
+  flex: 1; min-width: 0; padding: 9px 4px;
+  border-radius: 999px; border: 1px solid var(--line);
+  background: var(--card-2); color: var(--text-2);
+  font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer;
+}
+.bgp__tab.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.bgp__search { position: sticky; top: 0; z-index: 2; padding: 10px 14px; background: var(--bg); }
+.bgp__searchbox {
+  display: flex; align-items: center; gap: 8px;
+  height: 42px; padding: 0 12px;
+  border: 1px solid var(--line-2); border-radius: 13px; background: var(--card);
+}
+.bgp__searchbox .ico { flex: 0 0 auto; width: 17px; height: 17px; color: var(--muted); }
+.bgp__searchbox input {
+  flex: 1; min-width: 0; border: 0; background: none; outline: none;
+  color: var(--text); font: inherit; font-size: 13.5px;
+}
+.bgp__searchbox input::placeholder { color: var(--muted); }
+.bgp__body {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  padding: 4px 14px calc(22px + var(--safe-b));
+}
+.bgp__list { display: grid; gap: 8px; }
+.bgp__count { margin: 10px 2px 0; font-size: 11.5px; color: var(--muted); }
+.bgp__h {
+  display: flex; align-items: center; gap: 6px;
+  margin: 18px 2px 8px; font-size: 13.5px; font-weight: 800; letter-spacing: -0.3px;
+}
+.bgp__h small { font-size: 10.5px; font-weight: 600; color: var(--muted); }
+
+.bgt { background: var(--card); border: 1px solid var(--line); border-radius: 13px; }
+.bgt__sum {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 11px 13px; list-style: none; cursor: pointer;
+  font-size: 13.5px; font-weight: 800; letter-spacing: -0.25px;
+}
+.bgt__sum::-webkit-details-marker { display: none; }
+.bgt__sum::marker { content: ''; }
+.bgt__name { min-width: 0; }
+.bgt .pill { flex: 0 0 auto; font-size: 10.5px; }
+.bgt__plus { flex: 0 0 auto; font-weight: 800; color: var(--muted); }
+.bgt[open] .bgt__plus { color: var(--accent); }
+.bgt[open] > .bgt__sum { padding-bottom: 6px; }
+.bgt__body { padding: 0 13px 12px; }
+.bgt__p { margin: 0 0 6px; font-size: 12.5px; line-height: 1.66; color: var(--text-2); }
+.bgt__p:last-child { margin-bottom: 0; }
+.bgt__p b { color: var(--text); }
+.bgt--empty { padding: 13px; font-size: 12.5px; color: var(--muted); }
+.bgd { margin: 0; }
+.bgd dt { margin-top: 8px; font-size: 10.5px; font-weight: 800; color: var(--accent); letter-spacing: 0.2px; }
+.bgd dt:first-child { margin-top: 0; }
+.bgd dd { margin: 2px 0 0; font-size: 12.5px; line-height: 1.62; color: var(--text-2); }
+
+/* 튜토리얼 묶음 */
+.bgx__hi { margin: 8px 2px 4px; font-size: 15px; font-weight: 800; letter-spacing: -0.4px; }
+.bgx__p { margin: 0 2px 12px; font-size: 12.5px; line-height: 1.65; color: var(--text-2); }
+.bgx__group {
+  margin-bottom: 8px; padding: 12px 13px;
+  border: 1px solid var(--line); border-radius: 13px; background: var(--card);
+}
+.bgx__group h3 { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: -0.25px; }
+.bgx__terms { margin: 4px 0 6px; font-size: 12px; font-weight: 800; color: var(--accent); line-height: 1.5; }
+.bgx__group p:last-child { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--text-2); }
+.bgx__hint { margin: 12px 2px; font-size: 11.5px; color: var(--muted); }
+.bgx__acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+/* AI 카드 — 쉬운 설명 → 논문 드릴 */
+.easy { padding-top: 10px; margin-top: 10px; border-top: 1px dashed var(--line); }
+.easy:first-child { padding-top: 0; margin-top: 0; border-top: 0; }
+.easy__name {
+  display: flex; align-items: center; gap: 6px; margin: 0 0 2px;
+  font-size: 13px; font-weight: 800; letter-spacing: -0.25px;
+}
+.easy__p { margin: 5px 0 0; font-size: 12.5px; line-height: 1.62; color: var(--text-2); }
+.easy__p b { color: var(--text); }
