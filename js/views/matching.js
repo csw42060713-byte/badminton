@@ -235,7 +235,7 @@
   /* 조건을 고르기 전에 보여 주는 첫 화면 — 목록 대신 짧은 안내 카드 */
   function introHtml() {
     return '<div class="matchintro">' +
-      '<span class="matchintro__ico">' + UI.icon('search') + '</span>' +
+      '<span class="matchintro__art">' + (BM.art ? BM.art.empty('search') : UI.icon('search')) + '</span>' +
       '<p class="matchintro__t">원하는 급수·조건이나 <b>전체</b>를 눌러 선수를 찾아보세요</p>' +
       '<p class="matchintro__d">급수·지역·종목·성별 중 하나를 고르거나 검색어를 입력하면 조건에 맞는 선수가 나타나요.</p>' +
       '<button type="button" class="btn btn--primary btn--sm matchintro__btn" data-act="show-all">' +

@@ -277,7 +277,7 @@
 
   function playerCoachView(state) {
     var coaches = coachesOf(state);
-    return '<section class="card">' +
+    return '<section class="card card--coach">' +
       '<header class="card__head"><h2>' + UI.icon('coach') + '코치에게 피드백 받기</h2>' +
       (coaches.length ? '<span class="muted sm">코치 ' + coaches.length + '명</span>' : '') + '</header>' +
       '<p class="coachintro">일지를 남기면 코치가 한 줄 피드백과 추천 드릴을 붙여 줍니다.</p>' +
