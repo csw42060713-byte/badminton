@@ -269,10 +269,12 @@
     eq(BM.views.community._setTopicFilter('전체'), '전체', '전체');
     eq(BM.views.community._visiblePosts(state).length, state.data.posts.length, '전체 글');
 
-    BM.views.community._setTopicFilter('번개');
-    eq(BM.views.community._visiblePosts(state).length, 0, '번개 글은 아직 없음');
+    BM.views.community._setTopicFilter('게스트 모집');
+    eq(BM.views.community._visiblePosts(state).length, 0, '게스트 모집 글은 아직 없음');
     var empty = BM.views.community.render(state);
-    includes(empty, '번개', '빈 말머리 안내');
+    includes(empty, '게스트 모집', '빈 말머리 안내');
+    /* 예전 이름으로 들어와도 새 말머리로 걸립니다 */
+    eq(BM.views.community._setTopicFilter('번개'), '게스트 모집', '옛 이름은 새 이름으로');
     includes(empty, 'data-topicall', '전체로 돌아가기');
     BM.views.community._setTopicFilter('전체');
   });

@@ -11,7 +11,7 @@
   var openReplies = {};   /* postId -> true */
   var replyDrafts = {};   /* postId -> text */
   var sortMode = 'new';
-  var topicFilter = '전체';   /* 상단 말머리 칩 — 전체 / 자유 / 후기 / 번개 / 용품 / 일지 */
+  var topicFilter = '전체';   /* 상단 말머리 칩 — 전체 / 자유 / 후기 / 게스트 모집 / 용품 / 일지 */
 
   /* 말머리 칩 한 줄 (말머리 고르기 · 목록 거르기에서 같은 모양을 씁니다)
    * 거르기의 '전체'는 고른 조건이 아니라 '조건 없음'이라 색을 달리해 구분합니다. */
@@ -74,7 +74,7 @@
       '</article>';
   }
 
-  /* ---------- 번개 모집 ----------
+  /* ---------- 게스트 모집 ----------
    * 글 위에 일시·장소·인원을 스포츠 앱처럼 한 카드로 묶고,
    * `참여 문의`는 작성자 1:1 DM이 아니라 이 글 전용 단체방을 엽니다.
    * v1.29: 정원이 차면 자동으로 '마감' 배지 + 버튼이 '대기 문의'로 바뀌고,
@@ -117,11 +117,26 @@
       '</div>';
   }
 
+  /* 미리 채우는 문구 — 한 줄 입력창(약 30자)에 들어가게 일시는 날짜까지만 붙입니다.
+   * v1.37.2: 말머리 이름이 '게스트 모집'으로 길어져, 일시를 그대로 붙이면 한 줄을 넘게 됩니다. */
+  var DRAFT_MAX = 30;
+  function withWhen(head, when) {
+    if (!when) return head;
+    var full = head + ' (' + when + ')';
+    if (full.length <= DRAFT_MAX) return full;
+    var date = String(when).split(' ')[0];           /* '11/21(금) 19:00' → '11/21(금)' */
+    if (date && date !== when) {
+      var short = head + ' (' + date + ')';
+      if (short.length <= DRAFT_MAX) return short;
+    }
+    return head;
+  }
+
   /* 정원이 찬 글에 '대기 문의'로 들어올 때 미리 채우는 문구 */
   function waitDraft(post) {
     var when = post && post.meet && post.meet.when ? String(post.meet.when) : '';
     if (when.length > 16) when = '';
-    return D.MEET.topic + ' ' + D.MEET.waitTopic + (when ? ' (' + when + ')' : '');
+    return withWhen(D.MEET.topic + ' ' + D.MEET.waitTopic, when);
   }
 
   /* 글쓴이용 — 참여자 명단 (간단한 시트). 누르면 그 사람 프로필(친구·채팅)로 이어집니다.
@@ -160,14 +175,14 @@
     });
   }
 
-  /* 참여 문의 문구 — 한 줄 입력창에 들어가도록 날짜까지만(길면 생략) */
+  /* 참여 문의 문구 — 한 줄 입력창에 들어가도록 일시는 짧게(날짜만) */
   function inquiryDraft(post) {
     var when = post && post.meet && post.meet.when ? String(post.meet.when) : '';
     if (when.length > 16) when = '';
-    return D.MEET.topic + ' 참여하고 싶어요!' + (when ? ' (' + when + ')' : '');
+    return withWhen(D.MEET.topic + ' 참여하고 싶어요!', when);
   }
 
-  /* 말머리가 '번개'일 때만 보이는 선택 입력칸 (전부 비워 두어도 그냥 글이 됩니다) */
+  /* 말머리가 '게스트 모집'일 때만 보이는 선택 입력칸 (전부 비워 두어도 그냥 글이 됩니다) */
   function meetFields(picked, state) {
     var m = (state.ui && state.ui.composerMeet) || {};
     var on = picked === D.MEET.topic;
@@ -279,7 +294,7 @@
             b.classList.toggle('is-on', on);
             b.setAttribute('aria-pressed', on ? 'true' : 'false');
           });
-          /* 번개일 때만 모집 입력칸을 보여 줍니다 (입력칸 포커스는 건드리지 않음) */
+          /* 게스트 모집일 때만 모집 입력칸을 보여 줍니다 (입력칸 포커스는 건드리지 않음) */
           var vf = root.querySelector('[data-viteform]');
           if (vf) vf.hidden = tag !== D.MEET.topic;
           UI.haptic(6);
@@ -319,7 +334,7 @@
           if (!meKey) { UI.toast('로그인하면 단체방에서 참여 대화를 할 수 있어요', 'error'); return; }
           var gid = vite.getAttribute('data-vite-group');
           var gpost = (vst.data.posts || []).filter(function (x) { return String(x.id) === String(gid); })[0] || null;
-          /* 내가 올린 번개면 인사 문구를 미리 채우지 않습니다 (방장 인사) */
+          /* 내가 올린 게스트 모집 글이면 인사 문구를 미리 채우지 않습니다 (방장 인사) */
           var mine = !!(gpost && gpost.userKey === meKey);
           /* 정원이 찬 글은 '대기 문의'로 들어옵니다 (문구도 대기로) */
           var gstatus = gpost ? D.meetStatus(vst.data.idx, gpost, meKey) : null;
@@ -411,7 +426,7 @@
       root.addEventListener('input', function (ev) {
         var ta = ev.target.closest('[data-composer]');
         if (ta) ctx.actions.setComposer(ta.value);
-        /* 번개 모집 입력 — 화면을 다시 그리지 않고 값만 담아 둡니다 */
+        /* 게스트 모집 입력 — 화면을 다시 그리지 않고 값만 담아 둡니다 */
         var vf = ev.target.closest('[data-vitefield]');
         if (vf) ctx.actions.setComposerMeet(vf.getAttribute('data-vitefield'), vf.value);
         var ri = ev.target.closest('[data-reply-input]');

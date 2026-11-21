@@ -860,7 +860,7 @@
         return { ok: true };
       },
 
-      /* 커뮤니티 글 올리기 — '번개'면 모집 정보(언제·어디·몇 명)를 함께 담습니다.
+      /* 커뮤니티 글 올리기 — '게스트 모집'이면 모집 정보(언제·어디·몇 명)를 함께 담습니다.
        * 모집 정보를 비우면 일반 글과 똑같이 올라가고, 시트에는 말머리와 같이
        * '훈련계획' 칸의 JSON으로만 적습니다(26칸 호환). */
       createPost: function (text, topic, meet) {
@@ -1049,7 +1049,7 @@
       },
 
       /* draft를 넘기면 입력창에 미리 적어 둡니다(사용자가 고쳐서 보냄).
-       * 커뮤니티 '번개 참여 문의'가 이 자리로 바로 이어집니다. */
+       * 커뮤니티 '게스트 모집 참여 문의'가 이 자리로 바로 이어집니다. */
       openChat: function (roomId, otherKey, draft) {
         state.ui.chatOpen = true;
         state.ui.chatRoom = roomId || null;
@@ -1509,7 +1509,7 @@
         var text = D.challengeShareText(ch, { records: records, now: now || '' });
         return { ok: true, text: text, partner: partner, challenge: ch };
       },
-      /* 번개 모집 입력칸 — 글자마다 화면을 다시 그리면 포커스가 끊기므로 저장만 합니다 */
+      /* 게스트 모집 입력칸 — 글자마다 화면을 다시 그리면 포커스가 끊기므로 저장만 합니다 */
       setComposerMeet: function (field, value) {
         if (field !== 'when' && field !== 'place' && field !== 'cap') return;
         var cur = state.ui.composerMeet || {};

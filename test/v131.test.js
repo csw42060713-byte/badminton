@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v131.test.js — bm-v1.37.1
+ * test/v131.test.js — bm-v1.37.2
  *   고도화 3차 사이클(ideas.md 2026-11-19 3번) + 디자인 폴리싱.
  *
  *   1) 일지 기반 주간 약점 3회 스탬프 챌린지
@@ -411,13 +411,13 @@
    * ========================================================= */
   test('v1.31 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.37.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.37.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-39', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.37.2'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.37.2'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-40', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.37.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.37.1', 'TWA appVersion');
+    eq(twa.appVersionName, '1.37.2', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.37.2', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드');
   });
 

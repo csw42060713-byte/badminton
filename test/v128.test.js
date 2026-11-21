@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v128.test.js — bm-v1.37.1
+ * test/v128.test.js — bm-v1.37.2
  *   AI 분석 · 관절 보호 · 부상 예방 문구를 '쉬운 코트 말투'로 다듬은 버전.
  *   승우 님이 관절 보호 체크를 보고 "이해하기 너무 어려운데..."라고 한 것에서
  *   출발했습니다 — 화면에는 어려운 약어·통계 기호를 두지 않고,
@@ -271,13 +271,13 @@
    * ========================================================= */
   test('v1.28 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.37.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.37.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-39', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.37.2'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.37.2'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-40', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.37.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.37.1', 'TWA appVersion');
+    eq(twa.appVersionName, '1.37.2', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.37.2', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

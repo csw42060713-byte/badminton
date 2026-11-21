@@ -297,15 +297,20 @@
   var JSON_TYPES = { '매칭프로필': 1, '코치신청': 1, '멘토신청': 1, '매칭신청': 1, '코치피드백': 1, '계획': 1 };
 
   /* 커뮤니티 말머리(주제 태그) — 시트 칸을 늘리지 않고 '훈련계획' 칸에
-   * {"topic":"번개"} 로 적습니다(예전 글은 주제가 없으므로 아래에서 자동 판별). */
-  var POST_TOPICS = ['자유', '후기', '번개', '용품', '일지'];
+   * {"topic":"게스트 모집"} 로 적습니다(예전 글은 주제가 없으므로 아래에서 자동 판별).
+   * 2026-11-21 (bm-v1.37.2): '번개'라는 이름을 사용자가 '게스트 모집'으로 바꿨습니다. */
+  var POST_TOPICS = ['자유', '후기', '게스트 모집', '용품', '일지'];
 
-  /* 모집 글(지금은 '번개' 말머리)에서 쓰는 이름표.
+  /* 예전에 저장된 말머리·방 이름 — 새 이름('게스트 모집')으로 읽어 줍니다.
+   * 이미 시트·Supabase에 '"topic":"번개"'로 들어간 글도 모집 카드·단체방이 그대로 뜨게 합니다. */
+  var LEGACY_TOPICS = { '번개': '게스트 모집', '번개모집': '게스트 모집', '번개 모집': '게스트 모집' };
+
+  /* 모집 글('게스트 모집' 말머리)에서 쓰는 이름표.
    * 나중에 말머리 이름을 바꾸면 이 한 곳만 고치면 화면 문구가 따라갑니다. */
   var MEET = {
-    topic: '번개',
-    cardLabel: '번개 모집',
-    roomLabel: '번개 단체방',
+    topic: '게스트 모집',
+    cardLabel: '게스트 모집',
+    roomLabel: '게스트 모집 단체방',
     joinLabel: '참여 문의',
     openLabel: '단체방 열기',
     /* 정원이 차면 (bm-v1.29.0) — 배지와 버튼 글자가 바뀝니다 */
@@ -316,11 +321,12 @@
 
   function normalizeTopic(v) {
     var s = String(v == null ? '' : v).trim();
+    if (LEGACY_TOPICS[s]) return LEGACY_TOPICS[s];
     return POST_TOPICS.indexOf(s) >= 0 ? s : '자유';
   }
 
-  /* 커뮤니티 '번개' 모집 정보 — 언제 · 어디 · 몇 명.
-   * 말머리와 같이 '훈련계획' 칸의 {"topic":"번개","meet":{...}}로 적어 시트 26칸을 늘리지 않습니다.
+  /* 커뮤니티 '게스트 모집' 모집 정보 — 언제 · 어디 · 몇 명(예전 '번개' 글 포함).
+   * 말머리와 같이 '훈련계획' 칸의 {"topic":"게스트 모집","meet":{...}}로 적어 시트 26칸을 늘리지 않습니다.
    * 모두 비워 두면 일반 글과 똑같이 올라갑니다(선택 입력). */
   var MEET_MAX = 30;          /* 언제·어디 글자 수 */
 
@@ -2248,7 +2254,7 @@
     friendState: friendState, friendsOf: friendsOf, incomingFriendRequests: incomingFriendRequests,
     matchBetween: matchBetween, canChatWith: canChatWith,
     coachRoomId: coachRoomId, coachChatAllowed: coachChatAllowed,
-    POST_TOPICS: POST_TOPICS, MEET: MEET, normalizeTopic: normalizeTopic, topicOf: topicOf,
+    POST_TOPICS: POST_TOPICS, MEET: MEET, LEGACY_TOPICS: LEGACY_TOPICS, normalizeTopic: normalizeTopic, topicOf: topicOf,
     normalizeMeet: normalizeMeet, meetFilled: meetFilled, meetOf: meetOf, meetText: meetText,
     meetCap: meetCap, meetMembers: meetMembers, meetStatus: meetStatus,
     /* v1.29 */

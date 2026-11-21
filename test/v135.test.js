@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v135.test.js — bm-v1.37.1
+ * test/v135.test.js — bm-v1.37.2
  *   고도화 7차 사이클: 타 앱 벤치마킹 UX·디자인 정비.
  *
  *   1) 일지 '복식 파트너' 최근 파트너 원탭 칩
@@ -397,11 +397,11 @@
   test('v1.35 버전: sw.js·app.js·index.html·twa-manifest가 모두 v1.35', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.37.1'", 'sw.js');
-    includes(app, "version: 'v1.37.1'", 'app.js');
-    includes(index, 'styles.css?v=20261121-39', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.37.1', 'twa appVersionName');
-    eq(twa.appVersion, '1.37.1', 'twa appVersion');
+    includes(sw, "var VERSION = 'bm-v1.37.2'", 'sw.js');
+    includes(app, "version: 'v1.37.2'", 'app.js');
+    includes(index, 'styles.css?v=20261121-40', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.37.2', 'twa appVersionName');
+    eq(twa.appVersion, '1.37.2', 'twa appVersion');
     eq(twa.appVersionCode, 38, 'twa appVersionCode');
   });
 
@@ -438,7 +438,7 @@
     if (!hasNode) return;
     var readme = readRoot('README.md'), ideas = readRoot('ideas.md');
     includes(readme, '## 15-35. v1.35.0', 'README 이번 사이클');
-    includes(ideas, 'bm-v1.37.1', '아이디어 노트 상태');
+    includes(ideas, 'bm-v1.37.2', '아이디어 노트 상태');
     includes(ideas, '최근 파트너', '파트너 칩');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v129.test.js — bm-v1.37.1
+ * test/v129.test.js — bm-v1.37.2
  *   고도화 1차 사이클(ideas.md 2순위) 두 가지를 검증합니다.
  *
  *   1) 매칭·모집 후 매너 한 줄 태그
@@ -467,12 +467,13 @@
   test('v1.29 문구: 대기 문의 문구도 한 줄에 들어간다', function () {
     var post = { meet: { when: '11/21(금) 19:00', place: '올림픽체육관', cap: '6' } };
     var draft = BM.views.community._waitDraft(post);
-    includes(draft, '번개', '말머리');
+    includes(draft, '게스트 모집', '말머리');
     includes(draft, '대기하고 싶어요', '대기 의사');
-    includes(draft, '11/21(금) 19:00', '일시');
+    includes(draft, '11/21(금)', '일시(날짜)');
     ok(draft.length <= 30, '한 줄 입력창에 들어가는 길이');
     excludes(draft, '올림픽체육관', '긴 장소는 생략');
-    eq(BM.views.community._waitDraft({ meet: null }), '번개 대기하고 싶어요!', '정보 없으면 인사만');
+    excludes(draft, '19:00', '한 줄을 넘지 않게 시간은 생략');
+    eq(BM.views.community._waitDraft({ meet: null }), '게스트 모집 대기하고 싶어요!', '정보 없으면 인사만');
   });
 
   test('v1.29 화면: 이상한 닉네임·장소도 그대로 이스케이프', function () {
@@ -512,13 +513,13 @@
 
   test('v1.29 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.37.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.37.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-39', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.37.2'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.37.2'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-40', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.37.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.37.1', 'TWA appVersion');
+    eq(twa.appVersionName, '1.37.2', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.37.2', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드');
     includes(readRoot('index.html'), 'js/views/chat.js', '채팅 화면 파일 유지');
     includes(readRoot('sw.js'), "'./js/views/profile.js'", '서비스워커 캐시 목록 유지');

@@ -79,8 +79,8 @@
   function meetPost(id, userKey, nick) {
     return D.toRow({
       id: id || 'post-bolt-1', type: '소셜', createdAt: U.stamp(), date: U.ymd(),
-      nick: nick || '콕집사', text: '이번 주 금요일 저녁에 번개 치실 분!', userKey: userKey || 'demo_chi',
-      plan: { topic: '번개', meet: { when: '11/21(금) 19:00', place: '올림픽체육관', cap: '6' } }
+      nick: nick || '콕집사', text: '이번 주 금요일 저녁에 게스트 모집합니다!', userKey: userKey || 'demo_chi',
+      plan: { topic: '게스트 모집', meet: { when: '11/21(금) 19:00', place: '올림픽체육관', cap: '6' } }
     });
   }
 
@@ -260,16 +260,16 @@
     eq(D.isGroupRoom(idx, 'no-such-post'), false, '없는 글은 단체방 아님');
     var post = D.groupPostOf(idx, 'post-bolt-1');
     eq(post.userKey, 'demo_chi', '글쓴이');
-    eq(D.groupTitle(post), '번개 단체방', '방 제목');
+    eq(D.groupTitle(post), '게스트 모집 단체방', '방 제목');
     includes(D.groupNote(post), '올림픽체육관', '글의 모집 정보가 방 안내로');
     eq(D.groupRoomId(' post-bolt-1 '), ' post-bolt-1 ', '문자열 그대로(테스트용 확인)');
   });
 
   test('단체방: 참여 문의를 누르면 1:1 DM이 아니라 그 글의 단체방이 열린다', function () {
     return freshStore([meetPost()]).then(function (store) {
-      var post = store.state.data.posts.filter(function (p) { return p.topic === '번개'; })[0];
-      ok(post, '번개 글');
-      var res = store.actions.openGroupChat(post.id, '번개 참여하고 싶어요! (11/21(금) 19:00)');
+      var post = store.state.data.posts.filter(function (p) { return p.topic === '게스트 모집'; })[0];
+      ok(post, '게스트 모집 글');
+      var res = store.actions.openGroupChat(post.id, '게스트 모집 참여하고 싶어요! (11/21(금) 19:00)');
       ok(res.ok, '단체방 열기');
       eq(store.state.ui.chatOpen, true, '채팅 패널 열림');
       eq(store.state.ui.chatRoom, post.id, '방 번호 = 글 번호');
@@ -296,7 +296,7 @@
       var room = store.state.data.threads.filter(function (t) { return t.kind === 'group'; })[0];
       ok(room, '대화 목록에 단체방');
       eq(room.roomId, post.id, '방 번호');
-      eq(room.title, '번개 단체방', '제목');
+      eq(room.title, '게스트 모집 단체방', '제목');
       eq(room.memberCount, 2, '참여자 2명(글쓴이 + 나)');
       eq(room.members[0].key, 'demo_chi', '글쓴이가 먼저');
       eq(room.messages.length, 1, '메시지 1개');
@@ -304,7 +304,7 @@
 
       var list = BM.views.chat.listHtml(store.state);
       checkHtml(list, '채팅 목록(단체방)');
-      includes(list, '번개 단체방', '목록 제목');
+      includes(list, '게스트 모집 단체방', '목록 제목');
       includes(list, '단체', '단체방 배지');
       includes(list, '2명', '참여자 수');
 
@@ -312,7 +312,7 @@
       store.state.ui.chatOther = '';
       var roomHtml = BM.views.chat.roomHtml(store.state);
       checkHtml(roomHtml, '단체방 화면');
-      includes(roomHtml, '번개 단체방', '방 제목');
+      includes(roomHtml, '게스트 모집 단체방', '방 제목');
       includes(roomHtml, '2명 참여', '참여자 수');
       includes(roomHtml, '올림픽체육관', '모집 정보');
       includes(roomHtml, 'data-dm-form', '바로 입력');
@@ -370,13 +370,13 @@
       })[0];
       ok(readRow, '읽음 행');
       eq(readRow.target, '', '단체방 읽음은 대상이 비어 있다');
-      includes(BM.views.chat.listHtml(store.state), '번개 단체방', '목록에 그대로');
+      includes(BM.views.chat.listHtml(store.state), '게스트 모집 단체방', '목록에 그대로');
     });
   });
 
   test('단체방: 대화가 없어도 문의 버튼으로 열면 내 대화 목록에 방이 남는다', function () {
     return freshStore([meetPost('post-bolt-4', ME_KEY, '나래')]).then(function (store) {
-      var post = store.state.data.posts.filter(function (p) { return p.topic === '번개'; })[0];
+      var post = store.state.data.posts.filter(function (p) { return p.topic === '게스트 모집'; })[0];
       ok(store.actions.openGroupChat(post.id, '').ok, '방 열기');
       eq((store.state.data.threads || []).filter(function (t) { return t.kind === 'group'; }).length, 0,
         '열기만 해서는 아직 목록에 없음');
@@ -386,7 +386,7 @@
       ok(room, '대화가 없어도 목록에 방');
       eq(room.messages.length, 0, '메시지 0개');
       eq(room.memberCount, 1, '글쓴이 1명');
-      eq(room.title, '번개 단체방', '제목');
+      eq(room.title, '게스트 모집 단체방', '제목');
       store.state.locks = {};
       eq(store.actions.markChatRead(post.id, '').ok, false, '다시 열면 새 기록 없음');
       var rows = (store.state.idx.byType['채팅읽음'] || []).filter(function (r) {
@@ -399,16 +399,16 @@
   test('단체방: 화면 버튼은 "참여 문의"이고 1:1 DM 문구가 남지 않는다', function () {
     var rows = [meetPost()];
     var html = BM.views.community.render(stateOf(rows));
-    checkHtml(html, '커뮤니티(번개)');
+    checkHtml(html, '커뮤니티(게스트 모집)');
     includes(html, 'data-vite-group="post-bolt-1"', '단체방 버튼');
     includes(html, '참여 문의', '버튼 글자');
-    includes(html, '번개 모집', '모집 카드 제목');
+    includes(html, '게스트 모집', '모집 카드 제목');
     excludes(html, 'data-vite-dm', '작성자 1:1 DM 버튼 없음');
     includes(html, 'data-vite-group="post-bolt-1"', '어느 글의 방인지 함께');
   });
 
   test('단체방: 말머리 이름표는 한 곳에서 바꿀 수 있게 분리되어 있다', function () {
-    eq(D.MEET.topic, '번개', '말머리');
+    eq(D.MEET.topic, '게스트 모집', '말머리');
     includes(D.POST_TOPICS.join(','), D.MEET.topic, '말머리 목록에 포함');
     eq(D.MEET.joinLabel, '참여 문의', '참여 버튼');
     ok(D.MEET.roomLabel.length > 0 && D.MEET.cardLabel.length > 0, '방·카드 이름표');
@@ -423,7 +423,7 @@
     var sw = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf8');
     var css = fs.readFileSync(path.join(rootDir, 'styles.css'), 'utf8');
     includes(app, 'pendingMatch', '상단 채팅 배지에 매칭 요청 포함');
-    ok(/var VERSION = 'bm-v1\.37\.1'/.test(sw), 'sw.js bm-v1.37.1');
+    ok(/var VERSION = 'bm-v1\.37\.2'/.test(sw), 'sw.js bm-v1.37.2');
     includes(css, '.letter {', '편지지 스타일');
     includes(css, '.dmgroupav', '단체방 아이콘 스타일');
   });
