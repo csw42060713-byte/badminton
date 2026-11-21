@@ -156,7 +156,7 @@
   BM.test.test('v1.39 경기 흐름: 문구에 접전 전적과 중반 리드가 들어간다', function () {
     var an = ai({
       cond: 6, intensity: 7, minutes: 90, gameMode: 21, discipline: '복식',
-      games: [{ a: 21, b: 19 }, { a: 22, b: 20 }, { a: 18, b: 21 }]
+      games: [{ a: 21, b: 19 }, { a: 22, b: 20 }, { a: 18, b: 21 }, { a: 21, b: 7 }]
     });
     var tips = an.flow.tips.join(' ');
     includes(tips, '마지막 2~3점', '기존 후반 운영 문구 유지');
@@ -165,7 +165,11 @@
     includes(tips, '3점차 이내 3경기 중 2승 1패', '접전 전적');
     ok(an.flow.tips.length <= 3, '문구는 3개까지');
     var html = BM.views.log.render(logState(an));
-    includes(html, '접전(3점차 이내)', '화면 한 줄 요약');
+    includes(html, '접전(3점차 이내) 3경기 2승 1패', '화면 한 줄 요약');
+    /* 모든 경기가 접전이면 한 줄이 겹치지 않게 생략 */
+    var allClose = ai({ cond: 6, intensity: 7, minutes: 90, games: [{ a: 21, b: 19 }, { a: 19, b: 21 }, { a: 22, b: 20 }] });
+    var html2 = BM.views.log.render(logState(allClose));
+    excludes(html2, '접전(3점차 이내) 3경기', '전부 접전이면 생략');
   });
 
   BM.test.test('v1.39 경기 흐름: 경기가 없으면 접전 값이 비어 있고 null이 없다', function () {

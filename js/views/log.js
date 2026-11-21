@@ -200,7 +200,8 @@
     if (!flow || !flow.count) return '';
     var parts = [flow.count + '경기 ' + flow.wins + '승 ' + flow.losses + '패' + (flow.count - flow.wins - flow.losses > 0 ? ' ' + (flow.count - flow.wins - flow.losses) + '무' : '')];
     parts.push('평균 ' + flow.avgMargin + '점차');
-    if (flow.clutch && flow.clutch.games >= 2) parts.push('접전(3점차 이내) ' + flow.clutch.games + '경기 ' + flow.clutch.wins + '승 ' + flow.clutch.losses + '패');
+    /* 모든 경기가 접전이면 전체 전적과 숫자가 겹쳐 군더더기가 됩니다(v1.39.0) */
+    if (flow.clutch && flow.clutch.games >= 2 && flow.clutch.games < flow.count) parts.push('접전(3점차 이내) ' + flow.clutch.games + '경기 ' + flow.clutch.wins + '승 ' + flow.clutch.losses + '패');
     else if (flow.deuce) parts.push('끝까지 간 경기 ' + flow.deuce);
     else if (flow.close) parts.push('3점차 이내 ' + flow.close);
     if (flow.fade) parts.push('마지막 경기 점수차 확대');
