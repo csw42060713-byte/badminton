@@ -1789,6 +1789,94 @@
     return (last && last.payload) || {};
   }
 
+  /* ============================================================
+   * 멘토 유형 · 활동 소속 · 증명 (bm-v1.45.0)
+   *  · 활동 유형은 '개인 멘토' · '체육관 코치' · '선수 코치' · '클럽 운영' 넷입니다.
+   *    예전에 저장된 '선수 멘토' · '코치' · '동호인 멘토' 는 값을 바꾸지 않고
+   *    그대로 읽어 그대로 보여 줍니다(이미 심사된 신청의 기록을 건드리지 않습니다).
+   *  · '체육관 코치' · '선수 코치' 는 어디서 코치하는지(affiliation)와
+   *    증명(proof 글 · proofUrl 링크 · proofPhoto 사진)을 함께 받습니다.
+   *    링크는 safeLinkUrl, 사진은 safeImageUrl 을 지나야 화면·DB에 들어갑니다.
+   * ============================================================ */
+  var MENTOR_TYPES = ['개인 멘토', '체육관 코치', '선수 코치', '클럽 운영'];
+  var MENTOR_NEED_PROOF = ['체육관 코치', '선수 코치'];   /* 소속·증명이 필요한 유형 */
+  var MENTOR = {
+    typeMax: 20,              /* 유형 이름 글자 수 */
+    affiliationMax: 40,       /* '나래울 배드민턴장 · 매원고 배드민턴부' */
+    proofMax: 60,             /* 증빙 메모(위촉 확인 번호 등) */
+    proofUrlMax: 300,         /* 증빙 링크 */
+    photoMax: 48000           /* 증빙 사진(data:image, base64) — 시트 한 칸(50,000자) 안 */
+  };
+
+  function mentorTypeOf(v) {
+    var s = tidyText(v, MENTOR.typeMax);
+    return s || '개인 멘토';
+  }
+
+  /* '체육관 코치' · '선수 코치' 인지 — 소속·증명을 받아야 하는 유형 */
+  function mentorNeedsProof(type) {
+    return MENTOR_NEED_PROOF.indexOf(mentorTypeOf(type)) >= 0;
+  }
+
+  function cleanAffiliation(v) { return tidyText(v, MENTOR.affiliationMax); }
+  function cleanProofText(v) { return tidyText(v, MENTOR.proofMax); }
+  function cleanProofUrl(v) { return safeLinkUrl(v, { max: MENTOR.proofUrlMax }); }
+  function cleanProofPhoto(v) {
+    var s = safeImageUrl(v);
+    /* 증빙 사진은 앱이 직접 줄인 data:image/png|jpeg|webp 만 (외부 주소는 받지 않습니다) */
+    return /^data:image\//i.test(s) && s.length <= MENTOR.photoMax ? s : '';
+  }
+
+  /* 신청 한 건의 증명 — 글·링크·사진 중 무엇이 있는지 */
+  function mentorProofOf(pl) {
+    pl = pl || {};
+    var out = {
+      text: cleanProofText(pl.proof),
+      url: cleanProofUrl(pl.proofUrl),
+      photo: cleanProofPhoto(pl.proofPhoto)
+    };
+    out.any = !!(out.text || out.url || out.photo);
+    return out;
+  }
+
+  /* 신청 payload → 화면 배지에 쓰는 값 (구분 · 소속 · 증명 여부) */
+  function mentorBadgeOf(pl) {
+    pl = pl || {};
+    return {
+      type: mentorTypeOf(pl.type),
+      affiliation: cleanAffiliation(pl.affiliation),
+      proofed: mentorProofOf(pl).any
+    };
+  }
+
+  /* 승인된 코치 줄 — '나래울 배드민턴장 · 활동 증명됨'
+   *  · 승인 + 증명이 있을 때만 '활동 증명됨' 을 붙입니다(심사 전 신청에는 붙이지 않음). */
+  function mentorAffiliationLine(a) {
+    a = a || {};
+    var out = [];
+    var aff = cleanAffiliation(a.affiliation);
+    if (aff) out.push(aff);
+    if (a.status === '승인' && (a.proofed != null ? a.proofed : mentorProofOf(a.payload).any)) out.push('활동 증명됨');
+    return out.join(' · ');
+  }
+
+  /* 체육관 이름 빠른 선택 — BM.gyms(전국 목록)에서 이름·동네·주소로 찾습니다.
+   *  · 한 글자부터 찾고, 최대 limit 곳. 화면(멘토 신청)과 테스트가 같이 씁니다. */
+  function gymNameSuggestions(q, limit) {
+    var G = root.BM && root.BM.gyms;
+    var list = (G && typeof G.all === 'function') ? G.all() : [];
+    var s = String(q == null ? '' : q).replace(/\s+/g, '').toLowerCase();
+    var n = limit || 5;
+    var out = [];
+    if (!s || !list.length) return out;
+    list.forEach(function (v) {
+      if (out.length >= n) return;
+      var hay = [v.name, v.area, v.region, v.addr].join('').replace(/\s+/g, '').toLowerCase();
+      if (hay.indexOf(s) >= 0) out.push({ id: v.id, name: v.name, area: v.area || '' });
+    });
+    return out;
+  }
+
   /* 멘토 신청 목록 — 관리자는 전부, 일반 사용자는 내 신청만 봅니다. */
   function mentorApplications(idx, meKey, admin) {
     var rows = [];
@@ -1801,6 +1889,8 @@
       var p = profileOf(idx, r.userKey);
       var mp = matchProfileOf(idx, r.userKey);
       var status = r.status || pl.status || '심사중';
+      var badge = mentorBadgeOf(pl);
+      var proof = mentorProofOf(pl);
       return {
         id: r.id, type: r.type, userKey: r.userKey,
         nick: r.nick || p.nick || '신청자',
@@ -1816,7 +1906,13 @@
         experience: pl.experience || mp.experience || '',
         awards: pl.awards || '',
         reason: pl.reason || pl.intro || '',
-        proof: pl.proof || '',
+        /* v1.45 — 구분 · 활동 소속 · 증명(글/링크/사진) */
+        mentorType: badge.type,
+        affiliation: badge.affiliation,
+        proof: proof.text,
+        proofUrl: proof.url,
+        proofPhoto: proof.photo,
+        proofed: proof.any,
         bio: p.bio || ''
       };
     });
@@ -2800,6 +2896,13 @@
     ADMIN_EMAILS: ADMIN_EMAILS, ADMIN_TARGET: ADMIN_TARGET,
     isAdminEmail: isAdminEmail, isAdminMe: isAdminMe, isCoach: isCoach,
     mentorApplications: mentorApplications, mentorPendingCount: mentorPendingCount,
+    /* v1.45.0 — 멘토 구분 · 활동 소속 · 증명(링크/사진) */
+    MENTOR: MENTOR, MENTOR_TYPES: MENTOR_TYPES, MENTOR_NEED_PROOF: MENTOR_NEED_PROOF,
+    mentorTypeOf: mentorTypeOf, mentorNeedsProof: mentorNeedsProof,
+    cleanAffiliation: cleanAffiliation, cleanProofText: cleanProofText,
+    cleanProofUrl: cleanProofUrl, cleanProofPhoto: cleanProofPhoto,
+    mentorProofOf: mentorProofOf, mentorBadgeOf: mentorBadgeOf, mentorAffiliationLine: mentorAffiliationLine,
+    gymNameSuggestions: gymNameSuggestions,
     FRIEND_TYPES: FRIEND_TYPES,
     friendState: friendState, friendsOf: friendsOf, incomingFriendRequests: incomingFriendRequests,
     /* v1.38 — 친구 코드(#XXXX) */
