@@ -12,6 +12,7 @@
   var replyDrafts = {};   /* postId -> text */
   var sortMode = 'new';
   var topicFilter = '전체';   /* 상단 말머리 칩 — 전체 / 자유 / 후기 / 게스트 모집 / 용품 / 일지 */
+  var lastPostAt = 0;     /* 방금 올린 시각 — 올리기 연타로 '내용을 입력해 주세요'가 뜨지 않게 */
 
   /* 말머리 칩 한 줄 (말머리 고르기 · 목록 거르기에서 같은 모양을 씁니다)
    * 거르기의 '전체'는 고른 조건이 아니라 '조건 없음'이라 색을 달리해 구분합니다. */
@@ -400,11 +401,16 @@
         }
         if (ev.target.closest('[data-act="post"]')) {
           ev.preventDefault();
+          /* 올리기 연타: 첫 번째로 글이 올라가며 입력칸이 비는데, 두 번째 누름이
+           * '내용을 입력해 주세요'로 보이면 방금 글이 안 올라간 줄 알게 됩니다.
+           * 올린 직후 0.8초 안의 누름은 조용히 무시합니다(글이 중복 저장되지도 않습니다). */
+          if (Date.now() - lastPostAt < 800) return;
           var ta = root.querySelector('[data-composer]');
           var text = ta ? ta.value : '';
           var st = ctx.store.state;
           var res = ctx.actions.createPost(text, st.ui.composerTopic, st.ui.composerMeet);
           if (res.ok) {
+            lastPostAt = Date.now();
             if (ta) ta.value = '';
             /* 모집 입력칸도 같이 비웁니다 (다음 글은 다시 자유) */
             UI.$$('[data-vitefield]', root).forEach(function (inp) { inp.value = ''; });
