@@ -91,8 +91,14 @@
  *             체육관으로 지도가 열립니다(주소·코트 수 요약). 지도는 Leaflet 1.9.4(BSD)를 저장소에
  *             함께 넣어 외부 CDN 없이 오프라인에서도 틀이 뜨고, 타일을 못 받아도 핀·카드는 그대로.
  *             화면·스타일이 바뀌어 캐시 bm-v1.42.0.
+ * 2026-11-21: 오류·보안 일제 점검(bm-v1.42.1) — 말머리만 '게스트 모집'이고 모집 칸을 비운
+ *             글에도 모집 카드·참여 문의 버튼(전에는 그 글에 들어갈 입구가 없었음),
+ *             CSP(Content-Security-Policy) + Referrer-Policy 메타(스크립트는 self·구글 로그인·
+ *             인라인 해시 2개, object-src/base-uri/form-action 잠금), 화면 주소는 http/https·
+ *             data:image 만 통과(safeLinkUrl/safeImageUrl), 글 300자·답글 200자·채팅 300자
+ *             상한을 저장 단계에도 적용. index.html이 바뀌어 캐시 bm-v1.42.1.
  * ============================================================ */
-var VERSION = 'bm-v1.42.0';
+var VERSION = 'bm-v1.42.1';
 var SHELL = [
   './',
   './index.html',

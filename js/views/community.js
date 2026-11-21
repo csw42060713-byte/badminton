@@ -80,7 +80,7 @@
           '</div></div>'
         : '') +
       (body.trim() ? '<p class="post__text">' + U.esc(body).replace(/\n/g, '<br>') + '</p>' : '') +
-      (p.meet ? meetCard(p, state) : '') +
+      ((p.meet || p.topic === D.MEET.topic) ? meetCard(p, state) : '') +
       '<footer class="post__foot">' +
       '<button class="react' + (p.likedByMe ? ' is-on' : '') + '" data-like="' + U.esc(p.id) + '" aria-pressed="' + (p.likedByMe ? 'true' : 'false') + '">' +
       UI.icon('heart') + '<span data-like-count>' + p.likes + '</span></button>' +
@@ -116,7 +116,9 @@
    *        글쓴이에게는 '참여자 N명'과 명단 보기를 보여 줍니다.
    *        (참여자 = 글쓴이 + 단체방에 한마디 남긴 사람 — 따로 행을 만들지 않습니다) */
   function meetCard(p, state) {
-    var m = p.meet;
+    /* bm-v1.41.1 — 말머리만 '게스트 모집'이고 모집 칸을 비운 글도 카드·참여 버튼을 그립니다.
+     * (예전에는 p.meet 이 없으면 카드가 통째로 빠져 그 글에는 들어갈 입구가 없었습니다.) */
+    var m = p.meet || D.normalizeMeet(null);
     var me = (state.me && state.me.key) || '';
     var st = D.meetStatus(state.data.idx, p, me);
     var mine = st.mine;

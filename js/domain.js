@@ -791,6 +791,36 @@
     return tidyText(v, VIDEO_LABEL_MAX);
   }
 
+  /* 화면에 src·href로 나가는 주소는 여기를 통과합니다 (bm-v1.41.1).
+   *  · http/https 또는 앱이 직접 만드는 사진(data:image/png|jpeg|webp;base64)만 허용
+   *  · javascript: · data:text/html · vbscript: · 파일 경로는 버립니다.
+   *  · 공백·꺾쇠·따옴표·백틱이 섞인 주소는 속성을 깨뜨릴 수 있어 버립니다. */
+  function safeLinkUrl(v, opts) {
+    var o = opts || {};
+    var s = String(v == null ? '' : v).trim();
+    if (!s || s.length > (o.max || 2048)) return '';
+    if (o.photo && /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/i.test(s)) return s;
+    if (/[\s<>"'`]/.test(s)) return '';
+    var m = s.match(/^(https?):\/\/([^\s\/?#]+)/i);
+    if (!m) return '';
+    var host = m[2].toLowerCase();
+    if (host.indexOf('.') < 0) return '';          /* localhost·내부 주소는 링크가 아님 */
+    return s;
+  }
+
+  /* 프로필 사진 — 구글 계정 사진 같은 https 주소나 앱이 자른 data:image 만 */
+  function safeImageUrl(v) {
+    return safeLinkUrl(v, { photo: true, max: 60000 });
+  }
+
+  /* 글자 수 상한 — 화면·DB에 아주 긴 글자가 들어오지 않게 쓸 때 자릅니다.
+   * (maxlength 는 화면 입력칸에만 걸려 있어서, 다른 경로로 들어온 값을 여기서 막습니다.) */
+  function clampText(v, max) {
+    var s = String(v == null ? '' : v).replace(/\u0000/g, '');
+    if (max && s.length > max) s = s.slice(0, max);
+    return s;
+  }
+
   /* 영상 링크 — http(s)만. 주소에 공백·꺾쇠·따옴표가 있으면 버립니다. */
   function safeVideoUrl(v) {
     var s = String(v == null ? '' : v).trim();
@@ -2537,6 +2567,7 @@
     logMeta: logMeta, logExtraJson: logExtraJson, partnerStats: partnerStats, partnerStat: partnerStat, partnerLineText: partnerLineText, memberByName: memberByName,
     linkify: linkify,
     cleanPartner: cleanPartner, safeVideoUrl: safeVideoUrl, cleanVideoLabel: cleanVideoLabel,
+    safeLinkUrl: safeLinkUrl, safeImageUrl: safeImageUrl, clampText: clampText,
     PARTNER_MAX: PARTNER_MAX, VIDEO_URL_MAX: VIDEO_URL_MAX, VIDEO_LABEL_MAX: VIDEO_LABEL_MAX,
     parseScore: parseScore, parseGames: parseGames, cleanGames: cleanGames,
     gamesSummary: gamesSummary, formatGames: formatGames,
