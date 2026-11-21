@@ -19,7 +19,7 @@
 | 서버 삭제 API | `APPS_SCRIPT_BRIDGE.gs` `deleteAccount` | ✅ 본인 토큰 검증 · 본인 행만 삭제 |
 | 앱 아이콘 512 | `store-assets/icon-512.png` | ✅ 512×512 PNG |
 | 대표 그래픽 | `store-assets/feature-graphic-1024x500.png` | ✅ 1024×500 PNG |
-| 스크린샷 4장 | `store-assets/screenshot-1~4-*.png` | ✅ 540×960 (405×720 화면, 9:16) |
+| 스크린샷 4장 | `store-assets/screenshot-1~4-*.png` | ✅ 1080×1920 (405×720 화면, 9:16) |
 | 웹 앱 매니페스트 | `manifest.webmanifest` (+ 호환용 `manifest.json`) | ✅ id/scope/start_url/icons/maskable/screenshots |
 | 디지털 자산 링크 | `.well-known/assetlinks.json` | ⚠️ **지문 넣기 필요**(아래 2단계) |
 | Bubblewrap 설정 | `twa-manifest.json` | ⚠️ 지문·키 경로 확인 후 사용 |
@@ -194,7 +194,7 @@ bubblewrap build
 |---|---|---|
 | 앱 아이콘 | 512×512 PNG (32bit) | `store-assets/icon-512.png` |
 | 대표 그래픽 | 1024×500 PNG/JPG | `store-assets/feature-graphic-1024x500.png` |
-| 휴대전화 스크린샷 | 2~8장, 320~3840px, 16:9~9:16 | `store-assets/screenshot-1-matching.png` … `-4-my.png` (540×960) |
+| 휴대전화 스크린샷 | 2~8장, 320~3840px, 16:9~9:16 | `store-assets/screenshot-1-matching.png` … `-4-my.png` (1080×1920) |
 | 앱 이름 | 30자 | 배드민턴 분석 |
 | 간단한 설명 | 80자 | 아래 문구 사용 |
 | 자세한 설명 | 4000자 | 아래 문구 사용 |
@@ -326,7 +326,7 @@ https://csw42060713-byte.github.io/badminton/privacy.html
 - [ ] MY 화면에서 계정 안내가 실제 모드(기기 저장/시트)와 맞게 나온다
 - [ ] `twa-manifest.json`의 `appVersionCode`가 이전 업로드보다 크다
 - [ ] `android.keystore` 백업 완료, 깃에는 없음
-- [ ] 스크린샷 4장이 실제 앱 화면이고 9:16(현재 540×960)이다
+- [ ] 스크린샷 4장이 실제 앱 화면이고 9:16(현재 1080×1920)이다
 - [ ] 심사용 테스트 계정을 준비했다
 
 ---
