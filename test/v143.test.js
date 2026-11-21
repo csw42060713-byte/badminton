@@ -355,6 +355,23 @@
     });
   });
 
+  test('v1.43 저장소: 모집을 끝내면(글 삭제) 그 글의 신청·수락 행도 함께 정리된다', function () {
+    clearStorage();
+    U.writeJSON('bm_rows_v1', [
+      meetRow({ meet: { cap: '4' } }),
+      guestRow({ id: 'app-z', kind: '신청', at: at(40) }),
+      guestRow({ id: 'ok-z', kind: '수락', user: OWNER.key, target: GUEST.key, at: at(30) })
+    ]);
+    var store = BM.store.createStore({ api: BM.api.createLocal({ latency: 0, meKey: OWNER.key, me: { nick: '모집왕' } }) });
+    return store.actions.init().then(function () {
+      ok(store.actions.deletePost('post-1').ok, '모집 종료(글 삭제)');
+      var left = store.state.rows.filter(function (r) { return r[D.COL['유형']] === '게스트신청'; });
+      eq(left.length, 0, '신청·수락 행도 화면에서 정리');
+      eq(store.state.idx.byType['게스트신청'] ? store.state.idx.byType['게스트신청'].length : 0, 0, '도메인 색인에서도 없음');
+      return store.flush();
+    });
+  });
+
   /* ---------- 4. 화면 ---------- */
   test('v1.43 화면: 카드 버튼이 내 상태를 따라간다 (참여 신청·신청 대기 중·단체방 열기)', function () {
     /* 신청 전 */

@@ -975,15 +975,20 @@
         if (!me || String(post.userKey || '') !== String(me)) return { ok: false, reason: 'not_mine' };
         if (!tryLock('delpost:' + key, 1500)) return { ok: false, reason: 'locked' };
 
-        /* 이 글에 달린 답글·하트 (내 것 / 남의 것) */
+        /* 이 글에 달린 답글·하트·게스트 신청 (내 것 / 남의 것)
+         * bm-v1.43.0 — 모집을 끝내면 그 글의 신청·수락·나가기 행도 함께 정리합니다.
+         * (내가 남긴 행만 서버에서도 지우고, 남이 남긴 행은 이 기기 화면에서만 감춤) */
         var related = {};
         (state.rows || []).forEach(function (r) {
           var id = String(r[0]);
           if (id === key) return;
           var rec = Array.isArray(r) ? D.fromRow(r) : r;
           if (!rec) return;
+          var mineRow = String(rec.userKey || '') === String(me);
           if ((rec.type === '답글' || rec.type === '하트') && String(rec.target || '') === key) {
-            related[id] = String(rec.userKey || '') === String(me);
+            related[id] = mineRow;
+          } else if (rec.type === D.GUEST.type && String(rec.team || '') === key) {
+            related[id] = mineRow;
           }
         });
         state.rows = state.rows.filter(function (r) {
