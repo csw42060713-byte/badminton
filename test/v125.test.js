@@ -270,14 +270,14 @@
     var index = readRoot('index.html');
     var readme = readRoot('README.md');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.37.2'", 'sw.js');
+    includes(sw, "var VERSION = 'bm-v1.38.0'", 'sw.js');
     includes(sw, "./js/beginner.js", '서비스워커 캐시 목록');
-    includes(app, "version: 'v1.37.2'", 'app.js');
-    includes(index, 'styles.css?v=20261121-40', '스타일 캐시 키');
+    includes(app, "version: 'v1.38.0'", 'app.js');
+    includes(index, 'styles.css?v=20261121-50', '스타일 캐시 키');
     includes(index, 'js/beginner.js', '스크립트 로드');
     includes(readme, 'v1.31.0', 'README 변경 이력');
-    eq(twa.appVersionName, '1.37.2', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.37.2', 'TWA appVersion');
+    eq(twa.appVersionName, '1.38.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.38.0', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드');
   });
 

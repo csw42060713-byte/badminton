@@ -1504,7 +1504,9 @@
     var state = stateOf(rows);
     includes(BM.views.profile.buttons(state, 'demo_foot'), 'data-friend-accept', '받은 요청 수락 버튼');
     includes(BM.views.profile.buttons(state, 'demo_chi'), 'data-friend-chat', '친구는 채팅 버튼');
-    includes(BM.views.profile.buttons(state, 'demo_drive'), 'data-friend-add', '모르는 사람은 친구 추가');
+    /* v1.38: 닉네임·프로필만 보고 친구가 되던 '친구 추가' 버튼은 없앴다(친구 코드로만) */
+    excludes(BM.views.profile.buttons(state, 'demo_drive'), 'data-friend-add', '모르는 사람에게 친구 추가 버튼 없음');
+    includes(BM.views.profile.buttons(state, 'demo_drive'), '친구 코드', '친구 코드 안내');
     includes(BM.views.profile.buttons(state, 'demo_chi'), '친구 끊기', '친구 끊기');
   });
 

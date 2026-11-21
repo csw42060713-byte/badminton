@@ -2251,6 +2251,85 @@ body.is-onboarding .main { padding: calc(var(--safe-t) + 10px) 18px calc(var(--s
   font-size: 11.5px; color: var(--muted);
 }
 .pp__friendnote { color: var(--accent-2); }
+
+/* 내 프로필 카드: 이름+친구 코드가 두 줄이라 사진을 가운데가 아니라 위에 맞춥니다
+ * (사진이 아래로 내려가 이름만 떠 보이던 문제) */
+.card--profile .profile { align-items: flex-start; }
+
+/* ---------- 친구 코드(#XXXX) — v1.38 ----------
+ *  아는 사람만 친구가 되는 입구. 값은 크게, 설명은 작게 두고
+ *  복사 버튼만 옆에 붙입니다(앱 톤: 얇은 테두리, 과한 그라데이션 없음). */
+.codechip {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin-top: 8px; padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: var(--card-2);
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+}
+.codechip:active { transform: scale(0.98); }
+.codechip__k { font-size: 10.5px; font-weight: 800; letter-spacing: 0.3px; color: var(--muted); }
+.codechip__v { font-size: 14px; font-weight: 900; letter-spacing: 0.7px; font-variant-numeric: tabular-nums; }
+.codechip__cp { font-size: 10.5px; font-weight: 800; color: var(--accent-2); padding-left: 2px; border-left: 1px solid var(--line-2); }
+
+/* 채팅 목록 위 내 코드 줄 */
+.codebar {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 14px; padding: 11px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+.codebar__l { flex: 1; min-width: 0; }
+.codebar__k { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.4px; color: var(--muted); }
+.codebar__v { display: block; margin-top: 2px; font-size: 15px; font-weight: 900; letter-spacing: -0.2px; }
+.codebar__v i { font-style: normal; color: var(--accent-2); letter-spacing: 0.8px; }
+
+/* 친구 추가 시트 */
+.fcode__mine {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px; border-radius: 16px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+}
+.fcode__l { flex: 1; min-width: 0; }
+.fcode__k { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.4px; color: var(--muted); }
+.fcode__v { display: block; margin-top: 2px; font-size: 16px; font-weight: 900; letter-spacing: -0.2px; }
+.fcode__v i { font-style: normal; color: var(--accent); letter-spacing: 0.9px; }
+.fcode__form { display: flex; align-items: flex-end; gap: 8px; margin-top: 16px; }
+.fcode__form .flabel { flex: 1; min-width: 0; margin: 0; }
+.fcode__form input { letter-spacing: 1.6px; text-transform: uppercase; font-weight: 800; }
+.fcode__form .btn { flex: none; min-height: 46px; }
+.fcode__result { margin-top: 14px; }
+.codehint {
+  display: flex; align-items: flex-start; gap: 7px;
+  margin: 0; font-size: 11.5px; line-height: 1.55; color: var(--muted);
+}
+.codehint .ico { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+.codemsg {
+  display: flex; align-items: center; gap: 7px;
+  padding: 11px 12px; border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  font-size: 12px; line-height: 1.5; color: var(--text-2);
+}
+.codemsg b { color: var(--text); letter-spacing: 0.6px; }
+.codemsg--warn { border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+.codemsg .ico { width: 15px; height: 15px; flex: none; }
+.coderesult {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 10px; padding: 11px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+.coderesult__mid { flex: 1; min-width: 0; }
+.coderesult__name { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13.5px; font-weight: 800; }
+.coderesult__code { font-size: 11.5px; font-weight: 900; letter-spacing: 0.6px; color: var(--accent-2); }
+.coderesult__meta { margin-top: 2px; font-size: 11.5px; color: var(--muted); }
+.coderesult__act { display: flex; align-items: center; gap: 6px; flex: none; }
 .post__author {
   display: flex; align-items: center; gap: 10px;
   background: none; border: 0; padding: 0;

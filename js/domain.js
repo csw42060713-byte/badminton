@@ -1528,6 +1528,128 @@
     }).filter(Boolean);
   }
 
+  /* ============================================================
+   * 친구 코드(#XXXX) — 아는 사람만 친구 추가 (bm-v1.38.0)
+   *
+   *  · 4자리 영문 대문자 + 숫자. 눈으로 헷갈리는 I · O · 0 · 1 은 쓰지 않습니다(32자).
+   *  · user_key 하나에 코드 하나가 나오는 결정적 함수입니다. 그래서
+   *    기기·서버·시트 어디서 같은 규칙으로 계산해도 같은 코드가 나오고,
+   *    app_users 컬럼을 새로 만들지 않아도 됩니다.
+   *      (서버 조회: app_users.user_key → friendCodeOf(user_key))
+   *  · 코드를 아는 사람만 그 회원을 찾아 친구 요청을 보낼 수 있습니다.
+   *    닉네임 검색·프로필 화면에는 '친구 추가' 버튼을 두지 않습니다.
+   * ============================================================ */
+  var FRIEND_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var FRIEND_CODE_LEN = 4;
+  var FRIEND_CODE_SALT = 'bm-friend-code-v1:';
+  /* 헷갈리는 글자 — 코드에는 없으므로 입력에 있으면 잘못 친 것으로 봅니다 */
+  var FRIEND_CODE_CONFUSED = 'O0I1';   /* O·0·I·1 */
+
+  /* FNV-1a 32bit + 마무리 섞기(bit mixer)
+   *  · 어느 언어로 옮겨도 같은 값이 나오는 작은 해시.
+   *  · 마무리 섞기가 없으면 비슷한 user_key(u_0001…)끼리 낮은 비트가 몰려
+   *    4자리 코드 충돌이 잦아집니다(5000명 중 1/4). 믹서를 거치면 기대값대로 떨어집니다. */
+  function codeHash(text) {
+    var s = String(text == null ? '' : text);
+    var h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+    }
+    h ^= h >>> 16;
+    h = mul32(h, 0x7feb352d);
+    h ^= h >>> 15;
+    h = mul32(h, 0x846ca68b);
+    h ^= h >>> 16;
+    return h >>> 0;
+  }
+
+  /* 32bit 곱셈 — Math.imul이 없는 환경(아주 오래된 브라우저)에서도 같은 값 */
+  function mul32(h, k) {
+    if (typeof Math !== 'undefined' && Math.imul) return Math.imul(h, k) >>> 0;
+    var hi = (h >>> 16) * k;
+    var lo = (h & 0xffff) * k;
+    return ((lo + ((hi & 0xffff) << 16)) >>> 0);
+  }
+
+  /* 내 친구 코드 — user_key 가 같으면 언제나 같은 4자리 */
+  function friendCodeOf(userKey) {
+    var key = String(userKey == null ? '' : userKey).trim();
+    if (!key) return '';
+    var out = '';
+    for (var i = 0; i < FRIEND_CODE_LEN; i++) {
+      var h = codeHash(FRIEND_CODE_SALT + i + ':' + key);
+      out += FRIEND_CODE_ALPHABET.charAt(h % FRIEND_CODE_ALPHABET.length);
+    }
+    return out;
+  }
+
+  /* 화면에 보여 줄 코드 — '#A7K2' */
+  function friendCodeLabel(userKey) {
+    var code = friendCodeOf(userKey);
+    return code ? '#' + code : '';
+  }
+
+  /* 닉네임#A7K2 (복사·공유용). 같은 사람이 여러 번 저장해도 최신 닉네임 */
+  function friendCodeWithNick(idx, userKey, nick) {
+    var code = friendCodeOf(userKey);
+    if (!code) return '';
+    var name = String(nick || (idx ? displayName(idx, userKey) : '') || '').trim();
+    return (name ? name + '#' : '#') + code;
+  }
+
+  /* 사람이 친 코드 → 'A7K2'. 못 읽으면 빈 글자.
+   *  · '#a7k2', 'a7k2', '나래#A7K2', ' A7K2 ' 를 모두 받습니다.
+   *  · 코드에 없는 O·0·I·1 이 섞이면 잘못 친 것으로 봅니다(조용히 다른 코드로 바꾸지 않음). */
+  function friendCodeParse(input) {
+    var s = String(input == null ? '' : input).toUpperCase();
+    var hashAt = s.lastIndexOf('#');
+    if (hashAt >= 0) s = s.slice(hashAt + 1);
+    s = s.replace(/[\s\-_]/g, '');
+    if (!s) return '';
+    var out = '';
+    for (var i = 0; i < s.length; i++) {
+      var ch = s.charAt(i);
+      if (FRIEND_CODE_CONFUSED.indexOf(ch) >= 0) return '';
+      if (FRIEND_CODE_ALPHABET.indexOf(ch) < 0) return '';
+      out += ch;
+    }
+    return out.length === FRIEND_CODE_LEN ? out : '';
+  }
+
+  /* 코드로 찾을 수 있는 사람들 — 프로필·매칭카드가 있는 회원 전부.
+   * (친구 코드는 user_key 에서 나오므로 서버 표를 따로 읽지 않아도 됩니다) */
+  function friendCodeDirectory(idx) {
+    var byKey = {};
+    function put(key, nick, level, theme, createdAt) {
+      if (!key) return;
+      var cur = byKey[key];
+      if (cur && String(cur.createdAt || '') > String(createdAt || '')) return;
+      byKey[key] = { key: key, nick: nick || (cur && cur.nick) || '', level: level || (cur && cur.level) || '', theme: theme || (cur && cur.theme) || null, createdAt: createdAt || '' };
+    }
+    (idx && idx.byType['프로필'] || []).forEach(function (p) {
+      put(p.userKey, p.nick, p.level, p.theme, p.createdAt);
+    });
+    (idx && idx.byType['매칭프로필'] || []).forEach(function (m) {
+      var pl = m.payload || {};
+      put(m.userKey, m.nick || pl.nick, normalizeGrade(pl.level) || m.level, null, m.createdAt);
+    });
+    return Object.keys(byKey).map(function (k) {
+      var u = byKey[k];
+      u.code = friendCodeOf(u.key);
+      return u;
+    }).filter(function (u) { return !!u.code; });
+  }
+
+  /* 친 코드로 회원 찾기 — { code, matches } (같은 코드가 둘이면 둘 다 돌려줍니다) */
+  function friendCodeFind(idx, input) {
+    var typed = String(input == null ? '' : input).trim();
+    var code = friendCodeParse(typed);
+    if (!code) return { code: '', matches: [], invalid: !!typed };
+    var matches = friendCodeDirectory(idx).filter(function (u) { return u.code === code; });
+    return { code: code, matches: matches, invalid: false };
+  }
+
   /* 두 사람 사이의 1:1 매칭 상태 */
   function matchBetween(idx, meKey, otherKey) {
     if (!meKey || !otherKey) return { accepted: false, requestId: '', pending: false };
@@ -2252,6 +2374,10 @@
     mentorApplications: mentorApplications, mentorPendingCount: mentorPendingCount,
     FRIEND_TYPES: FRIEND_TYPES,
     friendState: friendState, friendsOf: friendsOf, incomingFriendRequests: incomingFriendRequests,
+    /* v1.38 — 친구 코드(#XXXX) */
+    FRIEND_CODE_ALPHABET: FRIEND_CODE_ALPHABET, FRIEND_CODE_LEN: FRIEND_CODE_LEN,
+    friendCodeOf: friendCodeOf, friendCodeLabel: friendCodeLabel, friendCodeWithNick: friendCodeWithNick,
+    friendCodeParse: friendCodeParse, friendCodeDirectory: friendCodeDirectory, friendCodeFind: friendCodeFind,
     matchBetween: matchBetween, canChatWith: canChatWith,
     coachRoomId: coachRoomId, coachChatAllowed: coachChatAllowed,
     POST_TOPICS: POST_TOPICS, MEET: MEET, LEGACY_TOPICS: LEGACY_TOPICS, normalizeTopic: normalizeTopic, topicOf: topicOf,
