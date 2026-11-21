@@ -1578,13 +1578,28 @@
       /* ---------- 멘토 신청 · 심사 (관리자만) ----------
        * 일반 사용자가 신청하면 '대상'이 관리자로 기록되고, 화면에는
        * '관리자에게 전달되었습니다 (심사중)'만 보입니다.
-       * 승인/거절은 관리자 계정에서만 가능합니다. */
+       * 승인/거절은 관리자 계정에서만 가능합니다.
+       * bm-v1.45.0 — 구분(개인 멘토·체육관 코치·선수 코치·클럽 운영)과
+       *  활동 소속(affiliation) · 증명(글/링크/사진)을 함께 받습니다.
+       *  '체육관 코치'·'선수 코치' 는 소속과 증명이 없으면 신청되지 않습니다. */
       requestMentor: function (input) {
         input = input || {};
         var me = state.me || {};
         if (!me.key) return { ok: false, reason: 'no_login' };
         var reason = String(input.reason || input.intro || '').trim();
         if (!reason) return { ok: false, reason: 'empty' };
+        var mtype = D.mentorTypeOf(input.type);
+        var affiliation = D.cleanAffiliation(input.affiliation);
+        var proof = D.cleanProofText(input.proof);
+        var proofUrl = D.cleanProofUrl(input.proofUrl);
+        var proofPhoto = D.cleanProofPhoto(input.proofPhoto);
+        /* 주소·사진이 적혔는데 걸러졌으면 조용히 지우지 않고 알려 줍니다 */
+        if (String(input.proofUrl || '').trim() && !proofUrl) return { ok: false, reason: 'bad_url' };
+        if (String(input.proofPhoto || '').trim() && !proofPhoto) return { ok: false, reason: 'bad_photo' };
+        if (D.mentorNeedsProof(mtype)) {
+          if (!affiliation) return { ok: false, reason: 'need_affiliation' };
+          if (!(proof || proofUrl || proofPhoto)) return { ok: false, reason: 'need_proof' };
+        }
         if (!tryLock('mentor:' + me.key, 2000)) return { ok: false, reason: 'locked' };
         var pending = D.mentorApplications(state.idx, me.key, false)
           .filter(function (a) { return a.status === '심사중'; })[0];
@@ -1593,10 +1608,13 @@
         var payload = {
           status: '심사중',
           submitted: U.stamp(),
-          type: input.type || '선수 멘토',
+          type: mtype,
+          affiliation: affiliation,
           experience: input.experience || '',
           awards: input.awards || '',
-          proof: input.proof || '',
+          proof: proof,
+          proofUrl: proofUrl,
+          proofPhoto: proofPhoto,
           reason: reason,
           intro: reason,
           level: input.level || me.level || '',

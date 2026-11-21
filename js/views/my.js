@@ -504,7 +504,11 @@
       var mp = myMatchProfile(state);
       var s = state.data.stats || {};
       var hearts = state.data.hearts || { balance: 0, earned: 0, spent: 0, history: [] };
-      var myApps = (state.data.coachApps || []).filter(function (a) { return a.userKey === me.key; });
+      /* v1.45 — 코치·멘토 신청은 '멘토신청'·'코치신청' 두 종류라 도메인 함수로 모아 봅니다
+       * (예전에는 코치신청만 봐서 멘토로 승인된 사람에게 배지가 안 붙었습니다) */
+      var myApps = (state.idx && D.mentorApplications)
+        ? D.mentorApplications(state.idx, me.key, false)
+        : (state.data.coachApps || []).filter(function (a) { return a.userKey === me.key; });
       var coach = (myApps.filter(function (a) { return a.status === '승인'; })[0]);
       var pendingApp = myApps.filter(function (a) { return a.status === '심사중'; })[0];
       var myStyle = styleOf(state, me, mp);
@@ -532,7 +536,11 @@
         UI.avatar(myAvatar(me), 64) +
         '<span class="profile__avcam">' + UI.icon('camera') + '</span></button>' +
         '<div class="profile__id"><div class="profile__name">' + U.esc(me.nick || '회원') +
-        (coach ? '<span class="pill pill--ok">코치</span>' : '') + '</div>' +
+        (coach ? '<span class="pill pill--ok">' + U.esc(coach.mentorType || '코치') + '</span>' : '') + '</div>' +
+        /* v1.45 — 승인된 코치·멘토는 어디서 코치하는지와 증명됨을 이름 아래에 */
+        (coach && D.mentorAffiliationLine(coach)
+          ? '<p class="profile__coachline">' + UI.icon('shield') + U.esc(D.mentorAffiliationLine(coach)) + '</p>'
+          : '') +
         /* v1.38 — 내 친구 코드(#XXXX). 친구는 이 코드를 아는 사람끼리만 맺습니다. */
         (BM.views.friends ? BM.views.friends.codeChip(state) : '') +
         '<div class="profile__pills">' +

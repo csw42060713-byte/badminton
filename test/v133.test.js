@@ -305,11 +305,11 @@
   test('v1.33 버전: sw.js·app.js·index.html·twa-manifest가 모두 v1.33', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.44.0'", 'sw.js');
-    includes(app, "version: 'v1.44.0'", 'app.js');
-    includes(index, 'styles.css?v=20261121-56', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.44.0', 'twa appVersionName');
-    eq(twa.appVersion, '1.44.0', 'twa appVersion');
+    includes(sw, "var VERSION = 'bm-v1.45.0'", 'sw.js');
+    includes(app, "version: 'v1.45.0'", 'app.js');
+    includes(index, 'styles.css?v=20261121-57', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.45.0', 'twa appVersionName');
+    eq(twa.appVersion, '1.45.0', 'twa appVersion');
     eq(twa.appVersionCode, 38, 'twa appVersionCode');
   });
 
