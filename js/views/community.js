@@ -14,6 +14,14 @@
   var topicFilter = '전체';   /* 상단 말머리 칩 — 전체 / 자유 / 후기 / 게스트 모집 / 용품 / 일지 */
   var lastPostAt = 0;     /* 방금 올린 시각 — 올리기 연타로 '내용을 입력해 주세요'가 뜨지 않게 */
 
+  /* 작성칸 안내 문구 — '게스트 모집'은 모집 칸만 채워도 올라가서 그렇게 알려 줍니다
+   * (bm-v1.39.1: 본문을 비운 채 모집 칸만 채우고 올리다가 막히던 문제) */
+  function composerHint(topic) {
+    return D.normalizeTopic(topic) === D.MEET.topic
+      ? D.MEET.topic + ' 한마디 (비워 두어도 올라가요)'
+      : '오늘 경기 어땠어요? 한 줄 남겨보세요';
+  }
+
   /* 말머리 칩 한 줄 (말머리 고르기 · 목록 거르기에서 같은 모양을 씁니다)
    * 거르기의 '전체'는 고른 조건이 아니라 '조건 없음'이라 색을 달리해 구분합니다. */
   function topicChips(current, attr, all) {
@@ -47,6 +55,8 @@
   function postCard(p, state) {
     var open = !!openReplies[p.id];
     var me = (state.me && state.me.key) || '';
+    /* 본문을 비우고 모집 정보만 적은 글은 빈 문단을 그리지 않습니다 (bm-v1.39.1) */
+    var body = String(p.text == null ? '' : p.text);
     return '<article class="post" data-post="' + U.esc(p.id) + '">' +
       '<header class="post__head">' +
       '<button type="button" class="post__author" data-author="' + U.esc(p.userKey) + '" aria-label="' + U.esc(p.nick) + ' 프로필 보기">' +
@@ -54,7 +64,7 @@
       '<span class="post__who"><strong>' + U.esc(p.nick) + '</strong>' +
       '<time>' + U.timeAgo(p.createdAt) + '</time></span></button>' +
       '<span class="pill pill--ghost post__topic">' + U.esc(p.topic || '자유') + '</span></header>' +
-      '<p class="post__text">' + U.esc(p.text).replace(/\n/g, '<br>') + '</p>' +
+      (body.trim() ? '<p class="post__text">' + U.esc(body).replace(/\n/g, '<br>') + '</p>' : '') +
       (p.meet ? meetCard(p, state) : '') +
       '<footer class="post__foot">' +
       '<button class="react' + (p.likedByMe ? ' is-on' : '') + '" data-like="' + U.esc(p.id) + '" aria-pressed="' + (p.likedByMe ? 'true' : 'false') + '">' +
@@ -264,7 +274,7 @@
       return '' +
         '<section class="card card--composer">' +
         '<div class="row">' + UI.avatar({ theme: state.me && state.me.theme }, 34) +
-        '<textarea rows="1" data-composer placeholder="오늘 경기 어땠어요? 한 줄 남겨보세요" maxlength="300">' + U.esc(state.ui.composer || '') + '</textarea></div>' +
+        '<textarea rows="1" data-composer placeholder="' + U.esc(composerHint(picked)) + '" maxlength="300">' + U.esc(state.ui.composer || '') + '</textarea></div>' +
         '<div class="topicpick-line"><span class="topicpick__lab">분류</span>' +
         '<div class="chips topicpick" data-topics data-tag="' + U.esc(picked) + '">' + topicChips(picked, 'data-topic', false) + '</div></div>' +
         meetFields(picked, state) +
@@ -298,6 +308,9 @@
           /* 게스트 모집일 때만 모집 입력칸을 보여 줍니다 (입력칸 포커스는 건드리지 않음) */
           var vf = root.querySelector('[data-viteform]');
           if (vf) vf.hidden = tag !== D.MEET.topic;
+          /* 본문 없이 모집 칸만 채워도 올라간다고 입력칸 안내도 같이 바꿉니다 */
+          var hintTa = root.querySelector('[data-composer]');
+          if (hintTa) hintTa.placeholder = composerHint(tag);
           UI.haptic(6);
           return;
         }
@@ -479,6 +492,8 @@
       /* 모집 입력칸은 말머리를 따라갑니다 (값은 입력칸이 그대로 들고 있음) */
       var viteHost = root.querySelector('[data-viteform]');
       if (viteHost) viteHost.hidden = pickTag !== D.MEET.topic;
+      var hint = root.querySelector('[data-composer]');
+      if (hint) hint.placeholder = composerHint(pickTag);
       region.innerHTML = postsHtml(state);
       if (keep) {
         var again = region.querySelector('[data-reply-input="' + keep.pid + '"]');
