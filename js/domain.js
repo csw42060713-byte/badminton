@@ -1923,6 +1923,27 @@
     return mentorApplications(idx, meKey, true).filter(function (a) { return a.status === '심사중'; }).length;
   }
 
+  /* 한 사람의 승인된 멘토 신청 — 구분·소속·증명 (코치 카드·프로필 시트 배지)
+   *  · '멘토신청'·'코치신청' 둘 다 보고, 가장 최근 승인 한 건을 씁니다.
+   *  · 승인 + 증명일 때 line 이 '나래울 배드민턴장 · 활동 증명됨' 이 됩니다. */
+  function approvedMentorOf(idx, userKey) {
+    if (!idx || !userKey) return null;
+    var rows = (idx.byType['멘토신청'] || []).concat(idx.byType['코치신청'] || [])
+      .filter(function (r) {
+        return r.userKey === userKey && (r.status || (r.payload && r.payload.status)) === '승인';
+      });
+    var last = U.sortBy(rows, function (r) { return r.createdAt || ''; }).pop();
+    if (!last) return null;
+    var badge = mentorBadgeOf(last.payload || {});
+    return {
+      id: last.id,
+      type: badge.type,
+      affiliation: badge.affiliation,
+      proofed: badge.proofed,
+      line: mentorAffiliationLine({ status: '승인', affiliation: badge.affiliation, proofed: badge.proofed })
+    };
+  }
+
   /* 승인된 코치·멘토인지 (피드백을 보낼 수 있는 사람) */
   function isCoach(idx, meKey) {
     if (!meKey) return false;
@@ -2898,7 +2919,7 @@
     mentorApplications: mentorApplications, mentorPendingCount: mentorPendingCount,
     /* v1.45.0 — 멘토 구분 · 활동 소속 · 증명(링크/사진) */
     MENTOR: MENTOR, MENTOR_TYPES: MENTOR_TYPES, MENTOR_NEED_PROOF: MENTOR_NEED_PROOF,
-    mentorTypeOf: mentorTypeOf, mentorNeedsProof: mentorNeedsProof,
+    mentorTypeOf: mentorTypeOf, mentorNeedsProof: mentorNeedsProof, approvedMentorOf: approvedMentorOf,
     cleanAffiliation: cleanAffiliation, cleanProofText: cleanProofText,
     cleanProofUrl: cleanProofUrl, cleanProofPhoto: cleanProofPhoto,
     mentorProofOf: mentorProofOf, mentorBadgeOf: mentorBadgeOf, mentorAffiliationLine: mentorAffiliationLine,
