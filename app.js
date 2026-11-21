@@ -26,6 +26,13 @@
   var lastMountedTab = null;   /* 탭이 바뀔 때만 화면 전환 모션을 켭니다 */
   var gated = false;      /* 시작화면·온보딩 중에는 일반 화면 갱신을 멈춥니다 */
 
+  /* 스플래시 — 새 로고 타일을 너무 빨리 걷어내면 화면이 깜빡이므로,
+     ①준비가 끝나도 최소 SPLASH_MIN_MS는 보이게 두고
+     ②끝난 뒤에는 CSS 페이드(340ms)로 부드럽게 사라집니다. */
+  var SPLASH_MIN_MS = 420;
+  var splashShownAt = Date.now();
+  var splashOff = false;
+
   function el(id) { return document.getElementById(id); }
 
   /* 테마별 크롬 색 — CSS의 --bg 값과 같게 유지합니다 */
@@ -690,7 +697,14 @@
   /* ---------- 시작화면(게이트) ---------- */
   function hideSplash() {
     var sp = el('splash');
-    if (sp) sp.classList.add('is-off');
+    if (!sp || splashOff) return;      /* showGate → enterApp처럼 두 번 불러도 한 번만 */
+    splashOff = true;
+    var left = SPLASH_MIN_MS - (Date.now() - splashShownAt);
+    if (left > 0) {
+      setTimeout(function () { sp.classList.add('is-off'); }, left);
+    } else {
+      sp.classList.add('is-off');
+    }
   }
 
   function setNav(on) {
@@ -988,7 +1002,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.36.2' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.37.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

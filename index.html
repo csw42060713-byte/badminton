@@ -30,16 +30,34 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=20261121-38">
+<link rel="stylesheet" href="styles.css?v=20261121-39">
 <link rel="preconnect" href="https://accounts.google.com">
 <link rel="privacy-policy" href="privacy.html">
 </head>
 <body>
-<div id="splash" class="splash">
-  <div class="splash__mark">🏸</div>
-  <p class="splash__t">배드민턴</p>
-  <p class="splash__s">오늘의 코트를 준비하고 있어요</p>
+<!-- 앱 시작 로딩(스플래시) — 새 로고 타일 + 은은한 에메랄드 맥동.
+     첫 화면이 준비되면 시작 코드가 .is-off를 붙여 340ms 동안 부드럽게 걷어냅니다
+     (준비가 너무 빨리 끝나도 최소 420ms는 보이게 해 화면이 깜빡이지 않습니다). -->
+<div id="splash" class="splash" role="status" aria-label="앱을 준비하고 있어요">
+  <div class="splash__stack">
+    <div class="splash__glow" aria-hidden="true"></div>
+    <div class="splash__tile">
+      <img class="splash__logo" src="icons/icon-512.png" alt="" width="512" height="512" decoding="async" fetchpriority="high">
+    </div>
+    <p class="splash__brand">BADMINTON</p>
+    <p class="splash__t">배드민턴</p>
+    <p class="splash__s">오늘의 코트를 준비하고 있어요</p>
+    <span class="splash__bar" aria-hidden="true"><i></i></span>
+  </div>
 </div>
+<!-- 안전망: 스크립트가 어떤 이유로든 첫 화면을 못 그리면 6초 뒤 로딩 화면이 스스로 걷힙니다.
+     (앱이 정상으로 뜨면 시작 코드가 먼저 .is-off를 붙이므로 이 타이머는 아무 일도 하지 않습니다) -->
+<script>
+setTimeout(function () {
+  var sp = document.getElementById('splash');
+  if (sp) sp.classList.add('is-off');
+}, 6000);
+</script>
 
 <header class="hdr">
   <div class="hdr__left">
