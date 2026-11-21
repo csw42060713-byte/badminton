@@ -337,6 +337,7 @@
   }
 
   function weakDiff(it, r) {
+    if (!r.prev.sessions) return r.prevPeriodLabel + ' 일지가 없어 비교하지 못했어요';
     if (!it.prev) return r.prevPeriodLabel + '엔 없던 약점이에요';
     if (it.diff < 0) return r.prevPeriodLabel + '보다 ' + Math.abs(it.diff) + '회 줄었어요';
     if (it.diff > 0) return r.prevPeriodLabel + '보다 ' + it.diff + '회 늘었어요';
