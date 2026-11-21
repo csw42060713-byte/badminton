@@ -233,8 +233,8 @@
       var head = m.query ? '검색 결과 <b>' + list.length + '곳</b>' : where + ' <b>' + list.length + '곳</b>만';
       return noteText(head + ' 지도에 보여요' + (where && m.query ? ' · ' + where : ''));
     }
-    var seoul = G().seoulOnly(list).length;
-    return noteText('전국 배드민턴 <b>' + list.length + '곳</b>이 지도에 보여요 · 서울만 ' + seoul + '곳');
+    var seoul = list.filter(function (v) { return v.region === '서울'; }).length;
+    return noteText('전국 배드민턴 <b>' + list.length + '곳</b>이 지도에 보여요 · 서울 ' + seoul + '곳');
   }
 
   function segHost(m) { return '<div data-gymseg>' + segHtml(m) + '</div>'; }
@@ -322,7 +322,9 @@
     host.classList.add('is-live');
     map = L.map(host, {
       zoomControl: false, attributionControl: true, scrollWheelZoom: false,
-      minZoom: 5, maxZoom: 18, worldCopyJump: false   /* 전국을 한 화면에 담으려면 5까지 내려가야 합니다 */
+      minZoom: 5, maxZoom: 18, worldCopyJump: false,
+      /* 전국이 한 화면에 차도록 소수 줌을 허용합니다(정수 줌이면 5와 6 사이에서 한참 작아짐) */
+      zoomSnap: 0.25, zoomDelta: 0.5
     });
     map.attributionControl.setPrefix(false);
     L.control.zoom({ position: 'bottomright' }).addTo(map);

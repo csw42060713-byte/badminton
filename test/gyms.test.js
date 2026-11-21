@@ -373,7 +373,7 @@
     includes(readRoot('js/views/gyms.js'), 'OpenStreetMap', '지도 저작자 표시');
     includes(html, '운영', '운영 시간 줄');
     includes(html, '전국 배드민턴 <b>', '전국 지도 안내');
-    includes(html, '서울만 ' + G().seoulOnly(G().all()).length + '곳', '서울만 몇 곳인지 함께 안내');
+    includes(html, '서울 ' + G().filter(G().all(), { region: 'seoul' }).length + '곳', '서울이 몇 곳인지 함께 안내');
   });
 
   test('화면: 별을 누른 뒤에는 상단 칩·지도 핀·카드가 즐겨찾기를 따라간다', function () {
