@@ -41,22 +41,22 @@ with sync_playwright() as p:
     sw = ''
     for i in range(45):
         sw = page0.request.get(BASE + 'sw.js?cachebust=' + str(i)).text()
-        if 'bm-v1.37.0' in sw:
+        if 'bm-v1.37.1' in sw:
             break
         time.sleep(6)
-    check('라이브 sw.js = bm-v1.37.0', 'bm-v1.37.0' in sw, sw[-60:])
+    check('라이브 sw.js = bm-v1.37.1', 'bm-v1.37.1' in sw, sw[-60:])
     app = page0.request.get(BASE + 'app.js?x=1').text()
     css = page0.request.get(BASE + 'styles.css?x=1').text()
     index = page0.request.get(BASE + 'index.html?x=1').text()
     start = page0.request.get(BASE + 'js/views/start.js?x=1').text()
     twa = page0.request.get(BASE + 'twa-manifest.json?x=1').text()
-    check('라이브 app.js = v1.37.0 · SPLASH_MIN_MS 420', "version: 'v1.37.0'" in app and 'SPLASH_MIN_MS = 420' in app)
+    check('라이브 app.js = v1.37.1 · SPLASH_MIN_MS 420', "version: 'v1.37.1'" in app and 'SPLASH_MIN_MS = 420' in app)
     check('라이브 styles.css = 스플래시 타일·맥동·페이드',
           all(k in css for k in ('.splash__tile', 'splashPulse', 'border-radius: 24px', 'splash.is-off')))
     check('라이브 index.html = 새 스플래시 + 캐시 키 39',
           'class="splash__tile"' in index and 'styles.css?v=20261121-39' in index)
     check('라이브 start.js = 로고 타일', 'start__mark"><img src="icons/icon-512.png"' in start and 'start__mini' in start)
-    check('라이브 twa-manifest = 1.37.0', '1.37.0' in twa)
+    check('라이브 twa-manifest = 1.37.1', '1.37.1' in twa)
     ctx0.close()
 
     # ── 스플래시 촬영 (app.js 응답을 늦춰 실제 렌더 그대로)
@@ -82,7 +82,7 @@ with sync_playwright() as p:
         print('   splash', theme, info)
         check('스플래시 타일 92px·24px (' + theme + ')', info['tile'] == 92 and info['radius'] == '24px', info)
         check('스플래시 로고 로드 (' + theme + ')', bool(info['logo']), info['logo'])
-        name = '배드민턴_스플래시_bm-v1.37.0_' + ('다크' if theme == 'th_night' else '라이트') + '.png'
+        name = '배드민턴_스플래시_bm-v1.37.1_' + ('다크' if theme == 'th_night' else '라이트') + '.png'
         page.screenshot(path=OUT + '/' + name)
         print('     saved', OUT + '/' + name)
         ctx.close()
@@ -129,7 +129,7 @@ with sync_playwright() as p:
         check('시작화면 새 로고 (' + theme + ')', gate['mark'] == 'icons/icon-512.png' and gate['loaded'], gate)
         check('시작화면 이모지 없음 (' + theme + ')', gate['emoji'] is False, gate['emoji'])
         check('로그인 세 갈래 유지 (' + theme + ')', gate['buttons'] == 3, gate['buttons'])
-        name = '배드민턴_시작화면_bm-v1.37.0_' + ('다크' if theme == 'th_night' else '라이트') + '.png'
+        name = '배드민턴_시작화면_bm-v1.37.1_' + ('다크' if theme == 'th_night' else '라이트') + '.png'
         page.screenshot(path=OUT + '/' + name)
         print('     saved', OUT + '/' + name)
 
@@ -154,7 +154,7 @@ with sync_playwright() as p:
         if page.query_selector('#sheet .sheet__head [data-close]'):
             page.click('#sheet .sheet__head [data-close]')
             page.wait_for_timeout(400)
-    check('앱 버전 노출', page.evaluate('window.BM && BM.app && BM.app.version') == 'v1.37.0',
+    check('앱 버전 노출', page.evaluate('window.BM && BM.app && BM.app.version') == 'v1.37.1',
           page.evaluate('window.BM && BM.app && BM.app.version'))
     tabs = []
     for tab in ('log', 'matching', 'community', 'coach', 'my'):
@@ -162,8 +162,8 @@ with sync_playwright() as p:
         page.wait_for_timeout(900)
         tabs.append(page.evaluate("() => document.querySelector('[data-tab=\"%s\"]').getAttribute('aria-current') === 'page'" % tab))
     check('5개 탭 이동 정상', all(tabs), tabs)
-    page.screenshot(path=OUT + '/배드민턴_일지탭_bm-v1.37.0.png')
-    print('     saved', OUT + '/배드민턴_일지탭_bm-v1.37.0.png')
+    page.screenshot(path=OUT + '/배드민턴_일지탭_bm-v1.37.1.png')
+    print('     saved', OUT + '/배드민턴_일지탭_bm-v1.37.1.png')
     ctx.close()
 
     print('errors', errs)

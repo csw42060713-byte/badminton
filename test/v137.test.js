@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v137.test.js — bm-v1.37.0
+ * test/v137.test.js — bm-v1.37.1
  *   [앱 시작 로딩(스플래시) · 시작화면 브랜드 영역 디자인 업그레이드]
  *   1) 스플래시(index.html)
  *      · 이모지(🏸) 대신 새 로고(icons/icon-512.png)를 라운드 타일로 감쌈
@@ -240,12 +240,12 @@
    * ========================================================= */
   test('v1.37 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.37.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.37.0'", 'app.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.37.1'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.37.1'", 'app.js');
     includes(readRoot('index.html'), 'styles.css?v=20261121-39', 'index.html 스타일 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.37.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.37.0', 'TWA appVersion');
+    eq(twa.appVersionName, '1.37.1', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.37.1', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드(웹만 바뀌면 그대로)');
   });
 
@@ -260,10 +260,10 @@
   test('v1.37 문서: README·아이디어 노트에 이번 사이클이 남는다', function () {
     if (!hasNode) return;
     var doc = readRoot('ideas.md');
-    includes(doc, 'v1.37.0', '이번 사이클');
+    includes(doc, 'v1.37.1', '이번 사이클');
     includes(doc, '반영 완료', '반영 표시');
     var readme = readRoot('README.md');
-    includes(readme, 'v1.37.0', 'README 변경 이력');
+    includes(readme, 'v1.37.1', 'README 변경 이력');
   });
 
   /* =========================================================
