@@ -1,5 +1,8 @@
 /* ============================================================
- * views/profile.js — 사람 프로필 시트 (친구 추가 · 채팅)
+ * views/profile.js — 사람 프로필 시트 (친구 상태 · 채팅)
+ *
+ *  v1.38: 닉네임만 보고 아무나 친추하던 '친구 추가' 버튼은 없앴습니다.
+ *  친구는 서로의 친구 코드(#XXXX)를 아는 사람끼리만(채팅 목록 + → 친구 추가).
  *
  * 커뮤니티 글쓴이, 채팅 상대, 매칭 카드 어디서 눌러도 같은 시트가 열리고
  * 친구 상태(없음/보냄/받음/친구)에 맞는 버튼만 보입니다.
@@ -21,7 +24,9 @@
     return '';
   }
 
-  /* 친구 상태에 맞는 버튼 묶음 */
+  /* 친구 상태에 맞는 버튼 묶음
+   *  v1.38: 닉네임·프로필만 보고 아무나 친구 요청을 보내던 '친구 추가' 버튼을 없앴습니다.
+   *  친구는 서로의 친구 코드(#XXXX)를 아는 사람끼리만 맺습니다(채팅 목록 + → 친구 추가). */
   function buttons(state, key, opts) {
     opts = opts || {};
     var me = state.me || {};
@@ -41,8 +46,8 @@
     } else if (fs.state === 'sent') {
       out += '<button class="btn btn--ghost btn--sm" disabled>' + UI.icon('clock') + '요청 보냄</button>';
     } else {
-      out += '<button class="btn btn--ghost btn--sm" data-friend-add="' + U.esc(key) + '">' +
-        UI.icon('plus') + '친구 추가</button>';
+      out += '<span class="pp__friendhint">' + UI.icon('shield') +
+        '친구는 서로의 친구 코드(#4자리)를 알아야 추가할 수 있어요</span>';
     }
 
     if (canChat && roomId) {
@@ -61,14 +66,9 @@
     wrap.addEventListener('click', function (ev) {
       var add = ev.target.closest('[data-friend-add]');
       if (add) {
+        /* v1.38: 예전 화면(캐시)이 남아 있어도 프로필에서 바로 친구가 되지 않습니다 */
         ev.preventDefault();
-        var r = ctx.actions.sendFriendRequest(add.getAttribute('data-friend-add'));
-        if (r.ok) { UI.toast('친구 요청을 보냈어요'); UI.haptic(8); }
-        else if (r.reason === 'sent') UI.toast('이미 요청을 보냈어요');
-        else if (r.reason === 'received') UI.toast('상대가 먼저 요청했어요. 수락해 주세요.');
-        else if (r.reason === 'already') UI.toast('이미 친구예요');
-        else if (r.reason === 'locked') UI.toast('잠시만요');
-        else UI.toast('요청을 보내지 못했어요', 'error');
+        UI.toast('친구는 친구 코드(#4자리)로 추가할 수 있어요. 채팅 목록의 + 를 눌러 주세요.');
         return;
       }
       var accept = ev.target.closest('[data-friend-accept]');

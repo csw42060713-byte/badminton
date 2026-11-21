@@ -316,7 +316,7 @@
           paintTopicFilter(root, ctx.store.state);
           return;
         }
-        /* 글쓴이 아바타·닉네임을 누르면 프로필(친구 추가·채팅) */
+        /* 글쓴이 아바타·닉네임을 누르면 프로필(친구 상태·채팅 — 친구 추가는 친구 코드로만, v1.38) */
         var author = ev.target.closest('[data-author]');
         if (author) {
           ev.preventDefault();

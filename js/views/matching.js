@@ -586,7 +586,8 @@
       '</dl>' +
 
       (p.bio ? '<p class="pp__bio">' + U.esc(p.bio) + '</p>' : '') +
-      '<div class="pp__social">' + (BM.views.profile ? BM.views.profile.buttons(state, p.userKey, { noHint: true }) : '') + '</div>' +
+      /* v1.38: 1:1 매칭 화면에서는 편지지(매칭 요청)만 보냅니다.
+       *  친구 추가는 친구 코드를 아는 사람끼리만(채팅 목록 + → 친구 추가) 가능합니다. */
       '<div class="pp__foot">' + footer + '</div></div>';
   }
 

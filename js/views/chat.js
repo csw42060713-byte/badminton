@@ -125,9 +125,10 @@
       '<button class="iconbtn dmhead__bell' + (notifyOn ? ' is-on' : ' is-off') + '" data-dm-notify' +
       ' aria-pressed="' + (notifyOn ? 'true' : 'false') + '" aria-label="새 메시지 알림 ' + (notifyOn ? '끄기' : '켜기') + '"' +
       ' title="새 메시지 알림 ' + (notifyOn ? '켜짐' : '꺼짐') + '">' + UI.icon('bell') + '</button>' +
-      '<button class="iconbtn" data-dm-find aria-label="매칭에서 친구 찾기">' + UI.icon('plus') + '</button>' +
+      '<button class="iconbtn" data-dm-add aria-label="친구 코드로 친구 추가">' + UI.icon('plus') + '</button>' +
       '</header>' +
       '<div class="dm__scroll" data-dm-scroll>' +
+      (BM.views.friends ? BM.views.friends.codeBar(state) : '') +
       matchLetters(state) +
       (reqs.length ? '<section class="dmsec">' +
         '<h3 class="dmsec__t">받은 친구 요청 <span class="badge">' + reqs.length + '</span></h3>' +
@@ -138,8 +139,8 @@
       (threads.length
         ? '<ul class="dmrooms">' + threads.map(function (t) { return threadRow(t, state); }).join('') + '</ul>'
         : UI.emptyState('community', '아직 대화가 없어요',
-          '친구를 추가하거나 1:1 매칭을 수락하면 여기에 대화가 생겨요.',
-          '<button class="btn btn--ghost btn--sm mt8" data-dm-find>매칭에서 친구 찾기</button>')) +
+          '친구 코드를 아는 사람과 친구가 되면 여기에 대화가 생겨요.',
+          '<button class="btn btn--ghost btn--sm mt8" data-dm-add>친구 코드로 추가</button>')) +
       '</section></div>';
   }
 
@@ -324,10 +325,16 @@
         ctx.actions.closeChat();
         return;
       }
-      if (ev.target.closest('[data-dm-find]')) {
+      if (ev.target.closest('[data-dm-add]')) {
         ev.preventDefault();
-        ctx.actions.closeChats();
-        ctx.actions.setTab('matching');
+        /* v1.38: 친구는 서로의 친구 코드(#XXXX)를 아는 사람끼리만 */
+        if (BM.views.friends) BM.views.friends.open(ctx);
+        return;
+      }
+      var codeCopy = ev.target.closest('[data-code-copy]');
+      if (codeCopy) {
+        ev.preventDefault();
+        if (BM.views.friends) BM.views.friends.copyAndTell(codeCopy.getAttribute('data-code-copy'));
         return;
       }
       var prof = ev.target.closest('[data-dm-profile]');

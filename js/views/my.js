@@ -479,6 +479,8 @@
         '<span class="profile__avcam">' + UI.icon('camera') + '</span></button>' +
         '<div class="profile__id"><div class="profile__name">' + U.esc(me.nick || '회원') +
         (coach ? '<span class="pill pill--ok">코치</span>' : '') + '</div>' +
+        /* v1.38 — 내 친구 코드(#XXXX). 친구는 이 코드를 아는 사람끼리만 맺습니다. */
+        (BM.views.friends ? BM.views.friends.codeChip(state) : '') +
         '<div class="profile__pills">' +
         (myLevel ? '<span class="pill pill--grade">' + U.esc(myLevel) + '</span>' : '') +
         genderPillOf(mp.gender || me.gender) + stylePillOf(myStyle) + '</div>' +
@@ -522,6 +524,13 @@
         });
       });
       root.addEventListener('click', function (ev) {
+        /* v1.38: 내 친구 코드 복사 (프로필 아래 칩) */
+        var codeCopy = ev.target.closest('[data-code-copy]');
+        if (codeCopy) {
+          ev.preventDefault();
+          if (BM.views.friends) BM.views.friends.copyAndTell(codeCopy.getAttribute('data-code-copy'));
+          return;
+        }
         var sw = ev.target.closest('.theme[data-theme]');   /* html[data-theme]까지 올라가지 않게 */
         if (sw) {
           ev.preventDefault();

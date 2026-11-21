@@ -1142,6 +1142,26 @@
         return { ok: true };
       },
 
+      /* 친구 코드(#XXXX)로 친구 요청 — v1.38
+       *  · 화면(친구 추가 시트)은 이 함수만 부릅니다. 닉네임 검색으로는 요청할 수 없습니다.
+       *  · 코드가 없거나·잘못됐거나·내 코드면 보내지 않습니다.
+       *  · 같은 코드를 쓰는 사람이 둘 이상이면(희박) 어느 쪽인지 고를 수 있게 목록을 돌려줍니다. */
+      sendFriendRequestByCode: function (input) {
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        var found = D.friendCodeFind(state.idx, input);
+        if (!found.code) return { ok: false, reason: 'bad_code' };
+        var others = (found.matches || []).filter(function (u) { return u.key !== me; });
+        if (!others.length) {
+          return { ok: false, reason: found.matches.length ? 'self' : 'notfound', code: found.code };
+        }
+        if (others.length > 1) return { ok: false, reason: 'ambiguous', code: found.code, matches: others };
+        var res = actions.sendFriendRequest(others[0].key);
+        res.code = found.code;
+        res.target = others[0];
+        return res;
+      },
+
       respondFriendRequest: function (requestId, accept) {
         var me = state.me && state.me.key;
         if (!me) return { ok: false, reason: 'no_login' };
