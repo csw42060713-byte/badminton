@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v133.test.js — bm-v1.36.2
+ * test/v133.test.js — bm-v1.37.0
  *   고도화 5차 사이클: 여백을 가벼운 SVG 그림으로 채우기.
  *
  *   1) 빈 화면(Empty State) 배드민턴 선화 일러스트
@@ -305,11 +305,11 @@
   test('v1.33 버전: sw.js·app.js·index.html·twa-manifest가 모두 v1.33', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.36.2'", 'sw.js');
-    includes(app, "version: 'v1.36.2'", 'app.js');
-    includes(index, 'styles.css?v=20261121-38', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.36.2', 'twa appVersionName');
-    eq(twa.appVersion, '1.36.2', 'twa appVersion');
+    includes(sw, "var VERSION = 'bm-v1.37.0'", 'sw.js');
+    includes(app, "version: 'v1.37.0'", 'app.js');
+    includes(index, 'styles.css?v=20261121-39', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.37.0', 'twa appVersionName');
+    eq(twa.appVersion, '1.37.0', 'twa appVersion');
     eq(twa.appVersionCode, 38, 'twa appVersionCode');
   });
 

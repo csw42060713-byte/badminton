@@ -183,29 +183,95 @@ a { color: var(--accent-2); text-decoration: none; }
 }
 
 /* ---------- 3. 레이아웃 ---------- */
+/* 앱 시작 로딩(스플래시) — 새 로고 타일이 어두운 사각 아이콘이라
+   라운드 타일(24px) + 에메랄드 테두리·그림자로 감싸고, 뒤에 은은한 빛이 맥동합니다.
+   다크·라이트·사쿠라 어디서든 로고가 떠 보이도록 타일 자체는 늘 어둡게 둡니다. */
 .splash {
+  --em: #43dfa0;                       /* 로고의 에메랄드 — 테마와 무관하게 같은 색 */
   position: fixed;
   inset: 0;
   z-index: 90;
   display: grid;
-  place-content: center;
-  gap: 8px;
-  text-align: center;
+  place-items: center;
   background: var(--bg);
-  transition: opacity 240ms ease, visibility 240ms;
+  background-image: radial-gradient(64% 34% at 50% 38%, rgba(67, 223, 160, 0.07), transparent 70%);
+  opacity: 1;
+  transition: opacity 340ms cubic-bezier(0.22, 0.61, 0.36, 1), visibility 0s linear 340ms;
 }
+[data-theme="th_def"] .splash,
+[data-theme="th_sakura"] .splash { --em: #0f8f63; background-image: radial-gradient(64% 34% at 50% 38%, rgba(15, 143, 99, 0.05), transparent 70%); }
 .splash.is-off { opacity: 0; visibility: hidden; pointer-events: none; }
-.splash__mark {
-  width: 76px; height: 76px; margin: 0 auto 6px;
-  display: grid; place-items: center;
-  border-radius: 24px;
-  font-size: 36px;
-  background: linear-gradient(150deg, var(--accent-soft), var(--card));
-  border: 1px solid var(--line-2);
-  animation: pop 900ms ease-in-out infinite alternate;
+.splash__stack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 28px;
+  text-align: center;
+  animation: splashIn 520ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
-.splash__t { font-weight: 900; font-size: 16px; letter-spacing: -0.3px; }
-.splash__s { color: var(--muted); font-size: 12.5px; }
+.splash__glow {
+  position: absolute;
+  top: -58px;
+  left: 50%;
+  width: 268px;
+  height: 268px;
+  margin-left: -134px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(67, 223, 160, 0.24), transparent 66%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--em) 24%, transparent), transparent 66%);
+  pointer-events: none;
+  animation: splashGlow 3200ms ease-in-out infinite alternate;
+}
+.splash__tile {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: #0a0d0b;
+  border: 1px solid rgba(67, 223, 160, 0.32);
+  border-color: color-mix(in srgb, var(--em) 38%, transparent);
+  animation: splashPulse 2600ms ease-in-out infinite;
+}
+.splash__logo { width: 100%; height: 100%; object-fit: cover; transform: scale(1.06); }
+.splash__brand {
+  margin-top: 20px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 3.4px;
+  text-indent: 3.4px;                  /* 자간 때문에 오른쪽으로 밀린 중심 보정 */
+  color: var(--em);
+  opacity: 0.92;
+}
+.splash__t { margin-top: 6px; font-size: 21px; font-weight: 900; letter-spacing: -0.7px; }
+.splash__s { margin-top: 5px; font-size: 12.5px; color: var(--muted); }
+.splash__bar {
+  position: relative;
+  width: 84px;
+  height: 3px;
+  margin-top: 24px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(67, 223, 160, 0.16);
+}
+[data-theme="th_def"] .splash__bar,
+[data-theme="th_sakura"] .splash__bar { background: rgba(15, 143, 99, 0.14); }
+.splash__bar i {
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 45%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(67, 223, 160, 0), var(--em), rgba(67, 223, 160, 0));
+  animation: splashSlide 1150ms ease-in-out infinite;
+}
+@keyframes splashIn { from { opacity: 0; transform: translateY(12px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes splashPulse {
+  0%, 100% { box-shadow: 0 12px 26px -14px rgba(31, 190, 130, 0.35), 0 6px 16px rgba(0, 0, 0, 0.22); }
+  50% { box-shadow: 0 18px 40px -12px rgba(31, 190, 130, 0.62), 0 9px 22px rgba(0, 0, 0, 0.26); }
+}
+@keyframes splashGlow { from { opacity: 0.45; transform: scale(0.9); } to { opacity: 1; transform: scale(1.08); } }
+@keyframes splashSlide { 0% { transform: translateX(-115%); } 100% { transform: translateX(235%); } }
 
 .hdr {
   position: fixed;
@@ -1876,24 +1942,27 @@ body.is-onboarding .main { padding: calc(var(--safe-t) + 10px) 18px calc(var(--s
 }
 .start__glow {
   position: absolute;
-  top: -80px; left: 50%;
-  width: 360px; height: 360px;
+  top: -60px; left: 50%;
+  width: 340px; height: 340px;
   transform: translateX(-50%);
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 68%);
+  /* 로고의 에메랄드와 같은 빛 — 라임 형광이 아니라 코트 조명처럼 */
+  background: radial-gradient(circle, rgba(67, 223, 160, 0.16), transparent 68%);
   pointer-events: none;
 }
+[data-theme="th_def"] .start__glow,
+[data-theme="th_sakura"] .start__glow { background: radial-gradient(circle, rgba(15, 143, 99, 0.09), transparent 68%); }
 .start__brand { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+/* 시작화면 로고 — 스플래시와 같은 라운드 타일(새 로고). 이모지 대신 실제 앱 아이콘 */
 .start__mark {
-  width: 88px; height: 88px;
-  display: grid; place-items: center;
-  border-radius: 28px;
-  font-size: 42px;
-  background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 20%, var(--card)), var(--card));
-  border: 1px solid var(--line-2);
-  box-shadow: var(--shadow);
+  width: 92px; height: 92px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: #0a0d0b;
+  border: 1px solid rgba(67, 223, 160, 0.3);
+  box-shadow: 0 16px 34px -16px rgba(31, 190, 130, 0.42), 0 8px 20px rgba(0, 0, 0, 0.2);
 }
-.start__mark span { animation: pop 1600ms ease-in-out infinite alternate; }
+.start__mark img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.06); }
 .start__kicker { margin-top: 4px; font-size: 9.5px; font-weight: 800; letter-spacing: 3px; color: var(--accent); }
 .start__title { font-size: 31px; font-weight: 900; letter-spacing: -1.3px; }
 .start__sub { max-width: 320px; font-size: 13.5px; line-height: 1.65; color: var(--text-2); }
@@ -3702,7 +3771,16 @@ input[type="date"] {
 
 /* ---------- 17.14 시작화면 · 온보딩 ---------- */
 .start__note { color: var(--muted); }
-.splash__mark { border-radius: 22px; background: var(--card); border-color: var(--line); box-shadow: var(--shadow-soft); }
+/* 이메일 화면 위 작은 브랜드 줄 — 구글 마크 대신 앱 로고 미니 타일 */
+.start__mini {
+  width: 22px; height: 22px;
+  flex: none;
+  border-radius: 7px;
+  object-fit: cover;
+  background: #0a0d0b;
+  border: 1px solid rgba(67, 223, 160, 0.28);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
 
 /* ---------- 17.15 스크롤 · 여백 ---------- */
 .main { padding-left: 16px; padding-right: 16px; }
