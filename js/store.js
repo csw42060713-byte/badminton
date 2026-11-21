@@ -112,6 +112,7 @@
       balance: 0, earned: 0, spent: 0, base: 0, history: [],
       adReward: 0, adLimit: 0, adUsedToday: 0, adRemaining: 0, adCooldownSec: 0, nextAdInSec: 0,
       canWatchAd: false, checkedInToday: false, canCheckIn: false, checkinReward: 0,
+      streakBonus: { amount: D.HEART_RULES.STREAK_7_BONUS, days: 7, left: 7 },
       matchCost: D.HEART_RULES.MATCH_COST, giftCost: D.HEART_RULES.GIFT_COST,
       todayEarned: 0, todaySpent: 0
     },
@@ -1175,25 +1176,43 @@
         return { ok: true };
       },
 
-      /* 출석 체크: 하루 1회 +1 */
+      /* 출석 체크: 하루 1회 +1 · 7일 연속을 채운 날은 보너스 +2 (bm-v1.36.0)
+       *  · 보너스는 출석 행에 얹지 않고 원장(js/domain.js heartLedger)이 날짜 연속에서
+       *    매번 다시 셉니다 — 앱을 다시 열거나 다른 기기에서도 같은 잔액이 되게(멱등).
+       *    행에는 보너스를 받은 날이라는 메모만 남깁니다. */
       checkIn: function () {
         if (!tryLock('checkin', 1500)) return { ok: false, reason: 'locked' };
         var status = state.data.hearts || {};
         if (status.checkedInToday) return { ok: false, reason: 'done' };
+        var me = state.me && state.me.key;
+        var streak = (me ? D.checkinStreak(state.idx, me) : 0) + 1;
+        var bonus = (streak % 7 === 0) ? Math.max(0, D.HEART_RULES.STREAK_7_BONUS || 0) : 0;
         var entity = meEntity({
           type: '출석하트', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
-          likes: D.HEART_RULES.CHECKIN
+          likes: D.HEART_RULES.CHECKIN,
+          text: bonus ? '7일 연속 출석 보너스 +' + bonus : ''
         });
         pushRow(entity);
         commit();
-        return { ok: true, gained: D.HEART_RULES.CHECKIN, balance: state.data.hearts.balance };
+        return {
+          ok: true, gained: D.HEART_RULES.CHECKIN + bonus, base: D.HEART_RULES.CHECKIN,
+          bonus: bonus, streak: streak, balance: state.data.hearts.balance
+        };
       },
 
-      /* 보상형 광고 시청: 하루 5회, 30초 간격, 같은 요청은 한 번만
-       * 실제 광고는 앱(iOS/Android WebView)에서 재생하고, 다 본 뒤에 이 함수를 부르면 됩니다.
+      /* 보상형 광고 시청: 하루 5회, 30초 간격, 같은 시청 건은 한 번만 (bm-v1.36.0)
+       *  · opts.txId 가 오면 그 ID를 '광고하트' 행 메모에 'tx:…' 로 남기고,
+       *    같은 ID가 이미 있으면 duplicate 로 막습니다(광고 SDK 콜백이 두 번 와도 한 번만 적립).
+       *  · 실제 광고는 앱(iOS/Android WebView)에서 재생하고, 다 본 뒤에 이 함수를 부릅니다.
        * 광고 SDK 콜백 → BM.app.ctx.store.actions.watchAd() */
       watchAd: function (opts) {
         opts = opts || {};
+        var me = state.me && state.me.key;
+        var txId = D.cleanTxId ? D.cleanTxId(opts.txId) : '';
+        /* 중복은 시각과 상관없는 조건이라 잠금보다 먼저 봅니다 */
+        if (txId && me && D.adTxSeen(state.idx, me, txId)) {
+          return { ok: false, reason: 'duplicate', txId: txId, balance: (state.data.hearts || {}).balance || 0 };
+        }
         if (!tryLock('ad', 1200)) return { ok: false, reason: 'locked' };
         var status = state.data.hearts || {};
         /* 실제 앱 연동 시: 광고 SDK의 '시청 완료(verified)' 신호가 없으면 적립하지 않도록
@@ -1206,13 +1225,14 @@
         }
         var entity = meEntity({
           type: '광고하트', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
-          likes: D.HEART_RULES.AD_REWARD, target: opts.adUnit || ''
+          likes: D.HEART_RULES.AD_REWARD, target: opts.adUnit || '',
+          text: txId ? D.adTxNote(txId) : ''
         });
         pushRow(entity);
         commit();
         var after = state.data.hearts || {};
         return {
-          ok: true, gained: D.HEART_RULES.AD_REWARD,
+          ok: true, gained: D.HEART_RULES.AD_REWARD, txId: txId,
           remaining: after.adRemaining, balance: after.balance,
           nextAdInSec: D.HEART_RULES.AD_COOLDOWN_SEC
         };
@@ -1472,6 +1492,22 @@
         state.ui.tab = 'community';
         emit();
         return { ok: true, text: body, topic: state.ui.composerTopic };
+      },
+
+      /* 주간 약점 챌린지 자랑 초안 (bm-v1.36.0)
+       *  · 이번 주(또는 오늘) 함께 친 파트너의 전적을 문구에 자연스럽게 붙입니다.
+       *    예) '이번 주 헤어핀 3회 연습 달성! (조환비와 2경기 2승) 🎉'
+       *  · 3회를 아직 채우지 않았으면 not_done (화면은 그대로 '채우면 자랑할 수 있어요').
+       *  · 글은 여기서 채우기만 하고 올리기는 사람이 누릅니다. */
+      challengeShareDraft: function (opts) {
+        opts = opts || {};
+        var records = (state.data && state.data.records) || [];
+        var now = opts.now || (state.ui && state.ui.challengeNow) || null;
+        var ch = D.weekChallenge(records, now ? { now: now } : {});
+        if (!ch || !ch.active || !ch.done) return { ok: false, reason: 'not_done', challenge: ch };
+        var partner = D.challengePartner(records, ch, now ? { now: now } : {});
+        var text = D.challengeShareText(ch, { records: records, now: now || '' });
+        return { ok: true, text: text, partner: partner, challenge: ch };
       },
       /* 번개 모집 입력칸 — 글자마다 화면을 다시 그리면 포커스가 끊기므로 저장만 합니다 */
       setComposerMeet: function (field, value) {

@@ -4,6 +4,8 @@
  * 원칙
  *  1) 실제 보상은 광고를 끝까지 본 신호(verified)로만 지급합니다.
  *     (지급 자체는 store.actions.watchAd 가 한도·간격·중복을 다시 검사)
+ *     한 번 재생할 때마다 거래 ID(txId)를 붙여, 같은 시청 건이 두 번 적립되지 않게 합니다.
+ *     (bm-v1.36.0 — 광고 SDK 콜백이 중복으로 와도 한 번만 들어갑니다)
  *  2) 앱(안드로이드 WebView / iOS)이 광고 SDK를 들고 있으면 그쪽에 맡깁니다.
  *     네이티브는 다 본 뒤 window.BM.app.onRewardAdResult(true, 광고ID)로 알려 줍니다.
  *  3) 웹·PWA에서는 같은 흐름을 3초짜리 미리보기 시트로 재현합니다.
@@ -18,6 +20,9 @@
  *  - Android: WebView에 window.AndroidBridge.showRewardedAd(adUnit) 를 추가하고
  *    광고 콜백에서 evaluateJavascript("BM.app.onRewardAdResult(true,'heart_reward')").
  *  - 광고 단위 ID는 BM.ads.setUnits({ heart_reward: 'ca-app-pub-…/…' }) 로 넣습니다.
+ *  - 콜백에 광고 SDK 의 거래 ID 가 있으면 세 번째 인자로 넘기세요:
+ *    BM.app.onRewardAdResult(true, 'heart_reward', txId)
+ *    (없으면 시각 기반 ID를 만들지만, SDK 값을 주는 쪽이 중복 적립을 더 확실히 막습니다.)
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -70,6 +75,22 @@
     return String(v == null ? '' : v);
   }
 
+  /* ---------- 광고 거래 ID (bm-v1.36.0) ----------
+   *  한 번의 광고 시청 = ID 하나. 광고 SDK 콜백이 두 번 오거나 사용자가 연달아 눌러도
+   *  store.actions.watchAd 가 같은 ID를 두 번째로 받으면 duplicate 로 막습니다.
+   *  앱이 ID를 안 주면 시각+난수로 만듭니다(같은 밀리초에 두 번 만들어도 겹치지 않게). */
+  var txSeq = 0;
+  function newTxId() {
+    txSeq = (txSeq + 1) % 100000;
+    return 'tx-' + Date.now().toString(36) + '-' + txSeq.toString(36) + '-' +
+      Math.random().toString(36).slice(2, 6);
+  }
+
+  function cleanTxId(v) {
+    if (BM.domain && typeof BM.domain.cleanTxId === 'function') return BM.domain.cleanTxId(v);
+    return String(v == null ? '' : v).trim();
+  }
+
   /* ---------- 실시간 하트 상태 (시트·MY 카드 공용) ----------
    * domain.heartStatus 는 화면을 그린 순간의 값이라, 쿨타임이 지나도 숫자가 멈춰 있습니다.
    * getStatus 는 nextAdAt(절대 시각)을 now와 비교해 매초 다시 계산합니다. */
@@ -108,8 +129,24 @@
 
       /* 오늘 아직 받을 수 있는 무료 하트·받을 수 있는 횟수 (출석 + 광고) */
       freeHeartsLeft: (canCheckIn ? checkinReward : 0) + remaining * adReward,
-      freeChancesLeft: (canCheckIn ? 1 : 0) + remaining
+      freeChancesLeft: (canCheckIn ? 1 : 0) + remaining,
+
+      /* 연속 출석 보너스 안내 (bm-v1.36.0) — MY 하트 카드와 같은 문구를 씁니다 */
+      streak: Math.max(0, numVal(h.checkinStreak, 0)),
+      streakBonus: h.streakBonus || null
     };
+  }
+
+  /* 7일 연속 보너스 안내 한 줄 — MY 하트 카드·충전 시트 공용 */
+  function streakText(s) {
+    var b = (s && s.streakBonus) || null;
+    var amount = b ? numVal(b.amount, 0) : 0;
+    if (!(amount > 0)) return '';
+    var days = Math.max(1, numVal(b.days, 7));
+    var left = Math.max(1, numVal(b.left, days));
+    var run = Math.max(0, numVal(s.streak, 0));
+    var head = run > 0 ? run + '일 연속 출석 중 · ' : '';
+    return head + left + '일 더 하면 보너스 하트 +' + amount + ' (' + days + '일마다)';
   }
 
   /* 광고 줄에 쓰는 한 줄 — 남은 초가 있으면 1초마다 이 문구가 바뀝니다 */
@@ -138,7 +175,7 @@
   /* ---------- 보상형 광고 재생 ---------- */
 
   /* 네이티브 광고: app.js 의 onRewardAdResult 로 결과가 돌아옵니다 */
-  function playNative(b, adUnit) {
+  function playNative(b, adUnit, txId) {
     return new Promise(function (resolve) {
       var done = false;
       var timer = null;
@@ -147,17 +184,18 @@
         done = true;
         if (timer && typeof clearTimeout === 'function') clearTimeout(timer);
         if (BM.app && BM.app.pendingRewardAd === finish) BM.app.pendingRewardAd = null;
+        if (res && !res.txId) res.txId = txId;
         resolve(res);
       }
       BM.app = BM.app || {};
       BM.app.pendingRewardAd = finish;
       timer = setTimeout(function () {
-        finish({ rewarded: false, adUnit: adUnit, source: 'native', reason: 'timeout' });
+        finish({ rewarded: false, adUnit: adUnit, source: 'native', reason: 'timeout', txId: txId });
       }, NATIVE_TIMEOUT_MS);
       try {
         b.showRewardedAd(adUnit);
       } catch (e) {
-        finish({ rewarded: false, adUnit: adUnit, source: 'native', reason: 'error' });
+        finish({ rewarded: false, adUnit: adUnit, source: 'native', reason: 'error', txId: txId });
       }
     });
   }
@@ -170,7 +208,7 @@
   }
 
   /* 웹 미리보기: 3초 · 중간에 닫으면 지급하지 않습니다 */
-  function playPreview(adUnit) {
+  function playPreview(adUnit, txId) {
     return new Promise(function (resolve) {
       var UI = BM.ui;
       if (!uiReady()) {
@@ -187,6 +225,7 @@
         closed = true;
         if (timer) clearInterval(timer);
         if (typeof UI.closeSheet === 'function') UI.closeSheet();
+        if (res && !res.txId) res.txId = txId;
         resolve(res);
       }
       try {
@@ -234,17 +273,19 @@
     opts = opts || {};
     var name = opts.unit || 'heart_reward';
     var adUnit = unitOf(name);
+    /* 이번 시청 건의 거래 ID — 네이티브가 자기 ID를 주면 그쪽을 씁니다 */
+    var txId = cleanTxId(opts.txId) || newTxId();
 
     if (inFlight) {
-      return Promise.resolve({ rewarded: false, adUnit: adUnit, source: 'lock', reason: 'in_flight', busy: true });
+      return Promise.resolve({ rewarded: false, adUnit: adUnit, source: 'lock', reason: 'in_flight', busy: true, txId: txId });
     }
 
     var run;
     try {
       var b = bridge();
-      run = b ? playNative(b, adUnit) : playPreview(adUnit);
+      run = b ? playNative(b, adUnit, txId) : playPreview(adUnit, txId);
     } catch (e) {
-      return Promise.resolve({ rewarded: false, adUnit: adUnit, source: 'none', reason: 'error' });
+      return Promise.resolve({ rewarded: false, adUnit: adUnit, source: 'none', reason: 'error', txId: txId });
     }
 
     var tracked = run.then(function (res) {
@@ -256,6 +297,35 @@
     });
     inFlight = tracked;
     return tracked;
+  }
+
+  /* 보상형 광고 결과 훅 (모바일 앱 WebView → JS)
+   *  window.BM.app.onRewardAdResult(ok, adUnit, txId)
+   *  · 기다리는 재생(playNative)이 있으면 그Promise로 결과를 넘겨 보냅니다.
+   *  · 기다리는 화면이 없으면(앱이 먼저 알려 준 경우) 바로 지급합니다.
+   *  · txId가 없으면 시각 기반 ID를 만들어 적립에 남기고, 같은 ID의 두 번째 적립은
+   *    store.actions.watchAd 가 duplicate 로 막습니다 (bm-v1.36.0).
+   *  → { rewarded, adUnit, source:'native', txId, apply? } */
+  function onRewardAdResult(ok, adUnit, txId) {
+    var unit = adUnit || 'heart_reward';
+    var id = cleanTxId(txId) || newTxId();
+    var res = { rewarded: !!ok, adUnit: unit, source: 'native', txId: id };
+
+    var pending = BM.app && BM.app.pendingRewardAd;
+    if (BM.app) BM.app.pendingRewardAd = null;
+    if (typeof pending === 'function') {
+      pending(res);
+      return res;
+    }
+    if (!ok) return res;
+
+    var store = (BM.app && BM.app.ctx && BM.app.ctx.store) || null;
+    var actions = (store && store.actions) || null;
+    if (actions && typeof actions.watchAd === 'function') {
+      try { res.apply = actions.watchAd({ verified: true, adUnit: unit, txId: id }); }
+      catch (e) { res.apply = { ok: false, reason: 'error' }; }
+    }
+    return res;
   }
 
   /* ---------- 공용 하트 충전 시트 ----------
@@ -322,6 +392,7 @@
         '<span data-free>' + escText(freeText(s)) + '</span>' +
         '<span class="freeline__d" data-free-d>' + escText(freeDetail(s)) + '</span></p>' +
         '<div class="charge">' + rowsHtml(s) + '</div>' +
+        (streakText(s) ? '<p class="hint" data-streak-bonus>' + escText(streakText(s)) + '</p>' : '') +
         '<p class="hint" data-hint>' + escText(hintText(s)) + '</p>' +
         (enough
           ? '<button type="button" class="btn btn--primary btn--big mt8" data-charge="continue">' +
@@ -388,7 +459,9 @@
       if (kind === 'checkin') {
         var ci = actions.checkIn ? actions.checkIn() : null;
         if (ci && ci.ok) {
-          UI.toast('출석 체크 완료 · 하트 +' + ci.gained);
+          UI.toast(ci.bonus
+            ? ci.streak + '일 연속 출석! 하트 +' + ci.gained + ' (보너스 +' + ci.bonus + ')'
+            : '출석 체크 완료 · 하트 +' + ci.gained);
           UI.haptic(12);
           reopen();
         } else if (ci && ci.reason === 'done') {
@@ -413,7 +486,7 @@
             else UI.toast('지금은 광고를 볼 수 없어요. 잠시 후 다시 시도해 주세요');
             return;
           }
-          var res = actions.watchAd ? actions.watchAd({ verified: true, adUnit: r.adUnit }) : null;
+          var res = actions.watchAd ? actions.watchAd({ verified: true, adUnit: r.adUnit, txId: r.txId }) : null;
           if (res && res.ok) {
             UI.toast('하트 +' + res.gained + ' · 오늘 ' + res.remaining + '회 남음');
             UI.haptic(16);
@@ -423,6 +496,9 @@
             reopen();
           } else if (res && res.reason === 'cooldown') {
             UI.toast(res.retryAfter + '초 뒤에 다시 시도해 주세요');
+            reopen();
+          } else if (res && res.reason === 'duplicate') {
+            UI.toast('이미 받은 광고예요');
             reopen();
           } else if (res && res.reason === 'locked') {
             UI.toast('잠시만요, 처리 중이에요');
@@ -460,11 +536,14 @@
     setUnits: setUnits,
     unitOf: unitOf,
     showRewarded: showRewarded,
+    onRewardAdResult: onRewardAdResult,
+    newTxId: newTxId,
     busy: busy,
     getStatus: getStatus,
     adText: adText,
     freeText: freeText,
     freeDetail: freeDetail,
+    streakText: streakText,
     openHeartSheet: openHeartSheet
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

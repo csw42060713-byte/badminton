@@ -108,6 +108,34 @@
       '</div>';
   }
 
+  /* 입력칸 아래 한 줄 — 지금 적힌 파트너의 전적 (bm-v1.36.0)
+   *  · 예) 조환비 · 4전 3승 1패 (75%)
+   *  · '파트너별 승률' 카드를 펼치지 않아도 바로 보입니다. 기록이 없는 이름이면 숨김. */
+  function partnerNowText(state, name) {
+    var n = String(name == null ? '' : name).replace(/\s+/g, ' ').trim();
+    if (!n) return '';
+    var p = D.partnerStat(((state && state.data && state.data.records) || []), n);
+    return p ? D.partnerLineText(p) : '';
+  }
+
+  function partnerNow(state, name) {
+    var txt = partnerNowText(state, name);
+    return '<p class="ptnnow" data-ptn-now' + (txt ? '' : ' hidden') + '>' +
+      UI.icon('chart') + '<span>' + U.esc(txt) + '</span></p>';
+  }
+
+  /* 입력 중에 전적 줄만 다시 칠합니다 — 폼을 다시 그리지 않아 커서가 끊기지 않습니다 */
+  function paintPartnerNow(ctx, form, name) {
+    if (!form) return;
+    var host = form.querySelector('[data-ptn-now]');
+    if (!host) return;
+    var state = (ctx && ctx.store && ctx.store.state) || null;
+    var txt = partnerNowText(state, name);
+    host.hidden = !txt;
+    var span = host.querySelector('span');
+    if (span) span.textContent = txt;
+  }
+
   function gamesField(d, state) {
     var games = draftGames(d);
     var mode = Number(d.gameMode) === 25 ? 25 : 21;
@@ -127,6 +155,7 @@
       '<input id="log-partner" type="text" maxlength="' + D.PARTNER_MAX + '" enterkeyhint="done" data-field="partner" ' +
         'value="' + U.esc((d && d.partner) || '') + '" placeholder="함께 친 사람 (선택)" aria-label="복식 파트너 이름">' +
       '</div>' +
+      partnerNow(state, d && d.partner) +
       partnerChips(state, d) +
       '</div>';
   }
@@ -1097,6 +1126,7 @@
         } else if (f === 'partner') {
           /* 이름은 저장할 때 정리합니다(20자·줄바꿈 제거) — 입력 중 커서가 끊기지 않게 그대로 둡니다 */
           ctx.actions.setDraft({ partner: el.value });
+          paintPartnerNow(ctx, form, el.value);
         } else if (f === 'video') {
           ctx.actions.setDraft({ video: el.value });
           var vh = form.querySelector('[data-video-hint]');
@@ -1168,6 +1198,7 @@
           var next = now === picked ? '' : picked;
           if (ptnInput) ptnInput.value = next;
           ctx.actions.setDraft({ partner: next });
+          paintPartnerNow(ctx, form, next);
           UI.$$('[data-ptn-chip]', form).forEach(function (b) {
             var on = next !== '' && b.getAttribute('data-ptn-chip') === next;
             b.classList.toggle('is-on', on);
@@ -1312,7 +1343,9 @@
           ev.preventDefault();
           var chNow = challengeOf(ctx.store.state);
           if (!chNow.active || !chNow.done) { UI.toast('3회를 채우면 자랑할 수 있어요'); return; }
-          var text = D.challengeShareText(chNow);
+          /* 초안은 저장소가 만듭니다 — 이번 주 함께 친 파트너·전적까지 붙어서 (bm-v1.36.0) */
+          var draft = ctx.actions.challengeShareDraft ? ctx.actions.challengeShareDraft() : null;
+          var text = (draft && draft.ok) ? draft.text : D.challengeShareText(chNow);
           UI.haptic(12);
           if (ctx.actions.startChallengeShare) {
             ctx.actions.startChallengeShare(text, '일지');
@@ -1488,6 +1521,8 @@
   view.partnerStatsOf = partnerStatsOf;
   view.recentPartners = recentPartnerNames;   /* v1.35: 최근 파트너 칩 후보 (테스트·재사용) */
   view.partnerChips = partnerChips;
+  view.partnerNow = partnerNow;               /* v1.36: 입력칸 아래 파트너 전적 한 줄 */
+  view.partnerNowText = partnerNowText;
   view.videoHintOf = videoHintOf;
   view.scoreboardHtml = scoreboardHtml;
   view.scoreboardOpen = scoreboardOpen;

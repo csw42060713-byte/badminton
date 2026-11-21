@@ -127,6 +127,15 @@
     return days + '일 연속 출석 중' + (next ? ' · ' + next.days + '일까지 ' + next.left + '일' : ' · 해금 가능한 꾸미기를 모두 받았어요');
   }
 
+  /* 7일 연속 출석 보너스 한 줄 (bm-v1.36.0) — 공용 충전 시트와 같은 문구를 씁니다 */
+  function streakBonusLine(hearts) {
+    var live = liveHearts(hearts);
+    if (BM.ads && typeof BM.ads.streakText === 'function') return BM.ads.streakText(live);
+    var b = hearts.streakBonus;
+    if (!b || !(b.amount > 0)) return '';
+    return b.left + '일 더 하면 보너스 하트 +' + b.amount + ' (' + b.days + '일마다)';
+  }
+
   function heartCard(hearts) {
     var live = liveHearts(hearts);
     var adPct = hearts.adLimit ? Math.round((hearts.adUsedToday / hearts.adLimit) * 100) : 0;
@@ -160,6 +169,9 @@
       '</div>' +
       '<div class="adbar" aria-hidden="true"><i style="width:' + adPct + '%"></i></div>' +
       '<p class="streakline">' + UI.icon('check') + '<span>' + U.esc(streakLine(hearts)) + '</span></p>' +
+      (streakBonusLine(hearts)
+        ? '<p class="streakbonus">' + UI.icon('spark') + '<span>' + U.esc(streakBonusLine(hearts)) + '</span></p>'
+        : '') +
 
       (recent.length ? '<ul class="ledger">' + recent.map(ledgerRow).join('') + '</ul>'
         : '<p class="hint">아직 하트 내역이 없어요. 출석 체크로 시작해 보세요.</p>') +
@@ -568,8 +580,11 @@
         if (ev.target.closest('[data-act="checkin"]')) {
           ev.preventDefault();
           var ci = ctx.actions.checkIn();
-          if (ci.ok) { UI.toast('출석 체크 완료! 하트 +' + ci.gained); UI.haptic(14); }
-          else if (ci.reason === 'done') UI.toast('오늘은 이미 출석했어요');
+          if (ci.ok) {
+            /* 7일째면 보너스가 함께 들어옵니다 — 토스트도 그날은 따로 */
+            UI.toast(ci.bonus ? ci.streak + '일 연속 출석! 하트 +' + ci.gained + ' (보너스 +' + ci.bonus + ')' : '출석 체크 완료! 하트 +' + ci.gained);
+            UI.haptic(14);
+          } else if (ci.reason === 'done') UI.toast('오늘은 이미 출석했어요');
           else if (ci.reason === 'locked') UI.toast('잠시만요');
           return;
         }
@@ -585,12 +600,13 @@
               else UI.toast('광고를 끝까지 봐야 하트를 받을 수 있어요');
               return;
             }
-            var res = ctx.actions.watchAd({ verified: true, adUnit: r.adUnit });
+            var res = ctx.actions.watchAd({ verified: true, adUnit: r.adUnit, txId: r.txId });
             if (res.ok) {
               UI.toast('하트 +' + res.gained + ' · 오늘 ' + res.remaining + '회 남음');
               UI.haptic(16);
             } else if (res.reason === 'limit') UI.toast('오늘 몫을 모두 받았어요. 내일 다시 만나요!');
             else if (res.reason === 'cooldown') UI.toast(res.retryAfter + '초 뒤에 다시 시도해 주세요');
+            else if (res.reason === 'duplicate') UI.toast('이미 받은 광고예요');
             else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
           });
           return;
@@ -1384,4 +1400,6 @@
   BM.views.my.connectDefaults = connectDefaults;     /* 테스트·점검용 (기본 채움 값) */
   BM.views.my.alarmPanel = alarmPanel;               /* 테스트·점검용 (알림·편지지 설정) */
   BM.views.my.prefRow = prefRow;                     /* 테스트·점검용 */
+  BM.views.my.heartCard = heartCard;                 /* 테스트·점검용 (하트 카드·보너스 줄) */
+  BM.views.my.streakBonusLine = streakBonusLine;     /* 테스트·점검용 (7일 연속 보너스 줄) */
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -847,14 +847,20 @@
     });
   }
 
-  /* 보상형 광고 결과 훅 (모바일 앱 WebView) */
-  function onRewardAdResult(rewarded, adUnit) {
+  /* 보상형 광고 결과 훅 (모바일 앱 WebView)
+   *  window.BM.app.onRewardAdResult(ok, adUnit, txId)
+   *  · 거래 ID(txId)를 그대로 js/ads.js 로 넘깁니다 — 같은 시청 건이 두 번 적립되지 않게.
+   *    (BM.ads.onRewardAdResult 가 기다리는 재생에 결과를 넘기거나 바로 지급합니다) */
+  function onRewardAdResult(rewarded, adUnit, txId) {
+    if (BM.ads && typeof BM.ads.onRewardAdResult === 'function') {
+      return BM.ads.onRewardAdResult(rewarded, adUnit, txId);
+    }
     var resolve = BM.app && BM.app.pendingRewardAd;
     if (BM.app) BM.app.pendingRewardAd = null;
     if (typeof resolve === 'function') {
-      resolve({ rewarded: !!rewarded, adUnit: adUnit || 'heart_reward' });
+      resolve({ rewarded: !!rewarded, adUnit: adUnit || 'heart_reward', txId: txId || '' });
     } else if (rewarded && store) {
-      store.actions.watchAd({ verified: true, adUnit: adUnit });
+      store.actions.watchAd({ verified: true, adUnit: adUnit, txId: txId || '' });
     }
   }
 
@@ -982,7 +988,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.35.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.36.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);
