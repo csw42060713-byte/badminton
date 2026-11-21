@@ -4,11 +4,12 @@ store-assets/make-store-assets.py — 플레이 스토어 등록 그래픽 만�
 
   python3 store-assets/make-store-assets.py
 
-  · store-assets/icon-512.png            512×512 (Play 아이콘, 모서리 없이 꽉 찬 사각형)
+  · store-assets/icon-512.png            512×512 (Play 아이콘, 꽉 찬 정사각형)
   · store-assets/feature-graphic-1024x500.png  1024×500 (대표 그래픽)
 
-아이콘 그림은 icons/icon-512.png(기존 앱 아이콘)을 그대로 쓰고, 투명한 모서리만
-배경색으로 채웁니다. 글꼴은 시스템의 Noto Sans CJK KR을 씁니다.
+아이콘 그림은 icons/icon-512.png(2026-11-21 새 로고 — 아래쪽 짧은 파형 + 은은한 테두리 빛)를
+그대로 씁니다. 대표 그래픽 왼쪽 로고도 같은 파일이라, 아이콘을 바꾸면 둘 다 함께 바뀝니다.
+글꼴은 시스템의 Noto Sans CJK KR을 씁니다.
 """
 import os
 import numpy as np
@@ -38,22 +39,14 @@ def load_icon():
 
 
 def square_icon():
-    """512×512 꽉 찬 정사각형 아이콘. 앱 아이콘과 같은 남색 그라데이션 위에
-    셔틀콕을 앉힙니다(런처 아이콘과 같은 그림·같은 색, 모서리 없음)."""
-    size = 512
-    yy, xx = np.mgrid[0:size, 0:size].astype(np.float32)
-    cx, cy = size * 0.5, size * 0.44
-    r = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2) / (size * 0.74)
-    r = np.clip(r, 0, 1)[:, :, None]
-    inner = np.array([28, 42, 66], np.float32)     # 중심 #1c2a42
-    outer = np.array([12, 18, 30], np.float32)     # 가장자리 #0c121e
-    arr = inner * (1 - r) + outer * r
-    bg = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGB")
-    mark = emblem(392)
-    bg.paste(mark, ((size - mark.width) // 2, (size - mark.height) // 2 + 4), mark)
+    """512×512 꽉 찬 정사각형 아이콘 — 앱 아이콘(icons/icon-512.png)을 그대로 씁니다.
+    새 로고는 모서리 둥근 타일과 배경까지 그림에 들어 있어, 자르거나 덧칠하지 않습니다."""
+    src = load_icon().convert("RGB")
+    if src.size != (512, 512):
+        src = src.resize((512, 512), Image.LANCZOS)
     path = os.path.join(OUT, "icon-512.png")
-    bg.save(path, "PNG", optimize=True)
-    return path, bg
+    src.save(path, "PNG", optimize=True)
+    return path, src
 
 
 def emblem(box_size):
@@ -78,6 +71,18 @@ def emblem(box_size):
     ratio = box_size / max(crop.width, crop.height)
     crop = crop.resize((max(1, int(crop.width * ratio)), max(1, int(crop.height * ratio))), Image.LANCZOS)
     return crop
+
+
+def logo_tile(box_size):
+    """아이콘을 그대로 축소해 둥근 타일로 붙일 수 있게 돌려줍니다 (투명 모서리 유지)."""
+    src = load_icon().convert("RGBA").resize((box_size, box_size), Image.LANCZOS)
+    mask = Image.new("L", (box_size, box_size), 0)
+    d = ImageDraw.Draw(mask)
+    radius = int(box_size * 0.22)
+    d.rounded_rectangle([0, 0, box_size - 1, box_size - 1], radius=radius, fill=255)
+    out = Image.new("RGBA", (box_size, box_size), (0, 0, 0, 0))
+    out.paste(src, (0, 0), mask)
+    return out
 
 
 def feature_graphic():
@@ -108,9 +113,9 @@ def feature_graphic():
     d.line([(520, 500), (860, 210)], fill=(255, 255, 255, 12), width=2)
     d.line([(620, 500), (980, 250)], fill=(255, 255, 255, 9), width=2)
 
-    # 셔틀콕
-    mark = emblem(300)
-    img.paste(mark, (74, (H - mark.height) // 2 + 10), mark)
+    # 왼쪽 로고 — 앱 아이콘 그대로(둥근 타일). 아이콘을 바꾸면 여기도 따라 바뀝니다.
+    mark = logo_tile(300)
+    img.paste(mark, (74, (H - mark.height) // 2), mark)
 
     # 텍스트
     x = 420

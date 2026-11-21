@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v136.test.js — bm-v1.36.0
+ * test/v136.test.js — bm-v1.36.1
  *   1) [수익화 · 하트/리워드 광고]
  *      · js/ads.js onRewardAdResult(ok, adUnit, txId) — txId 를 만들어/받아 watchAd 로 전달
  *      · 같은 txId 는 duplicate 로 한 번만 적립 · 행 메모(소셜글)에 'tx:…' 로 남김
@@ -464,13 +464,13 @@
 
   test('v1.36 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.36.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.36.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-36', '스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.36.1'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.36.1'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-37', '스타일 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.36.0', 'TWA 이름');
+    eq(twa.appVersionName, '1.36.1', 'TWA 이름');
     eq(twa.app, undefined, '군더더기 없음');
-    eq(twa.appVersionCode, 36, 'TWA 코드');
+    eq(twa.appVersionCode, 37, 'TWA 코드');
   });
 
   test('v1.36 캐시: 새 파일 없이 기존 목록 그대로', function () {
