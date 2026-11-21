@@ -138,16 +138,20 @@
     var mp = D.matchProfileOf(state.data.idx, userKey);
     var me = state.me || {};
     var mine = userKey === me.key;
+    /* v1.45 — 승인된 코치·멘토면 유형 배지와 'OO · 활동 증명됨' 을 함께 보여 줍니다 */
+    var mentor = D.approvedMentorOf(state.data.idx, userKey);
     var body = '<div class="pp" data-profile="' + U.esc(userKey) + '">' +
       '<div class="pp__head">' + UI.avatar(p, 74) +
       '<div class="pp__id"><div class="pp__name">' + U.esc(p.nick) + '</div>' +
       '<div class="pp__pills">' +
+      (mentor ? '<span class="pill pill--grade">' + U.esc(mentor.type) + '</span>' : '') +
       (p.level ? '<span class="pill pill--grade">' + U.esc(p.level) + '</span>' : '') +
       ((mp && mp.gender && mp.gender !== '비공개') ? '<span class="pill pill--gender">' + U.esc(mp.gender) + '</span>' : '') +
       (p.discipline ? '<span class="pill pill--ghost">' + U.esc(p.discipline) + '</span>' : '') +
       ((mp && D.normalizeStyle(mp.style)) ? '<span class="pill pill--style">' + U.esc(D.normalizeStyle(mp.style)) + '</span>' : '') +
       '</div>' +
       '<p class="pp__meta">' + U.esc([mp && mp.region, mp && mp.club].filter(Boolean).join(' · ') || '지역 미입력') + '</p>' +
+      (mentor && mentor.line ? '<p class="profile__coachline">' + UI.icon('shield') + U.esc(mentor.line) + '</p>' : '') +
       '</div></div>' +
       (p.bio ? '<p class="pp__bio">' + U.esc(p.bio) + '</p>' : '') +
       mannerBlock(state, userKey) +

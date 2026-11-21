@@ -227,6 +227,23 @@ with sync_playwright() as p:
     check('C 코치 카드에 소속 · 활동 증명됨', (aff_val + ' · 활동 증명됨') in cards, cards[:300])
     page.screenshot(path=OUT + '/v145_08_코치카드_증명됨.png')
 
+    # 코치 프로필 시트에도 구분 배지와 소속·활동 증명됨
+    coach_key = page.evaluate("""() => {
+      const idx = BM.app.ctx.store.state.data.idx;
+      const rows = (idx.byType['멘토신청'] || []).concat(idx.byType['코치신청'] || [])
+        .filter(r => (r.status || (r.payload && r.payload.status)) === '승인');
+      return rows.length ? rows[rows.length - 1].userKey : '';
+    }""")
+    if coach_key:
+        page.evaluate("(k) => BM.views.profile.open(k, BM.app.ctx)", coach_key)
+        page.wait_for_timeout(700)
+        prof = text_of(page, '#sheet')
+        check('C 프로필 시트에 구분 배지', '체육관 코치' in prof, prof[:160])
+        check('C 프로필 시트에 소속 · 활동 증명됨', (aff_val + ' · 활동 증명됨') in prof, prof[:220])
+        page.screenshot(path=OUT + '/v145_11_프로필시트.png')
+        page.click('#sheet .sheet__head [data-close]')
+        page.wait_for_timeout(300)
+
     # ── D. 나가기: 신청자 시점에서도 승인 표시(같은 데이터를 신청자 저장소에도)
     login(APPLICANT, '코치지망생', rows=approved_rows)
     page.click('[data-tab="coach"]')

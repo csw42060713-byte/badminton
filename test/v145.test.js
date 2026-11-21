@@ -356,6 +356,29 @@
     eq(D.gymNameSuggestions('없는체육관이름', 4).length, 0, '없으면 빈 목록');
   });
 
+  test('v1.45 프로필: 승인된 코치의 구분·소속·증명을 그 사람 기준으로 찾는다', function () {
+    var rows = rowsWith([appRow({
+      id: 'mentor-145-p', userKey: 'u_prof', nick: '프로필코치', type: '선수 코치',
+      affiliation: '매원고 배드민턴부', proof: '위촉 확인', status: '승인'
+    })]);
+    var st = { ready: true, me: { key: 'demo_me', nick: '나래' }, data: BM.store.derive(rows, 'demo_me') };
+    var m = D.approvedMentorOf(st.data.idx, 'u_prof');
+    ok(m, '승인된 코치');
+    eq(m.type, '선수 코치', '구분');
+    eq(m.affiliation, '매원고 배드민턴부', '소속');
+    eq(m.line, '매원고 배드민턴부 · 활동 증명됨', '배지 줄');
+    eq(D.approvedMentorOf(st.data.idx, 'demo_suttle'), null, '신청이 없으면 없음');
+    /* 심사중인 신청만 있으면 배지를 붙이지 않는다 */
+    var rows2 = rowsWith([appRow({ id: 'mentor-145-q', userKey: 'u_wait', type: '체육관 코치', affiliation: '나래울', proof: 'x', status: '심사중' })]);
+    var st2 = { ready: true, me: { key: 'demo_me' }, data: BM.store.derive(rows2, 'demo_me') };
+    eq(D.approvedMentorOf(st2.data.idx, 'u_wait'), null, '심사중은 아직 없음');
+    /* 예전 값(동호인 멘토)도 그대로 */
+    var legacy = D.approvedMentorOf(st.data.idx, 'demo_net');
+    ok(legacy, '예전 승인 신청');
+    eq(legacy.type, '동호인 멘토', '예전 구분 유지');
+    eq(legacy.proofed, true, '예전 증빙 글도 증명으로 인정');
+  });
+
   test('v1.45 보안: 소속·증명 글자가 HTML로 실행되지 않는다', function () {
     var rows = rowsWith([appRow({
       id: 'mentor-145-x', type: '<img src=x onerror=alert(1)>',
