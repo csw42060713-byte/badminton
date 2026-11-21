@@ -306,7 +306,7 @@
     var names = favs.map(function (id) { var v = G.get(id); return v && v.name; }).filter(Boolean);
     var sub = names.length
       ? '자주 가는 곳 ' + names.length + '곳 · ' + names.slice(0, 2).join(', ') + (names.length > 2 ? ' 외' : '')
-      : '서울·수도권 체육관 ' + G.count() + '곳이 지도에 표시돼요';
+      : '전국 체육관 ' + G.count() + '곳 · 권역·이름으로 찾기';
     return '<section class="card card--flush gymentry">' +
       '<button type="button" class="gymentry__b" data-act="open-gym-map">' +
       '<span class="gymentry__ic" aria-hidden="true">' + UI.icon('pin') + '</span>' +

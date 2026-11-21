@@ -109,6 +109,19 @@
     return next;
   }
 
+  /* 지금 세트 비우기 — 0:0으로 되돌립니다(되돌리기 한 번으로 다시 살아납니다).
+   * 세트 도중 점수를 잘못 크게 올렸을 때 한 번에 정리하는 버튼이 씁니다. */
+  function resetSet(st) {
+    var next = copy(st);
+    if (!next.a && !next.b && !next.over) return next;   /* 이미 0:0이면 기록도 남기지 않음 */
+    next.history.push(snapshot(next));
+    if (next.history.length > MAX_UNDO) next.history.shift();
+    next.a = 0;
+    next.b = 0;
+    next.over = '';
+    return next;
+  }
+
   /* 다음 세트 — 끝난 세트를 쌓아 두고 0:0으로 */
   function nextSet(st) {
     var next = copy(st);
@@ -120,6 +133,19 @@
     next.b = 0;
     next.over = '';
     return next;
+  }
+
+  /* 지금 몇 세트째인지 — 끝난 세트 수 + 1 (세트가 끝난 뒤면 그 세트 번호) */
+  function setNo(st) {
+    st = st || {};
+    var done = (st.sets || []).length;
+    return done + 1;
+  }
+
+  /* 세트 스코어 — 내 팀(a) 기준으로 이긴 세트/진 세트 */
+  function setScore(st) {
+    var s = summary(st);
+    return { a: s.wins, b: s.losses, text: s.wins + '-' + s.losses };
   }
 
   /* 일지에 넣을 경기들 — 끝난 세트만 (진행 중인 0:0은 넣지 않습니다) */
@@ -189,7 +215,8 @@
     MODES: MODES, TYPES: TYPES, CAP: CAP,
     create: create, copy: copy, target: target, normalMode: normalMode, normalType: normalType,
     winner: winner, deuce: deuce, matchPoint: matchPoint,
-    point: point, undo: undo, nextSet: nextSet,
+    point: point, undo: undo, nextSet: nextSet, resetSet: resetSet,
+    setNo: setNo, setScore: setScore,
     games: games, scoreText: scoreText, summary: summary, memoText: memoText,
     draftPatch: draftPatch, stateText: stateText
   };

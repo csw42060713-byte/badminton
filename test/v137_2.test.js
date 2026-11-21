@@ -275,14 +275,14 @@
    * ========================================================= */
   test('v1.37.2 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     var sw = readRoot('sw.js');
-    includes(sw, "var VERSION = 'bm-v1.43.0'", 'sw.js');
+    includes(sw, "var VERSION = 'bm-v1.44.0'", 'sw.js');
     var app = readRoot('app.js');
-    includes(app, "version: 'v1.43.0'", 'app.js');
+    includes(app, "version: 'v1.44.0'", 'app.js');
     var html = readRoot('index.html');
-    includes(html, 'styles.css?v=20261121-55', '스타일 캐시 키');
+    includes(html, 'styles.css?v=20261121-56', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.43.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.43.0', 'TWA appVersion');
+    eq(twa.appVersionName, '1.44.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.44.0', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'appVersionCode는 그대로');
   });
 

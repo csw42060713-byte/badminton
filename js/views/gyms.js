@@ -6,7 +6,9 @@
  *   · 커뮤니티 '게스트 모집'의 '어디 체육관' 칸 옆 '지도에서 고르기'
  *
  *  무엇을 하나
- *   · 지도를 열면 배드민턴 체육관 13곳이 처음부터 핀으로 찍혀 있습니다.
+ *   · 지도를 열면 전국 배드민턴 체육관 120곳이 처음부터 핀으로 찍혀 있습니다(v1.44.0).
+ *   · 권역 칩(전체·서울·경기·인천·강원·제주·충청·전라·경상)과 검색창으로 원하는 지역을
+ *     바로 좁혀 볼 수 있습니다(칩을 누르면 그 권역에 맞춰 지도도 이동).
  *   · 핀·카드의 별을 눌러 '자주 가는 체육관'을 등록/해제하면 이 기기에 저장됩니다.
  *     (계정마다 따로 · 서버로 보내지 않음)
  *   · '즐겨찾기만 보기'로 지도와 목록을 즐겨찾기만 남겨 볼 수 있습니다.
@@ -32,7 +34,7 @@
   var page = null;             /* 지금 열린 화면 DOM */
   var ctxRef = null;
   var optsRef = {};            /* { onPick } */
-  var model = { scope: 'guest', onlyFav: false, query: '', club: '', geo: null, geoState: 'idle', focus: '' };
+  var model = { scope: 'guest', onlyFav: false, query: '', region: 'all', club: '', geo: null, geoState: 'idle', focus: '' };
   var map = null;              /* Leaflet 지도 */
   var markerLayer = null;
   var meLayer = null;          /* 내 위치 점 */
@@ -131,6 +133,33 @@
       '</div></div>';
   }
 
+  /* ---------- 권역 칩 · 검색 (bm-v1.44.0) ----------
+   * 120곳이 되면서 '내가 갈 동네'를 한 번에 좁히는 줄이 필요해졌습니다.
+   * 칩 숫자는 지금 조건(즐겨찾기만·검색) 안에서 세어, 누르기 전에 몇 곳인지 보입니다. */
+  function regionChipsHtml(m) {
+    var G0 = G();
+    var counts = G0.regionCounts(G0.filter(G0.all(), {
+      onlyFav: m.onlyFav, favorites: G0.favorites(m.scope), query: m.query
+    }));
+    return '<div class="gymregions" data-gymregion role="group" aria-label="권역 고르기">' +
+      G0.REGIONS.map(function (def) {
+        var on = (m.region || 'all') === def.key;
+        return '<button type="button" class="gymregion' + (on ? ' is-on' : '') + '"' +
+          ' data-gym-region="' + U.esc(def.key) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+          U.esc(def.label) + '<i>' + (counts[def.key] || 0) + '</i></button>';
+      }).join('') + '</div>';
+  }
+
+  function searchHtml(m) {
+    /* × 버튼은 늘 그리고 CSS 로 숨깁니다 — 글자를 칠 때마다 다시 그리지 않아도 되게 */
+    return '<label class="gymsearch' + (m.query ? ' has-q' : '') + '">' + UI.icon('search') +
+      '<input type="search" data-gym-search value="' + U.esc(m.query) + '"' +
+      ' placeholder="동네·체육관 이름으로 찾기" aria-label="체육관 검색"' +
+      ' autocomplete="off" enterkeyhint="search">' +
+      '<button type="button" class="gymsearch__x" data-gym-search-clear aria-label="검색어 지우기">' + UI.icon('close') + '</button>' +
+      '</label>';
+  }
+
   function pinsHtml(m) {
     var list = visible(m);
     if (!list.length) return '';
@@ -199,12 +228,13 @@
         ' · ' + list.length + '곳');
     }
     if (m.onlyFav) return noteText('자주 가는 체육관 <b>' + list.length + '곳</b>만 지도에 보여요');
-    var seoul = G().seoulOnly(list).length;
-    var rest = list.length - seoul;
-    if (rest > 0) {
-      return noteText('지도에 서울 <b>' + seoul + '곳</b>이 바로 보여요 · 동탄 ' + rest + '곳은 <b>전체 보기</b>에서');
+    if (list.length !== G().count() && !m.geo) {
+      var where = (G().regionDef(m.region).match ? G().regionDef(m.region).label : '');
+      var head = m.query ? '검색 결과 <b>' + list.length + '곳</b>' : where + ' <b>' + list.length + '곳</b>만';
+      return noteText(head + ' 지도에 보여요' + (where && m.query ? ' · ' + where : ''));
     }
-    return noteText('지도를 열면 배드민턴 체육관 <b>' + list.length + '곳</b>이 바로 보여요');
+    var seoul = G().seoulOnly(list).length;
+    return noteText('전국 배드민턴 <b>' + list.length + '곳</b>이 지도에 보여요 · 서울만 ' + seoul + '곳');
   }
 
   function segHost(m) { return '<div data-gymseg>' + segHtml(m) + '</div>'; }
@@ -212,6 +242,7 @@
   function bodyHtml(m) {
     return '<div data-gymfocus>' + focusHtml(m) + '</div>' +
       '<div data-gymfavs>' + favSectionHtml(m) + '</div>' + segHost(m) +
+      '<div class="gymfilters">' + searchHtml(m) + '<div data-gymreghost>' + regionChipsHtml(m) + '</div></div>' +
       '<div data-gymgeohost>' + geoHtml(m) + '</div>' +
       '<div class="gymmapwrap">' +
       /* 지도 상자(data-gymmap)는 다시 그려도 그대로 둡니다 — Leaflet 인스턴스가 그 안에 살아 있습니다 */
@@ -231,7 +262,7 @@
       '<button type="button" class="iconbtn" data-gym-close aria-label="닫기">' +
       '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>' +
       '<div class="gympage__t"><b>' + (picking ? '체육관 고르기' : '체육관 지도') + '</b>' +
-      '<span>서울·수도권 배드민턴 ' + G().count() + '곳</span></div>' +
+      '<span>전국 배드민턴 ' + G().count() + '곳 · 7개 권역</span></div>' +
       '<button type="button" class="gympage__all" data-gym-all>전체 보기</button>' +
       '</header>';
   }
@@ -240,7 +271,9 @@
    * 특정 체육관으로 들어왔으면 그 카드가 맨 앞에 옵니다. */
   function visible(m) {
     var favs = G().favorites(m.scope);
-    var list = G().filter(G().all(), { onlyFav: m.onlyFav, favorites: favs, query: m.query });
+    var list = G().filter(G().all(), {
+      onlyFav: m.onlyFav, favorites: favs, query: m.query, region: m.region
+    });
     /* '내 위치 기준'을 켜면 거리 순서가 우선합니다(즐겨찾기는 별 표시로 남김) */
     var out = m.geo ? G().nearby(list, m.geo) : G().withFavoritesFirst(list, favs);
     if (m.focus) {
@@ -256,6 +289,7 @@
     var mm = {
       scope: (m && m.scope) || 'guest', onlyFav: !!(m && m.onlyFav),
       query: (m && m.query) || '', club: (m && m.club) || '',
+      region: (m && m.region) || 'all',
       geo: (m && m.geo) || null, geoState: (m && m.geoState) || 'idle',
       focus: (m && m.focus) || ''
     };
@@ -288,7 +322,7 @@
     host.classList.add('is-live');
     map = L.map(host, {
       zoomControl: false, attributionControl: true, scrollWheelZoom: false,
-      minZoom: 8, maxZoom: 18, worldCopyJump: false
+      minZoom: 5, maxZoom: 18, worldCopyJump: false   /* 전국을 한 화면에 담으려면 5까지 내려가야 합니다 */
     });
     map.attributionControl.setPrefix(false);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -358,15 +392,19 @@
       { animate: true, maxZoom: 13 });
   }
 
-  /* 서울 시내만 담아 첫 화면을 잡습니다(나래울·동탄은 '전체 보기'에서) */
-  function fitSeoul() {
+  /* 지금 화면에 보이는 체육관이 모두 들어오게 (권역·검색·가까운 순 그대로) */
+  function fitVisible(animate) {
     var L = leaflet();
     if (!L || !map) return;
-    var list = G().seoulOnly(visible(model));
-    if (list.length < 2) { fitAll(); return; }
-    map.fitBounds(L.latLngBounds(list.map(function (v) { return [v.lat, v.lng]; })).pad(0.12),
-      { animate: false, maxZoom: 12 });
+    var list = visible(model);
+    if (!list.length) return;
+    if (list.length === 1) { map.setView([list[0].lat, list[0].lng], 14, { animate: !!animate }); return; }
+    map.fitBounds(L.latLngBounds(list.map(function (v) { return [v.lat, v.lng]; })).pad(0.1),
+      { animate: !!animate, maxZoom: 13 });
   }
+
+  /* 예전 이름 — 부르는 곳이 많아 그대로 둡니다(이제 전국/권역 기준) */
+  function fitSeoul() { fitVisible(false); }
 
   function focusVenue(id) {
     var v = G().get(id);
@@ -402,6 +440,7 @@
     put('[data-gymfocus]', focusHtml(model));
     put('[data-gymfavs]', favSectionHtml(model));
     put('[data-gymseg]', segHtml(model));
+    put('[data-gymreghost]', regionChipsHtml(model));
     put('[data-gymgeohost]', geoHtml(model));
     put('[data-gympins]', pinsHtml(model));
     put('[data-gymnote]', mapNoteInner(model));
@@ -411,15 +450,17 @@
     if (map && !model.geo) fitVisibleAfterChange();
   }
 
-  /* 보기(전체/즐겨찾기만)를 바꿨을 때만 지도를 다시 맞춥니다 */
+  /* 보기(전체/즐겨찾기만)·권역·검색이 바뀌면 그 결과가 다 들어오게 지도를 맞춥니다 */
   var lastFitKey = '';
   function fitVisibleAfterChange() {
     var list = visible(model);
-    var key = (model.onlyFav ? 'fav' : 'all') + ':' + list.map(function (v) { return v.id; }).join(',');
+    var key = (model.onlyFav ? 'fav' : 'all') + ':' + (model.region || 'all') + ':' +
+      (model.query || '') + ':' + (model.geo ? 'geo' : '') + ':' +
+      (list.length <= 12 ? list.map(function (v) { return v.id; }).join(',') : list.length);
     if (key === lastFitKey) return;
     lastFitKey = key;
-    if (!list.length) { fitSeoul(); return; }
-    if (model.onlyFav) fitAll();
+    if (!list.length) return;
+    fitVisible(true);
   }
 
   /* ---------- 열기 / 닫기 ---------- */
@@ -520,7 +561,7 @@
     lastFitKey = '';
     var me = (ctx && ctx.store && ctx.store.state && ctx.store.state.me) || {};
     model = {
-      scope: scoped(me.key), onlyFav: false, query: '', club: me.club || '',
+      scope: scoped(me.key), onlyFav: false, query: '', region: 'all', club: me.club || '',
       geo: null, geoState: 'idle', focus: optsRef.focus ? String(optsRef.focus) : ''
     };
 
@@ -607,6 +648,32 @@
       var all = ev.target.closest('[data-gym-all]');
       if (all) { ev.preventDefault(); UI.haptic(6); fitAll(); return; }
 
+      /* 권역 칩 — 누르면 그 권역만 남기고 지도를 그 권역에 맞춥니다 */
+      var reg = ev.target.closest('[data-gym-region]');
+      if (reg) {
+        ev.preventDefault();
+        var key = reg.getAttribute('data-gym-region') || 'all';
+        if (model.region !== key) {
+          model.region = key;
+          model.focus = '';
+          UI.haptic(6);
+          refresh();
+        }
+        return;
+      }
+
+      if (ev.target.closest('[data-gym-search-clear]')) {
+        ev.preventDefault();
+        model.query = '';
+        var host = page && page.querySelector('.gymsearch');
+        var box = page && page.querySelector('[data-gym-search]');
+        if (box) box.value = '';
+        if (host) host.classList.remove('has-q');
+        UI.haptic(6);
+        refresh();
+        return;
+      }
+
       var geoBtn = ev.target.closest('[data-gym-geo]');
       if (geoBtn) { ev.preventDefault(); toggleGeo(); return; }
 
@@ -640,6 +707,30 @@
 
       var pickBtn = ev.target.closest('[data-gym-pick]');
       if (pickBtn) { ev.preventDefault(); pick(pickBtn.getAttribute('data-gym-pick')); return; }
+    });
+
+    /* 검색 — 한 글자 치고 바로 거르되, 줄마다 다시 그리지 않게 120ms 만 기다립니다 */
+    var searchTimer = null;
+    root.addEventListener('input', function (ev) {
+      var box = ev.target.closest && ev.target.closest('[data-gym-search]');
+      if (!box) return;
+      var val = box.value || '';
+      var host = box.closest('.gymsearch');
+      if (host) host.classList.toggle('has-q', !!val);
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        searchTimer = null;
+        if (!page) return;
+        /* 입력 칸은 그대로 두고 목록·핀·안내만 바꿉니다(커서가 날아가지 않게) */
+        model.query = val;
+        refresh();
+      }, 120);
+    });
+    root.addEventListener('search', function (ev) {
+      var box = ev.target.closest && ev.target.closest('[data-gym-search]');
+      if (!box) return;
+      model.query = box.value || '';
+      refresh();
     });
   }
 

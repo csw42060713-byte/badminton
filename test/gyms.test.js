@@ -89,7 +89,9 @@
       ok(v.area && v.area.length >= 2, '동네: ' + v.id);
       ok(v.lat >= 33 && v.lat <= 39, v.id + ' 위도가 국내 범위');
       ok(v.lng >= 124 && v.lng <= 132, v.id + ' 경도가 국내 범위');
-      ok(v.hours || v.fee || v.courts, v.id + ' 운영 정보가 하나는 있다');
+      /* bm-v1.44.0: 전국 항목은 지도 장소 DB의 주소·전화만 있고 운영 시간은 비어 있을 수 있습니다
+       * (지어낸 시간을 채우지 않음 — 카드에는 주소·전화가 보입니다) */
+      ok(v.hours || v.fee || v.courts || v.tel || v.addr, v.id + ' 보여 줄 정보가 하나는 있다');
     });
     eq(G().count(), list.length, 'count() 가 목록 수와 같다');
   });
@@ -256,9 +258,9 @@
     /* 위치를 거부했을 때 — 목록은 그대로, 안내만 */
     var off = BM.views.gyms.render({ scope: 'demo_me', geoState: 'off' });
     includes(off, '위치를 허용하면 가까운 순으로 보여 드려요', '거부 안내');
-    eq((off.match(/data-gym-card="/g) || []).length, G().count(), '기본 목록은 서울·수도권 전부');
+    eq((off.match(/data-gym-card="/g) || []).length, G().count(), '기본 목록은 전국 전부');
     eq((off.match(/class="gymcard__dist"/g) || []).length, 0, '거리 칩은 없음');
-    includes(off, '지도에 서울 <b>', '서울 우선 안내도 그대로');
+    includes(off, '전국 배드민턴 <b>', '전국 목록 안내도 그대로');
   });
 
   /* =========================================================
@@ -349,7 +351,7 @@
     var html = BM.views.matching.render(stateOf('demo_me'));
     includes(html, 'data-act="open-gym-map"', '지도 열기 버튼');
     includes(html, '체육관 지도', '이름');
-    includes(html, '서울·수도권 체육관 ' + G().count() + '곳', '기본 안내 문구');
+    includes(html, '전국 체육관 ' + G().count() + '곳', '기본 안내 문구');
     /* 즐겨찾기가 있으면 입구 카드에 이름이 보인다 */
     G().toggle('demo_me', 'mapo');
     var html2 = BM.views.matching.render(stateOf('demo_me'));
@@ -358,7 +360,7 @@
     resetFavs();
   });
 
-  test('화면: 지도 화면이 체육관 13곳을 핀·카드로 기본 표시한다', function () {
+  test('화면: 지도 화면이 전국 체육관을 핀·카드로 기본 표시한다', function () {
     resetFavs();
     var html = BM.views.gyms.render({ scope: 'demo_me' });
     includes(html, 'data-gymmap', '지도 상자');
@@ -370,8 +372,8 @@
     includes(html, '자주 가는 체육관', '자주 가는 체육관 영역');
     includes(readRoot('js/views/gyms.js'), 'OpenStreetMap', '지도 저작자 표시');
     includes(html, '운영', '운영 시간 줄');
-    includes(html, '서울 <b>', '서울 우선 지도 안내');
-    includes(html, '동탄 1곳은 <b>전체 보기</b>', '동탄은 전체 보기 안내');
+    includes(html, '전국 배드민턴 <b>', '전국 지도 안내');
+    includes(html, '서울만 ' + G().seoulOnly(G().all()).length + '곳', '서울만 몇 곳인지 함께 안내');
   });
 
   test('화면: 별을 누른 뒤에는 상단 칩·지도 핀·카드가 즐겨찾기를 따라간다', function () {
