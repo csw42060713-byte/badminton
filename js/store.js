@@ -1218,12 +1218,12 @@
           nick: state.me.nick, target: String(post.userKey || ''), team: key,
           payload: { kind: D.GUEST.leave, nick: state.me.nick }
         }));
-        /* 보고 있던 방이면 대화도 닫습니다 (목록에서도 사라짐) */
+        /* 보고 있던 방이면 대화 목록으로 돌아갑니다 (그 방은 목록에서도 사라짐) */
         if (state.ui && String(state.ui.chatRoom || '') === key) {
           state.ui.chatRoom = null;
           state.ui.chatOther = '';
           state.ui.chatDraft = '';
-          state.ui.chatOpen = false;
+          state.ui.chatOpen = true;
         }
         commit();
         return { ok: true, postId: key };
