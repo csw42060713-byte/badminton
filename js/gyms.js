@@ -4,6 +4,8 @@
  *  · 지도에 처음부터 보여 줄 체육관 목록입니다(이름·동네·좌표·코트 수·운영 시간·요금).
  *    서울 시설공단·구청 공개 자료와 공개 지도 정보를 기준으로 정리했고,
  *    앱에 이미 나오던 '나래울'(동탄)도 함께 담았습니다.
+ *  · 내 위치 기준 거리(Haversine, km)와 '가까운 순' 정렬, 그리고 프로필·모집글에
+ *    적힌 체육관 이름을 목록의 체육관과 이어 주는 matchVenue 를 함께 둡니다.
  *  · 운영 시간·요금은 바뀔 수 있어 화면에도 그렇게 적어 둡니다.
  *  · 즐겨찾기는 서버에 보내지 않고 이 기기(localStorage)에만, 계정마다 따로 저장합니다.
  *    (시트 26칸은 건드리지 않습니다 — routine.js 와 같은 방식)
@@ -118,6 +120,100 @@
 
   function ids() { return VENUES.map(function (v) { return v.id; }); }
 
+  /* ---------- 거리 (내 위치 → 체육관) ----------
+   * Haversine — 위도·경도 두 점 사이의 대권 거리(km).
+   * 테스트와 화면이 같은 함수를 쓰도록 여기에 둡니다. */
+  var EARTH_KM = 6371.0088;
+
+  function toRad(deg) { return (Number(deg) || 0) * Math.PI / 180; }
+
+  function pointOf(p) {
+    if (!p) return null;
+    var lat = Number(p.lat), lng = Number(p.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+    return { lat: lat, lng: lng };
+  }
+
+  function distanceKm(from, to) {
+    var a = pointOf(from), b = pointOf(to);
+    if (!a || !b) return null;
+    var dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+    var h = Math.pow(Math.sin(dLat / 2), 2) +
+      Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.pow(Math.sin(dLng / 2), 2);
+    var km = 2 * EARTH_KM * Math.asin(Math.min(1, Math.sqrt(h)));
+    return Math.round(km * 10) / 10;      /* 화면·정렬 모두 0.1km 단위면 충분합니다 */
+  }
+
+  /* '약 1.2 km' — 가까운 곳은 0.1km 아래로 내려가지 않게 */
+  function distLabel(km) {
+    if (km === null || km === undefined || km === '') return '';
+    var k = Number(km);
+    if (!isFinite(k) || k < 0) return '';
+    if (k < 0.1) k = 0.1;
+    return '약 ' + k.toFixed(1) + ' km';
+  }
+
+  /* 거리 붙은 사본 — 원본 목록은 그대로 둡니다 */
+  function withDistance(list, from) {
+    return (list || []).map(function (v) {
+      var c = clone(v);
+      c.dist = distanceKm(from, v);
+      return c;
+    });
+  }
+
+  /* 가까운 순 (거리를 못 구한 곳은 뒤로) */
+  function nearby(list, from) {
+    var out = withDistance(list, from);
+    out.sort(function (a, b) {
+      var da = a.dist == null ? 1e9 : a.dist;
+      var db = b.dist == null ? 1e9 : b.dist;
+      return da - db;
+    });
+    return out;
+  }
+
+  /* ---------- 이름 → 체육관 찾기 ----------
+   * 프로필·모집글에는 '나래울'처럼 짧게 적힌 이름도 있어, 띄어쓰기·일반 접미사
+   * (체육관·배드민턴장 등)를 떼고 비교합니다. 여러 곳에 똑같이 걸리면 고르지 않습니다. */
+  var GENERIC = ['실내배드민턴장', '배드민턴체육관', '다목적체육관', '구민체육센터', '배드민턴장', '체육센터', '체육관'];
+
+  function normName(s) {
+    return String(s == null ? '' : s)
+      .toLowerCase()
+      .replace(/[\s()\[\]{}·.,'"`~\-]/g, '');
+  }
+
+  function coreName(s) {
+    var n = normName(s);
+    GENERIC.forEach(function (g) { n = n.split(g).join(''); });
+    return n;
+  }
+
+  function matchVenue(name) {
+    var q = normName(name);
+    if (q.length < 2) return null;                 /* '체', '' 같은 값은 고르지 않음 */
+    var qCore = coreName(name);
+    var best = null, bestScore = 0, ties = 0;
+    VENUES.forEach(function (v) {
+      var n = normName(v.name), c = coreName(v.name);
+      var score = 0;
+      if (q === n) score = 100;                    /* 이름 그대로 */
+      else if (n.indexOf(q) === 0) score = 90;     /* '나래울' → '나래울 배드민턴장' */
+      else if (n.indexOf(q) >= 0) score = 85;
+      else if (q.indexOf(n) >= 0) score = 82;      /* '마포구민체육센터 1층' → 이름 포함 */
+      else if (qCore.length >= 2 && c && qCore === c) score = 80;
+      else if (qCore.length >= 2 && c && c.indexOf(qCore) === 0) score = 70;
+      else if (qCore.length >= 2 && c && qCore.indexOf(c) >= 0) score = 68;
+      else if (q.length >= 2 && normName(v.area).indexOf(q) >= 0) score = 40;   /* 동네 이름만 */
+      if (score > bestScore) { best = v; bestScore = score; ties = 1; }
+      else if (score > 0 && score === bestScore) ties++;
+    });
+    if (!best || ties > 1) return null;            /* '체육관'처럼 여럿에 걸리면 고르지 않음 */
+    return clone(best);
+  }
+
   /* ---------- 즐겨찾기 (이 기기 · 계정별) ---------- */
   function keyFor(scope) {
     return KEY + '::' + String(scope || 'guest').toLowerCase();
@@ -225,10 +321,12 @@
   function seoulOnly(list) { return (list || []).filter(inSeoul); }
 
   BM.gyms = {
-    KEY: KEY, VENUES: VENUES, SEOUL_VIEW: SEOUL_VIEW, SEOUL_BOX: SEOUL_BOX,
+    KEY: KEY, VENUES: VENUES, SEOUL_VIEW: SEOUL_VIEW, SEOUL_BOX: SEOUL_BOX, EARTH_KM: EARTH_KM,
     all: all, get: get, ids: ids, keyFor: keyFor, inSeoul: inSeoul, seoulOnly: seoulOnly,
     favorites: favorites, isFav: isFav, toggle: toggle, clear: clear, saveFavs: saveFavs,
     filter: filter, withFavoritesFirst: withFavoritesFirst, project: project,
+    pointOf: pointOf, distanceKm: distanceKm, distLabel: distLabel,
+    withDistance: withDistance, nearby: nearby, matchVenue: matchVenue,
     count: function () { return VENUES.length; }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

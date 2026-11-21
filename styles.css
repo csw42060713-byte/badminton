@@ -4952,6 +4952,91 @@ body {
 .gymcard__row span { flex: none; width: 30px; padding-top: 1px; font-size: 10.5px; font-weight: 800; color: var(--muted); }
 .gymcard__act { display: flex; gap: 6px; margin-top: 10px; }
 .gymcard__act .btn { flex: 1; min-height: 38px; }
+.gymcard__dist {
+  display: inline-block; margin-left: 6px; padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font-size: 10.5px; font-weight: 800; letter-spacing: -0.2px;
+  vertical-align: 1px;
+}
+
+/* '내 위치 기준' — 내 위치에서 가까운 순 */
+.gymgeo { display: flex; align-items: center; gap: 8px; }
+.gymgeo__b {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  min-height: 36px; padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 11.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.gymgeo__b .ico { width: 14px; height: 14px; }
+.gymgeo__b.is-on {
+  border-color: var(--accent-line);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+.gymgeo__b:active { transform: scale(0.97); }
+.gymgeo__b[disabled] { opacity: 0.6; }
+.gymgeo__n { flex: 1 1 auto; min-width: 0; font-size: 11px; line-height: 1.35; color: var(--muted); overflow-wrap: anywhere; }
+
+/* 내 위치 점 (지도) */
+.gyme { display: grid; place-items: center; width: 20px; height: 20px; }
+.gyme i {
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--accent); border: 2.5px solid #fff;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+/* 모집글·프로필에서 체육관 이름을 눌러 들어왔을 때의 요약 */
+.gymfocus {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 13px 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--accent-line);
+  background: color-mix(in srgb, var(--accent) 7%, var(--card));
+  box-shadow: var(--shadow-soft);
+}
+.gymfocus__t { flex: 1; min-width: 0; }
+.gymfocus__t h3 { margin-top: 6px; font-size: 16px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.3; }
+.gymfocus__meta { margin-top: 2px; font-size: 11.5px; color: var(--text-2); }
+.gymfocus__row { display: flex; align-items: flex-start; gap: 5px; margin-top: 5px; font-size: 11.5px; line-height: 1.45; color: var(--muted); }
+.gymfocus__row .ico { width: 13px; height: 13px; flex: none; margin-top: 2px; color: var(--accent); }
+.gymfocus__all { flex: none; }
+
+/* 프로필·모집글의 체육관 이름 → 지도 */
+.gymlink {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 0; border: 0; background: none;
+  color: var(--accent); font: inherit; font-weight: 700; letter-spacing: inherit;
+  text-align: left; vertical-align: baseline;
+}
+.gymlink .ico { width: 13px; height: 13px; flex: none; }
+.gymlink i {
+  font-style: normal; font-size: 9.5px; font-weight: 800; line-height: 1;
+  padding: 2px 5px; border-radius: 999px;
+  border: 1px solid var(--accent-line); color: var(--accent);
+}
+.gymlink:active { opacity: 0.68; }
+.gymlink--vite { gap: 5px; }
+
+/* 모집글의 '어디 체육관' — 이름이 길어도 단체방 버튼 밑으로 들어가지 않게 두 줄까지 */
+.vite__row--place .gymlink { flex: 1; min-width: 0; align-items: flex-start; }
+.vite__row--place .gymlink span {
+  white-space: normal; overflow: visible; text-overflow: clip;
+  word-break: keep-all; overflow-wrap: anywhere; line-height: 1.4;
+}
+.vite__row--place .gymlink .ico, .vite__row--place .gymlink i { margin-top: 2px; }
+
+/* 클럽 칸(매칭 카드) · 주 체육관 칸(프로필 꾸미기)의 '지도에서 고르기' */
+.flabel__row { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+.flabel__row input { flex: 1; min-width: 0; margin-top: 0 !important; }
+.flabel__map { flex: none; min-height: 40px; }
+.deco__clubrow { display: flex; align-items: center; gap: 8px; }
+.deco__clubrow .deco__input { flex: 1; min-width: 0; }
+.deco__clubmap { flex: none; min-height: 40px; }
 
 /* 커뮤니티 게스트 모집 — '지도에서 고르기' */
 .viteform__pick {

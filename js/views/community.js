@@ -75,6 +75,15 @@
       '</article>';
   }
 
+  /* 모집글의 '어디 체육관' — 등록된 체육관과 이어지면 이름을 눌러 지도(주소·코트 수)를
+   * 바로 볼 수 있게 하고, 이어지지 않는 곳(집 앞 체육공원 등)은 지금처럼 글자로 둡니다. */
+  function placeHtml(place) {
+    var name = String(place || '').trim();
+    var link = (name && BM.views && BM.views.gyms) ? BM.views.gyms.link(name) : '';
+    if (link) return link;
+    return UI.icon('pin') + '<span>' + U.esc(name || '장소는 문의해서 정해요') + '</span>';
+  }
+
   /* ---------- 게스트 모집 ----------
    * 글 위에 일시·장소·인원을 스포츠 앱처럼 한 카드로 묶고,
    * `참여 문의`는 작성자 1:1 DM이 아니라 이 글 전용 단체방을 엽니다.
@@ -100,7 +109,7 @@
       (m.cap ? '<b>' + U.esc(m.cap) + '명</b>' : '') +
       (st.closed ? '<span class="pill pill--closed">' + U.esc(D.MEET.closedLabel) + '</span>' : '') + '</p>' +
       '<p class="vite__row">' + UI.icon('clock') + '<span>' + U.esc(m.when || '일시는 문의해서 정해요') + '</span></p>' +
-      '<p class="vite__row">' + UI.icon('pin') + '<span>' + U.esc(m.place || '장소는 문의해서 정해요') + '</span></p>' +
+      '<p class="vite__row vite__row--place">' + placeHtml(m.place) + '</p>' +
       (capLine
         ? '<p class="vite__row vite__row--cap">' + UI.icon('users') + '<span>' + U.esc(capLine) + '</span>' +
           (mine && st.members.length

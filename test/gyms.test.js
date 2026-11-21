@@ -12,7 +12,13 @@
  *  3) 목록 고르기
  *     · '즐겨찾기만 보기' · 이름/동네 검색 · 즐겨찾기 먼저 정렬
  *     · 오프라인 핀 지도 좌표(%)가 0~100 안에 들어간다
- *  4) 화면
+ *  4) 내 위치 · 가까운 순
+ *     · Haversine 거리(km)와 '약 X.X km' 표기 · 가까운 순 정렬
+ *     · '내 위치 기준' 화면: 거리 칩·가까운 순 카드, 위치를 거부해도 목록은 그대로
+ *  5) 체육관 이름 → 지도 연동
+ *     · 짧은 이름·띄어쓰기·동네 이름으로 등록된 체육관 찾기 (여럿이면 고르지 않음)
+ *     · 모집글·MY·매칭 프로필의 체육관 이름에서 지도로 이어짐 · 특정 체육관으로 열기
+ *  6) 화면
  *     · 매칭 > 찾기 맨 위 '체육관 지도' 입구 카드
  *     · 지도 화면: 기본 13개 핀 + 별 버튼 + '즐겨찾기만' + 자주 가는 체육관 칩
  *     · 커뮤니티 게스트 모집의 '지도에서 고르기'
@@ -206,7 +212,137 @@
   });
 
   /* =========================================================
-   * 4. 화면
+   * 4. 내 위치 · 가까운 순
+   * ========================================================= */
+  test('위치: 두 점 사이 거리를 km로 구하고 화면에는 약 X.X km로 쓴다', function () {
+    var city = { lat: 37.5665, lng: 126.9780 };        /* 서울시청 */
+    var km = G().distanceKm(city, G().get('mapo'));
+    eq(km, 7.2, '서울시청 → 마포구민체육센터 7.2km');
+    ok(G().distanceKm(city, G().get('mapo')) === G().distanceKm(G().get('mapo'), city), '양쪽 방향이 같다');
+    eq(G().distanceKm(null, G().get('mapo')), null, '내 위치가 없으면 null');
+    eq(G().distanceKm(city, { lat: 'x', lng: 'y' }), null, '좌표가 아니면 null');
+    eq(G().pointOf({ lat: 999, lng: 0 }), null, '범위를 벗어난 좌표는 버린다');
+    ok(G().pointOf({ lat: 37.5, lng: 127 }), '국내 좌표는 통과');
+    eq(G().distLabel(1.24), '약 1.2 km', '소수 한 자리');
+    eq(G().distLabel(9.96), '약 10.0 km', '10km도 같은 표기');
+    eq(G().distLabel(0), '약 0.1 km', '0km는 0.1km로');
+    eq(G().distLabel(null), '', '거리가 없으면 빈 글자');
+  });
+
+  test('위치: 가까운 순으로 정렬하고 각 체육관에 거리를 붙인다', function () {
+    var yangjae = { lat: 37.4825, lng: 127.0339 };       /* 양재 */
+    var list = G().nearby(G().all(), yangjae);
+    eq(list.length, G().count(), '모든 체육관이 남는다');
+    eq(list[0].id, 'maljuk', '양재에서 가장 가까운 곳');
+    eq(list[0].dist, 0, '같은 자리면 0km');
+    for (var i = 1; i < list.length; i++) {
+      ok(list[i].dist >= list[i - 1].dist, '거리 오름차순: ' + list[i].id);
+    }
+    list.forEach(function (v) { ok(typeof v.dist === 'number', v.id + ' 거리 숫자'); });
+    ok(G().all().every(function (v) { return v.dist == null; }), '원본 목록은 그대로');
+  });
+
+  test("위치: '내 위치 기준' 화면은 가까운 순으로 카드를 그리고 거리 칩을 보여 준다", function () {
+    resetFavs();
+    var geo = { lat: 37.4825, lng: 127.0339 };
+    var html = BM.views.gyms.render({ scope: 'demo_me', geo: geo });
+    includes(html, 'data-gym-geo', '내 위치 기준 버튼');
+    includes(html, '내 위치에서 가까운 순', '가까운 순 안내');
+    ok(html.indexOf('data-gym-card="maljuk"') < html.indexOf('data-gym-card="songpa"'), '가까운 곳이 카드 앞에');
+    eq((html.match(/class="gymcard__dist"/g) || []).length, G().count(), '카드마다 거리 칩');
+    includes(html, '약 0.1 km', '같은 자리(0km)는 0.1km로');
+    includes(html, '가장 가까운 곳 <b>', '지도 안내에 가장 가까운 거리');
+
+    /* 위치를 거부했을 때 — 목록은 그대로, 안내만 */
+    var off = BM.views.gyms.render({ scope: 'demo_me', geoState: 'off' });
+    includes(off, '위치를 허용하면 가까운 순으로 보여 드려요', '거부 안내');
+    eq((off.match(/data-gym-card="/g) || []).length, G().count(), '기본 목록은 서울·수도권 전부');
+    eq((off.match(/class="gymcard__dist"/g) || []).length, 0, '거리 칩은 없음');
+    includes(off, '지도에 서울 <b>', '서울 우선 안내도 그대로');
+  });
+
+  /* =========================================================
+   * 5. 체육관 이름 → 지도 연동
+   * ========================================================= */
+  test('이름 맞추기: 짧은 이름·띄어쓰기·동네 이름으로 등록된 체육관을 찾는다', function () {
+    eq(G().matchVenue('나래울').id, 'naraeul', '짧은 이름');
+    eq(G().matchVenue('나래울 배드민턴장').id, 'naraeul', '이름 그대로');
+    eq(G().matchVenue(' 마포구민체육센터 ').id, 'mapo', '앞뒤 공백');
+    eq(G().matchVenue('망원동').id, 'mapo', '동네 이름');
+    eq(G().matchVenue('체육관'), null, '여럿에 걸리는 말은 고르지 않음');
+    eq(G().matchVenue(''), null, '빈 값');
+    eq(G().matchVenue('우리 클럽'), null, '등록되지 않은 이름');
+  });
+
+  test('지도 연동: 모집글·MY·매칭 프로필의 체육관 이름에서 지도로 이어진다', function () {
+    resetFavs();
+    /* 링크 조각 */
+    includes(BM.views.gyms.link('나래울'), 'data-gym-open="naraeul"', '링크 버튼');
+    includes(BM.views.gyms.link('나래울'), '지도', '지도 배지');
+    eq(BM.views.gyms.link('우리 클럽'), '', '등록되지 않은 이름은 링크 없음');
+    eq(BM.views.gyms.linkOrText('우리 클럽'), '우리 클럽', '그때는 글자만');
+
+    /* 커뮤니티 게스트 모집 글 */
+    var st = stateOf('demo_me');
+    st.data = Object.assign({}, st.data, { posts: [
+      { id: 'p_meet', userKey: 'demo_chi', nick: '콕집사', text: '토요일 같이 치실 분', createdAt: '2026-11-21 10:00',
+        likes: 0, likedByMe: false, replies: [], topic: '게스트 모집',
+        meet: { when: '11/22(토) 09:00', place: '마포구민체육센터', cap: '6' } },
+      { id: 'p_park', userKey: 'demo_me', nick: '나래', text: '공원에서 가볍게', createdAt: '2026-11-21 11:00',
+        likes: 0, likedByMe: false, replies: [], topic: '게스트 모집',
+        meet: { when: '', place: '집 앞 공원', cap: '' } }
+    ] });
+    var chtml = BM.views.community.render(st);
+    includes(chtml, 'data-gym-open="mapo"', '모집글 장소가 지도로 이어짐');
+    includes(chtml, '마포구민체육센터', '이름은 그대로');
+    eq((chtml.match(/data-gym-open/g) || []).length, 1, '이어지지 않는 장소는 글자만');
+
+    /* MY 프로필 */
+    var mhtml = BM.views.my.render(stateOf('demo_me'));
+    includes(mhtml, 'data-gym-open="naraeul"', 'MY 주 체육관이 지도로 이어짐');
+
+    /* 매칭 프로필 상세 */
+    var person = { userKey: 'demo_chi', nick: '콕집사', region: '서울', club: '마포구민체육센터',
+      level: 'C조', discipline: '복식', style: '', experience: '', availability: '', bio: '' };
+    var phtml = BM.views.matching.profileBody(stateOf('demo_me'), person);
+    includes(phtml, 'data-gym-open="mapo"', '매칭 프로필 주 체육관');
+  });
+
+  test('지도 연동: 체육관을 지정해 열면 동네·주소·코트 수를 맨 위에 보여 준다', function () {
+    var html = BM.views.gyms.render({ scope: 'demo_me', focus: 'mapo' });
+    includes(html, '지도에서 찾은 체육관', '요약 머리');
+    includes(html, '서울 마포구 월드컵로25길 190', '주소');
+    includes(html, '마포구 망원동 · 코트 12면', '동네·코트 수');
+    includes(html, 'data-gym-focus-clear', '전체 지도로 돌아가기');
+    includes(html, 'gymcard is-focus', '해당 카드 강조');
+    ok(html.indexOf('data-gym-card="mapo"') < html.indexOf('data-gym-card="magok"'), '그 카드가 목록 맨 앞');
+    includes(html, '주소</span>서울 마포구', '카드에도 주소 줄');
+    excludes(BM.views.gyms.render({ scope: 'demo_me' }), '지도에서 찾은 체육관', '지정 없으면 요약 없음');
+  });
+
+  test('지도 연동: 이름 입력 칸·모든 화면의 링크 배선이 들어 있다', function () {
+    var mySrc = readRoot('js/views/my.js');
+    includes(mySrc, 'data-act="deco-club-map"', '프로필 꾸미기 주 체육관: 지도에서 고르기');
+    includes(mySrc, 'onPick', '고른 체육관을 칸에 넣는다');
+    var matchSrc = readRoot('js/views/matching.js');
+    includes(matchSrc, 'data-act="mp-club-map"', '매칭 카드 클럽 칸: 지도에서 고르기');
+    var commSrc = readRoot('js/views/community.js');
+    includes(commSrc, 'BM.views.gyms.link', '모집글 장소 링크');
+    var appSrc = readRoot('app.js');
+    includes(appSrc, "closest('[data-gym-open]')", '어느 화면에서든 체육관 링크 처리');
+    includes(appSrc, 'openVenue', '그 체육관으로 지도 열기');
+    var viewSrc = readRoot('js/views/gyms.js');
+    includes(viewSrc, 'getCurrentPosition', '위치는 버튼을 눌렀을 때 한 번만');
+    excludes(viewSrc, 'watchPosition', '계속 추적하지 않는다');
+    var css = readRoot('styles.css');
+    includes(css, '.gymgeo__b', '내 위치 버튼 스타일');
+    includes(css, '.gymcard__dist', '거리 칩 스타일');
+    includes(css, '.gymlink', '체육관 이름 링크 스타일');
+    includes(readRoot('js/ui.js'), 'target:', '내 위치 아이콘');
+  });
+
+  /* =========================================================
+   * 6. 화면
    * ========================================================= */
   test('화면: 매칭 > 찾기 맨 위에 체육관 지도 입구 카드가 있다', function () {
     resetFavs();
