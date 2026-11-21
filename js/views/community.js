@@ -14,6 +14,14 @@
   var topicFilter = '전체';   /* 상단 말머리 칩 — 전체 / 자유 / 후기 / 게스트 모집 / 용품 / 일지 */
   var lastPostAt = 0;     /* 방금 올린 시각 — 올리기 연타로 '내용을 입력해 주세요'가 뜨지 않게 */
 
+  /* 작성칸 안내 문구 — '게스트 모집'은 모집 칸만 채워도 올라가서 그렇게 알려 줍니다
+   * (bm-v1.39.1: 본문을 비운 채 모집 칸만 채우고 올리다가 막히던 문제) */
+  function composerHint(topic) {
+    return D.normalizeTopic(topic) === D.MEET.topic
+      ? D.MEET.topic + ' 한마디 (비워 두어도 올라가요)'
+      : '오늘 경기 어땠어요? 한 줄 남겨보세요';
+  }
+
   /* 말머리 칩 한 줄 (말머리 고르기 · 목록 거르기에서 같은 모양을 씁니다)
    * 거르기의 '전체'는 고른 조건이 아니라 '조건 없음'이라 색을 달리해 구분합니다. */
   function topicChips(current, attr, all) {
@@ -47,14 +55,31 @@
   function postCard(p, state) {
     var open = !!openReplies[p.id];
     var me = (state.me && state.me.key) || '';
+    /* 내가 쓴 글에만 '삭제' 입구를 붙입니다 (bm-v1.40.1) — 지우기 전에 그 글 안에서 한 번 더 확인합니다 */
+    var mine = !!me && String(p.userKey || '') === String(me);
+    /* 본문을 비우고 모집 정보만 적은 글은 빈 문단을 그리지 않습니다 (bm-v1.39.1) */
+    var body = String(p.text == null ? '' : p.text);
     return '<article class="post" data-post="' + U.esc(p.id) + '">' +
       '<header class="post__head">' +
       '<button type="button" class="post__author" data-author="' + U.esc(p.userKey) + '" aria-label="' + U.esc(p.nick) + ' 프로필 보기">' +
       UI.avatar(avatarFor(state, p.userKey), 40) +
       '<span class="post__who"><strong>' + U.esc(p.nick) + '</strong>' +
       '<time>' + U.timeAgo(p.createdAt) + '</time></span></button>' +
-      '<span class="pill pill--ghost post__topic">' + U.esc(p.topic || '자유') + '</span></header>' +
-      '<p class="post__text">' + U.esc(p.text).replace(/\n/g, '<br>') + '</p>' +
+      '<span class="pill pill--ghost post__topic">' + U.esc(p.topic || '자유') + '</span>' +
+      (mine
+        ? '<button type="button" class="post__del" data-post-del="' + U.esc(p.id) + '" aria-expanded="false"' +
+          ' aria-label="내 글 삭제" title="삭제">' + UI.icon('trash') + '</button>'
+        : '') +
+      '</header>' +
+      (mine
+        ? '<div class="post__delbar" data-delbar="' + U.esc(p.id) + '" hidden>' +
+          '<p class="post__delbar-t">이 글을 삭제할까요? 지우면 되돌릴 수 없어요.</p>' +
+          '<div class="row gap8">' +
+          '<button type="button" class="btn btn--ghost btn--sm grow" data-act="post-del-no">취소</button>' +
+          '<button type="button" class="btn btn--danger btn--sm grow" data-act="post-del-yes" data-del-post="' + U.esc(p.id) + '">' + UI.icon('trash') + '삭제</button>' +
+          '</div></div>'
+        : '') +
+      (body.trim() ? '<p class="post__text">' + U.esc(body).replace(/\n/g, '<br>') + '</p>' : '') +
       (p.meet ? meetCard(p, state) : '') +
       '<footer class="post__foot">' +
       '<button class="react' + (p.likedByMe ? ' is-on' : '') + '" data-like="' + U.esc(p.id) + '" aria-pressed="' + (p.likedByMe ? 'true' : 'false') + '">' +
@@ -110,6 +135,7 @@
       (st.closed ? '<span class="pill pill--closed">' + U.esc(D.MEET.closedLabel) + '</span>' : '') + '</p>' +
       '<p class="vite__row">' + UI.icon('clock') + '<span>' + U.esc(m.when || '일시는 문의해서 정해요') + '</span></p>' +
       '<p class="vite__row vite__row--place">' + placeHtml(m.place) + '</p>' +
+      (m.fee ? '<p class="vite__row vite__row--fee">' + UI.icon('coin', 'vite__fee-ic') + '<span>' + U.esc(D.meetFeeText(m)) + '</span></p>' : '') +
       (capLine
         ? '<p class="vite__row vite__row--cap">' + UI.icon('users') + '<span>' + U.esc(capLine) + '</span>' +
           (mine && st.members.length
@@ -192,7 +218,27 @@
     return withWhen(D.MEET.topic + ' 참여하고 싶어요!', when);
   }
 
-  /* 말머리가 '게스트 모집'일 때만 보이는 선택 입력칸 (전부 비워 두어도 그냥 글이 됩니다) */
+  /* 말머리가 '게스트 모집'일 때만 보이는 선택 입력칸 (전부 비워 두어도 그냥 글이 됩니다)
+   * bm-v1.40.1: '게스트비' 칸과 빠른 선택 칩(없음·5천원·1만원) — 비워 두어도 올라갑니다. */
+  function feeChips(cur) {
+    return D.MEET.feeChips.map(function (v) {
+      var on = String(cur || '') === v;
+      return '<button type="button" class="chip chip--sm' + (on ? ' is-on' : '') + '" data-vitefee-val="' + U.esc(v) + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' + U.esc(v) + '</button>';
+    }).join('');
+  }
+
+  /* 칸에 적힌 값에 맞춰 칩의 켜짐만 바꿉니다 (화면을 다시 그리지 않음 → 포커스 유지) */
+  function syncFeeChips(root, val) {
+    var host = root.querySelector('[data-vitefee]');
+    if (!host) return;
+    UI.$$('.chip', host).forEach(function (b) {
+      var on = String(b.getAttribute('data-vitefee-val') || '') === String(val == null ? '' : val);
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
   function meetFields(picked, state) {
     var m = (state.ui && state.ui.composerMeet) || {};
     var on = picked === D.MEET.topic;
@@ -206,6 +252,9 @@
       '<label class="viteform__f viteform__f--wide"><span>어디 체육관</span>' +
       '<input type="text" maxlength="30" data-vitefield="place" placeholder="동네 체육관 이름" value="' + U.esc(m.place || '') + '">' +
       '<button type="button" class="viteform__pick" data-act="pick-gym">' + UI.icon('pin') + '지도에서 고르기</button></label>' +
+      '<label class="viteform__f viteform__f--wide"><span>게스트비</span>' +
+      '<input type="text" maxlength="12" data-vitefield="fee" enterkeyhint="done" placeholder="없음 또는 1만원" value="' + U.esc(m.fee || '') + '"></label>' +
+      '<div class="chips viteform__chips" data-vitefee>' + feeChips(m.fee) + '</div>' +
       '</div></div>';
   }
 
@@ -292,7 +341,7 @@
       return '' +
         '<section class="card card--composer">' +
         '<div class="row">' + UI.avatar({ theme: state.me && state.me.theme }, 34) +
-        '<textarea rows="1" data-composer placeholder="오늘 경기 어땠어요? 한 줄 남겨보세요" maxlength="300">' + U.esc(state.ui.composer || '') + '</textarea></div>' +
+        '<textarea rows="1" data-composer placeholder="' + U.esc(composerHint(picked)) + '" maxlength="300">' + U.esc(state.ui.composer || '') + '</textarea></div>' +
         '<div class="topicpick-line"><span class="topicpick__lab">분류</span>' +
         '<div class="chips topicpick" data-topics data-tag="' + U.esc(picked) + '">' + topicChips(picked, 'data-topic', false) + '</div></div>' +
         meetFields(picked, state) +
@@ -311,6 +360,19 @@
 
     mount: function (root, ctx) {
       root.addEventListener('click', function (ev) {
+        /* 게스트비 빠른 선택 칩 — 누르면 칸에 그대로 적히고, 같은 칩을 다시 누르면 지웁니다 */
+        var fchip = ev.target.closest('[data-vitefee-val]');
+        if (fchip) {
+          ev.preventDefault();
+          var fval = fchip.getAttribute('data-vitefee-val') || '';
+          var finp = root.querySelector('[data-vitefield="fee"]');
+          var next = (finp && finp.value === fval) ? '' : fval;
+          if (finp) finp.value = next;
+          ctx.actions.setComposerMeet('fee', next);
+          syncFeeChips(root, next);
+          UI.haptic(6);
+          return;
+        }
         /* 말머리 고르기 (작성) — 한 개만 켜집니다 */
         /* 게스트 모집의 '어디 체육관' — 지도에서 골라 채웁니다 */
         if (ev.target.closest('[data-act="pick-gym"]')) {
@@ -333,6 +395,9 @@
           /* 게스트 모집일 때만 모집 입력칸을 보여 줍니다 (입력칸 포커스는 건드리지 않음) */
           var vf = root.querySelector('[data-viteform]');
           if (vf) vf.hidden = tag !== D.MEET.topic;
+          /* 본문 없이 모집 칸만 채워도 올라간다고 입력칸 안내도 같이 바꿉니다 */
+          var hintTa = root.querySelector('[data-composer]');
+          if (hintTa) hintTa.placeholder = composerHint(tag);
           UI.haptic(6);
           return;
         }
@@ -387,6 +452,39 @@
         if (mlist) {
           ev.preventDefault();
           openMembers(ctx, mlist.getAttribute('data-vite-members'));
+          return;
+        }
+        /* 내 글 삭제 — 먼저 그 글 안에서 한 번 더 물어보고(인라인 확인), '삭제'를 누를 때만 지웁니다 */
+        var delBtn = ev.target.closest('[data-post-del]');
+        if (delBtn) {
+          ev.preventDefault();
+          var dcard = delBtn.closest('[data-post]');
+          var dbar = dcard ? dcard.querySelector('[data-delbar]') : null;
+          if (dbar) {
+            dbar.hidden = !dbar.hidden;
+            delBtn.setAttribute('aria-expanded', dbar.hidden ? 'false' : 'true');
+            if (!dbar.hidden && dbar.scrollIntoView) dbar.scrollIntoView({ block: 'nearest' });
+          }
+          UI.haptic(6);
+          return;
+        }
+        if (ev.target.closest('[data-act="post-del-no"]')) {
+          ev.preventDefault();
+          var noBar = ev.target.closest('[data-delbar]');
+          if (noBar) noBar.hidden = true;
+          var noCard = noBar ? noBar.closest('[data-post]') : null;
+          var noBtn = noCard ? noCard.querySelector('[data-post-del]') : null;
+          if (noBtn) noBtn.setAttribute('aria-expanded', 'false');
+          return;
+        }
+        var delYes = ev.target.closest('[data-act="post-del-yes"]');
+        if (delYes) {
+          ev.preventDefault();
+          var dres = ctx.actions.deletePost(delYes.getAttribute('data-del-post'));
+          if (dres && dres.ok) { UI.toast('글을 삭제했어요'); UI.haptic(12); }
+          else if (dres && dres.reason === 'not_mine') UI.toast('내 글만 삭제할 수 있어요', 'error');
+          else if (dres && dres.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+          else UI.toast('글을 찾지 못했어요', 'error');
           return;
         }
         var like = ev.target.closest('[data-like]');
@@ -449,6 +547,7 @@
             if (ta) ta.value = '';
             /* 모집 입력칸도 같이 비웁니다 (다음 글은 다시 자유) */
             UI.$$('[data-vitefield]', root).forEach(function (inp) { inp.value = ''; });
+            syncFeeChips(root, '');
             var vf = root.querySelector('[data-viteform]');
             if (vf) vf.hidden = true;
             /* 올린 글이 지금 거르는 말머리와 다르면 전체로 돌아가 방금 글을 보여 줍니다 */
@@ -470,6 +569,8 @@
         /* 게스트 모집 입력 — 화면을 다시 그리지 않고 값만 담아 둡니다 */
         var vf = ev.target.closest('[data-vitefield]');
         if (vf) ctx.actions.setComposerMeet(vf.getAttribute('data-vitefield'), vf.value);
+        /* 게스트비를 손으로 고쳐도 칩의 켜짐이 따라갑니다 */
+        if (vf && vf.getAttribute('data-vitefield') === 'fee') syncFeeChips(root, vf.value);
         var ri = ev.target.closest('[data-reply-input]');
         if (ri) replyDrafts[ri.getAttribute('data-reply-input')] = ri.value;
       }, { passive: true });
@@ -514,6 +615,8 @@
       /* 모집 입력칸은 말머리를 따라갑니다 (값은 입력칸이 그대로 들고 있음) */
       var viteHost = root.querySelector('[data-viteform]');
       if (viteHost) viteHost.hidden = pickTag !== D.MEET.topic;
+      var hint = root.querySelector('[data-composer]');
+      if (hint) hint.placeholder = composerHint(pickTag);
       region.innerHTML = postsHtml(state);
       if (keep) {
         var again = region.querySelector('[data-reply-input="' + keep.pid + '"]');
@@ -531,6 +634,8 @@
     _setTopicFilter: function (t) { topicFilter = !t || t === '전체' ? '전체' : D.normalizeTopic(t); return topicFilter; },
     _inquiryDraft: inquiryDraft,
     _waitDraft: waitDraft,
+    _feeChips: feeChips,
+    _syncFeeChips: syncFeeChips,
     _meetStatus: D.meetStatus
   };
 

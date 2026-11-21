@@ -236,18 +236,18 @@
 
   BM.test.test('v1.39 버전: sw · app · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.39.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.39.0'", 'app.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.41.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.41.0'", 'app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.39.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.39.0', 'TWA appVersion');
+    eq(twa.appVersionName, '1.41.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.41.0', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드(웹만 바뀌면 그대로)');
   });
 
   BM.test.test('v1.39 문서: README에 이번 근거와 화면 문구 방침이 남는다', function () {
     if (!hasNode) return;
     var readme = readRoot('README.md');
-    includes(readme, 'v1.39.0', '버전 절');
+    includes(readme, 'v1.41.0', '버전 절');
     includes(readme, 'Senadheera', '팔꿈치·손목 출처');
     includes(readme, 'Barreira', '접전·구간 출처');
     includes(readme, '8~14점', '코트 목표 문구');

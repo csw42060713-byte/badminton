@@ -19,6 +19,12 @@
     return (state.data.matchProfiles || []).filter(function (m) { return m.userKey === key; })[0] || {};
   }
 
+  function rolePillOf(id) {
+    var r = D.roleById(id);
+    if (!r) return '';
+    return '<span class="pill pill--role" data-rolepill="' + r.id + '">' + U.esc(r.label) + '</span>';
+  }
+
   function genderPillOf(g) {
     var v = D.normalizeGender(g);
     if (!v || v === '비공개') return '';
@@ -401,6 +407,46 @@
       '</div></div></details>';
   }
 
+  /* ---------- 내 유형 (bm-v1.40.0) ----------
+   * 처음 시작할 때 고른 네 유형을 MY에서 언제든 보고 바꿉니다.
+   * 저장은 프로필 꾸미기 JSON 안 role 하나뿐이라(시트 26칸·Supabase 그대로)
+   * 기기를 바꿔도 따라오고, 이미 가입한 예전 사용자는 '아직 안 고름'으로 보입니다. */
+  function roleCard(state) {
+    var me = state.me || {};
+    var role = D.roleOf(me);
+    var def = D.roleById(role);
+    var guess = role ? null : D.roleById(D.roleGuess(me.level));
+    var proOn = D.proVisible(me, (state || {}).proPref);
+    var hint = role === 'player' ? '일지에 선수용 7대 훈련이 기본으로 뜽니다. 적은 내용은 저장한 뒤 ‘최근 기록’에서 다시 볼 수 있어요.'
+      : role === 'beginner' ? '초보자 4주 루틴과 용어 사전을 먼저 보여 드려요.'
+        : role === 'coach' ? '코치 탭에서 선수 일지를 모아 보고 피드백을 남길 수 있어요.'
+          : role === 'club' ? '일지·게스트 모집·1:1 매칭을 기본으로 씁니다.'
+            : '고르면 일지 첫머리와 안내가 그에 맞춰 바뀝니다.';
+    return '' +
+      '<section class="card" data-region="role">' +
+      '<header class="card__head"><h2>내 유형</h2>' +
+      (def ? '<span class="pill pill--grade">' + U.esc(def.label) + '</span>'
+        : '<span class="pill pill--ghost">아직 안 고름</span>') + '</header>' +
+      '<p class="role__s">지금 나에게 맞는 쪽을 골라 두세요. 언제든 바꿀 수 있어요.</p>' +
+      '<div class="rolelist">' + D.ROLES.map(function (r) {
+        var on = r.id === role;
+        return '<button type="button" class="rolepick rolepick--sm' + (on ? ' is-on' : '') + '" data-role="' + r.id + '"' +
+          ' aria-pressed="' + (on ? 'true' : 'false') + '">' +
+          '<span class="rolepick__t">' + U.esc(r.label) + '</span>' +
+          '<span class="rolepick__s">' + U.esc(r.answer) + '</span>' +
+          '<span class="rolepick__d">' + U.esc(r.desc) + '</span></button>';
+      }).join('') + '</div>' +
+      (guess ? '<p class="hint">급수로 보면 <b>' + U.esc(guess.label) + '</b>이에요. 골라 두면 일지가 그에 맞춰 시작해요.</p>'
+        : '<p class="hint">' + U.esc(hint) + '</p>') +
+      /* 선수 블록 표시 선택 — 선수가 아니어도 개인 훈련을 적는 사람은 켈 수 있게 */
+      '<div class="prefrow mt8">' +
+      '<div class="prefrow__t"><strong>선수 7대 훈련 기록</strong><p>일지에 스트록·스매시 등 7항목 체크와 세부 입력칸을 보여 줘요</p></div>' +
+      '<button type="button" class="switch' + (proOn ? ' is-on' : '') + '" role="switch" aria-checked="' +
+      (proOn ? 'true' : 'false') + '" aria-label="선수 7대 훈련 기록 ' + (proOn ? '끄기' : '켜기') + '" data-act="pro-pref-toggle">' +
+      '<i aria-hidden="true"></i><span>' + (proOn ? '켬' : '끔') + '</span></button></div>' +
+      '</section>';
+  }
+
   /* ---------- 초보자 4주 루틴 표시 선택 ----------
    * 일지 & AI 화면에 4주 체크리스트를 보일지 MY에서 언제든 바꿉니다.
    * '아직 고르지 않음'은 스위치가 꺼진 채로 보이고, 한 번 켜면 표시됩니다. */
@@ -489,7 +535,7 @@
         (BM.views.friends ? BM.views.friends.codeChip(state) : '') +
         '<div class="profile__pills">' +
         (myLevel ? '<span class="pill pill--grade">' + U.esc(myLevel) + '</span>' : '') +
-        genderPillOf(mp.gender || me.gender) + stylePillOf(myStyle) + '</div>' +
+        genderPillOf(mp.gender || me.gender) + stylePillOf(myStyle) + rolePillOf(D.roleOf(me)) + '</div>' +
         '<p class="profile__meta">' + (whereHtml || '종목·지역·체육관을 골라 보세요') + '</p>' +
         (me.bio ? '<p class="profile__bio">' + U.esc(me.bio) + '</p>' : '') + '</div></div>' +
         /* 꾸미기 입구는 이 버튼 하나입니다. 닉네임·사진·프레임·배지·급수·성별·
@@ -506,6 +552,11 @@
         '<div class="stat"><strong>' + (s.minutesMonth || 0) + '</strong><span>이번 달(분)</span></div>' +
         '<div class="stat"><strong>' + (s.winRate == null ? '—' : s.winRate + '%') + '</strong><span>승률</span></div>' +
         '</div>' + streakBadge(state) + '</section>' +
+
+        /* v1.41 — 통계 카드 아래 주간·월간 상세 리포트 입구 */
+        (BM.report ? BM.report.entryHtml() : '') +
+
+        roleCard(state) +
 
         routinePrefCard(state) +
 
@@ -592,6 +643,40 @@
           return;
         }
 
+        /* v1.40 — 내 유형 바꾸기 (초보 · 동호인 · 선수 · 코치) */
+        var roleBtn = ev.target.closest('[data-role]');
+        if (roleBtn) {
+          ev.preventDefault();
+          var roleId = roleBtn.getAttribute('data-role') || '';
+          var roleDef = D.roleById(roleId);
+          if (!roleDef) return;
+          var roleRes = ctx.actions.setRole(roleId);
+          if (roleRes && roleRes.ok && roleRes.saved === false) {
+            UI.toast('이미 ' + roleDef.label + ' 유형으로 하고 있어요');
+          } else if (roleRes && roleRes.ok) {
+            UI.toast('내 유형을 ' + roleDef.label + ' 유형으로 바꿨어요 · ' + roleDef.desc);
+            UI.haptic(12);
+          } else if (roleRes && roleRes.reason === 'locked') {
+            UI.toast('잠시만요, 처리 중이에요');
+          } else {
+            UI.toast('유형을 바꾸지 못했어요. 잠시 뒤 다시 시도해 주세요.', 'error');
+          }
+          return;
+        }
+
+        /* v1.40 — 선수 7대 훈련 기록 보기/숨기기 */
+        if (ev.target.closest('[data-act="pro-pref-toggle"]')) {
+          ev.preventDefault();
+          var st0 = ctx.store.state;
+          var proNow = D.proVisible(st0.me, st0.proPref);
+          var proRes = ctx.actions.setProPref(!proNow);
+          if (proRes && proRes.ok) {
+            UI.toast(!proNow ? '일지에 선수 7대 훈련을 보여줄게요' : '일지에서 선수 7대 훈련을 숨겼어요');
+            UI.haptic(10);
+          }
+          return;
+        }
+
         if (ev.target.closest('[data-act="checkin"]')) {
           ev.preventDefault();
           var ci = ctx.actions.checkIn();
@@ -637,6 +722,12 @@
                 ? '<ul class="ledger ledger--full">' + h.history.map(ledgerRow).join('') + '</ul>'
                 : '<p class="sheet__text">아직 내역이 없어요.</p>')
           });
+          return;
+        }
+        if (ev.target.closest('[data-act="open-report"]')) {
+          ev.preventDefault();
+          UI.haptic(8);
+          if (BM.report) BM.report.openFrom(ctx);
           return;
         }
         if (ev.target.closest('[data-act="decorate-sheet"]')) {

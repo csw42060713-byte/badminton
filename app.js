@@ -753,8 +753,16 @@
         store.actions.saveProfile({
           nick: patch.nick, level: patch.level, discipline: patch.discipline,
           gender: patch.gender || '비공개',
-          region: patch.region || '', club: patch.club || ''
+          region: patch.region || '', club: patch.club || '',
+          role: patch.role || ''
         });
+        /* v1.40 — 고른 유형에 맞춰 일지 첫머리를 준비합니다:
+         *  초보는 4주 루틴을 켜고, 선수는 7대 훈련 기록을 기본으로 보여 줍니다. */
+        var roleDef = BM.domain.roleById(patch.role);
+        if (roleDef) {
+          store.actions.setRoutinePref(roleDef.routine ? true : false);
+          store.actions.setProPref(roleDef.pro ? true : null);
+        }
         store.actions.saveMatchProfile({
           region: patch.region || '', level: patch.level, discipline: patch.discipline,
           club: patch.club || '', availability: '', experience: '', bio: '', avatar: '🏸',
@@ -772,7 +780,12 @@
         try { history.replaceState(null, '', '#/log'); } catch (e) { /* 무시 */ }
         U.writeJSON('bm_seen_v1', true);
         UI.haptic(16);
-        UI.toast(patch.nick + '님, 준비됐어요! 오늘 일지를 남겨 보세요.');
+        UI.toast(patch.nick + '님, 준비됐어요! ' + (roleDef
+          ? (roleDef.id === 'beginner' ? '4주 루틴부터 같이 시작해요.'
+            : roleDef.id === 'player' ? '7대 훈련으로 오늘을 남겨 보세요.'
+              : roleDef.id === 'coach' ? '코치 탭에서 선수 피드백을 볼 수 있어요.'
+                : '오늘 일지를 남겨 보세요.')
+          : '오늘 일지를 남겨 보세요.'));
       }
     });
   }
@@ -1019,7 +1032,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.39.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.41.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

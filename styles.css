@@ -1602,6 +1602,28 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 .post { padding: 16px 18px; border-top: 1px solid var(--line); }
 .post:first-child { border-top: 0; }
 .post__head { display: flex; align-items: center; gap: 10px; }
+/* 내 글 삭제 입구 · 확인 줄 (bm-v1.40.1) — 작은 휴지통 버튼을 누르면 그 글 안에서 한 번 더 */
+.post__del {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; margin-left: -4px;
+  border-radius: 9px; color: var(--muted);
+  transition: background 120ms, color 120ms, transform 90ms;
+  touch-action: manipulation;
+}
+.post__del .ico { width: 15px; height: 15px; }
+.post__del:hover, .post__del[aria-expanded="true"] { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); }
+.post__del:active { transform: scale(0.92); }
+.post__delbar {
+  display: grid; gap: 9px; margin-top: 10px; padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bad) 7%, transparent);
+  animation: viewIn 130ms ease-out;
+}
+.post__delbar[hidden] { display: none; }
+.post__delbar-t { font-size: 12px; font-weight: 700; color: var(--text-2); line-height: 1.4; }
+.post__delbar .btn--sm { min-height: 36px; }
+.post__delbar .btn--danger .ico { width: 13px; height: 13px; }
 .post__who strong { display: block; font-size: 13.5px; letter-spacing: -0.2px; }
 .post__text { font-size: 14px; margin-top: 10px; color: var(--text); line-height: 1.55; word-break: break-word; }
 .post__foot { display: flex; gap: 14px; margin-top: 12px; }
@@ -2930,6 +2952,9 @@ summary { display: list-item; }
   border-radius: 10px; background: var(--card-2);
 }
 .viteform__f input::placeholder { color: var(--muted); }
+/* 게스트비 빠른 칩 줄 (bm-v1.40.1) — 입력칸 바로 아래, 한 줄로 */
+.viteform__chips { grid-column: 1 / -1; gap: 6px; margin-top: -2px; }
+.viteform__chips .chip { flex: 0 1 auto; }
 
 .vite {
   display: flex; align-items: center; gap: 10px;
@@ -2955,6 +2980,8 @@ summary { display: list-item; }
 }
 .vite__row .ico { flex: 0 0 auto; width: 13px; height: 13px; color: var(--muted); }
 .vite__row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vite__row--fee { color: var(--text-2); }
+.vite__row--fee .ico { color: var(--accent); }
 .vite__btn { flex: 0 0 auto; }
 .vite__own { flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--muted); }
 
@@ -5082,3 +5109,238 @@ body {
   letter-spacing: -0.2px;
 }
 .gympage__all:active { transform: scale(0.97); }
+
+/* ============================================================
+ * bm-v1.40.0 — 시작 4유형 선택 · 선수용 7대 훈련 기록
+ *  1) 온보딩 / MY의 유형 카드 (.rolepicks · .rolepick · .rolelist)
+ *  2) 일지의 선수 7대 훈련 (.prolist · .pro · .pro__note)
+ *  3) 최근 기록·상세의 7대 훈련 한 줄 (.logrow__pro · .prodetail)
+ *  과한 그라데이션 없이 테두리·바탕만으로 고른 상태를 보여 줍니다.
+ * ============================================================ */
+
+/* 1) 유형 카드 — 온보딩은 2×2, MY는 한 줄에 하나씩 */
+.rolepicks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.rolepick {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  min-height: 74px; padding: 12px 13px;
+  border: 1px solid var(--line-2); border-radius: var(--r);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  color: var(--text-2); text-align: left;
+  transition: transform 80ms, border-color 120ms, background 120ms, color 120ms;
+  touch-action: manipulation;
+}
+.rolepick:active { transform: scale(0.97); }
+.rolepick__t { font-size: 14px; font-weight: 900; letter-spacing: -0.3px; color: var(--text); }
+.rolepick__s { font-size: 11.5px; font-weight: 700; line-height: 1.35; color: var(--text-2); }
+.rolepick__d { font-size: 10.5px; line-height: 1.35; color: var(--muted); }
+.rolepick.is-on {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.rolepick.is-on .rolepick__t,
+.rolepick.is-on .rolepick__s,
+.rolepick.is-on .rolepick__d { color: var(--accent-ink); }
+.rolepick.is-on .rolepick__d { opacity: 0.78; }
+.rolepicks__note { font-size: 11px; color: var(--muted); }
+
+.rolelist { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+.rolepick--sm { min-height: 0; padding: 10px 13px; gap: 2px; }
+.rolepick--sm .rolepick__s { font-size: 11px; }
+.role__s { font-size: 12px; line-height: 1.55; color: var(--muted); }
+.pill--role {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text-2);
+}
+.pill--role[data-rolepill="player"] {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+/* 2) 선수 7대 훈련 — 항목 한 줄 + 펼쳐지는 입력칸 */
+.prolist { display: flex; flex-direction: column; gap: 7px; }
+.pro {
+  border: 1px solid var(--line-2); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--text) 2.5%, transparent);
+  overflow: hidden;
+}
+.pro__top {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  min-height: 44px; padding: 0 12px;
+  background: transparent; color: var(--text-2); text-align: left;
+  touch-action: manipulation;
+}
+.pro__top:active { background: var(--card-2); }
+.pro__box {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 7px;
+  border: 1.5px solid var(--line-2);
+  font-size: 12px; font-weight: 900; line-height: 1; color: var(--accent-ink);
+}
+.pro__name { flex-none; font-size: 13px; font-weight: 800; letter-spacing: -0.2px; color: var(--text); }
+.pro__sum {
+  flex: 1; min-width: 0;
+  font-size: 11.5px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right;
+}
+.pro.is-on { border-color: var(--accent-line); background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.pro.is-on .pro__box { background: var(--accent); border-color: transparent; }
+.pro.is-on .pro__sum { color: var(--text-2); }
+.pro__note {
+  display: block; width: 100%;
+  min-height: 42px; padding: 9px 12px;
+  border: 0; border-top: 1px dashed var(--line);
+  border-radius: 0; background: transparent;
+  font-size: 12.5px; color: var(--text);
+}
+.pro__note::placeholder { color: var(--muted); }
+.pro__note:focus { outline: none; background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.pro__note[hidden] { display: none; }
+.pro__foot { margin-top: 8px; font-size: 10.5px; line-height: 1.45; color: var(--muted); }
+
+/* 3) 최근 기록 · 상세 */
+/* 최근 기록 목록은 grid 한 칸입니다 — 칸 폭을 카드 안으로 묶어야
+ * 긴 7대 훈련 한 줄이 카드 밖으로 밀려 나가지 않고 말줄임(…)으로 잘립니다. */
+.loglist { grid-template-columns: minmax(0, 1fr); }
+.logrow__pro {
+  margin-top: 3px;
+  font-size: 11px; line-height: 1.4; color: var(--text-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.logrow__pro span {
+  margin-right: 5px; padding: 1px 6px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent); font-size: 9.5px; font-weight: 800; letter-spacing: -0.1px;
+}
+.prodetail { margin-top: 4px; }
+.prodetail b { font-weight: 800; }
+
+/* 코치 유형 안내 카드 */
+.rolehint { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.rolehint__t { font-size: 14px; font-weight: 900; letter-spacing: -0.3px; }
+.rolehint__s { font-size: 12px; line-height: 1.55; color: var(--muted); }
+.card--rolehint { padding-bottom: 14px; }
+
+/* ============================================================
+ * 주간·월간 상세 리포트 (bm-v1.41.0)
+ *  · 입구는 일지 & AI(AI 카드 아래)·MY(통계 카드 아래)의 한 줄 버튼
+ *  · 리포트는 .bgp 전체화면 패널을 그대로 쓰고, 안쪽만 이 파일에서 칠합니다
+ * ============================================================ */
+
+/* 입구 한 줄 — 카드 사이 gap(14px)은 .view가 잡아 줍니다 */
+.rptbtn {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  margin: 0; padding: 12px 14px; min-height: 52px;
+  border-radius: 15px; border: 1px solid var(--accent-line);
+  background: var(--accent-soft); color: var(--text);
+  text-align: left; font: inherit; cursor: pointer;
+}
+.rptbtn:active { transform: scale(0.985); }
+.rptbtn__t {
+  flex: 1; min-width: 0; display: grid; gap: 2px;
+  font-size: 13px; font-weight: 800; letter-spacing: -0.25px;
+}
+.rptbtn__t small { font-size: 10.5px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.rptbtn__car { flex: 0 0 auto; width: 14px; height: 14px; color: var(--muted); }
+
+/* 리포트 본문 */
+.rptp .bgp__body { padding-top: 2px; }
+.rpt { padding-bottom: calc(24px + var(--safe-b)); }
+.rpt__range { display: grid; gap: 2px; margin: 12px 2px 0; }
+.rpt__range b { font-size: 15.5px; font-weight: 900; letter-spacing: -0.45px; }
+.rpt__range span { font-size: 11px; font-weight: 600; color: var(--muted); }
+
+.rpt__sec {
+  margin-top: 12px; padding: 14px;
+  border-radius: 16px; border: 1px solid var(--line); background: var(--card);
+}
+.rpt__h {
+  display: flex; align-items: center; gap: 6px; margin: 0;
+  font-size: 13px; font-weight: 800; letter-spacing: -0.3px;
+}
+.rpt__h small { font-size: 10.5px; font-weight: 600; color: var(--muted); }
+
+/* 1) 운동량 · 승률 */
+.rpt__stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.rpt__stat {
+  display: grid; gap: 1px; padding: 10px 11px 9px;
+  border-radius: 12px; background: var(--card-2); border: 1px solid var(--line);
+}
+.rpt__stat strong {
+  font-size: 17px; font-weight: 900; letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.rpt__stat span { font-size: 10px; font-weight: 700; color: var(--muted); }
+.rpt__d {
+  margin-top: 2px; font-size: 10.5px; font-style: normal;
+  font-weight: 800; font-variant-numeric: tabular-nums; color: var(--muted);
+}
+.rpt__d.up { color: var(--good); }
+.rpt__d.down { color: var(--bad); }
+.rpt__d.is-first, .rpt__d.is-flat { color: var(--muted); font-weight: 700; }
+.rpt__note {
+  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line);
+  font-size: 11px; line-height: 1.5; color: var(--muted);
+}
+
+/* 2) 약점 TOP 3 */
+.rpt__bars { display: grid; gap: 12px; margin: 12px 0 0; padding: 0; list-style: none; }
+.rpt__bar-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.rpt__bar-top b { font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px; }
+.rpt__bar-top span { font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rpt__bar {
+  height: 7px; margin-top: 6px; border-radius: 999px;
+  background: var(--card-2); overflow: hidden;
+}
+.rpt__bar i {
+  display: block; height: 100%; width: var(--w, 0%);
+  border-radius: 999px; background: var(--accent);
+}
+.rpt__barrow:nth-child(1) .rpt__bar i { opacity: 1; }
+.rpt__barrow:nth-child(2) .rpt__bar i { opacity: 0.72; }
+.rpt__barrow:nth-child(3) .rpt__bar i { opacity: 0.48; }
+.rpt__bar-d { margin-top: 5px; font-size: 10.5px; font-weight: 600; color: var(--muted); }
+
+/* 3) 통증 */
+.rpt__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.rpt__chip {
+  padding: 5px 10px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card-2);
+  font-size: 11.5px; font-weight: 700; letter-spacing: -0.15px;
+}
+.rpt__chip b { font-weight: 900; font-variant-numeric: tabular-nums; }
+.rpt__chip.is-warn {
+  border-color: color-mix(in srgb, var(--warn) 38%, transparent);
+  background: color-mix(in srgb, var(--warn) 13%, transparent);
+  color: var(--warn);
+}
+.rpt__warn {
+  margin-top: 11px; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--warn) 26%, transparent);
+  background: color-mix(in srgb, var(--warn) 11%, transparent);
+}
+.rpt__warn b { display: block; font-size: 10.5px; font-weight: 900; letter-spacing: 0.2px; color: var(--warn); }
+.rpt__warn p { margin-top: 3px; font-size: 12px; line-height: 1.55; }
+.rpt__warn .rpt__warn-s { font-size: 11.5px; color: var(--text-2); }
+
+/* 4) 다음 방향 */
+.rpt__next { display: grid; gap: 9px; margin: 12px 0 0; padding: 0; list-style: none; counter-reset: rptn; }
+.rpt__next li {
+  position: relative; padding-left: 25px;
+  font-size: 12.5px; line-height: 1.6; letter-spacing: -0.15px;
+}
+.rpt__next li::before {
+  counter-increment: rptn; content: counter(rptn);
+  position: absolute; left: 0; top: 1px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 10px; font-weight: 900;
+}
+
+.rpt__none { margin-top: 11px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.rpt__foot {
+  margin: 16px 2px 0; font-size: 10.5px; line-height: 1.5; color: var(--muted);
+}
+.rpt__empty { margin-top: 10px; }
+.rpt__empty .empty { padding: 22px 8px 10px; }

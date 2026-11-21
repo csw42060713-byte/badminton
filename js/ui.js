@@ -43,7 +43,9 @@
     users: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.5 14.4c2.1.7 3.5 2.6 3.5 5.6"/>',
     refresh: '<path d="M20 11a8 8 0 1 0-2.3 6.1"/><path d="M20 4v7h-7"/>',
     bell: '<path d="M18 15V10a6 6 0 1 0-12 0v5l-2 3h16z"/><path d="M10 21h4"/>',
-    mail: '<path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/>'
+    mail: '<path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/>',
+    /* 게스트비 동전 — 동글게 안에 ₩ (bm-v1.40.1) */
+    coin: '<circle cx="12" cy="12" r="8.2"/><path d="M9 9l1.4 6 1.6-3.4L13.6 15 15 9"/><path d="M9.8 12.2h4.4"/>'
   };
 
   function icon(name, cls) {
