@@ -478,7 +478,7 @@
       if (leaveBtn) {
         ev.preventDefault();
         roomConfirm = { roomId: String(leaveBtn.getAttribute('data-vite-leave') || ''), kind: 'leave' };
-        if (ctx.refresh) ctx.refresh();
+        render(host, ctx.store.state);      /* 방 화면만 다시 그려 확인 바를 보여 줍니다 */
         UI.haptic(8);
         return;
       }
@@ -486,14 +486,14 @@
       if (endBtn) {
         ev.preventDefault();
         roomConfirm = { roomId: String(endBtn.getAttribute('data-vite-end') || ''), kind: 'end' };
-        if (ctx.refresh) ctx.refresh();
+        render(host, ctx.store.state);
         UI.haptic(8);
         return;
       }
       if (ev.target.closest('[data-act="leave-no"]')) {
         ev.preventDefault();
         roomConfirm = { roomId: '', kind: '' };
-        if (ctx.refresh) ctx.refresh();
+        render(host, ctx.store.state);
         return;
       }
       var leaveYes = ev.target.closest('[data-act="leave-yes"]');
