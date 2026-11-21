@@ -1,4 +1,4 @@
-"""bm-v1.42.0 로컬 확인 — 체육관 지도 · 자주 가는 체육관 · 내 위치 가까운 순 (390×844).
+"""bm-v1.42.1 로컬 확인 — 체육관 지도 · 자주 가는 체육관 · 내 위치 가까운 순 (390×844).
 
 · 로컬 정적 서버(포트 8099)를 이 스크립트가 직접 띄우고 끝나면 내립니다.
 · 이 기기 저장(체험)으로만 확인합니다.
@@ -66,7 +66,7 @@ try:
         page.on('pageerror', lambda e: errs.append('pageerror: ' + str(e)[:300]))
         boot(page)
 
-        check('앱 버전 v1.42.0', page.evaluate('window.BM && BM.app && BM.app.version') == 'v1.42.0',
+        check('앱 버전 v1.42.1', page.evaluate('window.BM && BM.app && BM.app.version') == 'v1.42.1',
               page.evaluate('window.BM && window.BM.app && window.BM.app.version'))
         check('js/gyms.js 로드', page.evaluate('!!(window.BM && window.BM.gyms)'))
         check('체육관 13곳', page.evaluate('BM.gyms.count()') == 13, page.evaluate('BM.gyms.count()'))

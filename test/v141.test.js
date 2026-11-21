@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v141.test.js — bm-v1.41.0 (2026-11-21 저녁)
+ * test/v141.test.js — bm-v1.41.1 (2026-11-21 저녁)
  *
  *  사용자가 고른 3번째 기능 — 주간 / 월간 상세 리포트
  *   1) 주간(최근 7일 vs 직전 7일) · 월간(이번 달 vs 지난달) 전환
@@ -349,13 +349,13 @@
   /* =========================================================
    * 7. 버전 · 배포
    * ========================================================= */
-  test('v1.41 버전: sw.js · app.js · twa-manifest.json이 1.41.0으로 맞는다', function () {
+  test('v1.41 버전: sw.js · app.js · twa-manifest.json이 1.41.1으로 맞는다', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.42.0'", 'sw.js');
-    includes(app, "version: 'v1.42.0'", 'app.js');
-    eq(twa.appVersionName, '1.42.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.42.0', 'TWA appVersion');
+    includes(sw, "var VERSION = 'bm-v1.42.1'", 'sw.js');
+    includes(app, "version: 'v1.42.1'", 'app.js');
+    eq(twa.appVersionName, '1.42.1', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.42.1', 'TWA appVersion');
     eq(twa.appVersionCode, 38, '코드 38 유지');
   });
 
@@ -372,9 +372,9 @@
 
   test('v1.41 문서: README·아이디어 노트에 이번 사이클이 남는다', function () {
     var readme = readRoot('README.md'), ideas = readRoot('ideas.md');
-    includes(readme, 'v1.42.0', 'README 버전 절');
+    includes(readme, 'v1.42.1', 'README 버전 절');
     includes(readme, '주간·월간 상세 리포트', 'README 기능');
-    includes(ideas, 'v1.42.0', '아이디어 노트');
+    includes(ideas, 'v1.42.1', '아이디어 노트');
   });
 
   test('v1.41 비밀값: 공개 저장소에 시트 ID·비밀키를 새로 넣지 않는다', function () {

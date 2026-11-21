@@ -917,7 +917,7 @@
       },
 
       addReply: function (postId, text) {
-        text = (text || '').trim();
+        text = D.clampText(text, 200).trim();
         if (!text) return { ok: false, reason: 'empty' };
         if (!tryLock('reply:' + postId, 900)) return { ok: false, reason: 'locked' };
         var entity = meEntity({
@@ -936,7 +936,8 @@
        *  모집 글은 모집 정보만으로도 성립하기 때문입니다(현장에서 급하게 올리는 경우).
        *  본문도 모집 칸도 비어 있으면 지금처럼 empty로 막습니다. */
       createPost: function (text, topic, meet) {
-        text = (text || '').trim();
+        /* 화면 입력칸(maxlength) 밖으로 들어온 아주 긴 글도 여기서 자릅니다 (bm-v1.41.1) */
+        text = D.clampText(text, 300).trim();
         var tag = D.normalizeTopic(topic || state.ui.composerTopic);
         var mv = (tag === D.MEET.topic) ? D.normalizeMeet(meet || state.ui.composerMeet) : null;
         var hasMeet = D.meetFilled(mv);
@@ -1089,7 +1090,7 @@
         var req = meEntity({
           type: '매칭신청', id: reqId, clientId: U.clientId(), date: U.ymd(),
           nick: state.me.nick, target: targetKey, status: '대기',
-          payload: { note: note || '', heartCost: cost, payOn: 'accept' }
+          payload: { note: D.clampText(note, 60).trim(), heartCost: cost, payOn: 'accept' }
         });
         pushRow(req);
         state.ui.chatRoom = reqId;
@@ -1133,7 +1134,7 @@
       },
 
       sendChat: function (roomId, otherKey, text) {
-        text = (text || '').trim();
+        text = D.clampText(text, 300).trim();
         if (!text) return { ok: false, reason: 'empty' };
         if (!roomId) return { ok: false, reason: 'no_room' };
         /* 모집 글 단체방은 방(글)만 있으면 누구나 참여 대화를 할 수 있습니다.
@@ -1398,7 +1399,7 @@
         }
         var entity = meEntity({
           type: '선물하트', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
-          target: targetKey, likes: D.HEART_RULES.GIFT_COST, text: note || ''
+          target: targetKey, likes: D.HEART_RULES.GIFT_COST, text: D.clampText(note, 60).trim()
         });
         pushRow(entity);
         commit();

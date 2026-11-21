@@ -204,8 +204,10 @@
      * 예전에는 bridgeUrl()(저장 값이 없으면 기본 주소를 돌려줌)로 판단해서
      * 기기 저장(local) 모드에서도 '시트 브리지 계정'이라고 잘못 보였습니다. */
     var live = (s && s.source === 'sheets') || state.mode === 'sheets';
-    var pic = s && s.picture
-      ? '<img class="acc__pic" src="' + U.esc(s.picture) + '" alt="">'
+    /* 계정 사진도 http/https(또는 앱이 자른 data:image)만 — javascript:·data:text/html 차단 */
+    var picUrl = s && s.picture ? D.safeImageUrl(s.picture) : '';
+    var pic = picUrl
+      ? '<img class="acc__pic" src="' + U.esc(picUrl) + '" alt="">'
       : '<span class="acc__pic acc__pic--emoji">' + (kind === 'google' ? 'G' : kind === 'email' ? '✉' : '🏸') + '</span>';
     var hint = kind === 'guest'
       ? '체험 모드 기록은 이 기기에만 저장돼요. 로그인하면 계정별로 따로 보관됩니다.'

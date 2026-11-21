@@ -1,4 +1,4 @@
-"""bm-v1.42.0 라이브 확인 — 체육관 지도 · 자주 가는 체육관 · 내 위치 가까운 순 (390×844).
+"""bm-v1.42.1 라이브 확인 — 체육관 지도 · 자주 가는 체육관 · 내 위치 가까운 순 (390×844).
 
 · https://csw42060713-byte.github.io/badminton/ 에 올라간 화면을 그대로 확인합니다.
 · 실행:
@@ -46,9 +46,9 @@ with sync_playwright() as p:
         page.wait_for_timeout(2400)
     close_sheets(page)
 
-    check('라이브 앱 버전 v1.42.0', page.evaluate('window.BM && BM.app && BM.app.version') == 'v1.42.0',
+    check('라이브 앱 버전 v1.42.1', page.evaluate('window.BM && BM.app && BM.app.version') == 'v1.42.1',
           page.evaluate('window.BM && window.BM.app && window.BM.app.version'))
-    check('캐시 버전 bm-v1.42.0', page.evaluate("() => navigator.serviceWorker.getRegistrations && true") and True)
+    check('캐시 버전 bm-v1.42.1', page.evaluate("() => navigator.serviceWorker.getRegistrations && true") and True)
     check('js/gyms.js 로드', page.evaluate('!!(window.BM && window.BM.gyms)'))
     check('체육관 13곳', page.evaluate('BM.gyms.count()') == 13, page.evaluate('BM.gyms.count()'))
     check('Leaflet 로드', page.evaluate('!!window.L'))
