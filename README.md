@@ -1847,9 +1847,19 @@ bubblewrap build            # → app-release-bundle.aab
 
 ### 5) 검증
 
-- `node test/run.js` **900 → 913/913 통과**(`test/v142_1.test.js` 13건 추가: 모집 칸 없는 글의 카드·버튼·방 열기 ·
+- `node test/run.js` **900 → 912/912 통과**(`test/v142_1.test.js` 13건 추가: 모집 칸 없는 글의 카드·버튼·방 열기 ·
   주소 안전장치 · 글자 수 상한 · CSP 해시 일치 · 비밀값 미포함 · 버전·문서).
 - 로컬 390×844: `test/local-v142-1.py`(18/18 — CSP 위반 0건 · 5개 탭 가로 넘침 0 · 모집 칸 비운 글 입구 · 단체방 열림),
   `test/sweep-v142-1.py`(5개 탭 + 점수판·초보자 가이드·리포트·프로필·멤버·하트·테마·채팅 목록 모달).
 - CSP 아래에서 Supabase REST(읽기)·실시간(wss)·구글 로그인 스크립트가 막히지 않는지 확인(정책 위반 0건).
 - 버전: `sw.js` `bm-v1.42.1` · `app.js` `v1.42.1` · `twa-manifest.json` `1.42.1`(appVersionCode **38 유지**).
+
+### 6) 라이브 확인 (390×844 · 23/23)
+
+`https://csw42060713-byte.github.io/badminton/`에 `bm-v1.42.1`(`main` `5ac8deb` · `gh-pages` `a657019`)이 올라간 뒤 확인했습니다.
+라이브 `sw.js` `bm-v1.42.1` · `app.js` `v1.42.1` · TWA `1.42.1`(코드 38), `index.html`에 CSP·Referrer-Policy,
+`test/`·`supabase/`는 gh-pages에 없음(404). 체험 모드에서 5개 탭 모두 **앱 오류 0건 · 가로 넘침 0**(문서 폭 390),
+**CSP 위반 0건**, `체육관 지도`(v1.42.0 회귀) 카드 13곳 정상, `게스트 모집` 필터 → 모집 칸을 비운 글에도 카드·`참여 문의`
+→ 단체방이 열립니다. 구글 로그인 스크립트도 CSP 아래에서 그대로 뜨고(GSI iframe 1개, 위반 0건),
+서비스워커 캐시가 `bm-v1.42.1`로 갱신됩니다. 캡처: `downloads/v1421_live_map.png` · `v1421_live_nomeet.png` ·
+`v1421_live_room.png` · `v1421_live_start.png`. 재현: `test/live-v142-1.py`.
