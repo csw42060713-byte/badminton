@@ -222,8 +222,9 @@ with sync_playwright() as p:
     page.click('[data-act="leave-yes"]')
     page.wait_for_timeout(1000)
     check('라이브: 나가면 방이 목록에서 사라짐', '게스트 모집 단체방' not in text_of(page, '#dm'), text_of(page, '#dm')[:140])
-    page.click('[data-dm-close]')
-    page.wait_for_timeout(500)
+    if page.query_selector('#dm [data-dm-close]'):
+        page.click('#dm [data-dm-close]')
+        page.wait_for_timeout(500)
     page.click('[data-tab="community"]')
     page.wait_for_timeout(900)
     check('라이브: 나간 뒤 다시 참여 신청 가능', page.evaluate(

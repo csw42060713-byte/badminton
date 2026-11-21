@@ -325,6 +325,7 @@
       var res = store.actions.leaveGuest('post-1');
       ok(res.ok, '나가기');
       eq(store.state.ui.chatRoom, null, '보고 있던 방이 닫힘');
+      eq(store.state.ui.chatOpen, true, '대화 목록으로 돌아감');
       eq(store.state.data.threads.filter(function (x) { return x.kind === 'group'; }).length, 0, '목록에서 사라짐');
       eq(D.meetStatus(store.state.idx, store.state.idx.byId['post-1'], GUEST.key).closed, false, '자리가 남음');
       store.state.locks = {};
