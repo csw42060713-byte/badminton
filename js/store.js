@@ -862,17 +862,19 @@
 
       /* 커뮤니티 글 올리기 — '게스트 모집'이면 모집 정보(언제·어디·몇 명)를 함께 담습니다.
        * 모집 정보를 비우면 일반 글과 똑같이 올라가고, 시트에는 말머리와 같이
-       * '훈련계획' 칸의 JSON으로만 적습니다(26칸 호환). */
+       * '훈련계획' 칸의 JSON으로만 적습니다(26칸 호환).
+       * bm-v1.39.1: 모집 칸(언제·몇 명·어디 체육관)만 채우고 본문 한 줄을 비워도 올라갑니다.
+       *  모집 글은 모집 정보만으로도 성립하기 때문입니다(현장에서 급하게 올리는 경우).
+       *  본문도 모집 칸도 비어 있으면 지금처럼 empty로 막습니다. */
       createPost: function (text, topic, meet) {
         text = (text || '').trim();
-        if (!text) return { ok: false, reason: 'empty' };
-        if (!tryLock('post', 1200)) return { ok: false, reason: 'locked' };
         var tag = D.normalizeTopic(topic || state.ui.composerTopic);
+        var mv = (tag === D.MEET.topic) ? D.normalizeMeet(meet || state.ui.composerMeet) : null;
+        var hasMeet = D.meetFilled(mv);
+        if (!text && !hasMeet) return { ok: false, reason: 'empty' };
+        if (!tryLock('post', 1200)) return { ok: false, reason: 'locked' };
         var plan = { topic: tag };
-        if (tag === D.MEET.topic) {
-          var mv = D.normalizeMeet(meet || state.ui.composerMeet);
-          if (D.meetFilled(mv)) plan.meet = mv;
-        }
+        if (hasMeet) plan.meet = mv;
         var entity = meEntity({
           type: '소셜', date: U.ymd(), id: U.uid(), clientId: U.clientId(), text: text,
           plan: plan
