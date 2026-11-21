@@ -2406,8 +2406,10 @@ button, summary, .tab { -webkit-tap-highlight-color: transparent; }
 /* 3) 상단바·탭바 — 안전 영역에 딱 붙게 */
 .hdr { box-shadow: 0 1px 0 var(--line); }
 .tabbar { bottom: calc(8px + var(--safe-b)); }
-/* 키보드가 올라오면 저장 버튼이 키보드 바로 위로 올라갑니다 (엄지로 바로 저장) */
-body.kb-open .savebar { bottom: calc(var(--kbd, 0px) + 10px); }
+/* 키보드가 올라오면 저장 버튼이 키보드 바로 위로 올라갑니다 (엄지로 바로 저장).
+   입력 중에는 바를 얇게 만들어 메모 칸을 덜 가립니다. */
+body.kb-open .savebar { bottom: calc(var(--kbd, 0px) + 10px); padding-bottom: 9px; }
+body.kb-open .savebar .hint { display: none; }
 
 /* 4) 일지: 컨디션·훈련강도를 한 줄에 (세로 길이 절반) */
 .fieldgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
@@ -2446,23 +2448,36 @@ body.kb-open .savebar { bottom: calc(var(--kbd, 0px) + 10px); }
 .fold__body .field { margin-top: 4px; }
 .fold__body .field:first-child { margin-top: 0; }
 
-/* 저장 버튼 — 폼을 채우는 동안 엄지 바로 위에 붙어 있습니다 */
+/* 저장 버튼 — 하단 탭바 위에 떠 있는 액션 바 (v1.37.2)
+ * 예전에는 '오늘 일지' 카드 안에서 sticky로 떠 있어서, 카드 밖으로 스크롤하면 사라지고
+ * 카드 안에서는 메모 칸을 가렸습니다. 이제 일지 & AI 탭이 켜져 있는 동안만 하단 탭바
+ * 바로 위에 붙어 있습니다(다른 탭은 뷰를 다시 그리므로 이 요소 자체가 없습니다).
+ * 탭바와 같은 폭·같은 여백으로 떠서 하단 독처럼 보이게 맞췄습니다. */
 .submit-wrap.savebar {
-  position: sticky;
-  bottom: calc(var(--nav-h) + var(--safe-b) + 12px);
-  z-index: 6;
-  margin: 18px -18px -18px;
-  padding: 12px 18px calc(12px + var(--safe-b) * 0.2);
-  border-top: 1px solid var(--line);
-  border-radius: 0 0 var(--r-lg) var(--r-lg);
-  background: color-mix(in srgb, var(--card) 94%, transparent);
-  backdrop-filter: blur(14px) saturate(1.1);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--nav-h) + var(--safe-b) + 16px);
+  transform: translateX(-50%);
+  z-index: 44;
+  width: calc(100% - 24px);
+  max-width: 436px;
+  margin: 0;
+  padding: 9px 9px 8px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--card) 95%, transparent);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
   text-align: left;
-  box-shadow: 0 -10px 22px color-mix(in srgb, var(--bg) 62%, transparent);
+  box-shadow: var(--shadow);
 }
+/* 떠 있는 바라서 위쪽 그라데이션 띠는 쓰지 않습니다 */
+.savebar::before { content: none; display: none; }
 .savebar .btn { width: 100%; }
 .savebar .hint { margin-top: 7px; font-size: 11px; text-align: center; }
+
+/* 고정 바(약 92px)가 '최근 기록'·파트너 승률 같은 맨 아래 내용을 가리지 않게 */
+.main > .view[data-view="log"] { padding-bottom: 104px; }
 
 /* 최근 기록 — 한 줄에 담백하게 */
 .logrow { padding: 12px 0; gap: 10px; }
@@ -2553,7 +2568,6 @@ body.kb-open .savebar { bottom: calc(var(--kbd, 0px) + 10px); }
   font-size: 12.5px; font-weight: 700; color: var(--text-2);
 }
 .coachflow i { font-style: normal; color: var(--muted); margin: 0 4px; }
-.submit-wrap.savebar { background: var(--card); }
 .card--profile .stats { display: grid; grid-template-columns: repeat(3, 1fr); }
 
 /* 시작화면 — 브랜드는 가운데, 버튼은 엄지 자리 */
@@ -2564,13 +2578,6 @@ body.kb-open .savebar { bottom: calc(var(--kbd, 0px) + 10px); }
 
 /* 11) 스크롤할 때 겹치는 부분은 배경을 확실히 (비침 방지) */
 .mtabs { background: var(--bg); }
-.submit-wrap.savebar { position: sticky; }
-.savebar::before {
-  content: "";
-  position: absolute; left: 0; right: 0; top: -20px; height: 20px;
-  background: linear-gradient(180deg, transparent, var(--card));
-  pointer-events: none;
-}
 .card--hero { padding: 16px; }
 .hero__hi { font-size: 18px; }
 .stat-strip { margin-top: 12px; padding-top: 12px; }
@@ -2815,8 +2822,8 @@ summary { display: list-item; }
  *  한때 여기에 .switch를 따로 정의했는데, 뒤에 온 v1.20 규칙과 섞여 모양이 깨졌습니다. */
 
 /* ============================================================
- * 커뮤니티 번개 모집 (2026-11-19, bm-v1.11.0)
- *  - 작성: 말머리 '번개'를 고르면 나타나는 선택 입력칸
+ * 커뮤니티 게스트 모집 (2026-11-19, bm-v1.11.0 · v1.37.2에서 이름 변경)
+ *  - 작성: 말머리 '게스트 모집'을 고르면 나타나는 선택 입력칸
  *  - 글: 일시·장소·인원 + 작성자에게 바로 이어지는 참여 문의
  * ============================================================ */
 .viteform {
@@ -3480,23 +3487,7 @@ input[type="date"] {
 .score.is-loss { color: var(--bad); }
 .score__res { font-size: 9.5px; letter-spacing: 0.2px; }
 
-/* 저장 바 — 카드 아래에 딱 붙는 흰 바 */
-.submit-wrap.savebar {
-  margin: 20px -18px -18px;
-  padding: 12px 18px 14px;
-  border-top: 1px solid var(--line);
-  border-radius: 0 0 var(--r-lg) var(--r-lg);
-  background: var(--card);
-  box-shadow: 0 -8px 20px color-mix(in srgb, var(--bg) 70%, transparent);
-}
-/* 저장 바 위로 올라오는 내용은 흰색으로 부드럽게 사라집니다 */
-.savebar::before {
-  display: block;
-  content: "";
-  position: absolute; left: 0; right: 0; top: -16px; height: 16px;
-  background: linear-gradient(180deg, transparent, var(--card));
-  pointer-events: none;
-}
+/* 저장 바 안내 문구는 한 단계 작게 */
 .savebar .hint { font-size: 10.5px; color: var(--muted); }
 
 /* AI 카드 · 지표 · 드릴 */
