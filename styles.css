@@ -4409,6 +4409,85 @@ body.has-notif.has-netbar .main { padding-top: calc(var(--hdr-h) + var(--safe-t)
 .sb__foot .btn { width: auto; }
 .sb__hint { font-size: 11.5px; color: var(--muted); text-align: center; line-height: 1.55; }
 
+/* ---------- 17.16b 코트 점수판 전체화면 (bm-v1.44.0) ----------
+ * 코트 옆에 세워 두고 한 손으로 누르는 화면 — 폰 높이를 그대로 다 씁니다.
+ * 상단(상대)·하단(내 팀) 카드를 화면 높이에 맞춰 늘리고, 카드 어디를 눌러도 +1. */
+.sbfull {
+  position: fixed; inset: 0; z-index: 97;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  padding: calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 10px);
+  opacity: 0; transition: opacity .18s ease;
+}
+.sbfull.is-on { opacity: 1; }
+.sb--full {
+  flex: 1; min-height: 0; height: 100%;
+  display: flex; flex-direction: column; gap: 8px;
+  overflow: hidden;
+}
+.sbfull__hdr { display: flex; align-items: center; gap: 8px; flex: none; }
+.sbfull__hdr .iconbtn { flex: none; width: 38px; height: 38px; }
+.sbfull__t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.sbfull__t b { font-size: 15px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.2; }
+.sbfull__t span { font-size: 11.5px; font-weight: 700; color: var(--muted); letter-spacing: -0.1px; }
+.sbfull__set {
+  flex: none; padding: 5px 11px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 13px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -0.2px;
+}
+.sb--full .sb__modes { flex: none; gap: 6px; }
+.sb--full .sb__modes .seg__btn { min-height: 34px; font-size: 12px; }
+.sb--full .sb__state { flex: none; font-size: 12.5px; }
+.sb--full .sb__board {
+  flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; gap: 8px;
+  padding: 0; border: 0; background: none;
+}
+.sb__card {
+  width: 100%; height: 100%; align-self: stretch; min-height: 0; border-radius: 20px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 10px; touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+}
+.sb__card .sb__num { font-size: clamp(60px, 16vh, 112px); letter-spacing: -3px; }
+.sb__card.sb__btn--a {
+  background: var(--accent); color: var(--accent-ink);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+.sb__card.sb__btn--b {
+  background: var(--card); color: var(--text); border: 1px solid var(--line-2);
+  box-shadow: none;
+}
+.sb__card .sb__who { font-size: 13px; font-weight: 800; letter-spacing: -0.2px; color: inherit; opacity: .72; }
+.sb__card .sb__num { color: inherit; line-height: 1; }
+.sb__plus {
+  display: inline-flex; align-items: center; gap: 3px;
+  margin-top: 2px; padding: 2px 9px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 800;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.sb__plus .ico { width: 12px; height: 12px; }
+.sb__card:active { transform: scale(0.985); }
+.sb--full .sb__sets {
+  flex: none; display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden;
+  padding: 0 0 2px; -webkit-overflow-scrolling: touch;
+}
+.sb--full .sb__set { flex: none; padding: 6px 10px; white-space: nowrap; }
+.sb--full .sb__tools { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sb__tool {
+  min-height: 54px; border-radius: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: var(--card); border: 1px solid var(--line-2); color: var(--text);
+  font-size: 11.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.sb__tool b { font-size: 15px; line-height: 1; font-weight: 900; color: var(--accent); }
+.sb__tool:active { transform: scale(0.97); }
+.sb__tool[aria-pressed="true"] { border-color: var(--accent-line); background: var(--accent-soft); }
+.sb--full .sb__foot { flex: none; }
+.sb--full .sb__foot .btn { min-height: 54px; font-size: 14px; }
+.sb--full .sb__foot .btn--ghost { flex: none; width: 34%; }
+.sb--full .sb__foot .btn--primary { flex: 1; }
+.sb--full .sb__hint { flex: 1; padding: 14px 0; }
+
 /* 드릴 · 워밍업 옆 원탭 타이머 */
 .dtimer { display: inline-flex; align-items: center; gap: 5px; flex: none; }
 .dtimer__btn {
@@ -5120,6 +5199,42 @@ body {
 /* 보기 고르기 */
 .gymseg .seg { width: 100%; }
 .gymseg .seg__btn { min-height: 36px; }
+
+/* ---------- 18.2b 권역 칩 · 검색 (bm-v1.44.0) ---------- */
+.gymfilters { display: flex; flex-direction: column; gap: 8px; }
+.gymsearch {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 12px; border-radius: 13px;
+  background: var(--card-2); border: 1px solid var(--line);
+}
+.gymsearch .ico { width: 16px; height: 16px; flex: none; color: var(--muted); }
+.gymsearch input {
+  flex: 1; min-width: 0; height: 42px; border: 0; background: none; color: var(--text);
+  font-size: 13.5px; font-weight: 600; letter-spacing: -0.2px; outline: none;
+  -webkit-appearance: none; appearance: none;
+}
+.gymsearch input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.gymsearch input::placeholder { color: var(--muted); font-weight: 500; }
+.gymsearch__x { flex: none; display: none; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text-2); }
+.gymsearch.has-q .gymsearch__x { display: inline-flex; }
+.gymsearch__x .ico { width: 13px; height: 13px; color: inherit; }
+.gymregions {
+  display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden;
+  padding: 1px 0 3px; margin: 0 -2px; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.gymregions::-webkit-scrollbar { display: none; }
+.gymregion {
+  flex: none; display: inline-flex; align-items: center; gap: 4px;
+  min-height: 34px; padding: 0 11px; border-radius: 999px;
+  background: var(--card-2); border: 1px solid var(--line);
+  color: var(--text-2); font-size: 12px; font-weight: 800; letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+.gymregion i { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.gymregion.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.gymregion.is-on i { color: color-mix(in srgb, var(--accent-ink) 70%, transparent); }
+.gymregion:active { transform: scale(0.97); }
 
 /* ---------- 18.3 지도 ---------- */
 .gymmapwrap { display: flex; flex-direction: column; gap: 7px; }

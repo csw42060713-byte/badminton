@@ -874,54 +874,83 @@
     }).join('') + '</div>';
   }
 
-  function scoreboardHtml(src) {
+  /* ============================================================
+   * 코트 점수판 — 화면 전체를 쓰는 오버레이 (bm-v1.44.0)
+   *  · 코트 옆에 폰을 세워 두고 한 손으로 바로 누르도록 상단(상대)·하단(내 팀)
+   *    두 개의 큰 카드를 화면 높이에 맞춰 채웁니다. 카드 어디를 눌러도 +1.
+   *  · 헤더: 닫기(×) · 세트 번호 · 점수제/종목 전환
+   *  · 보조: −1 되돌리기 · 코트 교대(두 카드 자리 바꿈) · 세트 초기화
+   *  · 세트가 끝나면 '다음 세트', 끝난 세트가 있으면 '오늘 일지에 넣기'(v1.30.0 그대로)
+   *  · 화면이 넘치지 않도록 .sb--full 은 100dvh 안에서 flex 로만 나눕니다.
+   * ============================================================ */
+  var sbSwap = false;          /* 코트 교대 — 화면에서 두 카드의 자리만 바꿉니다(점수 기록은 그대로) */
+
+  function sbCard(st, side) {
+    var who = sbTeam(st, side);
+    var mine = side === 'a';
+    return '<button type="button" class="sb__btn sb__side sb__card' + (mine ? ' sb__btn--a' : ' sb__btn--b sb__side--b') + '"' +
+      ' data-sb-point="' + side + '" aria-label="' + U.esc(who + ' 1점 올리기') + '">' +
+      '<span class="sb__who">' + U.esc(who) + '</span>' +
+      '<b class="sb__num">' + (mine ? st.a : st.b) + '</b>' +
+      '<span class="sb__plus">' + UI.icon('plus') + '1점</span>' +
+      '</button>';
+  }
+
+  function scoreboardHtml(src, options) {
     var SB = BM.scoreboard;
     if (!SB) return '';
+    var opts = options || {};
     var st = SB.copy(src);
     st.over = SB.winner(st);            /* 끝났는지는 점수에서 바로 나옵니다 */
     var list = SB.games(st);
     var sum = SB.summary(st);
     var stt = SB.stateText(st);
+    var swap = typeof opts.swap === 'boolean' ? opts.swap : sbSwap;
+    var setNo = SB.setNo(st);
+    var ss = SB.setScore(st);
     var sets = list.map(function (g, i) {
       var win = g.a > g.b ? '승' : g.a < g.b ? '패' : '무';
-      return '<li class="sb__set"><span class="sb__setn">' + (i + 1) + '세트</span><b>' + g.a + ':' + g.b + '</b>' +
-        '<i class="sb__res sb__res--' + (win === '승' ? 'w' : win === '패' ? 'l' : 'd') + '">' + win + '</i></li>';
+      return '<li class="sb__set"><span class="sb__setn">' + (i + 1) + '세트</span> <b>' + g.a + ':' + g.b + '</b>' +
+        ' <i class="sb__res sb__res--' + (win === '승' ? 'w' : win === '패' ? 'l' : 'd') + '">' + win + '</i></li>';
     }).join('');
-    return '<div class="sb" data-sb>' +
+    var cards = swap
+      ? sbCard(st, 'a') + sbCard(st, 'b')
+      : sbCard(st, 'b') + sbCard(st, 'a');
+    return '<div class="sb sb--full" data-sb>' +
+      '<header class="sbfull__hdr">' +
+        '<button type="button" class="iconbtn sbfull__x" data-sb-close aria-label="점수판 닫기">' + UI.icon('close') + '</button>' +
+        '<div class="sbfull__t"><b>코트 점수판</b>' +
+          '<span>' + setNo + '세트 · ' + U.esc(st.type) + ' ' + st.mode + '점제</span></div>' +
+        '<span class="sbfull__set" aria-label="세트 스코어 ' + U.esc(ss.text) + '">' + U.esc(ss.text) + '</span>' +
+      '</header>' +
       '<div class="sb__modes">' + sbSeg('mode', [21, 25], st.mode, '점제') + sbSeg('type', ['복식', '단식'], st.type, '') + '</div>' +
-      '<div class="sb__board">' +
-        '<div class="sb__side"><span class="sb__who">' + U.esc(sbTeam(st, 'a')) + '</span>' +
-          '<b class="sb__num">' + st.a + '</b></div>' +
-        '<span class="sb__colon">:</span>' +
-        '<div class="sb__side sb__side--b"><span class="sb__who">' + U.esc(sbTeam(st, 'b')) + '</span>' +
-          '<b class="sb__num">' + st.b + '</b></div>' +
-      '</div>' +
       '<p class="sb__state sb__state--' + U.esc(stt.kind) + '">' + U.esc(stt.text) + '</p>' +
-      '<div class="sb__add">' +
-        '<button type="button" class="sb__btn sb__btn--a" data-sb-point="a" aria-label="' +
-          U.esc(sbTeam(st, 'a')) + ' 1점"><b>+1</b><span>' + U.esc(sbTeam(st, 'a')) + '</span></button>' +
-        '<button type="button" class="sb__btn sb__btn--b" data-sb-point="b" aria-label="' +
-          U.esc(sbTeam(st, 'b')) + ' 1점"><b>+1</b><span>' + U.esc(sbTeam(st, 'b')) + '</span></button>' +
-      '</div>' +
-      '<div class="sb__tools">' +
-        '<button type="button" class="linkbtn" data-sb-undo>되돌리기</button>' +
-        '<span class="sb__score">' + (sum.count
-          ? sum.count + '세트 · ' + sum.wins + '승 ' + sum.losses + '패' + (sum.draws ? ' ' + sum.draws + '무' : '')
-          : '아직 끝난 세트가 없어요') + '</span>' +
-      '</div>' +
+      '<div class="sb__board">' + cards + '</div>' +
       (sets ? '<ul class="sb__sets">' + sets + '</ul>' : '') +
+      '<div class="sb__tools">' +
+        '<button type="button" class="sb__tool" data-sb-undo aria-label="1점 되돌리기">' +
+          '<b>−1</b><span>되돌리기</span></button>' +
+        '<button type="button" class="sb__tool" data-sb-swap aria-label="코트 교대, 두 팀 자리 바꾸기" aria-pressed="' +
+          (swap ? 'true' : 'false') + '">' +
+          '<b>⇄</b><span>코트 교대</span></button>' +
+        '<button type="button" class="sb__tool" data-sb-reset aria-label="지금 세트 점수 초기화">' +
+          '<b>↺</b><span>세트 초기화</span></button>' +
+      '</div>' +
       '<div class="sb__foot">' +
-        (st.over ? '<button type="button" class="btn btn--ghost grow" data-sb-next>다음 세트</button>' : '') +
+        (st.over ? '<button type="button" class="btn btn--ghost" data-sb-next>다음 세트</button>' : '') +
         (list.length
           ? '<button type="button" class="btn btn--primary grow" data-sb-save>' + UI.icon('check') + '오늘 일지에 넣기</button>'
-          : '<p class="sb__hint">한 세트를 마치면 오늘 일지에 바로 넣을 수 있어요</p>') +
+          : '<p class="sb__hint">한 세트를 마치면 오늘 일지에 바로 넣을 수 있어요' +
+            (sum.count ? ' · ' + sum.count + '세트 끝났어요' : '') + '</p>') +
       '</div></div>';
   }
 
-  /* 점수판 시트 — 누를 때마다 [data-sb]만 다시 그려 이벤트는 한 번만 겁니다 */
+  /* 점수판 전체화면 — 화면 전체를 덮고, 뒤로 가기·× 로 닫힙니다.
+   * 누를 때마다 [data-sb]만 다시 그려 이벤트는 한 번만 겁니다. */
   function scoreboardOpen(ctx) {
     var SB = BM.scoreboard;
     if (!SB) return null;
+    if (typeof document === 'undefined') return null;
     if (!sbState) sbState = SB.create();
     var node = null;
 
@@ -929,7 +958,7 @@
     function repaint() {
       if (!node) return;
       var host = node.querySelector('[data-sb]');
-      if (host) host.outerHTML = scoreboardHtml(sbState);
+      if (host) host.outerHTML = scoreboardHtml(sbState, { swap: sbSwap });
     }
     function save() {
       sync();
@@ -937,7 +966,7 @@
       var patch = SB.draftPatch(sbState, draft);
       if (!patch) { UI.toast('한 세트를 마치면 넣을 수 있어요'); return; }
       var summary = SB.summary(sbState);
-      UI.closeSheet();
+      sbClose();
       sbState = null;                       /* 넣었으니 다음엔 새 점수판으로 */
       ctx.actions.setDraft(patch);
       UI.haptic(16);
@@ -949,70 +978,120 @@
       }, 160);
     }
 
-    return UI.openSheet({
-      title: '코트 점수판',
-      body: scoreboardHtml(sbState),
-      onMount: function (n) {
-        node = n;
-        n.addEventListener('click', function (ev) {
-          var el;
-          if ((el = ev.target.closest('[data-sb-point]'))) {
-            ev.preventDefault();
-            sync();
-            sbState = SB.point(sbState, el.getAttribute('data-sb-point'));
-            sync();
-            UI.haptic(sbState.over ? 26 : 8);   /* 세트가 끝나면 조금 긴 진동 — 화면에 '세트 종료'가 이미 보임 */
-            repaint();
-            return;
-          }
-          if ((el = ev.target.closest('[data-sb-mode-val]'))) {
-            ev.preventDefault();
-            var mode = +el.getAttribute('data-sb-mode-val') === 25 ? 25 : 21;
-            if (mode !== sbState.mode) {
-              sbState = SB.copy(sbState);
-              sbState.mode = mode;
-              sync();
-              UI.haptic(6);
-              repaint();
-            }
-            return;
-          }
-          if ((el = ev.target.closest('[data-sb-type-val]'))) {
-            ev.preventDefault();
-            var type = SB.normalType(el.getAttribute('data-sb-type-val'));
-            if (type !== sbState.type) {
-              sbState = SB.copy(sbState);
-              sbState.type = type;
-              sync();
-              UI.haptic(6);
-              repaint();
-            }
-            return;
-          }
-          if (ev.target.closest('[data-sb-undo]')) {
-            ev.preventDefault();
-            sync();
-            sbState = SB.undo(sbState);
-            UI.haptic(6);
-            repaint();
-            return;
-          }
-          if (ev.target.closest('[data-sb-next]')) {
-            ev.preventDefault();
-            sync();
-            sbState = SB.nextSet(sbState);
-            UI.haptic(10);
-            repaint();
-            return;
-          }
-          if (ev.target.closest('[data-sb-save]')) {
-            ev.preventDefault();
-            save();
-            return;
-          }
-        });
+    function sbClose() {
+      if (!node) return;
+      var n = node;
+      node = null;
+      window.removeEventListener('popstate', sbOnPop);
+      n.classList.remove('is-on');
+      document.body.classList.remove('no-scroll');
+      setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, 200);
+      UI.overlay.close();
+    }
+
+    function sbOnPop() {
+      /* 뒤로 가기 — 앱을 나가지 않고 점수판만 닫습니다 */
+      if (!node) return;
+      var n = node;
+      node = null;
+      UI.overlay.reset();
+      window.removeEventListener('popstate', sbOnPop);
+      n.classList.remove('is-on');
+      document.body.classList.remove('no-scroll');
+      setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, 200);
+    }
+
+    node = document.createElement('div');
+    node.id = 'sbfull';
+    node.className = 'sbfull';
+    node.setAttribute('role', 'dialog');
+    node.setAttribute('aria-modal', 'true');
+    node.setAttribute('aria-label', '코트 점수판');
+    node.innerHTML = scoreboardHtml(sbState, { swap: sbSwap });
+    document.body.appendChild(node);
+    document.body.classList.add('no-scroll');
+    UI.overlay.open();
+    window.addEventListener('popstate', sbOnPop);
+    requestAnimationFrame(function () { if (node) node.classList.add('is-on'); });
+
+    node.addEventListener('click', function (ev) {
+      var el;
+      if ((el = ev.target.closest('[data-sb-close]'))) {
+        ev.preventDefault();
+        sbClose();
+        return;
+      }
+      if ((el = ev.target.closest('[data-sb-point]'))) {
+        ev.preventDefault();
+        sync();
+        sbState = SB.point(sbState, el.getAttribute('data-sb-point'));
+        sync();
+        UI.haptic(sbState.over ? 26 : 8);   /* 세트가 끝나면 조금 긴 진동 — 화면에 '세트 종료'가 이미 보임 */
+        repaint();
+        return;
+      }
+      if ((el = ev.target.closest('[data-sb-mode-val]'))) {
+        ev.preventDefault();
+        var mode = +el.getAttribute('data-sb-mode-val') === 25 ? 25 : 21;
+        if (mode !== sbState.mode) {
+          sbState = SB.copy(sbState);
+          sbState.mode = mode;
+          sync();
+          UI.haptic(6);
+          repaint();
+        }
+        return;
+      }
+      if ((el = ev.target.closest('[data-sb-type-val]'))) {
+        ev.preventDefault();
+        var type = SB.normalType(el.getAttribute('data-sb-type-val'));
+        if (type !== sbState.type) {
+          sbState = SB.copy(sbState);
+          sbState.type = type;
+          sync();
+          UI.haptic(6);
+          repaint();
+        }
+        return;
+      }
+      if (ev.target.closest('[data-sb-undo]')) {
+        ev.preventDefault();
+        sync();
+        sbState = SB.undo(sbState);
+        UI.haptic(6);
+        repaint();
+        return;
+      }
+      if (ev.target.closest('[data-sb-swap]')) {
+        ev.preventDefault();
+        sbSwap = !sbSwap;
+        UI.haptic(6);
+        repaint();
+        return;
+      }
+      if (ev.target.closest('[data-sb-reset]')) {
+        ev.preventDefault();
+        sync();
+        sbState = SB.resetSet(sbState);
+        UI.haptic(10);
+        repaint();
+        return;
+      }
+      if (ev.target.closest('[data-sb-next]')) {
+        ev.preventDefault();
+        sync();
+        sbState = SB.nextSet(sbState);
+        UI.haptic(10);
+        repaint();
+        return;
+      }
+      if (ev.target.closest('[data-sb-save]')) {
+        ev.preventDefault();
+        save();
+        return;
       }
     });
+    return node;
   }
 
   var view = {
