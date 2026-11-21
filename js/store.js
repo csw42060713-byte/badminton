@@ -126,6 +126,8 @@
     if (!me) return me;
     var grade = D.normalizeGrade(me.level);
     if (grade) me.level = grade;
+    /* v1.40 — 저장된 유형(꾸미기 JSON의 role)을 화면이 바로 쓰게 me.role로도 꺼내 둡니다 */
+    me.role = D.roleOf(me);
     return me;
   }
 
@@ -144,6 +146,8 @@
       routine: {},
       /* 초보자 4주 루틴 표시 선택 — null(아직 안 고름) · true(보임) · false(숨김) */
       routinePref: null,
+      /* 선수용 7대 훈련 표시 선택 — null(유형을 따라감) · true · false */
+      proPref: null,
       ui: {
         tab: 'log',
         /* 매칭 찾기: 처음에는 아무 조건도 고르지 않은 상태(안내 카드만 보임).
@@ -203,8 +207,33 @@
         score: null, result: '',
         pain: [], weakness: [], note: '',
         /* 복식 파트너 이름 · 스윙·경기 영상 링크와 한 줄 체크 포인트 (선택) */
-        partner: '', video: '', videoNote: ''
+        partner: '', video: '', videoNote: '',
+        /* 선수용 7대 훈련 — { '스트록': '클리어 100개', ... } (선수 유형에서만 보입니다) */
+        pro: {}
       };
+    }
+
+    /* ---------- 선수용 7대 훈련 표시 선택 (기기 저장 · 계정별) ----------
+     * null = 유형을 따라감(선수면 보임) · true = 항상 보임 · false = 숨김
+     * 일지 저장 칸(완료훈련 · 훈련계획)과는 무관한 화면 설정입니다. */
+    var PRO_PREF_KEY = 'bm_pro_pref_v1';
+
+    function proPrefKeyFor(scope) {
+      return PRO_PREF_KEY + '::' + String(scope || 'guest').toLowerCase();
+    }
+
+    function loadProPref(scope) {
+      var v = U.readJSON(proPrefKeyFor(scope), null);
+      if (v === true || v === 'true') return true;
+      if (v === false || v === 'false') return false;
+      return null;
+    }
+
+    function saveProPref(scope, val) {
+      if (val === true || val === 'true') { U.writeJSON(proPrefKeyFor(scope), true); return true; }
+      if (val === false || val === 'false') { U.writeJSON(proPrefKeyFor(scope), false); return false; }
+      U.storage.removeItem(proPrefKeyFor(scope));
+      return null;
     }
 
     /* ---------- 초보자 4주 루틴 (기기 저장) ----------
@@ -217,6 +246,7 @@
     function loadRoutine() {
       state.routine = BM.routine ? BM.routine.load(routineScope()) : {};
       state.routinePref = BM.routine ? BM.routine.loadPref(routineScope()) : null;
+      state.proPref = loadProPref(routineScope());
       /* 이미 체크한 항목이 있는 기기는 루틴을 쓰던 사람입니다.
        * 새로 생긴 '시작할까요?' 카드로 되돌리지 않고 켜진 상태로 이어 갑니다. */
       if (state.routinePref === null && Object.keys(state.routine || {}).length) {
@@ -284,6 +314,8 @@
         result: built.result, pain: built.d.pain, weakness: built.d.weakness,
         prescription: built.an.care, drills: built.an.drills,
         text: built.d.note || '',
+        /* 선수용 7대 훈련 — '훈련계획' JSON 칸 (체크만 하고 안 적었으면 빈 값) */
+        plan: D.proPlan(built.d.pro),
         /* 파트너·영상은 '팀' 칸 JSON — 고칠 때 비우면 칸도 함께 비워집니다 */
         team: D.logExtraJson({ partner: built.d.partner, video: { url: built.d.video, label: built.d.videoNote } })
       };
@@ -540,6 +572,41 @@
         return { ok: true, routinePref: state.routinePref };
       },
 
+      /* 선수용 7대 훈련 표시: true(봄) · false(숨김) · null(유형을 따라감) */
+      setProPref: function (val) {
+        state.proPref = saveProPref(routineScope(), val);
+        emit();
+        return { ok: true, proPref: state.proPref };
+      },
+
+      /* ---------- v1.40: 사용자 유형 (초보 · 동호인 · 선수 · 코치) ----------
+       * MY에서 언제든 바꿉니다. 유형을 바꾸면 화면도 따라 바뀝니다:
+       *  · 초보  → 초보자 4주 루틴을 켜고, 선수 훈련 기록은 숨김
+       *  · 동호인 → 4주 루틴·선수 블록 모두 기본 OFF (애초에 고른 사람은 유지)
+       *  · 선수  → 7대 훈련 기록 ON, 4주 루틴 숨김
+       *  · 코치  → 피드백 흐름 중심 (4주 루틴·선수 블록 OFF)
+       * 4주 루틴은 '사용자가 이 기기에서 이미 고른 선택'을 덮어쓰지 않습니다. */
+      setRole: function (role) {
+        var id = D.normalizeRole(role);
+        if (!id) return { ok: false, reason: 'unknown_role' };
+        var prev = D.roleOf(state.me);
+        if (prev === id) return { ok: true, role: id, saved: false };
+        var res = actions.saveProfile({ role: id });
+        if (!res || !res.ok) return { ok: false, reason: (res && res.reason) || 'locked' };
+        var def = D.roleById(id);
+        if (BM.routine) {
+          if (def && def.routine) state.routinePref = BM.routine.savePref(routineScope(), true);
+          else if (id === 'player' || id === 'coach' || id === 'club') {
+            /* 4주 루틴을 쓰던 사람도 유형을 바꾸면 일지 첫머리를 비워 줍니다 */
+            state.routinePref = BM.routine.savePref(routineScope(), false);
+          }
+        }
+        /* 유형이 바뀌면 7대 훈련 표시는 다시 '유형을 따라감'으로 */
+        state.proPref = saveProPref(routineScope(), null);
+        emit();
+        return { ok: true, role: id, saved: true };
+      },
+
       setTab: function (tab) {
         state.ui.tab = tab; emit();
       },
@@ -665,6 +732,8 @@
           result: built.result,
           pain: built.d.pain, weakness: built.d.weakness,
           prescription: built.an.care, drills: built.an.drills,
+          /* 선수용 7대 훈련 — 새 칸 없이 '훈련계획' JSON 칸에 (시트 26칸 그대로) */
+          plan: D.proPlan(built.d.pro),
           /* 복식 파트너 · 영상 링크 — 새 칸 없이 '팀' 칸에 JSON 한 줄 */
           team: D.logExtraJson({ partner: built.d.partner, video: { url: built.d.video, label: built.d.videoNote } })
         });
@@ -901,7 +970,9 @@
           experience: patch.experience != null ? patch.experience : (me.experience || ''),
           avatar: patch.avatar || (me.theme && me.theme.avatar) || '🏸',
           gender: patch.gender != null ? D.normalizeGender(patch.gender) : D.normalizeGender(me.gender),
-          style: patch.style != null ? D.normalizeStyle(patch.style) : D.normalizeStyle(me.style || (me.theme && me.theme.style))
+          style: patch.style != null ? D.normalizeStyle(patch.style) : D.normalizeStyle(me.style || (me.theme && me.theme.style)),
+          /* 사용자 유형(초보·동호인·선수·코치) — 넘기지 않으면 지금 것을 유지합니다 */
+          role: patch.role != null ? D.normalizeRole(patch.role) : D.roleOf(me)
         };
         /* 꾸미기: 테마 + 아바타(사진·프레임·배경·배지). 넘기지 않은 값은 지금 것을 유지합니다. */
         var cur = D.avatarOf({ theme: me.theme });
@@ -919,8 +990,10 @@
           avatarFrame: deco.frame,
           avatarBg: deco.bg,
           avatarBadge: deco.badge,
-          style: merged.style
+          style: merged.style,
+          role: merged.role
         };
+        if (!theme.role) delete theme.role;
         var entity = {
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
           nick: merged.nick, level: merged.level, discipline: merged.discipline,
@@ -930,7 +1003,7 @@
         state.me = {
           key: me.key, nick: merged.nick, level: merged.level, discipline: merged.discipline,
           bio: merged.bio, region: merged.region, club: merged.club, gender: merged.gender,
-          style: merged.style,
+          style: merged.style, role: merged.role,
           availability: merged.availability, experience: merged.experience, theme: theme
         };
         commit();
@@ -1308,8 +1381,10 @@
         var theme = {
           theme: themeId, avatar: cur.emoji, avatarPhoto: cur.photo,
           avatarFrame: cur.frame, avatarBg: cur.bg, avatarBadge: cur.badge,
-          style: D.normalizeStyle(me.style || (me.theme && me.theme.style))
+          style: D.normalizeStyle(me.style || (me.theme && me.theme.style)),
+          role: D.roleOf(me)
         };
+        if (!theme.role) delete theme.role;
         pushRow({
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
           nick: me.nick, level: me.level, discipline: me.discipline, userKey: me.key,

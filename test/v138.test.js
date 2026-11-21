@@ -470,12 +470,12 @@
    * ========================================================= */
   test('v1.38 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.39.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.39.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-50', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.40.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.40.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-51', 'index.html 스타일 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.39.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.39.1', 'TWA appVersion');
+    eq(twa.appVersionName, '1.40.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.40.0', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드(웹만 바뀌면 그대로)');
   });
 
@@ -493,11 +493,11 @@
   test('v1.38 문서: README·아이디어 노트에 이번 사이클과 서버 조회 방법이 남는다', function () {
     if (!hasNode) return;
     var readme = readRoot('README.md');
-    includes(readme, 'v1.39.1', 'README 이번 사이클');
+    includes(readme, 'v1.40.0', 'README 이번 사이클');
     includes(readme, '친구 코드', '친구 코드 설명');
     includes(readme, 'user_key', '서버가 같은 규칙으로 조회');
     var ideas = readRoot('ideas.md');
-    includes(ideas, 'bm-v1.39.1', '아이디어 노트 상태');
+    includes(ideas, 'bm-v1.40.0', '아이디어 노트 상태');
     includes(ideas, '친구 코드', '아이디어 노트 항목');
   });
 

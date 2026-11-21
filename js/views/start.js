@@ -16,7 +16,7 @@
     error: '',
     busy: false,
     draft: { email: '', password: '', nick: '' },
-    onb: { nick: '', level: '', discipline: '', gender: '', region: '', club: '' }
+    onb: { nick: '', level: '', discipline: '', gender: '', region: '', club: '', role: '' }
   };
 
   function googleMark() {
@@ -88,6 +88,19 @@
   }
 
   /* ---------- 화면 3: 온보딩 ---------- */
+  /* 사용자 유형 카드 4장 — 누르면 하나만 켜집니다(같은 카드를 다시 누르면 해제).
+   * 픽 처리(data-pick)는 아래 click 한 곳에서 그대로 받으므로 새 리스너가 필요 없습니다. */
+  function roleCards(selected) {
+    return '<div class="rolepicks" data-pick-group="role">' + D.ROLES.map(function (r) {
+      var on = r.id === selected;
+      return '<button type="button" class="rolepick' + (on ? ' is-on' : '') + '" data-pick="role" data-val="' + U.esc(r.id) + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        '<span class="rolepick__t">' + U.esc(r.label) + '</span>' +
+        '<span class="rolepick__s">' + U.esc(r.answer) + '</span>' +
+        '<span class="rolepick__d">' + U.esc(r.desc) + '</span>' +
+        '</button>';
+    }).join('') + '</div>';
+  }
   function pickChips(name, options, selected, cls) {
     return '<div class="chips chips--wrap" data-pick-group="' + name + '">' + options.map(function (o) {
       var on = o === selected;
@@ -103,7 +116,12 @@
       '<div class="onb__head">' +
       '<span class="onb__step">10초 설정</span>' +
       '<h1 class="onb__title">' + (hello ? U.esc(hello) + '님, 반가워요!' : '반가워요!') + '</h1>' +
-      '<p class="onb__sub">급수와 주력 종목만 알려 주시면 오늘의 드릴과 1:1 매칭을 바로 맞춰 드려요.</p>' +
+      '<p class="onb__sub">어떤 유형인지 먼저 고르면 일지 화면이 그에 맞게 시작해요. 급수와 주력 종목만 더 알려 주세요.</p>' +
+      '</div>' +
+      /* v1.40 — 네 가지 유형 중 하나 (초보 · 동호인 · 선수 · 코치) */
+      '<div class="onb__block" data-onb-role>' +
+      '<span class="onb__label">나는 어떤 유형인가요? <i class="onb__req">필수</i></span>' +
+      roleCards(o.role) +
       '</div>' +
       '<div class="onb__block">' +
       '<label class="onb__label" for="onbNick">닉네임</label>' +
@@ -131,7 +149,7 @@
       '</div>' +
       (ui.error ? '<p class="start__error">' + U.esc(ui.error) + '</p>' : '') +
       '<button type="button" class="btn btn--primary btn--big onb__go" data-act="finish">시작하기</button>' +
-      '<p class="onb__note">나중에 MY &gt; 프로필 수정에서 언제든 바꿀 수 있어요.</p>' +
+      '<p class="onb__note">나중에 MY &gt; 내 유형에서 언제든 바꿀 수 있어요.</p>' +
       '</div>';
   }
 
@@ -148,7 +166,7 @@
     ui.error = '';
     ui.busy = false;
     ui.draft = { email: '', password: '', nick: '' };
-    ui.onb = { nick: '', level: '', discipline: '', gender: '', region: '', club: '' };
+    ui.onb = { nick: '', level: '', discipline: '', gender: '', region: '', club: '', role: '' };
   }
 
   function paint(host) {
@@ -430,6 +448,7 @@
   function finishOnboarding(host, ctx) {
     var o = ui.onb;
     var nick = String(o.nick || '').trim();
+    if (!o.role) { ui.busy = false; ui.error = '어떤 유형인지 골라 주세요.'; paint(host); return; }
     if (!nick) { ui.busy = false; ui.error = '닉네임을 입력해 주세요.'; paint(host); return; }
     if (!o.level) { ui.busy = false; ui.error = '급수를 골라 주세요.'; paint(host); return; }
     if (!o.discipline) { ui.busy = false; ui.error = '주력 종목을 골라 주세요.'; paint(host); return; }
@@ -438,7 +457,8 @@
       ctx.onComplete({
         nick: nick, level: o.level, discipline: o.discipline,
         gender: o.gender || '비공개',
-        region: o.region || '', club: String(o.club || '').trim()
+        region: o.region || '', club: String(o.club || '').trim(),
+        role: D.normalizeRole(o.role)
       });
     }
   }
