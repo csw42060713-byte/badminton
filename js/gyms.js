@@ -458,13 +458,13 @@
     },
     {
       id: 'gwangju-pungam', name: '풍암국민체육센터', area: '광주 서구', region: '전라',
-      addr: '20 Pungamgongwon-ro, Seo-gu, Kwangju', lat: 35.1298, lng: 126.88112,
+      addr: '전남광주통합특별시 서구 풍암동 396-19', lat: 35.1298, lng: 126.88112,
       courts: null, hours: '', fee: '', tel: '+82 62-350-4567',
       tags: ['국민체육센터']
     },
     {
       id: 'gwangju-cheomdan', name: '첨단생활체육공원 실내배드민턴장', area: '광주 광산구', region: '전라',
-      addr: '76 Cheomdangangbyeon-ro, Gwangsan-gu, Kwangju', lat: 35.21321, lng: 126.85284,
+      addr: '전남광주통합특별시 광산구 산월동 819-8', lat: 35.21321, lng: 126.85284,
       courts: null, hours: '', fee: '', tel: '+82 62-960-9988',
       tags: ['배드민턴 전용']
     },
@@ -542,7 +542,7 @@
     },
     {
       id: 'busan-badminton', name: '부산배드민턴센터', area: '부산 강서구', region: '경상',
-      addr: '41 Nakdongbuk-ro, Gangseo-gu, Busan', lat: 35.21948, lng: 128.93437,
+      addr: '부산광역시 강서구 낙동북로 41', lat: 35.21948, lng: 128.93437,
       courts: null, hours: '', fee: '', tel: '+82 51-971-9877',
       tags: ['배드민턴 전용']
     },
