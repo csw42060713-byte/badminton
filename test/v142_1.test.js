@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v142_1.test.js — bm-v1.42.1 (2026-11-21 밤) 오류·보안 일제 점검
+ * test/v142_1.test.js — bm-v1.43.0 (2026-11-21 밤) 오류·보안 일제 점검
  *
  *  1) 게스트 모집 입구 — 말머리만 '게스트 모집'이고 모집 칸을 비운 글에도
  *     모집 카드와 '참여 문의'(글쓴이는 '단체방 열기') 버튼이 있고, 그 글로 방이 열린다.
@@ -199,20 +199,20 @@
   /* ---------- 5. 버전 · 문서 ---------- */
   test('v1.42.1 버전: sw · app · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.42.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.42.1'", 'app.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.43.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.43.0'", 'app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.42.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.42.1', 'TWA appVersion');
+    eq(twa.appVersionName, '1.43.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.43.0', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드(웹만 바뀌면 그대로)');
   });
 
   test('v1.42.1 문서: README·아이디어 노트에 이번 사이클이 남는다', function () {
     if (!hasNode) return;
     var readme = readRoot('README.md'), ideas = readRoot('ideas.md');
-    includes(readme, 'v1.42.1', 'README 버전 절');
+    includes(readme, 'v1.43.0', 'README 버전 절');
     includes(readme, '게스트 모집', 'README 게스트 모집');
     includes(readme, 'Content-Security-Policy', 'README 보안 장치');
-    includes(ideas, 'v1.42.1', '아이디어 노트');
+    includes(ideas, 'v1.43.0', '아이디어 노트');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

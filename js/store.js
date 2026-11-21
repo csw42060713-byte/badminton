@@ -1133,15 +1133,114 @@
         return { ok: true, roomId: reqId, charged: charged, short: short };
       },
 
+      /* ---------- 게스트 참여 신청 (bm-v1.43.0) ----------
+       * 정원이 있는 모집 글은 바로 방에 들어가지 않고 신청 편지지를 보냅니다.
+       * · 신청 → 글쓴이 수락/거절 → 정원 포함/제외 → 게스트 나가기(자리 남)
+       * 행 하나(유형=게스트신청)에 '누가 누구에게'와 {kind, note} 만 적습니다.
+       * (새 칸·새 표 없이 26칸 그대로 — js/domain.js guestStates 가 상태를 계산) */
+      applyGuest: function (postId, note) {
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        var key = String(postId == null ? '' : postId);
+        var post = state.idx.byId[key];
+        if (!post || post.type !== '소셜') return { ok: false, reason: 'notfound' };
+        if (String(post.userKey || '') === String(me)) return { ok: false, reason: 'mine' };
+        if (!D.isGroupRoom(state.idx, key)) return { ok: false, reason: 'notfound' };
+        var st = D.meetStatus(state.idx, post, me);
+        if (st.closed) return { ok: false, reason: 'closed' };
+        if (st.me.status === D.GUEST.pending || st.me.status === D.GUEST.accept) {
+          return { ok: false, reason: st.me.status === D.GUEST.accept ? 'accepted' : 'pending', status: st.me.status };
+        }
+        if (!tryLock('guest:' + key, 1200)) return { ok: false, reason: 'locked' };
+        var text = D.clampText(note, D.GUEST.noteMax).replace(/\s+/g, ' ').trim() || D.GUEST.noteDefault;
+        pushRow(meEntity({
+          type: D.GUEST.type, id: U.uid(), clientId: U.clientId(), date: U.ymd(),
+          nick: state.me.nick, target: String(post.userKey || ''), team: key,
+          payload: {
+            kind: D.GUEST.apply, note: text, nick: state.me.nick,
+            level: state.me.level || '', style: state.me.style || ''
+          }
+        }));
+        commit();
+        return { ok: true, postId: key, note: text };
+      },
+
+      /* 글쓴이의 수락/거절 — 신청 행 하나에 답합니다 (이미 답한 신청은 다시 처리 안 함) */
+      respondGuest: function (appId, accept) {
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        var id = String(appId == null ? '' : appId);
+        var req = state.idx.byId[id];
+        if (!req || req.type !== D.GUEST.type || D.guestKind(req) !== D.GUEST.apply) {
+          return { ok: false, reason: 'notfound' };
+        }
+        if (String(req.target || '') !== String(me)) return { ok: false, reason: 'not_mine' };
+        var postId = String(req.team || '');
+        var post = state.idx.byId[postId];
+        if (!post || post.type !== '소셜') return { ok: false, reason: 'notfound' };
+        var applicant = String(req.userKey || '');
+        if (!applicant) return { ok: false, reason: 'notfound' };
+        var st = D.guestState(state.idx, postId, applicant);
+        if (st.status !== D.GUEST.pending) {
+          return { ok: false, reason: 'done', status: st.status || '' };
+        }
+        if (accept && D.meetStatus(state.idx, post, me).closed) {
+          return { ok: false, reason: 'full' };
+        }
+        if (!tryLock('guestres:' + id, 1200)) return { ok: false, reason: 'locked' };
+        pushRow(meEntity({
+          type: D.GUEST.type, id: U.uid(), clientId: U.clientId(), date: U.ymd(),
+          nick: state.me.nick, target: applicant, team: postId,
+          payload: {
+            kind: accept ? D.GUEST.accept : D.GUEST.reject, app: id,
+            nick: (req.payload && req.payload.nick) || req.nick || ''
+          }
+        }));
+        commit();
+        return { ok: true, accepted: !!accept, postId: postId, applicant: applicant };
+      },
+
+      /* 게스트의 나가기 — 참여/수락 상태를 끝내고 내 대화 목록에서 방을 뺍니다.
+       * 자리가 비면 글은 다시 '모집 중'이 되어 커뮤니티에 올라옵니다(계산으로 자동). */
+      leaveGuest: function (postId) {
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        var key = String(postId == null ? '' : postId);
+        var post = state.idx.byId[key];
+        if (!post || post.type !== '소셜') return { ok: false, reason: 'notfound' };
+        if (String(post.userKey || '') === String(me)) return { ok: false, reason: 'owner' };
+        if (!D.guestMember(state.idx, post, me)) return { ok: false, reason: 'not_member' };
+        var st = D.guestState(state.idx, key, me);
+        if (st.status === D.GUEST.leave) return { ok: false, reason: 'already' };
+        if (!tryLock('guestleave:' + key, 1200)) return { ok: false, reason: 'locked' };
+        pushRow(meEntity({
+          type: D.GUEST.type, id: U.uid(), clientId: U.clientId(), date: U.ymd(),
+          nick: state.me.nick, target: String(post.userKey || ''), team: key,
+          payload: { kind: D.GUEST.leave, nick: state.me.nick }
+        }));
+        /* 보고 있던 방이면 대화도 닫습니다 (목록에서도 사라짐) */
+        if (state.ui && String(state.ui.chatRoom || '') === key) {
+          state.ui.chatRoom = null;
+          state.ui.chatOther = '';
+          state.ui.chatDraft = '';
+          state.ui.chatOpen = false;
+        }
+        commit();
+        return { ok: true, postId: key };
+      },
+
       sendChat: function (roomId, otherKey, text) {
         text = D.clampText(text, 300).trim();
         if (!text) return { ok: false, reason: 'empty' };
         if (!roomId) return { ok: false, reason: 'no_room' };
-        /* 모집 글 단체방은 방(글)만 있으면 누구나 참여 대화를 할 수 있습니다.
+        /* 모집 글 단체방은 방 사람(글쓴이·수락된 게스트·예전 참여자)만 대화합니다.
+         * v1.43.0 — 신청만 하고 수락 전인 사람은 아직 방 사람이 아닙니다.
          * 1:1 방은 지금처럼 친구·매칭(·코치) 상대와만. */
         var group = D.isGroupRoom(state.idx, roomId);
         if (group) {
           if (!(state.me && state.me.key)) return { ok: false, reason: 'no_login' };
+          var gpost = D.groupPostOf(state.idx, roomId);
+          if (gpost && D.guestBlocked(state.idx, gpost, state.me.key)) return { ok: false, reason: 'not_member' };
         } else {
           if (!otherKey) return { ok: false, reason: 'no_room' };
           if (!D.canChatWith(state.idx, state.me && state.me.key, otherKey)) {
@@ -1191,6 +1290,9 @@
         var roomId = D.groupRoomId(postId);
         if (!D.isGroupRoom(state.idx, roomId)) return { ok: false, reason: 'notfound' };
         if (!(state.me && state.me.key)) return { ok: false, reason: 'no_login' };
+        var gpost = D.groupPostOf(state.idx, roomId);
+        /* v1.43.0 — 신청만 하고 수락 전인 사람은 방에 들어가지 않습니다 */
+        if (gpost && D.guestBlocked(state.idx, gpost, state.me.key)) return { ok: false, reason: 'not_member' };
         state.ui.chatOpen = true;
         state.ui.chatRoom = roomId;
         state.ui.chatOther = '';
@@ -1229,6 +1331,9 @@
         if (!me) return { ok: false, reason: 'no_login' };
         var group = D.isGroupRoom(state.idx, roomId);
         var thread = D.threadById(state.idx, me, roomId);
+        /* 신청만 하고 수락 전인 사람은 방 읽음도 남기지 않습니다 (v1.43.0) */
+        var gpost = group ? D.groupPostOf(state.idx, roomId) : null;
+        if (gpost && D.guestBlocked(state.idx, gpost, me)) return { ok: false, reason: 'not_member' };
         /* 막 들어온 단체방은 아직 대화 목록에 없으므로 글에서 바로 셉니다.
          * 읽음 표시를 남기면 그때부터 내 대화 목록에도 방이 남습니다. */
         if (!thread && group) thread = D.groupThreadById(state.idx, me, roomId);

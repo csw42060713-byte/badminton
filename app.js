@@ -206,6 +206,7 @@
     if (!item) return '';
     if (item.kind === 'message') return (item.nick || '회원') + '님에게서 새 메시지가 왔어요';
     if (item.kind === 'match') return (item.nick || '회원') + '님이 1:1 매칭을 요청했어요';
+    if (item.kind === 'guest') return (item.nick || '회원') + '님이 게스트 참여를 신청했어요';
     return (item.nick || '회원') + '님이 친구 요청을 보냈어요';
   }
 
@@ -231,7 +232,8 @@
     bar.dataset.sig = sig;
     var sub = item.kind === 'message'
       ? U.truncate(item.text || '', 40)
-      : (item.kind === 'match' ? '눌러서 받은 요청 보기' : '눌러서 확인하기');
+      : (item.kind === 'match' ? '눌러서 받은 요청 보기'
+        : (item.kind === 'guest' ? '눌러서 신청 편지지 보기' : '눌러서 확인하기'));
     bar.className = 'notifbar notifbar--' + (item.kind === 'message' ? 'msg' : 'req');
     bar.innerHTML =
       '<button type="button" class="notifbar__body" data-notif-open>' +
@@ -1032,7 +1034,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.42.1' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.43.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

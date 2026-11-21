@@ -449,7 +449,7 @@
   var BASE_HEARTS = HEART_RULES.BASE;            // 가입 축하 하트 (구버전 호환)
   var HEART_COST_MATCH = HEART_RULES.MATCH_COST; // 1:1 매칭 신청 비용
 
-  var JSON_TYPES = { '매칭프로필': 1, '코치신청': 1, '멘토신청': 1, '매칭신청': 1, '코치피드백': 1, '계획': 1 };
+  var JSON_TYPES = { '매칭프로필': 1, '코치신청': 1, '멘토신청': 1, '매칭신청': 1, '코치피드백': 1, '계획': 1, '게스트신청': 1 };
 
   /* 커뮤니티 말머리(주제 태그) — 시트 칸을 늘리지 않고 '훈련계획' 칸에
    * {"topic":"게스트 모집"} 로 적습니다(예전 글은 주제가 없으므로 아래에서 자동 판별).
@@ -466,9 +466,11 @@
     topic: '게스트 모집',
     cardLabel: '게스트 모집',
     roomLabel: '게스트 모집 단체방',
-    joinLabel: '참여 문의',
+    /* v1.43.0 — '참여 문의'(바로 들어가기)는 '참여 신청'(수락제)으로 바뀌었습니다.
+     * 예전 문구는 예전 글·옛 기기 화면과 섞이지 않게 남겨 둡니다. */
+    joinLabel: '참여 신청',
+    legacyJoinLabel: '참여 문의',
     openLabel: '단체방 열기',
-    /* 정원이 차면 (bm-v1.29.0) — 배지와 버튼 글자가 바뀝니다 */
     closedLabel: '마감',
     waitLabel: '대기 문의',
     waitTopic: '대기하고 싶어요!',
@@ -476,7 +478,10 @@
      * 숫자·글자 그대로 적게 두고(없음·5천원·1만원 등), 빠르게 누르는 칩만 정해 둡니다. */
     feeLabel: '게스트비',
     feeNone: '없음',
-    feeChips: ['없음', '5천원', '1만원']
+    feeChips: ['없음', '5천원', '1만원'],
+    /* v1.43.0 — 바로 들어가던 '참여 문의'를 '참여 신청 → 수락'으로 바꿉니다 */
+    applyLabel: '참여 신청',
+    pendingLabel: '신청 대기 중'
   };
 
   function normalizeTopic(v) {
@@ -556,27 +561,222 @@
   /* 참여자 = 글쓴이 + 이 글 단체방에 한마디 남긴 사람 (글쓴이가 먼저) */
   function meetMembers(idx, post, meKey) {
     if (!post || !post.id) return [];
-    var list = ((idx && idx.byType && idx.byType['매칭채팅']) || []).filter(function (m) {
-      return String(m.team || '') === String(post.id);
+    /* v1.43.0 — 글쓴이 + 수락된 게스트 + 예전 참여자(방에 말을 남긴 사람) */
+    return guestRoster(idx, post, meKey).members;
+  }
+
+  /* ---------- 게스트 참여 신청 (2026-11-21, bm-v1.43.0) ----------
+   * 정원이 있는 모집 글은 '바로 단체방에 들어가기' 대신 신청 편지지를 보내고,
+   * 글쓴이가 수락해야 정원에 들어갑니다.
+   *  · 새 칸·새 표 없이 '유형=게스트신청' 행 하나로 4가지를 남깁니다.
+   *      신청  — 신청자가 남김 (사용자ID=신청자, 대상=글쓴이)
+   *      수락·거절 — 글쓴이가 남김 (사용자ID=글쓴이, 대상=신청자)
+   *      나가기 — 게스트가 남김 (사용자ID=게스트, 대상=글쓴이)
+   *    '팀' 칸은 글 ID(단체방 번호와 같음), '소셜글' 칸은 {kind, note, …} JSON 입니다.
+   *  · 화면은 이 행들을 시간 순서로 읽어 '지금 상태'만 계산합니다(행을 고치지 않음).
+   *    그래서 두 기기에서 동시에 수락/나가기가 일어나도 마지막 한 줄이 이깁니다.
+   *  · 서버(Supabase) 읽기 정책이 '내 행이거나 나에게 온 행'이라 당사자 둘만 봅니다. */
+  var GUEST_TYPE = '게스트신청';
+  var GUEST_NOTE_MAX = 80;      /* 신청 한마디 글자 수 */
+  var GUEST = {
+    type: GUEST_TYPE,
+    noteMax: GUEST_NOTE_MAX,
+    noteDefault: '같이 치고 싶어요!',
+    applyLabel: MEET.applyLabel,
+    pendingLabel: MEET.pendingLabel,
+    rejectedLabel: '신청 거절됨',
+    leaveLabel: '나가기',
+    inboxTitle: '받은 게스트 신청',
+    /* 행에 적는 값 */
+    apply: '신청', accept: '수락', reject: '거절', leave: '나가기',
+    pending: '대기'
+  };
+
+  function guestKind(r) {
+    return String((r && r.payload && r.payload.kind) || '');
+  }
+
+  function guestKindOk(k) {
+    return k === GUEST.apply || k === GUEST.accept || k === GUEST.reject || k === GUEST.leave;
+  }
+
+  /* 이 행이 '누구에 대한' 것인지 — 수락·거절은 받는 사람(대상)이 주인공입니다 */
+  function guestWho(r) {
+    var k = guestKind(r);
+    return (k === GUEST.accept || k === GUEST.reject) ? String((r && r.target) || '') : String((r && r.userKey) || '');
+  }
+
+  /* 한 글의 신청 행들 (오래된 것부터) */
+  function guestRows(idx, postId) {
+    if (!postId) return [];
+    return U.sortBy(((idx && idx.byType && idx.byType[GUEST_TYPE]) || []).filter(function (r) {
+      return String((r && r.team) || '') === String(postId);
+    }), function (r) { return (r && r.createdAt) || ''; });
+  }
+
+  /* 글 안에서 사람별 '지금 상태' — 대기 · 수락 · 거절 · 나가기 (없으면 '') */
+  function guestStates(idx, postId) {
+    var map = {};
+    guestRows(idx, postId).forEach(function (r) {
+      var k = guestKind(r);
+      if (!guestKindOk(k)) return;
+      var who = guestWho(r);
+      if (!who) return;
+      var st = map[who] || (map[who] = {
+        key: who, status: '', at: '', note: '', applyId: '', applyAt: '', nick: '', level: '', style: ''
+      });
+      if (k === GUEST.apply) {
+        st.status = GUEST.pending;
+        st.note = String((r.payload && r.payload.note) || '');
+        st.nick = String((r.payload && r.payload.nick) || r.nick || '');
+        st.level = normalizeGrade((r.payload && r.payload.level) || r.level || '');
+        st.style = normalizeStyle((r.payload && r.payload.style) || '');
+        st.applyId = String(r.id || '');
+        st.applyAt = r.createdAt || st.applyAt;
+      } else {
+        st.status = k;
+      }
+      st.at = r.createdAt || st.at;
     });
-    return groupMembers(idx, post, list, meKey);
+    return map;
+  }
+
+  /* 한 사람의 지금 상태 */
+  function guestState(idx, postId, userKey) {
+    if (!postId || !userKey) return { key: String(userKey || ''), status: '', at: '', note: '', applyId: '' };
+    return guestStates(idx, postId)[String(userKey)] ||
+      { key: String(userKey), status: '', at: '', note: '', applyId: '', applyAt: '', nick: '', level: '', style: '' };
+  }
+
+  /* 단체방에 한마디 남긴 사람 (예전 참여자 호환) */
+  function guestSenders(idx, postId) {
+    var set = {};
+    ((idx && idx.byType && idx.byType['매칭채팅']) || []).forEach(function (m) {
+      if (String((m && m.team) || '') !== String(postId)) return;
+      if (m && m.userKey) set[String(m.userKey)] = 1;
+    });
+    return set;
+  }
+
+  /* 글 하나의 명단 — 글쓴이 + 수락된 게스트 + 예전 참여자, 대기/거절/나감 명단 */
+  function guestRoster(idx, post, meKey) {
+    var postId = String((post && post.id) || '');
+    var author = String((post && post.userKey) || '');
+    var me = String(meKey || '');
+    var out = { postId: postId, author: author, members: [], pending: [], accepted: [], rejected: [], left: [] };
+    if (!postId) return out;
+    var states = guestStates(idx, postId);
+    var seen = {};
+    function addMember(key, nick) {
+      if (!key || seen[key]) return;
+      seen[key] = 1;
+      out.members.push({ key: key, nick: nick || nickOf(idx, key) || '회원', me: key === me });
+    }
+    if (author) addMember(author, post.nick);
+    Object.keys(states).forEach(function (key) {
+      var st = states[key];
+      var item = {
+        key: key, status: st.status, at: st.at, note: st.note, applyId: st.applyId,
+        applyAt: st.applyAt || st.at,
+        nick: st.nick || nickOf(idx, key) || '회원',
+        level: st.level || '', style: st.style || '', me: key === me
+      };
+      if (st.status === GUEST.accept) { out.accepted.push(item); addMember(key, item.nick); }
+      else if (st.status === GUEST.pending) out.pending.push(item);
+      else if (st.status === GUEST.reject) out.rejected.push(item);
+      else if (st.status === GUEST.leave) out.left.push(item);
+    });
+    /* 신청 행이 없는데 방에 말을 남긴 사람은 v1.42까지의 참여자로 그대로 셉니다 */
+    var senders = guestSenders(idx, postId);
+    Object.keys(senders).forEach(function (key) {
+      if (states[key]) return;
+      addMember(key, '');
+    });
+    out.pending = U.sortBy(out.pending, function (x) { return x.applyAt || x.at || ''; }, true);
+    out.accepted = U.sortBy(out.accepted, function (x) { return x.at || ''; });
+    out.rejected = U.sortBy(out.rejected, function (x) { return x.at || ''; }, true);
+    out.left = U.sortBy(out.left, function (x) { return x.at || ''; }, true);
+    return out;
+  }
+
+  /* 이 사람이 이 글의 단체방 사람인가 — 글쓴이 · 수락된 게스트 · 예전 참여자 */
+  function guestMember(idx, post, meKey) {
+    if (!post || !meKey) return false;
+    var postId = String(post.id || '');
+    var me = String(meKey);
+    if (String(post.userKey || '') === me) return true;
+    var st = guestState(idx, postId, me);
+    if (st.status === GUEST.accept) return true;
+    if (st.status) return false;      /* 대기·거절·나가기 — 수락 전에는 방 사람이 아님 */
+    if (guestSenders(idx, postId)[me]) return true;
+    return (idx.byType['채팅읽음'] || []).some(function (r) {
+      return r.userKey === me && String(r.team || r.target || '') === postId;
+    });
+  }
+
+  /* 신청만 하고 수락 전인 사람(대기·거절·나감)은 방에 들어갈 수 없습니다 (v1.43.0) */
+  function guestBlocked(idx, post, meKey) {
+    if (!post || !meKey) return false;
+    if (String(post.userKey || '') === String(meKey)) return false;
+    var st = guestState(idx, post.id, meKey).status;
+    return !!st && st !== GUEST.accept;
+  }
+
+  /* 정원이 차서 커뮤니티에서 내려간 글인가 (정원이 없으면 내려가지 않음) */
+  function meetHidden(idx, post, meKey) {
+    var st = meetStatus(idx, post, meKey);
+    return !!(st.cap > 0 && st.closed);
+  }
+
+  /* 글쓴이의 신청함 — 아직 답하지 않은 게스트 신청 (최근 것부터) */
+  function guestInbox(idx, meKey) {
+    var me = String(meKey || '');
+    if (!me) return [];
+    var out = [];
+    ((idx && idx.byType && idx.byType['소셜']) || []).forEach(function (post) {
+      if (String(post.userKey || '') !== me) return;
+      var roster = guestRoster(idx, post, me);
+      roster.pending.forEach(function (it) {
+        out.push({
+          id: it.applyId, postId: roster.postId, post: post, userKey: it.key, nick: it.nick,
+          level: it.level, style: it.style, note: it.note, at: it.applyAt || it.at
+        });
+      });
+    });
+    return U.sortBy(out, function (x) { return x.at || ''; }, true);
+  }
+
+  /* 내가 보낸 신청의 지금 상태 (글마다 마지막 것) */
+  function guestMine(idx, meKey, postId) {
+    var st = guestState(idx, postId, meKey);
+    return { status: st.status, at: st.at, note: st.note, applyId: st.applyId };
   }
 
   /* 모집 글의 지금 상태 — 정원·참여자·마감 여부 (화면은 이 값만 그립니다) */
   function meetStatus(idx, post, meKey) {
     var m = (post && post.meet) || meetOf(post);
     var cap = meetCap(m);
-    var members = meetMembers(idx, post, meKey);
+    var roster = guestRoster(idx, post, meKey);
+    var members = roster.members;
     var count = members.length;
     var author = (post && post.userKey) || '';
+    var me = String(meKey || '');
+    var mine = !!(me && author && String(author) === me);
+    var st = (me && !mine) ? guestState(idx, roster.postId, me) : { status: '', at: '', note: '', applyId: '' };
     return {
       cap: cap,
       count: count,
-      /* 글쓴이를 뺀 '참여 문의한 사람' 수 */
+      /* 글쓴이를 뺀 '참여 중인 게스트' 수 */
       guests: Math.max(0, count - (author ? 1 : 0)),
       members: members,
-      mine: !!(meKey && author && String(author) === String(meKey)),
-      /* 정원이 있고 그 수만큼 모이면 자동 마감 (버튼은 '대기 문의'로 바뀝니다) */
+      pending: roster.pending,
+      accepted: roster.accepted,
+      rejected: roster.rejected,
+      left: roster.left,
+      mine: mine,
+      /* 내 신청 상태 — ''(없음) · 대기 · 수락 · 거절 · 나가기 */
+      me: { status: st.status || '', at: st.at || '', note: st.note || '', applyId: st.applyId || '' },
+      /* 정원이 있고 그 수만큼 모이면 자동 마감 (커뮤니티 피드에서는 내려갑니다) */
       closed: cap > 0 && count >= cap
     };
   }
@@ -1922,13 +2122,15 @@
   }
 
   function groupMembers(idx, post, list, meKey) {
+    /* v1.43.0 — 참여자 = 글쓴이 + 수락된 게스트 + 예전 참여자(방에 말을 남긴 사람).
+     * 신청만 하고 수락 전인 사람은 방 사람으로 세지 않습니다. */
+    if (post && post.id) return guestRoster(idx, post, meKey).members;
     var seen = {}, out = [];
     function add(key, nick) {
       if (!key || seen[key]) return;
       seen[key] = 1;
       out.push({ key: key, nick: nick || nickOf(idx, key) || '회원', me: key === meKey });
     }
-    if (post) add(post.userKey, post.nick);
     (list || []).forEach(function (m) { add(m.userKey, m.nick); });
     return out;
   }
@@ -2020,17 +2222,27 @@
     Object.keys(groupMsgs).forEach(function (roomId) {
       var post = groupPostOf(idx, roomId);
       var list = U.sortBy(groupMsgs[roomId], function (m) { return m.createdAt || ''; });
-      var joined = !!readAt[roomId] || (post && post.userKey === meKey) ||
-        list.some(function (m) { return m.userKey === meKey; });
-      if (!joined) return;
+      /* v1.43.0 — 방 사람만 목록에 둡니다 (글쓴이 · 수락된 게스트 · 예전 참여자).
+       * 신청만 하고 아직 수락되지 않은 사람, 나간 사람은 목록에서 빠집니다. */
+      if (!post || !guestMember(idx, post, meKey)) return;
       map[roomId] = groupThread(idx, post, list, meKey, readAt);
     });
     /* 문의 버튼으로 방을 열어 읽음 표시만 남은 방(아직 대화 없음)도 내 목록에 남깁니다 */
     Object.keys(readAt).forEach(function (roomId) {
       if (map[roomId]) return;
       var post = groupPostOf(idx, roomId);
-      if (!post) return;
+      if (!post || !guestMember(idx, post, meKey)) return;
       map[roomId] = groupThread(idx, post, [], meKey, readAt);
+    });
+    /* v1.43.0 — 대화가 아직 없어도 방 사람(수락된 게스트·신청이 온 글의 글쓴이)에게는 방이 보입니다.
+     * 수락 직후 '단체방 열기'로 들어가 바로 인사할 수 있게 하기 위해서입니다. */
+    (idx.byType['소셜'] || []).forEach(function (post) {
+      var roomId = String((post && post.id) || '');
+      if (!roomId || map[roomId]) return;
+      if (!guestMember(idx, post, meKey)) return;
+      var roster = guestRoster(idx, post, meKey);
+      if (!(roster.members.length > 1 || roster.pending.length > 0 || readAt[roomId])) return;
+      map[roomId] = groupThread(idx, post, groupMsgs[roomId] || [], meKey, readAt);
     });
 
     /* 친구: 친구수락 행 ID가 곧 대화방 ID (양쪽 기기에서 같은 값) */
@@ -2203,14 +2415,8 @@
     if (!meKey) return false;
     var post = groupPostOf(idx, roomId);
     if (!post) return false;
-    if (post.userKey === meKey) return true;
-    var read = (idx.byType['채팅읽음'] || []).some(function (r) {
-      return r.userKey === meKey && String(r.team || r.target || '') === String(roomId);
-    });
-    if (read) return true;
-    return (idx.byType['매칭채팅'] || []).some(function (m) {
-      return String(m.team || '') === String(roomId) && m.userKey === meKey;
-    });
+    /* v1.43.0 — 글쓴이 or 수락된 게스트 or 예전 참여자. 신청만 한 사람은 아직 방 사람이 아닙니다 */
+    return guestMember(idx, post, meKey);
   }
 
   function newIncoming(idx, meKey, since) {
@@ -2250,6 +2456,20 @@
       out.friendRequests.push({
         kind: 'friend', id: r.id, from: r.userKey || '',
         nick: r.nick || nickOf(idx, r.userKey) || '회원', at: r.createdAt
+      });
+    });
+
+    /* v1.43.0 — 내 모집 글에 도착한 게스트 참여 신청 (글쓴이에게만) */
+    (idx.byType[GUEST_TYPE] || []).forEach(function (r) {
+      if (!fresh(r) || guestKind(r) !== GUEST.apply) return;
+      if (String(r.target || '') !== String(meKey)) return;
+      var postId = String(r.team || '');
+      if (!groupPostOf(idx, postId)) return;
+      if (guestState(idx, postId, r.userKey).status !== GUEST.pending) return;
+      out.requests.push({
+        kind: 'guest', id: r.id, from: String(r.userKey || ''), postId: postId,
+        nick: (r.payload && r.payload.nick) || r.nick || nickOf(idx, r.userKey) || '회원',
+        note: (r.payload && r.payload.note) || '', at: r.createdAt
       });
     });
 
@@ -2591,6 +2811,12 @@
     POST_TOPICS: POST_TOPICS, MEET: MEET, LEGACY_TOPICS: LEGACY_TOPICS, normalizeTopic: normalizeTopic, topicOf: topicOf,
     normalizeMeet: normalizeMeet, meetFilled: meetFilled, meetOf: meetOf, meetText: meetText, meetFeeText: meetFeeText,
     meetCap: meetCap, meetMembers: meetMembers, meetStatus: meetStatus,
+    /* v1.43.0 — 게스트 참여 신청 · 수락/거절 · 나가기 · 마감 숨김 */
+    GUEST_TYPE: GUEST_TYPE, GUEST: GUEST, GUEST_NOTE_MAX: GUEST_NOTE_MAX,
+    guestKind: guestKind, guestRows: guestRows, guestStates: guestStates, guestState: guestState,
+    guestRoster: guestRoster, guestMember: guestMember, guestInbox: guestInbox, guestMine: guestMine,
+    guestBlocked: guestBlocked,
+    meetHidden: meetHidden,
     /* v1.29 */
     MANNER_TYPE: MANNER_TYPE, MANNER_TAGS: MANNER_TAGS, MANNER_MAX_BADGES: MANNER_MAX_BADGES,
     mannerTag: mannerTag, mannerLabel: mannerLabel, mannerRows: mannerRows,

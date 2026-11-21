@@ -396,12 +396,13 @@
     });
   });
 
-  test('단체방: 화면 버튼은 "참여 문의"이고 1:1 DM 문구가 남지 않는다', function () {
+  /* bm-v1.43.0 — 남의 글 버튼은 '참여 신청'(수락해야 방) */
+  test('단체방: 화면 버튼은 "참여 신청"이고 1:1 DM 문구가 남지 않는다', function () {
     var rows = [meetPost()];
     var html = BM.views.community.render(stateOf(rows));
     checkHtml(html, '커뮤니티(게스트 모집)');
-    includes(html, 'data-vite-group="post-bolt-1"', '단체방 버튼');
-    includes(html, '참여 문의', '버튼 글자');
+    includes(html, 'data-vite-group="post-bolt-1"', '어느 글인지 함께');
+    includes(html, '>참여 신청<', '버튼 글자');
     includes(html, '게스트 모집', '모집 카드 제목');
     excludes(html, 'data-vite-dm', '작성자 1:1 DM 버튼 없음');
     includes(html, 'data-vite-group="post-bolt-1"', '어느 글의 방인지 함께');
@@ -410,7 +411,8 @@
   test('단체방: 말머리 이름표는 한 곳에서 바꿀 수 있게 분리되어 있다', function () {
     eq(D.MEET.topic, '게스트 모집', '말머리');
     includes(D.POST_TOPICS.join(','), D.MEET.topic, '말머리 목록에 포함');
-    eq(D.MEET.joinLabel, '참여 문의', '참여 버튼');
+    eq(D.MEET.joinLabel, '참여 신청', '참여 버튼');
+    eq(D.MEET.legacyJoinLabel, '참여 문의', '옛 이름표 보존');
     ok(D.MEET.roomLabel.length > 0 && D.MEET.cardLabel.length > 0, '방·카드 이름표');
   });
 
@@ -423,7 +425,7 @@
     var sw = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf8');
     var css = fs.readFileSync(path.join(rootDir, 'styles.css'), 'utf8');
     includes(app, 'pendingMatch', '상단 채팅 배지에 매칭 요청 포함');
-    ok(/var VERSION = 'bm-v1\.42\.1'/.test(sw), 'sw.js bm-v1.37.2');
+    ok(/var VERSION = 'bm-v1\.43\.0'/.test(sw), 'sw.js bm-v1.37.2');
     includes(css, '.letter {', '편지지 스타일');
     includes(css, '.dmgroupav', '단체방 아이콘 스타일');
   });

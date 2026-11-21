@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ko" data-theme="th_def">
+<head>
+<meta charset="utf-8">
+<title>v1.43.0 게스트 신청 흐름 미리보기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html, body { margin: 0; background: var(--bg); }
+  body { display: flex; justify-content: center; }
+  .frame { position: relative; width: 100%; max-width: 430px; height: 100dvh; overflow: hidden; background: var(--bg); }
+  .frame .main { height: 100dvh; overflow-y: auto; padding: 0 0 40px; }
+  .frame .view { padding: 12px 14px 0; }
+  .frame .dm { position: absolute; inset: 0; }
+  .probe { position: absolute; left: 0; top: 0; font-size: 9px; opacity: 0.35; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="frame" id="frame">
+  <header class="hdr">
+    <div class="hdr__left"><span class="hdr__logo" aria-hidden="true">🏸</span>
+      <div class="hdr__titles"><span class="hdr__brand">BADMINTON</span><h1>커뮤니티</h1></div></div>
+    <div class="hdr__right">
+      <button id="hdrChat" class="iconbtn hdr__chat" aria-label="채팅" aria-expanded="false" aria-controls="dm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 3v-5.6A7.5 7.5 0 0 1 11 4h2.5A7.5 7.5 0 0 1 21 11.5z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main id="main" class="main"><div class="view"></div></main>
+  <div id="dm" class="dm" hidden></div>
+  <span class="probe" id="probe"></span>
+</div>
+
+<script src="../js/util.js"></script>
+<script src="../js/domain.js"></script>
+<script src="../js/routine.js"></script>
+<script src="../js/beginner.js"></script>
+<script src="../js/ai.js"></script>
+<script src="../js/seed.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/gyms.js"></script>
+<script src="../js/art.js"></script>
+<script src="../js/ads.js"></script>
+<script src="../js/scoreboard.js"></script>
+<script src="../js/timer.js"></script>
+<script src="../js/report.js"></script>
+<script src="../js/views/profile.js"></script>
+<script src="../js/views/friends.js"></script>
+<script src="../js/views/chat.js"></script>
+<script src="../js/views/gyms.js"></script>
+<script src="../js/views/log.js"></script>
+<script src="../js/views/matching.js"></script>
+<script src="../js/views/community.js"></script>
+<script src="../js/views/coach.js"></script>
+<script src="../js/views/my.js"></script>
+<script>
+/* v1.43.0 게스트 신청 흐름 미리보기 (테스트 전용 · 앱 번들·gh-pages에 들어가지 않습니다)
+ *  ?me=owner   글쓴이(u_owner) 시점
+ *  ?me=guest   게스트(u_guest) 시점
+ * 두 역할이 같은 기기 저장(bm_rows_v1)을 함께 보므로, 역할을 바꿔 다시 열면
+ * 신청 편지지 → 수락 → 마감 숨김 → 나가기 → 다시 노출 흐름을 그대로 이어 볼 수 있습니다.
+ * 화면은 앱과 같은 코드(js/views/community.js · js/views/chat.js · js/store.js)를 씁니다. */
+(function () {
+  'use strict';
+  var BM = window.BM, U = BM.util, D = BM.domain, UI = BM.ui;
+  var ROWS_KEY = 'bm_rows_v1';
+  var ROLES = {
+    owner: { key: 'u_owner', ident: { nick: '모집왕', level: 'B조', discipline: '복식' } },
+    guest: { key: 'u_guest', ident: { nick: '신청자', level: 'C조', discipline: '복식' } }
+  };
+  var params = new URLSearchParams(location.search);
+  var roleName = params.get('me') === 'guest' ? 'guest' : 'owner';
+  var ROLE = ROLES[roleName];
+
+  function row(o) { return D.toRow(o); }
+
+  /* 두 역할의 프로필 — 이미 있으면 다시 넣지 않습니다 */
+  function seed() {
+    var rows = U.readJSON(ROWS_KEY, []) || [];
+    function has(id) { return rows.some(function (r) { return String(r[0]) === id; }); }
+    if (!has('prof-owner')) rows.push(row({
+      id: 'prof-owner', type: '프로필', createdAt: U.stamp(), date: U.ymd(),
+      nick: '모집왕', level: 'B조', discipline: '복식', userKey: 'u_owner', bio: '토요일 모집합니다',
+      theme: { theme: 'th_def', avatar: '🐧' }
+    }));
+    if (!has('prof-guest')) rows.push(row({
+      id: 'prof-guest', type: '프로필', createdAt: U.stamp(), date: U.ymd(),
+      nick: '신청자', level: 'C조', discipline: '복식', userKey: 'u_guest', bio: '신청합니다',
+      theme: { theme: 'th_def', avatar: '🦊', style: '수비형' }
+    }));
+    if (!has('mp-guest')) rows.push(row({
+      id: 'mp-guest', type: '매칭프로필', createdAt: U.stamp(), date: U.ymd(), nick: '신청자', userKey: 'u_guest',
+      payload: { level: 'C조', discipline: '복식', region: '경기', club: '영통', availability: '주말', bio: '', avatar: '🦊', style: '수비형' }
+    }));
+    U.writeJSON(ROWS_KEY, rows);
+  }
+
+  var store = null, ctx = null, mounted = false;
+
+  function paint() {
+    if (!store || !ctx) return;
+    var state = store.state;
+    var root = document.getElementById('main');
+    var view = BM.views.community;
+    root.innerHTML = view.render(state);
+    if (!mounted) { view.mount(root, ctx); mounted = true; }
+    var dm = document.getElementById('dm');
+    dm.hidden = !state.ui.chatOpen;
+    if (state.ui.chatOpen) {
+      BM.views.chat.render(dm, state);
+      BM.views.chat.bind(dm, ctx);
+    } else {
+      dm.innerHTML = '';
+    }
+    var chatBtn = document.getElementById('hdrChat');
+    chatBtn.setAttribute('aria-expanded', state.ui.chatOpen ? 'true' : 'false');
+    document.getElementById('probe').textContent = ROLE.key + ' · ' + ((state.me && state.me.nick) || '');
+  }
+
+  function boot() {
+    seed();
+    var api = BM.api.createLocal({ latency: 0, rowsKey: ROWS_KEY, meKey: ROLE.key, me: ROLE.ident });
+    store = BM.store.createStore({ api: api });
+    ctx = {
+      store: store, actions: store.actions,
+      refresh: paint, repaint: paint,
+      saveLog: function () { return { ok: false }; },
+      connectSheets: function () {}, switchBackend: function () { return Promise.resolve({ ok: false }); },
+      deleteAccount: function () { return Promise.resolve({ ok: false }); },
+      signOut: function () {}, auth: BM.auth
+    };
+    window.V143 = { store: store, ctx: ctx, role: roleName, key: ROLE.key, paint: paint };
+    BM.app = BM.app || {};
+    BM.app.ctx = ctx;
+    return store.actions.init().then(function () {
+      store.state.ui.tab = 'community';
+      store.subscribe(paint);
+      paint();
+      return store;
+    });
+  }
+
+  document.getElementById('hdrChat').addEventListener('click', function () {
+    if (!store) return;
+    if (store.state.ui.chatOpen) store.actions.closeChats();
+    else store.actions.openChats();
+  });
+  document.addEventListener('click', function (ev) {
+    /* 채팅 목록의 '대화 목록' 뒤로가기(방 → 목록)는 chat 뷰가 처리합니다 */
+    if (ev.target.closest('[data-dm-close]')) store.actions.closeChats();
+  });
+
+  window.V143_BOOT = boot;
+  boot();
+})();
+</script>
+</body>
+</html>

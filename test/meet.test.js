@@ -184,7 +184,7 @@
     eq(D.topicOf(oldPost), '게스트 모집', '예전 글 말머리');
     eq(D.meetOf(oldPost).place, '올림픽체육관', '예전 글 모집 정보');
     var html = BM.views.community.render(stateOf([oldPost]));
-    includes(html, 'data-vite-group="old-c"', '예전 글에도 참여 문의 버튼');
+    includes(html, 'data-vite-group="old-c"', '예전 글에도 참여 신청 버튼');
     includes(html, 'class="vite__t"', '예전 글에도 모집 카드');
     excludes(html, '번개', '화면에는 옛 이름이 남지 않는다');
     /* 말머리 목록에도 새 이름만 있습니다 */
@@ -200,7 +200,7 @@
     includes(html, 'data-vitefield="when"', '입력칸은 그려 두고 숨김');
     includes(html, 'data-vitefield="place"', '장소 입력칸');
     includes(html, 'data-vitefield="cap"', '인원 입력칸');
-    excludes(html, 'data-vite-group', '일반 글에는 참여 문의 버튼 없음');
+    excludes(html, 'data-vite-group', '일반 글에는 참여 버튼 없음');
   });
 
   test('게스트 모집 화면: 말머리를 게스트 모집으로 고르면 입력칸이 열리고 값을 기억한다', function () {
@@ -215,7 +215,8 @@
     includes(html, 'value="6"', '인원 값 유지');
   });
 
-  test('게스트 모집 화면: 글 카드에 일시·장소·인원과 참여 문의가 보인다', function () {
+  /* bm-v1.43.0 — 남의 모집 글 버튼은 '참여 신청'(신청 편지지)이고, 수락 전에는 방에 들어가지 않습니다 */
+  test('게스트 모집 화면: 글 카드에 일시·장소·인원과 참여 신청이 보인다', function () {
     var rows = [meetRow({ topic: '게스트 모집', meet: { when: '11/21(금) 19:00', place: '올림픽체육관', cap: '6' } })];
     var html = BM.views.community.render(stateOf(rows));
     checkHtml(html, '게스트 모집 글');
@@ -225,8 +226,9 @@
     includes(html, '11/21(금) 19:00', '일시');
     includes(html, '올림픽체육관', '장소');
     includes(html, '6명', '인원');
-    includes(html, 'data-vite-group="bolt-1"', '참여 문의 → 단체방 버튼');
-    includes(html, '참여 문의', '버튼 글자');
+    includes(html, 'data-vite-group="bolt-1"', '어느 글인지 함께');
+    includes(html, 'data-vite-go="apply"', '참여 신청 버튼');
+    includes(html, '>참여 신청<', '버튼 글자');
     excludes(html, '내가 올린 게스트 모집', '남의 글에는 내 글 표시 없음');
   });
 
@@ -272,9 +274,9 @@
     var sw = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf8');
     var app = fs.readFileSync(path.join(rootDir, 'app.js'), 'utf8');
     var index = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
-    ok(/var VERSION = 'bm-v1\.42\.1'/.test(sw), 'sw.js bm-v1.37.2');
-    includes(app, "version: 'v1.42.1'", 'app.js v1.17.0');
-    includes(index, 'styles.css?v=20261121-54', 'styles.css 쿼리 갱신');
+    ok(/var VERSION = 'bm-v1\.43\.0'/.test(sw), 'sw.js bm-v1.37.2');
+    includes(app, "version: 'v1.43.0'", 'app.js v1.17.0');
+    includes(index, 'styles.css?v=20261121-55', 'styles.css 쿼리 갱신');
     includes(index, 'js/routine.js', '루틴 파일 유지');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

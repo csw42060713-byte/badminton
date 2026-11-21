@@ -405,32 +405,32 @@
   /* =========================================================
    * 5. 모집 정원 — 화면
    * ========================================================= */
-  test('v1.29 화면: 정원이 찬 글은 마감 배지 + 대기 문의', function () {
+  /* bm-v1.43.0 — 정원이 차면 커뮤니티 피드에서 자동으로 내려갑니다 (단체방은 남음) */
+  test('v1.29 화면: 정원이 찬 글은 커뮤니티 피드에서 내려간다', function () {
     var rows = [
       meetRow({ topic: '번개', meet: { when: '11/21(금) 19:00', place: '올림픽체육관', cap: '3' } }, 'demo_chi', 'bolt-6'),
       groupMsgRow('bolt-6', 'demo_suttle', '셔틀버스', '참여하고 싶어요!'),
       groupMsgRow('bolt-6', 'demo_net', '네트앞여우', '저도요!')
     ];
-    var html = BM.views.community.render(stateOf(rows));
+    var st = stateOf(rows);
+    var html = BM.views.community.render(st);
     checkHtml(html, '마감된 번개');
-    includes(html, 'vite vite--closed', '마감 카드');
-    includes(html, 'pill--closed', '마감 배지');
-    includes(html, '>마감<', '배지 글자');
-    includes(html, '대기 문의', '버튼 글자');
-    excludes(html, '>참여 문의<', '참여 문의 버튼은 사라짐');
-    includes(html, '참여 3/3명', '지금 인원');
-    includes(html, 'data-vite-group="bolt-6"', '같은 단체방으로 들어감');
-    excludes(html, 'data-vite-members', '남의 글에는 명단 보기 없음');
+    excludes(html, 'data-post="bolt-6"', '피드에서 내려감');
+    includes(html, '지금은 모집 중인 글이 없어요', '빈 화면 안내');
+    /* 이미 참여 중인 사람에게는 단체방이 그대로 남습니다 */
+    var post = st.data.posts.filter(function (p) { return p.id === 'bolt-6'; })[0];
+    ok(D.guestMember(st.data.idx, post, 'demo_suttle'), '예전 참여자는 방 사람');
+    eq(D.meetStatus(st.data.idx, post, 'demo_suttle').closed, true, '마감 상태');
   });
 
-  test('v1.29 화면: 자리가 남은 글은 그대로 참여 문의', function () {
+  test('v1.29 화면: 자리가 남은 글은 참여 신청', function () {
     var rows = [
       meetRow({ topic: '번개', meet: { when: '11/21(금) 19:00', place: '올림픽체육관', cap: '6' } }, 'demo_chi', 'bolt-7'),
       groupMsgRow('bolt-7', 'demo_suttle', '셔틀버스', '참여하고 싶어요!')
     ];
     var html = BM.views.community.render(stateOf(rows));
     checkHtml(html, '자리 남은 번개');
-    includes(html, '>참여 문의<', '참여 문의');
+    includes(html, '>참여 신청<', '참여 신청');
     excludes(html, 'pill--closed', '마감 배지 없음');
     excludes(html, 'vite vite--closed', '마감 카드 아님');
     includes(html, '참여 2/6명', '지금 인원');
@@ -451,17 +451,21 @@
     excludes(html, '대기 문의', '자리가 남아 있으면 대기 문의 아님');
   });
 
-  test('v1.29 화면: 정원이 찬 글의 글쓴이도 명단을 볼 수 있다', function () {
+  test('v1.29 화면: 정원이 찬 내 글도 피드에서는 내려가고 단체방에서 현황·모집 종료를 본다', function () {
     var rows = [
       meetRow({ topic: '번개', meet: { cap: '2' } }, BM.seed.ME, 'bolt-9'),
       groupMsgRow('bolt-9', 'demo_suttle', '셔틀버스', '갈게요')
     ];
-    var html = BM.views.community.render(stateOf(rows));
+    var st = stateOf(rows);
+    st.ui.chatRoom = 'bolt-9';
+    var html = BM.views.community.render(st);
     checkHtml(html, '마감된 내 번개');
-    includes(html, '>마감<', '마감 배지');
-    includes(html, '참여자 2명', '참여자 요약');
-    includes(html, 'data-vite-members="bolt-9"', '명단 보기');
-    includes(html, '단체방 열기', '글쓴이 버튼은 그대로');
+    excludes(html, 'data-post="bolt-9"', '글쓴이에게도 피드에서 내려감');
+    var room = BM.views.chat.roomHtml(st);
+    includes(room, '참여 2/2명', '모집 현황 줄');
+    includes(room, 'data-vite-members="bolt-9"', '명단 보기');
+    includes(room, 'data-vite-end="bolt-9"', '글쓴이는 모집 종료');
+    excludes(room, 'data-vite-leave', '글쓴이에게는 나가기 없음');
   });
 
   test('v1.29 문구: 대기 문의 문구도 한 줄에 들어간다', function () {
@@ -513,13 +517,13 @@
 
   test('v1.29 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.42.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.42.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-54', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.43.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.43.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-55', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.42.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.42.1', 'TWA appVersion');
+    eq(twa.appVersionName, '1.43.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.43.0', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드');
     includes(readRoot('index.html'), 'js/views/chat.js', '채팅 화면 파일 유지');
     includes(readRoot('sw.js'), "'./js/views/profile.js'", '서비스워커 캐시 목록 유지');

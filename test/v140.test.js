@@ -398,22 +398,22 @@
    * ========================================================= */
   test('v1.40 버전: sw.js · app.js · twa-manifest.json이 1.40.1으로 맞는다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.42.1'", 'sw.js 캐시 버전');
-    includes(readRoot('app.js'), "version: 'v1.42.1'", 'app.js 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.43.0'", 'sw.js 캐시 버전');
+    includes(readRoot('app.js'), "version: 'v1.43.0'", 'app.js 버전');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.42.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.42.1', 'TWA appVersion');
+    eq(twa.appVersionName, '1.43.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.43.0', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드(웹 자산만 바뀌어 유지)');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-54', '스타일 캐시 키');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-55', '스타일 캐시 키');
   });
 
   test('v1.40 문서: README·아이디어 노트에 이번 사이클이 남는다', function () {
     if (!hasNode) return;
     var readme = readRoot('README.md');
-    includes(readme, 'v1.42.1', 'README 버전 절');
+    includes(readme, 'v1.43.0', 'README 버전 절');
     includes(readme, '시작 4유형', 'README 유형 설명');
     includes(readme, '7대 훈련', 'README 7대 훈련 설명');
-    includes(readRoot('ideas.md'), 'bm-v1.42.1', '아이디어 노트 상태');
+    includes(readRoot('ideas.md'), 'bm-v1.43.0', '아이디어 노트 상태');
     includes(readRoot('test/run.js'), 'test/v140.test.js', '테스트 실행 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
