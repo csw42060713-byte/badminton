@@ -153,7 +153,9 @@
     return {
       working: working, available: available, ended: ended,
       lit: working || available, key: key, label: label,
-      range: (available && person && person.freeNow) ? '지금 운동 가능' : rangeLabel(person && person.avail)
+      range: person && person.freeNow
+        ? ('지금 운동 가능' + (rangeLabel(person.avail) ? ' · ' + rangeLabel(person.avail) : ''))
+        : rangeLabel(person && person.avail)
     };
   }
 
