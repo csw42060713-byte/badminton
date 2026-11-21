@@ -5344,3 +5344,109 @@ body {
   letter-spacing: -0.2px;
 }
 .gympage__all:active { transform: scale(0.97); }
+
+/* ============================================================
+ * 28. 게스트 참여 신청 · 수락 · 나가기 (2026-11-21, bm-v1.43.0)
+ *  - 커뮤니티 카드: '참여 신청' / '신청 대기 중' / '단체방 열기'
+ *  - 채팅 목록: 받은 게스트 신청 편지지(수락/거절)
+ *  - 단체방: 헤더 '나가기'(글쓴이는 '모집 종료') · 모집 현황 줄 · 확인 바
+ * ============================================================ */
+/* 대기·거절·마감처럼 누를 수 없는 버튼은 눌린 느낌만 남기지 않고 차분하게 */
+.vite__btn--wait { opacity: 0.72; }
+.vite__btn--wait[disabled] { cursor: default; }
+.vite__btn--wait .ico { width: 13px; height: 13px; }
+
+/* 받은 게스트 신청 편지지 — 매칭 편지지와 같은 톤, 우표만 살짝 다른 색 */
+.letter__stamp--guest { background: color-mix(in srgb, var(--accent-2) 16%, transparent); color: var(--accent-2); }
+.letter__post {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 7px; font-size: 11px; font-weight: 700; color: var(--muted);
+}
+.letter__post .ico { flex: none; width: 12px; height: 12px; color: var(--accent); }
+
+/* 단체방 헤더 오른쪽 나가기/모집 종료 */
+.dmhead__out {
+  flex: none; min-height: 32px; padding: 0 11px;
+  border-radius: 999px; border: 1px solid var(--line-2);
+  background: transparent; color: var(--text-2);
+  font-size: 11.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.dmhead__out:active { transform: scale(0.97); }
+
+/* 단체방 헤더 아래 모집 현황 줄 */
+.dm__meetbar {
+  flex: none;
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg));
+  font-size: 11.5px; font-weight: 700; color: var(--text-2);
+}
+.dm__meetbar .ico { flex: none; width: 13px; height: 13px; color: var(--accent); }
+.dm__meetbar-b {
+  padding: 1px 7px; border-radius: 999px;
+  background: color-mix(in srgb, var(--bad) 14%, transparent);
+  color: var(--bad); font-size: 10.5px; font-weight: 800;
+}
+.dm__meetbar-n {
+  padding: 1px 7px; border-radius: 999px;
+  background: var(--accent); color: var(--accent-ink); font-size: 10.5px; font-weight: 800;
+}
+.dm__meetbar-m { margin-left: auto; font-size: 11px; font-weight: 800; color: var(--accent); }
+
+/* 나가기·모집 종료 확인 바 (헤더 아래, 실수 방지) */
+.dm__leavebar {
+  flex: none;
+  display: grid; gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bad) 7%, var(--bg));
+}
+.dm__leavebar-t { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.5; }
+
+/* 참여 신청 시트 */
+.applysheet { display: grid; gap: 10px; }
+.applysheet__post {
+  display: block;
+  padding: 10px 12px; border-radius: 12px;
+  background: var(--card-2); border: 1px solid var(--line);
+  font-size: 12.5px; font-weight: 700; color: var(--text); line-height: 1.45;
+}
+.applysheet__post .ico { width: 14px; height: 14px; color: var(--accent); vertical-align: -2px; margin-right: 4px; }
+.applysheet__post b { font-weight: 900; letter-spacing: -0.2px; }
+.applysheet__post small { display: block; margin-top: 3px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.applysheet__f { display: grid; gap: 5px; font-size: 11.5px; font-weight: 800; color: var(--muted); }
+.applysheet__f small { font-weight: 700; opacity: 0.8; }
+.applysheet__f input {
+  min-height: 42px; padding: 9px 12px;
+  border-radius: 11px; background: var(--card-2); color: var(--text);
+  font-size: 13.5px; font-weight: 700;
+}
+.applysheet__hint {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 11.5px; color: var(--muted); line-height: 1.5;
+}
+.applysheet__hint .ico { flex: none; width: 13px; height: 13px; margin-top: 2px; }
+
+/* 참여자 명단 시트 — 받은 게스트 신청 줄 */
+.members__t--sec { margin-top: 16px; }
+.members__list--req { gap: 8px; }
+.members__req {
+  display: grid; gap: 6px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card-2);
+}
+.members__req-top { display: flex; align-items: center; gap: 8px; }
+.members__req-top span { min-width: 0; flex: 1; }
+.members__req-top strong { display: block; font-size: 13px; font-weight: 800; letter-spacing: -0.25px; }
+.members__req-top small { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
+.members__req-day { flex: none; font-size: 10.5px; font-weight: 700; color: var(--muted); font-style: normal; }
+.members__req-note {
+  padding: 8px 10px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  font-size: 12.5px; font-weight: 700; color: var(--text); line-height: 1.45;
+}
+.members__req-note--none { color: var(--muted); font-weight: 600; }
+.members__req-act .btn { min-height: 34px; }

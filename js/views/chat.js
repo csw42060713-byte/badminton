@@ -33,6 +33,47 @@
     return (state.data.posts || []).filter(function (p) { return String(p.id) === String(postId); })[0] || null;
   }
 
+  /* 단체방 안에서 열어 둔 확인 바(나가기·모집 종료) — 화면을 다시 그려도 남게 여기에 둡니다 */
+  var roomConfirm = { roomId: '', kind: '' };
+
+  /* 급수는 이름 옆 배지로, 이 줄에는 플레이 스타일만 (같은 말이 두 번 보이지 않게) */
+  function metaLine(it, p) {
+    return String(it.style || p.style || '').trim();
+  }
+
+  /* 받은 게스트 신청 — 글쓴이에게 오는 편지지(kind: 'guest')
+   * 닉네임·급수·플레이스타일·한마디와 함께 그 자리에서 수락/거절합니다. */
+  function guestLetter(g, state) {
+    var p = UI.person(state, g.userKey);
+    var post = g.post || null;
+    var line = post ? D.groupNote(post) : '';
+    var meta = metaLine(g, p);
+    return '<article class="letter letter--compact letter--guest" data-guest-letter="' + U.esc(g.id) + '"' +
+      ' data-from="' + U.esc(g.userKey) + '">' +
+      '<div class="letter__top">' +
+      '<span class="letter__av">' + UI.avatar(p, 44) + '</span>' +
+      '<div class="letter__who"><div class="letter__name">' + U.esc(g.nick || p.nick || '회원') +
+      (g.level || p.level ? '<span class="pill pill--grade">' + U.esc(g.level || p.level) + '</span>' : '') +
+      '</div><p class="letter__meta">' + U.esc(meta || '플레이 스타일 미입력') + '</p></div>' +
+      '<span class="letter__stamp letter__stamp--guest">게스트 신청</span></div>' +
+      (g.note
+        ? '<p class="letter__note">' + U.esc(g.note) + '</p>'
+        : '<p class="letter__note letter__note--empty">한마디 없이 신청했어요.</p>') +
+      '<p class="letter__post">' + UI.icon('bolt') + U.esc(U.truncate(line || '게스트 모집 글', 46)) + '</p>' +
+      '<div class="letter__acts">' +
+      '<button type="button" class="btn btn--ghost btn--sm" data-guest-reject="' + U.esc(g.id) + '">거절</button>' +
+      '<button type="button" class="btn btn--primary btn--sm" data-guest-accept="' + U.esc(g.id) + '">수락</button>' +
+      '</div></article>';
+  }
+
+  function guestLetters(state) {
+    var list = D.guestInbox(state.data.idx, (state.me && state.me.key) || '');
+    if (!list.length) return '';
+    return '<section class="dmsec">' +
+      '<h3 class="dmsec__t">' + U.esc(D.GUEST.inboxTitle) + ' <span class="badge">' + list.length + '</span></h3>' +
+      '<div class="dmletters">' + list.map(function (g) { return guestLetter(g, state); }).join('') + '</div></section>';
+  }
+
   function kindPill(kind) {
     if (kind === 'friend') return '<span class="pill pill--friend">친구</span>';
     if (kind === 'match') return '<span class="pill pill--ghost">매칭</span>';
@@ -129,6 +170,7 @@
       '</header>' +
       '<div class="dm__scroll" data-dm-scroll>' +
       (BM.views.friends ? BM.views.friends.codeBar(state) : '') +
+      guestLetters(state) +
       matchLetters(state) +
       (reqs.length ? '<section class="dmsec">' +
         '<h3 class="dmsec__t">받은 친구 요청 <span class="badge">' + reqs.length + '</span></h3>' +
@@ -179,7 +221,9 @@
     return html;
   }
 
-  /* 모집 글 단체방 — 글 정보·참여자·대화가 함께 보입니다 */
+  /* 모집 글 단체방 — 글 정보·참여자·대화가 함께 보입니다.
+   * bm-v1.43.0 — 헤더에 `나가기`(게스트) / `모집 종료`(글쓴이)를 두고,
+   * 헤더 아래 한 줄에 모집 현황(참여 n/cap · 마감 · 받은 신청)과 명단 보기를 둡니다. */
   function groupRoomHtml(state) {
     var roomId = state.ui.chatRoom;
     var room = groupThreadOf(state, roomId);
@@ -189,10 +233,49 @@
     var note = (room && room.note) || (post ? D.groupNote(post) : '');
     var messages = (room && room.messages) || [];
     var members = (room && room.members) || [];
-    var canChat = !!(state.me && state.me.key);
+    var me = (state.me && state.me.key) || '';
+    var st = post ? D.meetStatus(state.data.idx, post, me) : null;
+    var mine = !!(st && st.mine);
+    var inRoom = post ? D.guestMember(state.data.idx, post, me) : false;
+    var canChat = !!me && inRoom;
+    var confirming = !!st && String(roomConfirm.roomId) === String(postId) && !!roomConfirm.kind;
     var avatars = members.slice(0, 3).map(function (m) {
       return '<span class="dmhead__av">' + UI.avatar(UI.person(state, m.key), 24) + '</span>';
     }).join('');
+    /* 헤더 오른쪽: 게스트는 '나가기', 글쓴이는 '모집 종료'(글 삭제) */
+    var headAct = '';
+    if (st && inRoom && !mine) {
+      headAct = '<button type="button" class="dmhead__out" data-vite-leave="' + U.esc(postId) + '">' + U.esc(D.GUEST.leaveLabel) + '</button>';
+    } else if (mine) {
+      headAct = '<button type="button" class="dmhead__out" data-vite-end="' + U.esc(postId) + '">모집 종료</button>';
+    }
+    /* 헤더 아래 모집 현황 줄 */
+    var bar = '';
+    if (st) {
+      var capTxt = st.cap ? '참여 ' + st.count + '/' + st.cap + '명' : '참여 ' + st.count + '명';
+      bar = '<div class="dm__meetbar"' + (st.closed ? ' data-closed="1"' : '') + '>' +
+        UI.icon('users') + '<span>' + U.esc(capTxt) + '</span>' +
+        (st.closed ? '<b class="dm__meetbar-b">' + U.esc(D.MEET.closedLabel) + '</b>' : '') +
+        (mine && st.pending.length ? '<b class="dm__meetbar-n">신청 ' + st.pending.length + '건</b>' : '') +
+        (post ? '<button type="button" class="linkbtn dm__meetbar-m" data-vite-members="' + U.esc(postId) + '">명단</button>' : '') +
+        '</div>';
+    }
+    var confirmBar = '';
+    if (confirming && roomConfirm.kind === 'leave') {
+      confirmBar = '<div class="dm__leavebar" data-leavebar>' +
+        '<p class="dm__leavebar-t">이 단체방에서 나갈까요? 나가면 자리가 나서 글이 다시 올라오고, 다시 들어오려면 글쓴이의 수락이 필요해요.</p>' +
+        '<div class="row gap8">' +
+        '<button type="button" class="btn btn--ghost btn--sm grow" data-act="leave-no">취소</button>' +
+        '<button type="button" class="btn btn--danger btn--sm grow" data-act="leave-yes" data-leave-post="' + U.esc(postId) + '" data-leave-kind="leave">' + D.GUEST.leaveLabel + '</button>' +
+        '</div></div>';
+    } else if (confirming && roomConfirm.kind === 'end') {
+      confirmBar = '<div class="dm__leavebar" data-leavebar>' +
+        '<p class="dm__leavebar-t">모집을 끝낼까요? 글과 이 단체방이 함께 사라지고 되돌릴 수 없어요.</p>' +
+        '<div class="row gap8">' +
+        '<button type="button" class="btn btn--ghost btn--sm grow" data-act="leave-no">취소</button>' +
+        '<button type="button" class="btn btn--danger btn--sm grow" data-act="leave-yes" data-leave-post="' + U.esc(postId) + '" data-leave-kind="end">' + UI.icon('trash') + '모집 종료</button>' +
+        '</div></div>';
+    }
     return '' +
       '<header class="dmhead dmhead--room">' +
       '<button class="iconbtn" data-dm-back aria-label="대화 목록">' + UI.icon('arrow') + '</button>' +
@@ -201,14 +284,16 @@
       '<div><strong>' + U.esc(title) + '</strong>' +
       '<span>단체방 · ' + (members.length ? members.length + '명 참여' : '아직 대화가 없어요') + '</span></div>' +
       (avatars ? '<span class="dmhead__avs">' + avatars + '</span>' : '') +
-      '</div></header>' +
+      '</div>' + headAct + '</header>' +
+      bar + confirmBar +
       '<div class="dm__scroll dm__scroll--chat" data-dm-scroll>' +
       (messages.length
         ? '<div class="dm__groupnote">' + UI.icon('bolt') + U.esc(note || title) + '</div>' +
           '<div class="dm__msgs">' + messagesHtml(messages, state, '', true) + '</div>'
         : '<div class="dm__start"><span class="dmgroupav dmgroupav--big" aria-hidden="true">' + UI.icon('users') + '</span>' +
           '<p class="dm__start-t">' + U.esc(title) + '</p>' +
-          '<p class="dm__start-s">' + (note ? U.esc(note) + '<br>' : '') + '첫 인사를 남기면 참여자로 함께 보여요.</p></div>') +
+          '<p class="dm__start-s">' + (note ? U.esc(note) + '<br>' : '') +
+          (mine ? '수락한 게스트와 여기서 이야기해요.' : '첫 인사를 남겨 보세요.') + '</p></div>') +
       '</div>' +
       (canChat
         ? '<form class="dm__composer" data-dm-form>' +
@@ -217,7 +302,7 @@
           ' placeholder="참여 인사를 남겨 보세요" aria-label="메시지 입력">' +
           '<button class="btn btn--send" type="submit" aria-label="보내기">' + UI.icon('send') + '</button>' +
           '</form>'
-        : '<div class="dm__locked">' + UI.icon('clock') + '로그인하면 단체방에서 대화할 수 있어요</div>');
+        : '<div class="dm__locked">' + UI.icon('clock') + '로그인하고, 글쓴이가 수락하면 단체방에서 대화할 수 있어요</div>');
   }
 
   /* ---------- 매너 한 줄 태그 (bm-v1.29.0) ----------
@@ -358,6 +443,84 @@
         else if (mgive.reason === 'not_allowed') UI.toast('친구이거나 매칭이 성사된 상대에게만 남길 수 있어요', 'error');
         else if (mgive.reason === 'locked') UI.toast('잠시만요');
         else UI.toast('태그를 남기지 못했어요', 'error');
+        return;
+      }
+      /* 받은 게스트 신청 편지지 — 그 자리에서 수락/거절 (bm-v1.43.0) */
+      var gAccept = ev.target.closest('[data-guest-accept]');
+      if (gAccept) {
+        ev.preventDefault();
+        var gaRes = ctx.actions.respondGuest(gAccept.getAttribute('data-guest-accept'), true);
+        if (gaRes && gaRes.ok) {
+          UI.haptic(12);
+          UI.toast('수락했어요 · 단체방에서 이어서 이야기해요');
+          var gaRoom = String(gaRes.postId || '');
+          if (gaRoom && D.isGroupRoom(ctx.store.state.idx, gaRoom)) {
+            ctx.actions.openChat(gaRoom, '');
+            ctx.actions.markChatRead(gaRoom, '');
+          }
+        } else if (gaRes && gaRes.reason === 'full') UI.toast('정원이 다 찼어요. 한 명이 나가면 다시 수락할 수 있어요', 'error');
+        else if (gaRes && gaRes.reason === 'done') UI.toast('이미 답한 신청이에요');
+        else if (gaRes && gaRes.reason === 'locked') UI.toast('잠시만요');
+        else UI.toast('수락하지 못했어요', 'error');
+        return;
+      }
+      var gReject = ev.target.closest('[data-guest-reject]');
+      if (gReject) {
+        ev.preventDefault();
+        var grRes = ctx.actions.respondGuest(gReject.getAttribute('data-guest-reject'), false);
+        if (grRes && grRes.ok) { UI.haptic(10); UI.toast('신청을 거절했어요 · 정원은 그대로예요'); }
+        else if (grRes && grRes.reason === 'done') UI.toast('이미 답한 신청이에요');
+        else UI.toast('거절하지 못했어요', 'error');
+        return;
+      }
+      /* 단체방 나가기 / 모집 종료 — 한 번 더 물어보고(인라인 확인 바) 실행합니다 */
+      var leaveBtn = ev.target.closest('[data-vite-leave]');
+      if (leaveBtn) {
+        ev.preventDefault();
+        roomConfirm = { roomId: String(leaveBtn.getAttribute('data-vite-leave') || ''), kind: 'leave' };
+        if (ctx.refresh) ctx.refresh();
+        UI.haptic(8);
+        return;
+      }
+      var endBtn = ev.target.closest('[data-vite-end]');
+      if (endBtn) {
+        ev.preventDefault();
+        roomConfirm = { roomId: String(endBtn.getAttribute('data-vite-end') || ''), kind: 'end' };
+        if (ctx.refresh) ctx.refresh();
+        UI.haptic(8);
+        return;
+      }
+      if (ev.target.closest('[data-act="leave-no"]')) {
+        ev.preventDefault();
+        roomConfirm = { roomId: '', kind: '' };
+        if (ctx.refresh) ctx.refresh();
+        return;
+      }
+      var leaveYes = ev.target.closest('[data-act="leave-yes"]');
+      if (leaveYes) {
+        ev.preventDefault();
+        var lPost = String(leaveYes.getAttribute('data-leave-post') || '');
+        var lKind = leaveYes.getAttribute('data-leave-kind') || 'leave';
+        roomConfirm = { roomId: '', kind: '' };
+        if (lKind === 'end') {
+          var endRes = ctx.actions.deletePost(lPost);
+          if (endRes && endRes.ok) { UI.toast('모집을 끝냈어요'); UI.haptic(12); }
+          else UI.toast('모집을 끝내지 못했어요', 'error');
+          return;
+        }
+        var lRes = ctx.actions.leaveGuest(lPost);
+        if (lRes && lRes.ok) { UI.toast('단체방에서 나왔어요 · 자리가 나서 글이 다시 올라왔어요'); UI.haptic(12); }
+        else if (lRes && lRes.reason === 'owner') UI.toast('글쓴이는 나갈 수 없어요 · 모집을 끝내면 방이 사라져요');
+        else if (lRes && lRes.reason === 'already') UI.toast('이미 나온 방이에요');
+        else UI.toast('나가지 못했어요', 'error');
+        return;
+      }
+      var vmemb = ev.target.closest('[data-vite-members]');
+      if (vmemb) {
+        ev.preventDefault();
+        if (BM.views.community && BM.views.community.openMembers) {
+          BM.views.community.openMembers(ctx, vmemb.getAttribute('data-vite-members'));
+        }
         return;
       }
       /* 받은 매칭 요청(편지지) — 카드를 누르면 상세 편지지, 여기서는 바로 수락/거절 */
