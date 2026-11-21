@@ -151,6 +151,22 @@
     return '<span class="pill pill--grade">' + U.esc(p.level || '급수 미입력') + '</span>';
   }
 
+  /* 지역 · 주 체육관 — 체육관 이름이 등록된 체육관과 이어지면 눌러서 지도를 엽니다 */
+  function metaHtml(p) {
+    var parts = [];
+    if (p && p.region) parts.push(U.esc(p.region));
+    if (p && p.club) parts.push((BM.views && BM.views.gyms && BM.views.gyms.link(p.club)) || U.esc(p.club));
+    return parts.join(' · ');
+  }
+
+  /* '주 체육관' 칸 — 이름을 누르면 지도로 (지역·주소·코트 수 확인) */
+  function clubHtml(p) {
+    var club = p && p.club;
+    if (!club) return '<span class="muted">미입력</span>';
+    var link = (BM.views && BM.views.gyms) ? BM.views.gyms.link(club) : '';
+    return link || U.esc(club);
+  }
+
   /* ---------- 목록 카드 ---------- */
   function heartBuyText(state) {
     var hearts = state.data.hearts || {};
@@ -163,7 +179,7 @@
     var mp = myProfile(state);
     var scored = D.matchScore(mp, p, mp);
     var key = U.esc(p.userKey);
-    var meta = [p.region, p.club].filter(Boolean).join(' · ');
+    var meta = metaHtml(p);
     var spec = [p.availability, p.experience].filter(Boolean).join(' · ');
 
     var action;
@@ -190,7 +206,7 @@
       '<div class="pcard__id"><div class="pcard__name">' + U.esc(p.nick) +
       gradePill(p) + genderPill(p) +
       (st.friend.state === 'friends' ? '<span class="pill pill--friend">친구</span>' : '') + '</div>' +
-      '<p class="pcard__meta">' + U.esc(meta || '지역 미입력') + '</p></div>' +
+      '<p class="pcard__meta">' + (meta || '지역 미입력') + '</p></div>' +
       '<div class="fit"><strong>' + scored.score + '</strong><span>궁합</span></div></div>' +
       (p.discipline || p.style || spec ? '<p class="pcard__spec">' +
         (p.discipline ? '<span class="eventchip is-on">' + U.esc(p.discipline) + '</span>' : '') +
@@ -279,9 +295,30 @@
             : '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="reset-filter">조건 초기화</button>'));
   }
 
+  /* ---------- 체육관 지도 입구 ----------
+   * 지도 화면은 js/views/gyms.js 가 그리고, 여기서는 들어가는 카드만 그립니다.
+   * 자주 가는 체육관을 등록해 두면 이 줄에 이름이 바로 보입니다. */
+  function gymEntry(state) {
+    var G = BM.gyms;
+    if (!G || !BM.views || !BM.views.gyms) return '';
+    var scope = meKey(state) || 'guest';
+    var favs = G.favorites(scope);
+    var names = favs.map(function (id) { var v = G.get(id); return v && v.name; }).filter(Boolean);
+    var sub = names.length
+      ? '자주 가는 곳 ' + names.length + '곳 · ' + names.slice(0, 2).join(', ') + (names.length > 2 ? ' 외' : '')
+      : '서울·수도권 체육관 ' + G.count() + '곳이 지도에 표시돼요';
+    return '<section class="card card--flush gymentry">' +
+      '<button type="button" class="gymentry__b" data-act="open-gym-map">' +
+      '<span class="gymentry__ic" aria-hidden="true">' + UI.icon('pin') + '</span>' +
+      '<span class="gymentry__t"><b>체육관 지도</b><small>' + U.esc(sub) + '</small></span>' +
+      '<span class="gymentry__go">' +
+      (favs.length ? '<i class="gymentry__n">★ ' + favs.length + '</i>' : '') +
+      UI.icon('arrow') + '</span></button></section>';
+  }
+
   /* ---------- 찾기 탭 ---------- */
   function findTab(state) {
-    return '<section class="card">' +
+    return gymEntry(state) + '<section class="card">' +
       '<header class="card__head"><h2>플레이어 찾기</h2></header>' +
       searchBar(state) + filterBar(state) +
       '<div data-region="results" data-sig="' + U.esc(resultsSig(state)) + '">' + resultsHtml(state) + '</div>' +
@@ -297,7 +334,7 @@
     var other = r.userKey;
     var p = personOf(state, other);
     var note = (r.payload && r.payload.note) || '';
-    var meta = [p.region, p.club].filter(Boolean).join(' · ');
+    var meta = metaHtml(p);
     var spec = [p.discipline, p.availability].filter(Boolean).join(' · ');
     var cost = Number(r.payload && r.payload.heartCost) || D.HEART_RULES.MATCH_COST;
     var status = r.status || '대기';
@@ -323,7 +360,7 @@
       '<span class="letter__av">' + UI.avatar(p, opts.compact ? 44 : 52) + '</span>' +
       '<div class="letter__who">' +
       '<div class="letter__name">' + U.esc(p.nick) + gradePill(p) + genderPill(p) + '</div>' +
-      '<p class="letter__meta">' + U.esc(meta || '지역 미입력') +
+      '<p class="letter__meta">' + (meta || '지역 미입력') +
       (spec ? ' · ' + U.esc(spec) : '') + '</p></div>' +
       '<span class="letter__stamp">' + (accepted ? '수락함' : '매칭 요청') + '</span></div>' +
       (note
@@ -561,7 +598,7 @@
       '<div class="pp__head">' + UI.avatar(p, 72) +
       '<div class="pp__id"><div class="pp__name">' + U.esc(p.nick) + '</div>' +
       '<div class="pp__pills">' + gradePill(p) + genderPill(p) + '</div>' +
-      '<p class="pp__meta">' + U.esc([p.region, p.club].filter(Boolean).join(' · ') || '지역 미입력') + '</p>' +
+      '<p class="pp__meta">' + (metaHtml(p) || '지역 미입력') + '</p>' +
       UI.presence(D.presenceOf(state.data.idx, p.userKey), { cls: 'presence--profile' }) +
       '</div></div>' +
       '<p class="pp__match">궁합 <b>' + scored.score + '</b>' +
@@ -580,7 +617,7 @@
         ? '<span class="pill pill--style">' + U.esc(p.style) + '</span>'
         : '<span class="muted">미입력</span>') + '</dd></div>' +
       '<div><dt>급수</dt><dd>' + U.esc(p.level || '미입력') + '</dd></div>' +
-      '<div><dt>주 체육관</dt><dd>' + U.esc(p.club || '미입력') + '</dd></div>' +
+      '<div><dt>주 체육관</dt><dd>' + clubHtml(p) + '</dd></div>' +
       '<div><dt>경력</dt><dd>' + U.esc(p.experience || '미입력') + '</dd></div>' +
       '<div><dt>가능 시간</dt><dd>' + U.esc(p.availability || '미입력') + '</dd></div>' +
       '</dl>' +
@@ -794,7 +831,7 @@
       '<div class="lettermail__top">' + UI.avatar(p, 64) +
       '<div class="lettermail__who">' +
       '<div class="lettermail__name">' + U.esc(p.nick) + gradePill(p) + genderPill(p) + '</div>' +
-      '<p class="lettermail__meta">' + U.esc([p.region, p.club].filter(Boolean).join(' · ') || '지역 미입력') + '</p>' +
+      '<p class="lettermail__meta">' + (metaHtml(p) || '지역 미입력') + '</p>' +
       '<span class="lettermail__stamp">' + (accepted ? '수락한 편지' : '매칭 요청 편지') + '</span></div></div>' +
       '<div class="lettermail__note">' +
       (note ? U.esc(note) : '<span class="muted">한마디 없이 보낸 요청이에요.</span>') + '</div>' +
@@ -807,7 +844,7 @@
       '<div><dt>플레이 스타일</dt><dd>' + (p.style
         ? '<span class="pill pill--style">' + U.esc(p.style) + '</span>'
         : '<span class="muted">미입력</span>') + '</dd></div>' +
-      '<div><dt>주 체육관</dt><dd>' + U.esc(p.club || '미입력') + '</dd></div>' +
+      '<div><dt>주 체육관</dt><dd>' + clubHtml(p) + '</dd></div>' +
       '<div><dt>가능 시간</dt><dd>' + U.esc(p.availability || '미입력') + '</dd></div>' +
       '<div><dt>경력</dt><dd>' + U.esc(p.experience || '미입력') + '</dd></div>' +
       '</dl>' +
@@ -979,6 +1016,14 @@
 
     mount: function (root, ctx) {
       root.addEventListener('click', function (ev) {
+        /* 체육관 지도 (찾기 탭 맨 위 카드) */
+        if (ev.target.closest('[data-act="open-gym-map"]')) {
+          ev.preventDefault();
+          if (BM.views && BM.views.gyms) BM.views.gyms.open(ctx);
+          UI.haptic(6);
+          return;
+        }
+
         /* 탭 */
         var tab = ev.target.closest('[data-match-tab]');
         if (tab) {
@@ -1339,11 +1384,27 @@
         '<label class="flabel">지역' + chips('region', D.VOCAB.regions) + '</label>' +
         '<label class="flabel">가능 시간' + chips('availability', D.VOCAB.availability) + '</label>' +
         '<label class="flabel">경력' + chips('experience', D.VOCAB.experience) + '</label>' +
-        '<label class="flabel">클럽<input type="text" data-mp-text="club" maxlength="20" value="' + U.esc(payload.club) + '"></label>' +
+        '<label class="flabel">클럽<div class="flabel__row"><input type="text" data-mp-text="club" maxlength="20" value="' + U.esc(payload.club) + '">' +
+        '<button type="button" class="btn btn--ghost btn--sm flabel__map" data-act="mp-club-map">' + UI.icon('pin') + '지도에서 고르기</button></div></label>' +
         '<label class="flabel">소개<input type="text" data-mp-text="bio" maxlength="80" value="' + U.esc(payload.bio) + '"></label>' +
         '</div><button class="btn btn--primary btn--big mt16" data-act="save-mp">저장</button>',
       onMount: function (wrap) {
         wrap.addEventListener('click', function (ev) {
+          /* 클럽 칸의 '지도에서 고르기' — 고른 체육관 이름을 칸에 채웁니다(저장은 저장 버튼) */
+          if (ev.target.closest('[data-act="mp-club-map"]')) {
+            ev.preventDefault();
+            if (!BM.views || !BM.views.gyms) return;
+            BM.views.gyms.open(ctx, {
+              onPick: function (v) {
+                if (!v) return;
+                payload.club = v.name;
+                var inp = wrap.querySelector('[data-mp-text="club"]');
+                if (inp) inp.value = v.name;
+                UI.toast(v.name + ' · 클럽 칸에 넣었어요');
+              }
+            });
+            return;
+          }
           var c = ev.target.closest('[data-mp]');
           if (c) {
             ev.preventDefault();

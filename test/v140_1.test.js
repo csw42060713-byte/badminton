@@ -334,22 +334,22 @@
 
   test('v1.40.1 버전: sw.js · app.js · twa-manifest.json이 1.41.0으로 맞는다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.41.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.41.0'", 'app.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.42.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.42.0'", 'app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.41.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.41.0', 'TWA appVersion');
+    eq(twa.appVersionName, '1.42.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.42.0', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드는 그대로');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-53', '스타일 캐시 키');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-54', '스타일 캐시 키');
   });
 
   test('v1.41.0 문서: README·아이디어 노트에 이번 사이클이 남는다', function () {
     if (!hasNode) return;
     var readme = readRoot('README.md');
-    includes(readme, 'v1.41.0', 'README 버전 절');
+    includes(readme, 'v1.42.0', 'README 버전 절');
     includes(readme, '게스트비', 'README 게스트비 설명');
     includes(readme, '내 글 삭제', 'README 삭제 설명');
-    includes(readRoot('ideas.md'), 'bm-v1.41.0', '아이디어 노트 상태');
+    includes(readRoot('ideas.md'), 'bm-v1.42.0', '아이디어 노트 상태');
     includes(readRoot('test/run.js'), 'test/v140_1.test.js', '테스트 실행 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

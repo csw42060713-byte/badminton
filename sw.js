@@ -84,8 +84,15 @@
  *             운동량·승률(전체·접전) 변화, 약점 TOP 3(빈도·비중·증감), 반복 통증 주의,
  *             다음 주/달 맞춤 방향. 일지 기록만으로 계산(새 칸 없음).
  *             화면·스타일이 바뀌어 캐시 bm-v1.41.0.
+ * 2026-11-21: 체육관 지도 — 매칭 > 찾기 맨 위 '체육관 지도'(지도에 체육관 13곳이 처음부터 핀·카드로)와
+ *             자주 가는 체육관 즐겨찾기(기기 저장·즐겨찾기만 보기·MY 주 체육관으로), '내 위치 기준'을 켜면
+ *             가까운 순 정렬(카드에 '약 X.X km', 지도는 내 위치 중심, 거부·미지원은 안내 한 줄).
+ *             커뮤니티 게스트 모집 '지도에서 고르기', MY 프로필·매칭 카드의 체육관 이름을 누르면 그
+ *             체육관으로 지도가 열립니다(주소·코트 수 요약). 지도는 Leaflet 1.9.4(BSD)를 저장소에
+ *             함께 넣어 외부 CDN 없이 오프라인에서도 틀이 뜨고, 타일을 못 받아도 핀·카드는 그대로.
+ *             화면·스타일이 바뀌어 캐시 bm-v1.42.0.
  * ============================================================ */
-var VERSION = 'bm-v1.41.0';
+var VERSION = 'bm-v1.42.0';
 var SHELL = [
   './',
   './index.html',
@@ -103,6 +110,7 @@ var SHELL = [
   './js/auth.js',
   './js/store.js',
   './js/ui.js',
+  './js/gyms.js',
   './js/art.js',
   './js/ads.js',
   './js/scoreboard.js',
@@ -111,6 +119,7 @@ var SHELL = [
   './js/views/profile.js',
   './js/views/friends.js',
   './js/views/chat.js',
+  './js/views/gyms.js',
   './js/views/log.js',
   './js/views/matching.js',
   './js/views/community.js',
@@ -120,7 +129,12 @@ var SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
-  './icons/favicon.svg'
+  './icons/favicon.svg',
+  './js/vendor/leaflet/leaflet.js',
+  './js/vendor/leaflet/leaflet.css',
+  './js/vendor/leaflet/images/marker-icon.png',
+  './js/vendor/leaflet/images/marker-icon-2x.png',
+  './js/vendor/leaflet/images/marker-shadow.png'
 ];
 
 self.addEventListener('install', function (event) {

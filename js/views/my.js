@@ -509,7 +509,13 @@
       var prof = (state.idx && D.profileOf(state.idx, me.key)) || {};
       var myLevel = mp.level || prof.level || '';
       var myDiscipline = mp.discipline || prof.discipline || '';
-      var where = [myDiscipline, mp.region || me.region, mp.club || me.club].filter(Boolean).join(' · ');
+      var clubName = mp.club || me.club || '';
+      /* 체육관 이름은 등록된 체육관과 이어지면 눌러서 지도(주소·코트 수)를 엽니다 */
+      var whereParts = [myDiscipline, mp.region || me.region].filter(Boolean).map(function (x) { return U.esc(x); });
+      if (clubName) {
+        whereParts.push((BM.views && BM.views.gyms && BM.views.gyms.link(clubName)) || U.esc(clubName));
+      }
+      var whereHtml = whereParts.join(' · ');
       var missing = [];
       if (!myLevel) missing.push('실력');
       if (!myDiscipline) missing.push('종목');
@@ -530,7 +536,7 @@
         '<div class="profile__pills">' +
         (myLevel ? '<span class="pill pill--grade">' + U.esc(myLevel) + '</span>' : '') +
         genderPillOf(mp.gender || me.gender) + stylePillOf(myStyle) + rolePillOf(D.roleOf(me)) + '</div>' +
-        '<p class="profile__meta">' + U.esc(where || '종목·지역·체육관을 골라 보세요') + '</p>' +
+        '<p class="profile__meta">' + (whereHtml || '종목·지역·체육관을 골라 보세요') + '</p>' +
         (me.bio ? '<p class="profile__bio">' + U.esc(me.bio) + '</p>' : '') + '</div></div>' +
         /* 꾸미기 입구는 이 버튼 하나입니다. 닉네임·사진·프레임·배지·급수·성별·
          * 스타일·체육관·지역·소개를 한 시트에서 고칩니다(테마만 따로 아래에). */
@@ -1066,8 +1072,11 @@
       decoChips('style', D.VOCAB.styles, draft.style, { note: '한 번 더 누르면 해제' }) +
 
       '<h4 class="avstudio__label" data-sec="club">주 체육관</h4>' +
+      '<div class="deco__clubrow">' +
       '<input class="deco__input" type="text" data-dtext="club" maxlength="20" autocomplete="off"' +
       ' placeholder="자주 가는 체육관 이름" value="' + U.esc(draft.club) + '">' +
+      '<button type="button" class="btn btn--ghost btn--sm deco__clubmap" data-act="deco-club-map">' +
+      UI.icon('pin') + '지도에서 고르기</button></div>' +
 
       '<h4 class="avstudio__label" data-sec="region">활동 지역</h4>' +
       decoChips('region', D.VOCAB.regions, draft.region) +
@@ -1218,6 +1227,22 @@
             });
             paintDecoPreview(node, draft);
             UI.haptic(5);
+            return;
+          }
+          /* 주 체육관 칸의 '지도에서 고르기' — 고른 이름을 칸과 미리보기에 바로 넣습니다 */
+          if (ev.target.closest('[data-act="deco-club-map"]')) {
+            ev.preventDefault();
+            if (!BM.views || !BM.views.gyms) return;
+            BM.views.gyms.open(ctx, {
+              onPick: function (v) {
+                if (!v) return;
+                draft.club = v.name;
+                var inp = node.querySelector('[data-dtext="club"]');
+                if (inp) inp.value = v.name;
+                paintDecoPreview(node, draft);
+                UI.toast(v.name + ' · 주 체육관 칸에 넣었어요');
+              }
+            });
             return;
           }
           if (ev.target.closest('[data-act="deco-photo"]')) {

@@ -995,11 +995,28 @@
     });
   }
 
+  /* ---------- 체육관 이름 → 지도 (어느 화면에서든) ----------
+   * 프로필·모집글의 체육관 이름을 누르면 지도 화면이 그 체육관을 가운데 두고 열립니다.
+   * 캡처 단계에서 먼저 받아, 글 카드가 통째로 누르는 시트(프로필·편지)가 같이 열리지 않게 합니다. */
+  function bindGymLinks() {
+    if (typeof document === 'undefined') return;
+    document.addEventListener('click', function (ev) {
+      var node = ev.target && ev.target.closest ? ev.target.closest('[data-gym-open]') : null;
+      if (!node) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (!BM.app.ctx || !BM.views || !BM.views.gyms) return;
+      UI.haptic(6);
+      BM.views.gyms.openVenue(BM.app.ctx, node.getAttribute('data-gym-open'));
+    }, true);
+  }
+
   /* ---------- 시작 ---------- */
   function boot() {
     bindChrome();
     bindNetBar();
     bindKeyboardScroll();
+    bindGymLinks();
     /* 비밀번호 재설정 메일 링크로 돌아온 경우(#access_token=…&type=recovery):
        세션을 먼저 받아 두고 시작화면에서 새 비밀번호를 정하게 합니다. */
     var ready = BM.auth.bootstrapRecovery ? BM.auth.bootstrapRecovery() : Promise.resolve(null);
@@ -1015,7 +1032,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.41.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.42.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

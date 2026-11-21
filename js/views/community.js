@@ -100,6 +100,15 @@
       '</article>';
   }
 
+  /* 모집글의 '어디 체육관' — 등록된 체육관과 이어지면 이름을 눌러 지도(주소·코트 수)를
+   * 바로 볼 수 있게 하고, 이어지지 않는 곳(집 앞 체육공원 등)은 지금처럼 글자로 둡니다. */
+  function placeHtml(place) {
+    var name = String(place || '').trim();
+    var link = (name && BM.views && BM.views.gyms) ? BM.views.gyms.link(name) : '';
+    if (link) return link;
+    return UI.icon('pin') + '<span>' + U.esc(name || '장소는 문의해서 정해요') + '</span>';
+  }
+
   /* ---------- 게스트 모집 ----------
    * 글 위에 일시·장소·인원을 스포츠 앱처럼 한 카드로 묶고,
    * `참여 문의`는 작성자 1:1 DM이 아니라 이 글 전용 단체방을 엽니다.
@@ -125,7 +134,7 @@
       (m.cap ? '<b>' + U.esc(m.cap) + '명</b>' : '') +
       (st.closed ? '<span class="pill pill--closed">' + U.esc(D.MEET.closedLabel) + '</span>' : '') + '</p>' +
       '<p class="vite__row">' + UI.icon('clock') + '<span>' + U.esc(m.when || '일시는 문의해서 정해요') + '</span></p>' +
-      '<p class="vite__row">' + UI.icon('pin') + '<span>' + U.esc(m.place || '장소는 문의해서 정해요') + '</span></p>' +
+      '<p class="vite__row vite__row--place">' + placeHtml(m.place) + '</p>' +
       (m.fee ? '<p class="vite__row vite__row--fee">' + UI.icon('coin', 'vite__fee-ic') + '<span>' + U.esc(D.meetFeeText(m)) + '</span></p>' : '') +
       (capLine
         ? '<p class="vite__row vite__row--cap">' + UI.icon('users') + '<span>' + U.esc(capLine) + '</span>' +
@@ -241,11 +250,30 @@
       '<label class="viteform__f"><span>몇 명</span>' +
       '<input type="text" inputmode="numeric" maxlength="3" data-vitefield="cap" enterkeyhint="next" placeholder="6" value="' + U.esc(m.cap || '') + '"></label>' +
       '<label class="viteform__f viteform__f--wide"><span>어디 체육관</span>' +
-      '<input type="text" maxlength="30" data-vitefield="place" placeholder="동네 체육관 이름" value="' + U.esc(m.place || '') + '"></label>' +
+      '<input type="text" maxlength="30" data-vitefield="place" placeholder="동네 체육관 이름" value="' + U.esc(m.place || '') + '">' +
+      '<button type="button" class="viteform__pick" data-act="pick-gym">' + UI.icon('pin') + '지도에서 고르기</button></label>' +
       '<label class="viteform__f viteform__f--wide"><span>게스트비</span>' +
       '<input type="text" maxlength="12" data-vitefield="fee" enterkeyhint="done" placeholder="없음 또는 1만원" value="' + U.esc(m.fee || '') + '"></label>' +
       '<div class="chips viteform__chips" data-vitefee>' + feeChips(m.fee) + '</div>' +
       '</div></div>';
+  }
+
+  /* 게스트 모집의 '어디 체육관'을 지도에서 고르게 합니다.
+   * 고른 이름은 작성 칸(composerMeet.place)에 담기므로 화면을 다시 그려도 남습니다. */
+  function openGymPicker(ctx, root) {
+    if (!BM.views || !BM.views.gyms) return;
+    BM.views.gyms.open(ctx, {
+      onPick: function (v) {
+        if (!v) return;
+        ctx.actions.setComposerMeet('place', v.name);
+        var inp = root.querySelector('[data-vitefield="place"]');
+        if (inp) inp.value = v.name;
+        var last = v.name.charCodeAt(v.name.length - 1);
+        var josa = (last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0) ? '을' : '를';
+        UI.toast('‘' + v.name + '’' + josa + ' 넣었어요');
+        UI.haptic(8);
+      }
+    });
   }
 
   /* ---------- 빈 화면 ----------
@@ -346,6 +374,13 @@
           return;
         }
         /* 말머리 고르기 (작성) — 한 개만 켜집니다 */
+        /* 게스트 모집의 '어디 체육관' — 지도에서 골라 채웁니다 */
+        if (ev.target.closest('[data-act="pick-gym"]')) {
+          ev.preventDefault();
+          openGymPicker(ctx, root);
+          return;
+        }
+
         var pick = ev.target.closest('[data-topic]');
         if (pick) {
           ev.preventDefault();
