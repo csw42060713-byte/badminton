@@ -221,7 +221,10 @@ with sync_playwright() as p:
     check('라이브: 나가기 확인 바', '나갈까요' in text_of(page, '[data-leavebar]'), text_of(page, '[data-leavebar]')[:140])
     page.click('[data-act="leave-yes"]')
     page.wait_for_timeout(1000)
-    check('라이브: 나가면 방이 목록에서 사라짐', '게스트 모집 단체방' not in text_of(page, '#dm'), text_of(page, '#dm')[:140])
+    check('라이브: 나가면 그 방이 목록에서 사라짐',
+          page.evaluate("() => !document.querySelector('[data-thread=\"live-owner-post\"]')")
+          and page.evaluate("() => !window.BM.app.ctx.store.state.data.threads.some(t => String(t.roomId) === 'live-owner-post')"),
+          text_of(page, '#dm')[:140])
     if page.query_selector('#dm [data-dm-close]'):
         page.click('#dm [data-dm-close]')
         page.wait_for_timeout(500)
