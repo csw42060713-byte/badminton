@@ -4870,6 +4870,252 @@ body {
 .topicpick__lab { flex: 0 0 auto; font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: -0.1px; }
 
 /* ============================================================
+ * 20. 내 집 반경 5km · 동네 동호인 · 지도 안 게스트 모집 (bm-v1.46.0)
+ *  · 파란 불(--live)은 '운동 중'과 '운동 가능 시간'을 같은 색으로 읽게 합니다.
+ *  · 카드·칩·스위치는 기존 반경·테두리·색 변수를 그대로 씁니다.
+ * ============================================================ */
+:root { --live: #3b82f6; --live-soft: rgba(59, 130, 246, 0.14); --live-line: rgba(59, 130, 246, 0.42); }
+
+/* 파란 불(점) — 켜지면 발광, 꺼지면 회색 */
+.lamp {
+  display: inline-block; flex: none;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--line-2);
+  box-shadow: none;
+}
+.lamp--live {
+  background: var(--live);
+  box-shadow: 0 0 0 3px var(--live-soft), 0 0 10px rgba(59, 130, 246, 0.85);
+}
+
+/* ---------- 20.1 내 상태 카드 ---------- */
+.mystat {
+  padding: 11px 13px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+}
+.mystat.is-lit { border-color: var(--live-line); background: color-mix(in srgb, var(--live) 5%, var(--card)); }
+.mystat__top { display: flex; align-items: center; gap: 10px; }
+.mystat__lamp { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: color-mix(in srgb, var(--text) 6%, transparent); }
+.mystat__lamp .lamp { width: 12px; height: 12px; }
+.mystat__t { flex: 1; min-width: 0; }
+.mystat__t b { display: block; font-size: 13.5px; font-weight: 800; letter-spacing: -0.3px; color: var(--text); }
+.mystat__t p { margin-top: 1px; font-size: 11.5px; line-height: 1.35; color: var(--muted); }
+.mystat.is-lit .mystat__t p { color: color-mix(in srgb, var(--live) 62%, var(--text)); font-weight: 700; }
+.mystat__pill {
+  flex: none; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--line-2); color: var(--muted);
+  font-size: 10.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.mystat.is-lit .mystat__pill { border-color: var(--live-line); background: var(--live-soft); color: var(--live); }
+.mystat__sw { display: flex; gap: 7px; margin-top: 9px; }
+.mswitch {
+  flex: 1; min-width: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 34px; padding: 0 10px;
+  border-radius: 11px; border: 1px solid var(--line-2); background: transparent;
+  color: var(--text-2); font-size: 11.5px; font-weight: 800; letter-spacing: -0.25px;
+}
+.mswitch i {
+  flex: none; position: relative;
+  width: 26px; height: 15px; border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 16%, transparent);
+  transition: background 140ms;
+}
+.mswitch i::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 11px; height: 11px; border-radius: 50%; background: #fff;
+  transition: transform 140ms;
+}
+.mswitch.is-on { border-color: var(--live-line); color: var(--live); background: var(--live-soft); }
+.mswitch.is-on i { background: var(--live); }
+.mswitch.is-on i::after { transform: translateX(11px); }
+.mystat__ranges {
+  display: flex; flex-wrap: nowrap; gap: 5px; margin-top: 7px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 1px;
+  scrollbar-width: none;
+}
+.mystat__ranges::-webkit-scrollbar { display: none; }
+.mchip {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 4px;
+  min-height: 26px; padding: 0 10px;
+  border-radius: 999px; border: 1px solid var(--line-2);
+  background: transparent; color: var(--text-2);
+  font-size: 10.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.mchip.is-on { border-color: var(--live-line); background: var(--live-soft); color: var(--live); }
+.mchip:active { transform: scale(0.97); }
+.mystat__hint { display: flex; align-items: center; gap: 5px; margin-top: 5px; font-size: 9.5px; color: var(--muted); }
+
+/* ---------- 20.2 내 집 줄 ---------- */
+.gymhome {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line); background: var(--card);
+  box-shadow: var(--shadow-soft);
+}
+.gymhome__ic { flex: none; font-size: 18px; line-height: 1; }
+.gymhome__demo {
+  margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: -0.2px;
+  border: 1px solid var(--line-2); color: var(--muted); vertical-align: 1px;
+}
+.gymhome__t { flex: 1; min-width: 0; }
+.gymhome__t b { display: block; font-size: 13px; font-weight: 800; letter-spacing: -0.3px; }
+.gymhome__t p { margin-top: 1px; font-size: 11px; color: var(--muted); }
+.gymhome__t p b { display: inline; font-size: 11px; color: var(--text-2); }
+.gymhome__b { flex: none; min-height: 30px; }
+.homepick { flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.sheet__lab { margin-top: 14px; font-size: 11.5px; font-weight: 800; color: var(--text-2); }
+
+/* ---------- 20.3 지도 위 사람 아이콘 · 반경 원 ---------- */
+.gymp-wrap, .gymhome-wrap { background: none; border: 0; }
+.gymp {
+  display: grid; place-items: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 12%, var(--card));
+  border: 2px solid color-mix(in srgb, var(--text) 22%, var(--card));
+  color: var(--text-2);
+  font-size: 12px; font-weight: 900; line-height: 1;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+}
+.gymp.is-lit {
+  background: var(--live); border-color: #fff; color: #fff;
+  box-shadow: 0 0 0 4px var(--live-soft), 0 0 14px rgba(59, 130, 246, 0.9), 0 5px 12px rgba(0, 0, 0, 0.26);
+}
+.gymp.is-flat { position: absolute; z-index: 3; transform: translate(-50%, -50%); }
+.gymhome-pin {
+  display: grid; place-items: center;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--card); border: 2px solid var(--live);
+  font-size: 16px; line-height: 1;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.16);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.24);
+}
+.gymhome-pin.is-flat { position: absolute; z-index: 4; transform: translate(-50%, -50%); }
+.gymring {
+  position: absolute; inset: 0;
+  border: 1.5px dashed var(--live-line);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--live) 7%, transparent);
+  pointer-events: none;
+}
+.gymmap__note--near { margin-top: 2px; }
+.gymmap__legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px;
+  margin-top: 0; font-size: 9.8px; font-weight: 700; color: var(--muted);
+}
+.gymmap__legend span { display: inline-flex; align-items: center; gap: 4px; }
+.gymmap__note--near .ico { color: var(--live); }
+
+/* ---------- 20.4 반경 5km 동호인 목록 ---------- */
+.near {
+  padding: 11px 13px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line); background: var(--card);
+  box-shadow: var(--shadow-soft);
+}
+.near__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.near__head h3 { font-size: 13px; font-weight: 800; letter-spacing: -0.25px; color: var(--text-2); }
+.near__only { flex: none; }
+.near__demo {
+  margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: -0.2px;
+  border: 1px solid var(--line-2); color: var(--muted);
+}
+.near__sum { margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.near__sum b { color: var(--live); }
+.nearlist {
+  display: flex; gap: 6px; margin-top: 8px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px; scrollbar-width: none;
+}
+.nearlist::-webkit-scrollbar { display: none; }
+.nearp {
+  flex: none; display: flex; flex-direction: column; gap: 5px;
+  width: 132px; padding: 8px 9px;
+  border-radius: 13px; border: 1px solid var(--line); background: color-mix(in srgb, var(--card) 88%, var(--bg-2));
+  text-align: left;
+}
+.nearp__top { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.nearp.is-lit { border-color: var(--live-line); background: color-mix(in srgb, var(--live) 6%, var(--card)); }
+.nearp.is-focus { box-shadow: 0 0 0 2px var(--live-line); }
+.nearp__av {
+  position: relative; flex: none;
+  display: grid; place-items: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 10%, var(--card));
+  color: var(--text-2); font-size: 13px; font-weight: 900;
+}
+.nearp.is-lit .nearp__av { background: var(--live); color: #fff; }
+
+.nearp__t { flex: 1; min-width: 0; }
+.nearp__t b { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: -0.25px; color: var(--text); }
+.nearp__t > small { display: block; margin-top: 1px; font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nearp__s {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  align-self: flex-start; padding: 3px 7px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--line-2); color: var(--muted);
+  font-size: 10px; font-weight: 800; letter-spacing: -0.2px;
+}
+.nearp__s.is-work, .nearp__s.is-avail { border-color: var(--live-line); background: var(--live-soft); color: var(--live); }
+.near__empty { display: flex; align-items: center; gap: 6px; margin-top: 9px; font-size: 11.5px; color: var(--muted); }
+.near__hint { margin-top: 7px; font-size: 9.8px; }
+
+/* ---------- 20.5 지도 안 게스트 모집 ---------- */
+.recruit {
+  padding: 13px 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line); background: var(--card);
+  box-shadow: var(--shadow-soft);
+}
+.recruit__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.recruit__head h3 { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800; letter-spacing: -0.25px; color: var(--text-2); }
+.recruit__head h3 .ico { width: 14px; height: 14px; color: var(--live); }
+.recruit__new { flex: none; min-height: 32px; }
+.recruit__sum { margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.recruit__sum b { color: var(--live); }
+.recruit__list { display: flex; flex-direction: column; gap: 8px; margin-top: 9px; }
+.recruit__empty { display: flex; align-items: flex-start; gap: 6px; margin-top: 9px; font-size: 11.5px; line-height: 1.5; color: var(--muted); }
+.recruit__empty .ico { width: 14px; height: 14px; flex: none; margin-top: 1px; color: var(--live); }
+.rcard { padding: 11px 12px; border-radius: 13px; border: 1px solid var(--line); background: color-mix(in srgb, var(--card) 88%, var(--bg-2)); }
+.rcard__top { display: flex; align-items: center; gap: 6px; }
+.rcard__top b { flex: 1; min-width: 0; font-size: 13px; font-weight: 800; letter-spacing: -0.3px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rcard__dist { flex: none; padding: 1px 7px; border-radius: 999px; background: var(--live-soft); color: var(--live); font-size: 10px; font-weight: 800; }
+.rcard__row { display: flex; align-items: flex-start; gap: 5px; margin-top: 4px; font-size: 11.5px; line-height: 1.45; color: var(--text-2); }
+.rcard__row .ico { width: 13px; height: 13px; flex: none; margin-top: 2px; color: var(--muted); }
+.rcard__text { margin-top: 5px; font-size: 11.5px; line-height: 1.5; color: var(--muted); }
+.rcard__act { display: flex; gap: 6px; margin-top: 8px; }
+.rcard__act .btn { flex: 1; min-height: 34px; }
+.pill--live { border-color: var(--live-line); background: var(--live-soft); color: var(--live); }
+
+/* 모집 글 작성 칸 (지도 안) */
+.rform { margin-top: 10px; padding: 11px 12px; border-radius: 13px; border: 1px solid var(--live-line); background: color-mix(in srgb, var(--live) 5%, var(--card)); }
+.rform__f { display: block; }
+.rform__f span { display: block; margin-bottom: 4px; font-size: 10.5px; font-weight: 800; color: var(--muted); }
+.rform__f input {
+  width: 100%; min-height: 38px; padding: 0 11px;
+  border-radius: 11px; border: 1px solid var(--line-2); background: var(--bg-2);
+  color: var(--text); font-size: 12.5px; font-weight: 700;
+}
+.rform__chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.rform__lab { margin-top: 9px; font-size: 10.5px; font-weight: 800; color: var(--muted); }
+.rform__grid { display: grid; grid-template-columns: 1fr 92px; gap: 8px; margin-top: 9px; }
+.rform__go { width: 100%; margin-top: 10px; min-height: 42px; }
+.gymcard__rec {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  width: 100%; margin-top: 8px; min-height: 34px;
+  border-radius: 999px; border: 1px dashed var(--live-line);
+  background: transparent; color: var(--live);
+  font-size: 11.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.gymcard__rec .ico { width: 13px; height: 13px; }
+
+/* ============================================================
  * bm-v1.40.0 — 시작 4유형 선택 · 선수용 7대 훈련 기록
  *  1) 온보딩 / MY의 유형 카드 (.rolepicks · .rolepick · .rolelist)
  *  2) 일지의 선수 7대 훈련 (.prolist · .pro · .pro__note)
@@ -5138,6 +5384,14 @@ body {
 }
 .gymentry__go { display: inline-flex; align-items: center; gap: 6px; flex: none; color: var(--muted); }
 .gymentry__go .ico { width: 16px; height: 16px; }
+.gymentry__near {
+  font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: -0.2px;
+  padding: 2px 7px; border-radius: 999px;
+  border: 1px solid var(--live-line, rgba(59,130,246,.42));
+  background: var(--live-soft, rgba(59,130,246,.14));
+  color: var(--live, #3b82f6);
+  white-space: nowrap;
+}
 .gymentry__n {
   font-style: normal; font-size: 10.5px; font-weight: 800;
   padding: 2px 7px; border-radius: 999px;

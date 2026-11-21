@@ -208,11 +208,11 @@
    * ========================================================= */
   test('버전: sw.js · app.js · twa-manifest.json이 지금 버전으로 맞는다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.45.0'", 'sw.js 캐시 버전');
-    includes(readRoot('app.js'), "version: 'v1.45.0'", 'app.js 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.46.0'", 'sw.js 캐시 버전');
+    includes(readRoot('app.js'), "version: 'v1.46.0'", 'app.js 버전');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.45.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.45.0', 'TWA appVersion');
+    eq(twa.appVersionName, '1.46.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.46.0', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드(웹 자산만 바뀌어 유지)');
   });
 

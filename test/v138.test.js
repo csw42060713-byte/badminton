@@ -470,12 +470,12 @@
    * ========================================================= */
   test('v1.38 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.45.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.45.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-57', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.46.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.46.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-58', 'index.html 스타일 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.45.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.45.0', 'TWA appVersion');
+    eq(twa.appVersionName, '1.46.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.46.0', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드(웹만 바뀌면 그대로)');
   });
 

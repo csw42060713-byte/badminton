@@ -307,11 +307,16 @@
     var sub = names.length
       ? '자주 가는 곳 ' + names.length + '곳 · ' + names.slice(0, 2).join(', ') + (names.length > 2 ? ' 외' : '')
       : '전국 체육관 ' + G.count() + '곳 · 권역·이름으로 찾기';
+    /* 내 집 반경 5km 안 동호인 — 지도에 들어가지 않아도 몇 명인지 보이게 (2026-11-21) */
+    var near = (BM.nearby && BM.nearby.summary) ? BM.nearby.summary(state) : null;
+    var nearChip = (near && near.people.length)
+      ? '<i class="gymentry__near">반경 5km · 파란 불 ' + near.lit + '</i>'
+      : '';
     return '<section class="card card--flush gymentry">' +
       '<button type="button" class="gymentry__b" data-act="open-gym-map">' +
       '<span class="gymentry__ic" aria-hidden="true">' + UI.icon('pin') + '</span>' +
       '<span class="gymentry__t"><b>체육관 지도</b><small>' + U.esc(sub) + '</small></span>' +
-      '<span class="gymentry__go">' +
+      '<span class="gymentry__go">' + nearChip +
       (favs.length ? '<i class="gymentry__n">★ ' + favs.length + '</i>' : '') +
       UI.icon('arrow') + '</span></button></section>';
   }
