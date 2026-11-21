@@ -5,10 +5,11 @@ store-assets/capture-screenshots.py — 플레이 스토어용 모바일 스크�
   python3 store-assets/capture-screenshots.py
 
   · 로컬 저장소(repo 루트)를 이 스크립트 안에서만 HTTP로 띄웁니다(별도 서버 실행 불필요).
-  · 405×720 CSS 픽셀(정확히 9:16), 배율 2.667 → 실제 파일 1080×1920.
-  · 이 저장소에 들어 있는 PNG는 같은 화면을 540×960으로 찍은 것입니다
-    (Chromium이 없는 환경에서는 배포 사이트에서 촬영했습니다). 규격만 9:16이면 됩니다.
+  · 405×720 CSS 픽셀(정확히 9:16), 배율 2.6667 → 실제 파일 1080×1920.
+    (Chromium이 없는 환경에서는 배포 사이트에서 같은 화면을 찍었습니다. 규격만 9:16이면 됩니다.)
   · 로그인 세션과 테스트 픽스처(test/fixtures.js)를 심어 실제 화면처럼 채운 뒤 찍습니다.
+    이때 저장소를 '이 기기에만(local)'로 고정하고 바깥 요청을 막습니다 —
+    스토어 이미지에 실제 사용자의 글이나 닉네임이 찍히지 않게 하기 위해서입니다.
   · 결과: store-assets/screenshot-1-matching.png, -2-chat, -3-ai, -4-my
 """
 import functools
@@ -21,14 +22,13 @@ from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP = os.path.dirname(HERE)
-PORT = 8971
-BASE = f"http://127.0.0.1:{PORT}"
+BASE = ''
 
 ACCOUNT = {"email": "narae@example.com", "name": "나래"}
 
 SEED_SESSION = """
 (account) => {
-  const now = '2026-11-18 20:00:00';
+  const now = '2026-11-21 08:30:00';
   const session = {
     kind: 'email', email: account.email, name: account.name, token: '', source: 'local',
     at: now, onboardedAt: '2026-11-01 09:00:00',
@@ -39,6 +39,8 @@ SEED_SESSION = """
   };
   localStorage.setItem('bm_auth_v1', JSON.stringify(session));
   localStorage.setItem('bm_seen_v1', 'true');
+  /* 스토어 이미지에는 가상 데이터만 보이게 — 실시간 서버 대신 '이 기기에만' 모드 */
+  localStorage.setItem('bm_backend_v1', JSON.stringify('local'));
   return session;
 }
 """
@@ -64,122 +66,153 @@ SEED_ROWS = """
 
 
 def serve():
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=APP)
-    handler.log_message = lambda *a, **k: None
-    httpd = socketserver.ThreadingTCPServer(("127.0.0.1", PORT), handler)
+    class Quiet(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a, **k):
+            pass
+
+    socketserver.ThreadingTCPServer.allow_reuse_address = True
+    httpd = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=APP))
     httpd.daemon_threads = True
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     return httpd
 
 
-def settle(page, ms=700):
-    page.wait_for_timeout(ms)
-
-
-def app_ready(page):
-    page.wait_for_function("() => window.BM && document.querySelector('.view')", timeout=15000)
-
-
 def main():
+    global BASE
     httpd = serve()
-    os.makedirs(HERE, exist_ok=True)
+    BASE = f'http://127.0.0.1:{httpd.server_address[1]}'
     shots = []
     try:
         with sync_playwright() as p:
-            exe = p.chromium.executable_path
-            if not os.path.exists(exe):
-                # headless shell이 없을 때: 설치된 크롬 실행 파일로 대신 실행
-                import glob
-                cands = glob.glob(os.path.expanduser("~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome"))
-                exe = cands[0] if cands else exe
-            browser = p.chromium.launch(
-                executable_path=exe,
-                args=["--force-color-profile=srgb", "--font-render-hinting=none", "--headless=new"],
-            )
+            browser = p.chromium.launch(args=['--force-color-profile=srgb', '--font-render-hinting=none'])
             ctx = browser.new_context(
-                viewport={"width": 405, "height": 720},
+                viewport={'width': 405, 'height': 720},
                 device_scale_factor=2.6667,
                 is_mobile=True,
                 has_touch=True,
-                locale="ko-KR",
-                timezone_id="Asia/Seoul",
-                service_workers="block",
+                locale='ko-KR',
+                timezone_id='Asia/Seoul',
+                service_workers='block',
             )
             page = ctx.new_page()
+            # 바깥(실시간 서버·구글 로그인 등) 요청은 막습니다 — 가상 데이터만 찍기 위해서
+            page.route('**/*', lambda r: r.continue_() if r.request.url.startswith(BASE) else r.abort())
 
             # 1) 세션 + 데이터 심기
-            page.goto(f"{BASE}/index.html")
-            settle(page, 400)
+            page.goto(f'{BASE}/index.html')
+            page.wait_for_timeout(400)
             page.evaluate(SEED_SESSION, ACCOUNT)
             page.reload()
-            app_ready(page)
-            page.add_script_tag(url=f"{BASE}/test/fixtures.js")
+            page.wait_for_function("() => window.BM && document.querySelector('.view')", timeout=15000)
+            page.add_script_tag(url=f'{BASE}/test/fixtures.js')
             info = page.evaluate(SEED_ROWS)
-            print("심은 행:", info["count"], "| meKey:", info["me"])
+            print('심은 행:', info['count'], '| meKey:', info['me'])
             page.reload()
-            app_ready(page)
-            page.add_style_tag(content="::-webkit-scrollbar{width:0;height:0}html,body{overflow-x:hidden}")
-            settle(page, 900)
+            page.wait_for_function("() => window.BM && document.querySelector('.view')", timeout=15000)
+            # 스크롤바만 숨깁니다(overflow-x:hidden을 걸면 body가 스크롤 주인이 되어 window.scrollTo가 먹지 않습니다)
+            page.add_style_tag(content='::-webkit-scrollbar{width:0;height:0}*{scrollbar-width:none}')
+            page.wait_for_timeout(900)
 
-            # 2) 매칭
+            def scroll_to(y):
+                page.evaluate('(y) => window.scrollTo(0, y)', y)
+                page.wait_for_timeout(450)
+
+            def scroll_card(selector, pad=64):
+                """요소의 위쪽을 고정 헤더 바로 아래에 맞춥니다."""
+                page.evaluate(
+                    """(arg) => {
+                      const el = document.querySelector(arg.sel);
+                      if (!el) return false;
+                      const top = el.getBoundingClientRect().top + window.scrollY - arg.pad;
+                      window.scrollTo(0, Math.max(0, top));
+                      return true;
+                    }""",
+                    {'sel': selector, 'pad': pad},
+                )
+                page.wait_for_timeout(500)
+
+            def shot(name):
+                path = os.path.join(HERE, name)
+                page.screenshot(path=path)
+                shots.append(path)
+
+            # 2) 1:1 매칭 — 결과 목록까지 펼친 화면
             page.evaluate("() => { location.hash = '#/matching'; }")
-            settle(page, 900)
-            assert page.query_selector(".view[data-view='matching'], [data-view='matching']"), "매칭 화면이 없습니다"
-            path = os.path.join(HERE, "screenshot-1-matching.png")
-            page.screenshot(path=path)
-            shots.append(path)
+            page.wait_for_timeout(900)
+            scroll_to(0)
+            page.evaluate(
+                """() => {
+                  const b = Array.from(document.querySelectorAll('button, a'))
+                    .filter((el) => el.textContent.indexOf('전체 선수 보기') >= 0)[0];
+                  if (b) b.click();
+                }"""
+            )
+            page.wait_for_timeout(3000)          # '전체 선수를 보여드릴게요' 토스트가 사라질 때까지
+            assert page.query_selector('.pcard'), '매칭 결과 카드가 없습니다'
+            # 결과 목록(search·필터·'8명 찾음' + 카드 2장)이 한 화면에 오도록 맞춥니다
+            page.evaluate(
+                """() => {
+                  const head = Array.from(document.querySelectorAll('h2, h3'))
+                    .filter((el) => el.textContent.trim() === '플레이어 찾기')[0];
+                  if (!head) return;
+                  const sec = head.closest('section') || head.parentElement;
+                  window.scrollTo(0, Math.max(0, sec.getBoundingClientRect().top + window.scrollY - 30));
+                }"""
+            )
+            page.wait_for_timeout(700)
+            shot('screenshot-1-matching.png')
 
-            # 3) 1:1 채팅 (대화방)
+            # 3) 채팅 — 매칭이 성사된 상대와의 1:1 대화
             page.evaluate("() => { location.hash = '#/log'; }")
-            settle(page, 500)
-            page.click("#hdrChat")
-            settle(page, 700)
-            room = page.query_selector("[data-thread]")
-            if room:
-                room.click()
-                settle(page, 800)
-                page.evaluate("""() => {
-                  const box = document.querySelector('.dm__msgs, .dm__body, #dm');
+            page.wait_for_timeout(600)
+            page.click('#hdrChat')
+            page.wait_for_timeout(800)
+            room = page.query_selector('[data-thread]')
+            assert room, '대화방이 없습니다 (픽스처 채팅 행 확인)'
+            room.click()
+            page.wait_for_timeout(800)
+            page.evaluate(
+                """() => {
+                  const box = document.querySelector('.dm__scroll');
                   if (box) box.scrollTop = box.scrollHeight;
-                }""")
-                settle(page, 400)
-            path = os.path.join(HERE, "screenshot-2-chat.png")
-            page.screenshot(path=path)
-            shots.append(path)
+                }"""
+            )
+            page.wait_for_timeout(500)
+            shot('screenshot-2-chat.png')
 
-            # 4) 일지 & AI — 오늘 일지를 저장해 분석 카드를 띄웁니다
-            page.goto(f"{BASE}/index.html#/log")
-            app_ready(page)
-            settle(page, 700)
+            # 4) 일지 & AI — 오늘 일지를 저장해 AI 분석 카드를 띄웁니다
+            page.goto(f'{BASE}/index.html#/log')
+            page.wait_for_function("() => window.BM && document.querySelector('.view')", timeout=15000)
+            page.wait_for_timeout(700)
+            for chip in ('드라이브', '헤어핀'):
+                page.evaluate(
+                    """(name) => {
+                      const el = Array.from(document.querySelectorAll('button, span, label'))
+                        .filter((e) => e.textContent.trim() === name)[0];
+                      if (el) el.click();
+                    }""",
+                    chip,
+                )
+                page.wait_for_timeout(150)
+            field = page.query_selector("[data-field='minutes']")
+            if field:
+                field.fill('90')
+                page.wait_for_timeout(150)
             btn = page.query_selector("[data-act='save-log']")
-            if btn:
-                btn.scroll_into_view_if_needed()
-                btn.click()
-                settle(page, 1200)
-            page.evaluate("""() => {
-              const el = document.querySelector('[data-region="analysis"]');
-              if (el) el.scrollIntoView({ block: 'start' });
-              window.scrollTo(0, 0);
-              document.getElementById('main').scrollTop = 0;
-            }""")
-            settle(page, 600)
-            page.evaluate("""() => {
-              const el = document.querySelector('[data-region="analysis"]');
-              if (el) el.scrollIntoView({ block: 'start' });
-            }""")
-            settle(page, 500)
-            path = os.path.join(HERE, "screenshot-3-ai.png")
-            page.screenshot(path=path)
-            shots.append(path)
+            assert btn, '일지 저장 버튼이 없습니다'
+            btn.scroll_into_view_if_needed()
+            btn.click()
+            page.wait_for_timeout(3200)          # 저장 토스트가 사라질 때까지
+            assert page.query_selector('[data-region="analysis"]'), 'AI 분석 카드가 없습니다'
+            scroll_card('[data-region="analysis"]', pad=62)
+            shot('screenshot-3-ai.png')
 
-            # 5) MY
+            # 5) MY — 프로필·이번 달 숫자·훈련 설정
             page.evaluate("() => { location.hash = '#/my'; }")
-            settle(page, 900)
-            page.evaluate("() => { document.getElementById('main').scrollTop = 0; window.scrollTo(0,0); }")
-            settle(page, 400)
-            path = os.path.join(HERE, "screenshot-4-my.png")
-            page.screenshot(path=path)
-            shots.append(path)
+            page.wait_for_timeout(900)
+            scroll_to(0)
+            page.wait_for_timeout(300)
+            shot('screenshot-4-my.png')
 
             ctx.close()
             browser.close()
@@ -187,8 +220,8 @@ def main():
         httpd.shutdown()
 
     for s in shots:
-        print(os.path.relpath(s, APP), os.path.getsize(s) // 1024, "KB")
+        print(os.path.relpath(s, APP), os.path.getsize(s) // 1024, 'KB')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

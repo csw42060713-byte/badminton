@@ -22,28 +22,28 @@
   "screenshots": [
     {
       "src": "store-assets/screenshot-3-ai.png",
-      "sizes": "540x960",
+      "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "일지 한 줄이면 AI가 처방·드릴·이번 주 루틴을 만들어 줍니다"
     },
     {
       "src": "store-assets/screenshot-1-matching.png",
-      "sizes": "540x960",
+      "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "급수·성별·지역으로 맞는 파트너를 찾습니다"
     },
     {
       "src": "store-assets/screenshot-2-chat.png",
-      "sizes": "540x960",
+      "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "매칭된 파트너와 바로 1:1 대화"
     },
     {
       "src": "store-assets/screenshot-4-my.png",
-      "sizes": "540x960",
+      "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "내 기록과 프로필을 한곳에서"
