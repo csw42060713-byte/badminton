@@ -3606,6 +3606,7 @@ input[type="date"] {
 .adbar { height: 3px; border-radius: 999px; background: color-mix(in srgb, var(--text) 8%, transparent); }
 .adbar i { background: var(--accent); border-radius: 999px; }
 .streakline { background: var(--card-2); border-radius: 12px; font-size: 11.5px; color: var(--text-2); }
+.streakbonus { background: var(--accent-soft); border-radius: 12px; font-size: 11.5px; }
 .freeline { background: var(--accent-soft); border-radius: 12px; }
 .ledger__k { border-radius: 7px; }
 
@@ -4533,6 +4534,32 @@ body.has-notif.has-netbar .main { padding-top: calc(var(--hdr-h) + var(--safe-t)
   color: var(--accent);
   font-weight: 800;
 }
+
+/* 입력칸 바로 아래 파트너 전적 한 줄 (bm-v1.36.0)
+ *  예) 조환비 · 4전 3승 1패 (75%)
+ *  · '파트너별 승률' 카드를 펼치지 않아도 보이게, 입력과 같은 높이의 담백한 줄.
+ *  · 기록이 없는 이름이면 hidden 이라 자리도 차지하지 않습니다. */
+.ptnnow {
+  display: flex; align-items: center; gap: 5px;
+  margin: 6px 2px 0;
+  font-size: 11.5px; font-weight: 700; color: var(--text-2);
+  letter-spacing: -0.2px;
+  font-variant-numeric: tabular-nums;
+}
+.ptnnow[hidden] { display: none; }
+.ptnnow .ico { flex: none; width: 13px; height: 13px; color: var(--accent); }
+.ptnnow span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* MY 하트 카드의 7일 연속 보너스 한 줄 (bm-v1.36.0) */
+.streakbonus {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 6px; padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  font-size: 11.5px; font-weight: 800; color: var(--text-2);
+  letter-spacing: -0.1px;
+}
+.streakbonus .ico { flex: none; width: 14px; height: 14px; color: var(--accent); }
 [data-theme="th_night"] .ptnchip.is-on,
 [data-theme="th_court"] .ptnchip.is-on { color: var(--accent); }
 

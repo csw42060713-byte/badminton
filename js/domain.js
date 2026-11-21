@@ -271,6 +271,8 @@
     BASE: 3,
     CHECKIN: 1,
     CHECKIN_PER_DAY: 1,
+    /* 7일 연속 출석을 채운 날의 보너스 하트 (bm-v1.36.0) — 출석 보상 1개에 더해 2개 */
+    STREAK_7_BONUS: 2,
     AD_REWARD: 1,
     AD_PER_DAY: 5,
     AD_COOLDOWN_SEC: 30,
@@ -278,6 +280,9 @@
     GIFT_COST: 1,
     THEME_PRICES: { th_def: 0, th_night: 0, th_court: 2, th_sakura: 2 }
   };
+
+  /* 연속 출석 보너스를 주는 주기(일) — 7·14·21…일째마다 한 번 */
+  var STREAK_BONUS_DAYS = 7;
 
   var THEMES = [
     { id: 'th_def', name: '기본 코트', hint: '깔끔한 그린', price: HEART_RULES.THEME_PRICES.th_def },
@@ -671,6 +676,7 @@
   function partnerStats(records, opts) {
     opts = opts || {};
     var limit = Math.max(1, U.num(opts.limit, 5) || 5);
+    var want = tidyText(opts.name || '').toLowerCase();
     var map = {}, order = [];
     (records || []).forEach(function (r) {
       if (!r) return;
@@ -708,7 +714,26 @@
       if (b.games !== a.games) return b.games - a.games;
       return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
     });
+    /* 이름 하나만 볼 때(일지 입력칸 아래 미리보기) */
+    if (want) list = list.filter(function (e) { return e.name.toLowerCase() === want; });
     return list.slice(0, limit);
+  }
+
+  /* 파트너 한 명의 전적 — 일지 입력칸 아래 한 줄 미리보기 (bm-v1.36.0)
+   *  · 일지에 한 번도 안 적은 이름·점수가 없는 이름은 null(줄을 그리지 않습니다).
+   *  순수 함수. */
+  function partnerStat(records, name) {
+    var n = tidyText(name || '');
+    if (!n) return null;
+    return partnerStats(records, { name: n, limit: 1 })[0] || null;
+  }
+
+  /* 파트너 전적 한 줄 — '조환비 · 4전 3승 1패 (75%)'
+   *  무승부만 있으면 승률을 붙이지 않습니다(0%로 보이면 오해). */
+  function partnerLineText(p) {
+    if (!p) return '';
+    var decided = (p.wins || 0) + (p.losses || 0);
+    return p.name + ' · ' + p.line + (decided ? ' (' + p.rate + '%)' : '');
   }
 
   /* 파트너 이름 → 앱 회원 키 (bm-v1.34.0)
@@ -945,6 +970,31 @@
     listOf(idx, '출석하트', userKey).forEach(function (h) {
       add('checkin', '출석 체크', h.likes || R.CHECKIN, h);
     });
+    /* 7일 연속 출석 보너스 (bm-v1.36.0)
+     *  · 출석 행을 날짜 순으로 훑어 7·14·21…일째 되는 날에 보너스를 한 줄 더 남깁니다.
+     *  · 보너스 행을 따로 저장하지 않고 기록에서 매번 세므로(멱등) 앱을 다시 열거나
+     *    기기를 바꿔도 잔액이 같고, 지난 연속에도 소급해 한 번만 잡힙니다.
+     *  · 서버(브리지)는 출석 행을 1개로만 세므로 행 값은 그대로 두고 원장에서만 더합니다. */
+    var streakBonus = Math.max(0, U.num(R.STREAK_7_BONUS, 0) || 0);
+    if (streakBonus > 0) {
+      var checkinByDay = {};
+      listOf(idx, '출석하트', userKey).forEach(function (h) {
+        var day = dateKeyOf(h);
+        if (!day) return;
+        var cur = checkinByDay[day];
+        if (!cur || atMsOf(h) > atMsOf(cur)) checkinByDay[day] = h;
+      });
+      var checkinDays = Object.keys(checkinByDay).sort();
+      var run = 0, prevDay = '';
+      checkinDays.forEach(function (day) {
+        var gap = prevDay ? Math.round((U.parseYmd(day) - U.parseYmd(prevDay)) / 86400000) : 0;
+        run = gap === 1 ? run + 1 : 1;
+        prevDay = day;
+        if (run % STREAK_BONUS_DAYS === 0) {
+          add('streak', run + '일 연속 출석 보너스', streakBonus, checkinByDay[day], '보너스');
+        }
+      });
+    }
     listOf(idx, '광고하트', userKey).forEach(function (h) {
       add('ad', '광고 보고 받기', h.likes || R.AD_REWARD, h);
     });
@@ -992,6 +1042,44 @@
       balance: R.BASE + earned - spent,
       history: U.sortBy(history, function (h) { return h.at || ''; }, true)
     };
+  }
+
+  /* 다음 연속 출석 보너스까지 남은 날 (오늘 이미 보너스를 받은 날이면 7) */
+  function streakBonusLeft(days) {
+    var d = Math.max(0, Number(days) || 0);
+    var r = d % STREAK_BONUS_DAYS;
+    return r === 0 ? STREAK_BONUS_DAYS : STREAK_BONUS_DAYS - r;
+  }
+
+  /* 광고 적립 거래 ID (bm-v1.36.0)
+   *  · 보상형 광고 한 번에 ID 하나를 붙여, 같은 시청 건이 두 번 적립되는 것을 막습니다.
+   *  · 앱이 ID를 주지 않으면 js/ads.js 가 시각 기반으로 만들어 넘깁니다.
+   *  · ID는 '광고하트' 행의 메모(소셜글 칸)에 'tx:…' 로 남습니다(새 칸 없음). */
+  var AD_TX_PREFIX = 'tx:';
+  var AD_TX_MAX = 48;
+
+  function cleanTxId(v) {
+    var s = String(v == null ? '' : v).trim();
+    if (!s || s.length > 200) return '';
+    s = s.replace(/[^A-Za-z0-9._:-]/g, '');
+    return s.slice(0, AD_TX_MAX);
+  }
+
+  function adTxNote(txId) {
+    var id = cleanTxId(txId);
+    return id ? AD_TX_PREFIX + id : '';
+  }
+
+  function adTxOf(row) {
+    var t = String((row && (row.text || row.note)) || '').trim();
+    if (t.indexOf(AD_TX_PREFIX) !== 0) return '';
+    return cleanTxId(t.slice(AD_TX_PREFIX.length));
+  }
+
+  function adTxSeen(idx, userKey, txId) {
+    var id = cleanTxId(txId);
+    if (!id) return false;
+    return listOf(idx, '광고하트', userKey).some(function (h) { return adTxOf(h) === id; });
   }
 
   /* 화면용: 잔액 + 오늘 적립/광고 현황 + 출석 여부 */
@@ -1047,6 +1135,12 @@
       checkinStreak: streak,
       streakNext: nextStreakMilestone(streak),
       streakUnlocks: streakUnlocked(streak),
+      /* 7일 연속 보너스 안내 — MY 하트 카드와 공용 하트 시트가 이 값을 씁니다 */
+      streakBonus: {
+        amount: Math.max(0, U.num(R.STREAK_7_BONUS, 0) || 0),
+        days: STREAK_BONUS_DAYS,
+        left: streakBonusLeft(streak)
+      },
 
       todayEarned: todayEarned,
       todaySpent: todaySpent
@@ -2016,12 +2110,63 @@
   }
 
   /* 챌린지 자랑 문구 — 3회를 채운 카드에서 커뮤니티 글로 그대로 들어갑니다.
-   *  예) '이번 주 헤어핀 3회 연습 달성! 🎉' */
-  function challengeShareText(ch) {
+   *  예) '이번 주 헤어핀 3회 연습 달성! 🎉'
+   *  · 이번 주(또는 오늘) 기록에 함께 친 파트너·전적이 있으면 괄호로 자연스럽게 붙입니다 (bm-v1.36.0).
+   *    예) '이번 주 헤어핀 3회 연습 달성! (조환비와 2경기 2승) 🎉'
+   *  · opts.records 를 안 주면 예전과 같은 문구입니다. */
+  function challengeShareText(ch, opts) {
+    opts = opts || {};
     var w = String((ch && ch.weakness) || '').trim();
     if (!w) return '';
     var goal = Math.max(1, U.num(ch && ch.goal, CHALLENGE_GOAL) || CHALLENGE_GOAL);
-    return '이번 주 ' + w + ' ' + goal + '회 연습 달성! 🎉';
+    var tail = challengePartnerTail(challengePartner(opts.records, ch, opts));
+    return '이번 주 ' + w + ' ' + goal + '회 연습 달성!' + (tail ? ' (' + tail + ')' : '') + ' 🎉';
+  }
+
+  /* '조환비와' / '민수와' / '김철수와' — 받침에 따라 '와/과'를 고릅니다 */
+  function withAnd(name) {
+    var s = String(name == null ? '' : name).trim();
+    if (!s) return '와';
+    var c = s.charCodeAt(s.length - 1);
+    if (c < 0xac00 || c > 0xd7a3) return '와';
+    return ((c - 0xac00) % 28) > 0 ? '과' : '와';
+  }
+
+  /* 자랑 문구에 붙일 파트너 한 명 (bm-v1.36.0)
+   *  · 이번 주 챌린지 스탬프가 찍힌 날(ch.days)의 일지에서 '가장 많이 함께 친' 파트너.
+   *  · 이번 주 기록이 아직 없으면 오늘 일지에서 봅니다.
+   *  · 점수·승패가 적힌 경기가 있어야 고릅니다(이름만 있고 경기가 없으면 붙이지 않음).
+   *  → { name, games, wins, losses, draws, line, rate } 또는 null. 순수 함수. */
+  function challengePartner(records, ch, opts) {
+    opts = opts || {};
+    var days = (ch && ch.days && ch.days.length) ? ch.days.slice() : [];
+    if (!days.length) {
+      var today = opts.now ? dayKey(opts.now) : U.ymd();
+      if (today) days = [today];
+    }
+    if (!days.length) return null;
+    var picked = (records || []).filter(function (r) {
+      return r && days.indexOf(dayKey(r.date)) >= 0;
+    });
+    var list = partnerStats(picked, { limit: 99 });
+    if (!list.length) return null;
+    list.sort(function (a, b) {
+      if (b.games !== a.games) return b.games - a.games;
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+    });
+    return list[0];
+  }
+
+  /* '조환비와 2경기 2승' — 자랑 문구 괄호 안에 들어가는 한 마디 */
+  function challengePartnerTail(p) {
+    if (!p || !p.games) return '';
+    var rec = [];
+    if (p.wins) rec.push(p.wins + '승');
+    if (p.draws) rec.push(p.draws + '무');
+    if (p.losses) rec.push(p.losses + '패');
+    if (!rec.length) return '';
+    return p.name + withAnd(p.name) + ' ' + p.games + '경기 ' + rec.join(' ');
   }
 
   /* 채팅 말풍선의 http(s) 주소만 눌러지게 (bm-v1.34.0)
@@ -2076,7 +2221,7 @@
     DECO_PRICES: DECO_PRICES, STREAK_UNLOCKS: STREAK_UNLOCKS,
     decoId: decoId, decoPrice: decoPrice, decoName: decoName, ownsDeco: ownsDeco,
     frameById: frameById, frameName: frameName, badgeEmoji: badgeEmoji, badgeLabel: badgeLabel,
-    streakUnlocked: streakUnlocked, checkinStreak: checkinStreak, nextStreakMilestone: nextStreakMilestone,
+    streakUnlocked: streakUnlocked, checkinStreak: checkinStreak, nextStreakMilestone: nextStreakMilestone, streakBonusLeft: streakBonusLeft,
     searchText: searchText, matchesQuery: matchesQuery, filterPlayers: filterPlayers, activeFilters: activeFilters,
     matchSearchActive: matchSearchActive,
     HEART_RULES: HEART_RULES,
@@ -2084,7 +2229,7 @@
     JSON_TYPES: JSON_TYPES,
     fromRow: fromRow, toRow: toRow, asCells: asCells,
     recordDraft: recordDraft, logCells: logCells,
-    logMeta: logMeta, logExtraJson: logExtraJson, partnerStats: partnerStats, memberByName: memberByName,
+    logMeta: logMeta, logExtraJson: logExtraJson, partnerStats: partnerStats, partnerStat: partnerStat, partnerLineText: partnerLineText, memberByName: memberByName,
     linkify: linkify,
     cleanPartner: cleanPartner, safeVideoUrl: safeVideoUrl, cleanVideoLabel: cleanVideoLabel,
     PARTNER_MAX: PARTNER_MAX, VIDEO_URL_MAX: VIDEO_URL_MAX, VIDEO_LABEL_MAX: VIDEO_LABEL_MAX,
@@ -2124,6 +2269,8 @@
     /* v1.31 */
     CHALLENGE_GOAL: CHALLENGE_GOAL, CHALLENGE_DAYS: CHALLENGE_DAYS, STREAK_WEEKS: STREAK_WEEKS,
     weekChallenge: weekChallenge, weekStartOf: weekStartOf, dayKey: dayKey,
-    challengeShareText: challengeShareText, challengeStreak: challengeStreak
+    challengeShareText: challengeShareText, challengeStreak: challengeStreak,
+    challengePartner: challengePartner, challengePartnerTail: challengePartnerTail,
+    cleanTxId: cleanTxId, adTxNote: adTxNote, adTxOf: adTxOf, adTxSeen: adTxSeen
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
