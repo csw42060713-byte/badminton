@@ -472,6 +472,18 @@
     includes(html, '참여 1/4명', '모집 현황');
   });
 
+  test('v1.43 알림: 글쓴이에게 게스트 신청이 새 소식으로 잡힌다', function () {
+    var rows = [meetRow({ meet: { cap: '4' } }), guestRow({ id: 'app-n', kind: '신청', nick: '알림이', at: at(10) })];
+    var idx = D.index(rows.map(D.fromRow));
+    var fresh = D.newIncoming(idx, OWNER.key, at(60));
+    var guest = fresh.requests.filter(function (r) { return r.kind === 'guest'; });
+    eq(guest.length, 1, '받은 게스트 신청 1건');
+    eq(guest[0].nick, '알림이', '닉네임');
+    eq(guest[0].postId, 'post-1', '어느 글인지');
+    /* 신청자 본인에게는 새 소식이 아닙니다 */
+    eq(D.newIncoming(idx, GUEST.key, at(60)).requests.filter(function (r) { return r.kind === 'guest'; }).length, 0, '신청자에게는 알림 없음');
+  });
+
   /* ---------- 5. 보안 ---------- */
   test('v1.43 보안: 신청 한마디·닉네임이 HTML로 실행되지 않는다', function () {
     var PAYLOAD = '"><img src=x onerror=alert(1)><script>alert(2)</script>';
