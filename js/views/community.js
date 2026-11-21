@@ -195,8 +195,27 @@
       '<label class="viteform__f"><span>몇 명</span>' +
       '<input type="text" inputmode="numeric" maxlength="3" data-vitefield="cap" enterkeyhint="next" placeholder="6" value="' + U.esc(m.cap || '') + '"></label>' +
       '<label class="viteform__f viteform__f--wide"><span>어디 체육관</span>' +
-      '<input type="text" maxlength="30" data-vitefield="place" placeholder="동네 체육관 이름" value="' + U.esc(m.place || '') + '"></label>' +
+      '<input type="text" maxlength="30" data-vitefield="place" placeholder="동네 체육관 이름" value="' + U.esc(m.place || '') + '">' +
+      '<button type="button" class="viteform__pick" data-act="pick-gym">' + UI.icon('pin') + '지도에서 고르기</button></label>' +
       '</div></div>';
+  }
+
+  /* 게스트 모집의 '어디 체육관'을 지도에서 고르게 합니다.
+   * 고른 이름은 작성 칸(composerMeet.place)에 담기므로 화면을 다시 그려도 남습니다. */
+  function openGymPicker(ctx, root) {
+    if (!BM.views || !BM.views.gyms) return;
+    BM.views.gyms.open(ctx, {
+      onPick: function (v) {
+        if (!v) return;
+        ctx.actions.setComposerMeet('place', v.name);
+        var inp = root.querySelector('[data-vitefield="place"]');
+        if (inp) inp.value = v.name;
+        var last = v.name.charCodeAt(v.name.length - 1);
+        var josa = (last >= 0xac00 && last <= 0xd7a3 && (last - 0xac00) % 28 !== 0) ? '을' : '를';
+        UI.toast('‘' + v.name + '’' + josa + ' 넣었어요');
+        UI.haptic(8);
+      }
+    });
   }
 
   /* ---------- 빈 화면 ----------
@@ -284,6 +303,13 @@
     mount: function (root, ctx) {
       root.addEventListener('click', function (ev) {
         /* 말머리 고르기 (작성) — 한 개만 켜집니다 */
+        /* 게스트 모집의 '어디 체육관' — 지도에서 골라 채웁니다 */
+        if (ev.target.closest('[data-act="pick-gym"]')) {
+          ev.preventDefault();
+          openGymPicker(ctx, root);
+          return;
+        }
+
         var pick = ev.target.closest('[data-topic]');
         if (pick) {
           ev.preventDefault();

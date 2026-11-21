@@ -4762,3 +4762,238 @@ body {
 .topicpick-line .chips { flex: 1; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .topicpick-line .chips::-webkit-scrollbar { display: none; }
 .topicpick__lab { flex: 0 0 auto; font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: -0.1px; }
+
+/* ============================================================
+ * 18. 체육관 지도 · 자주 가는 체육관 (로컬 검토용)
+ *  · 매칭 > 찾기의 '체육관 지도' 입구 카드 + 전체 화면 지도(js/views/gyms.js)
+ *  · 카드·핀·별은 기존 카드/칩/세그와 같은 반경·테두리·색 변수를 씁니다.
+ *  · 지도 타일을 못 받아도(오프라인) 핀과 카드 목록은 그대로 보입니다.
+ * ============================================================ */
+
+/* ---------- 18.1 입구 카드 ---------- */
+.gymentry {
+  padding: 5px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--card)), var(--card));
+}
+.gymentry__b {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 11px 12px;
+  border-radius: calc(var(--r-lg) - 6px);
+  text-align: left;
+}
+.gymentry__b:active { transform: scale(0.995); }
+.gymentry__ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; flex: none;
+  border-radius: 12px;
+  background: var(--accent-soft); color: var(--accent);
+}
+.gymentry__ic .ico { width: 18px; height: 18px; }
+.gymentry__t { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.gymentry__t b { font-size: 14px; font-weight: 800; letter-spacing: -0.3px; color: var(--text); }
+.gymentry__t small {
+  font-size: 11.5px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gymentry__go { display: inline-flex; align-items: center; gap: 6px; flex: none; color: var(--muted); }
+.gymentry__go .ico { width: 16px; height: 16px; }
+.gymentry__n {
+  font-style: normal; font-size: 10.5px; font-weight: 800;
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+}
+
+/* ---------- 18.2 전체 화면 ---------- */
+.gympage {
+  position: fixed; inset: 0; z-index: 78;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  opacity: 0; transform: translateY(12px);
+  transition: opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.gympage.is-on { opacity: 1; transform: none; }
+.gympage__hdr {
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(var(--safe-t) + 10px) 12px 10px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+}
+.gympage__hdr .iconbtn { flex: none; }
+.gympage__t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gympage__t b { font-size: 16px; font-weight: 800; letter-spacing: -0.35px; line-height: 1.25; }
+.gympage__t span { font-size: 11.5px; color: var(--muted); }
+.gympage__body {
+  flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 14px 14px calc(var(--safe-b) + 28px);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.gympage__hint { padding: 0 2px; }
+
+/* 자주 가는 체육관 */
+.gymfav {
+  padding: 13px 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+}
+.gymfav__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+.gymfav__head h3 { font-size: 13px; font-weight: 800; letter-spacing: -0.25px; color: var(--text-2); }
+.gymfav__chips { flex-wrap: wrap; gap: 6px; }
+.gymchip {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  min-height: 34px; padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--text); font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.gymchip b { color: var(--accent); }
+.gymchip small { font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.gymchip:active { transform: scale(0.97); }
+.gymfav__empty { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.gymfav__empty .ico { width: 15px; height: 15px; flex: none; color: var(--accent); }
+.gymfav__empty b { color: var(--accent); }
+
+/* 보기 고르기 */
+.gymseg .seg { width: 100%; }
+.gymseg .seg__btn { min-height: 36px; }
+
+/* ---------- 18.3 지도 ---------- */
+.gymmapwrap { display: flex; flex-direction: column; gap: 7px; }
+.gymmap {
+  position: relative; height: 250px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 43px, rgba(255, 255, 255, 0.09) 43px 45px),
+    repeating-linear-gradient(0deg, transparent 0 43px, rgba(255, 255, 255, 0.09) 43px 45px),
+    linear-gradient(160deg, #16382a, #0b2118);
+}
+[data-theme="th_def"] .gymmap,
+[data-theme="th_sakura"] .gymmap {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 43px, rgba(11, 122, 75, 0.09) 43px 45px),
+    repeating-linear-gradient(0deg, transparent 0 43px, rgba(11, 122, 75, 0.09) 43px 45px),
+    linear-gradient(160deg, #e9f2ea, #dceade);
+}
+.gymmap__fallback { position: absolute; inset: 0; }
+.gymmap.is-live .gymmap__fallback { display: none; }
+.gympin {
+  position: absolute; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--card); color: var(--accent);
+  border: 2px solid var(--accent);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+  font-size: 11px; line-height: 1;
+  transition: transform 120ms;
+}
+.gympin b { font-size: 12px; line-height: 1; }
+.gympin__dot { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.gympin.is-fav { background: var(--accent); color: var(--accent-ink); }
+.gympin:active { transform: translate(-50%, -50%) scale(0.9); }
+
+/* Leaflet 핀 (지도 위) */
+.gypin-wrap { background: none; border: 0; }
+.gypin {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--card); color: var(--accent);
+  border: 2px solid var(--accent);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.26);
+}
+.gypin.is-fav { background: var(--accent); color: var(--accent-ink); }
+.gypin b { font-size: 13px; line-height: 1; }
+.gypin .gypin__dot { display: block; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+
+.gymmap__note { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+.gymmap__note .ico { width: 14px; height: 14px; flex: none; color: var(--accent); }
+.gymmap__note b { color: var(--text-2); }
+.gymmap__note span, .gymfav__empty span { min-width: 0; }
+
+/* 타일을 못 받았을 때 — 핀·목록은 그대로 두고 한 줄만 알립니다 */
+.gymmap.is-notiles::after {
+  content: "지도 그림을 불러오지 못했어요 · 핀과 목록은 그대로 볼 수 있어요";
+  position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 500;
+  padding: 7px 10px; border-radius: 10px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  color: var(--text-2); font-size: 11px; line-height: 1.4;
+}
+
+/* ---------- 18.4 체육관 카드 ---------- */
+.gymcards { display: flex; flex-direction: column; gap: 10px; }
+.gymcard {
+  padding: 13px 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+}
+.gymcard.is-fav { border-color: var(--accent-line); }
+.gymcard.is-focus { box-shadow: 0 0 0 2px var(--accent-line), var(--shadow-soft); }
+.gymcard__head { display: flex; align-items: flex-start; gap: 10px; }
+.gymcard__t { flex: 1; min-width: 0; }
+.gymcard__t h3 { font-size: 14.5px; font-weight: 800; letter-spacing: -0.35px; line-height: 1.3; }
+.gymcard__meta { margin-top: 2px; font-size: 11.5px; color: var(--muted); }
+.gymcard__tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.gymstar {
+  flex: none; width: 40px; height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px; line-height: 1;
+}
+.gymstar.is-on { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.gymstar:active { transform: scale(0.94); }
+.gymcard__row { display: flex; gap: 8px; margin-top: 6px; font-size: 11.8px; line-height: 1.45; color: var(--text-2); }
+.gymcard__row span { flex: none; width: 30px; padding-top: 1px; font-size: 10.5px; font-weight: 800; color: var(--muted); }
+.gymcard__act { display: flex; gap: 6px; margin-top: 10px; }
+.gymcard__act .btn { flex: 1; min-height: 38px; }
+
+/* 커뮤니티 게스트 모집 — '지도에서 고르기' */
+.viteform__pick {
+  display: inline-flex; align-items: center; gap: 4px;
+  align-self: flex-start;
+  margin-top: 7px; padding: 0;
+  background: none; border: 0;
+  color: var(--accent); font-size: 11.5px; font-weight: 800;
+}
+.viteform__pick .ico { width: 13px; height: 13px; }
+
+/* ---------- 18.5 Leaflet 다듬기 (테마에 맞춰) ---------- */
+.leaflet-container { font: inherit; background: transparent; }
+.leaflet-control-attribution {
+  font-size: 9.5px !important;
+  background: color-mix(in srgb, var(--card) 84%, transparent) !important;
+  color: var(--muted) !important;
+}
+.leaflet-control-attribution a { color: var(--muted) !important; }
+.leaflet-bar a, .leaflet-bar a:hover {
+  background: var(--card) !important;
+  color: var(--text) !important;
+  border-color: var(--line) !important;
+}
+.leaflet-bar { border: 1px solid var(--line) !important; border-radius: 10px; overflow: hidden; }
+[data-theme="th_night"] .leaflet-tile,
+[data-theme="th_court"] .leaflet-tile {
+  /* 밤·라임 테마에서는 지도를 밤 색(무채색)으로 뒤집어 앱 톤에 맞춥니다(OSM 표준 타일은 흰 바탕) */
+  filter: grayscale(1) invert(1) brightness(1.15) contrast(1.05) sepia(0.15);
+}
+
+/* 지도 화면 머리 오른쪽 '전체 보기' — 동탄(나래울)까지 한 번에 */
+.gympage__all {
+  flex: none;
+  min-height: 34px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+.gympage__all:active { transform: scale(0.97); }

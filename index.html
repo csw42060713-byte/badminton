@@ -31,6 +31,8 @@
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="styles.css?v=20261121-50">
+<!-- 지도(Leaflet) 스타일·코드는 저장소에 함께 넣었습니다 — 오프라인에서도 지도 틀이 뜨고, 외부 CDN에 기대지 않습니다 -->
+<link rel="stylesheet" href="js/vendor/leaflet/leaflet.css">
 <link rel="preconnect" href="https://accounts.google.com">
 <link rel="privacy-policy" href="privacy.html">
 </head>
@@ -121,7 +123,8 @@ setTimeout(function () {
 
 <noscript><p style="padding:20px;color:#fff">이 앱은 자바스크립트가 필요합니다. <a href="privacy.html" style="color:#c6f24e">개인정보처리방침 보기</a></p></noscript>
 
-<!-- 로드 순서 중요: 도구 → 도메인 → AI → 시드 → 저장소 → 화면 → 시작 -->
+<!-- 로드 순서 중요: 지도 → 도구 → 도메인 → AI → 시드 → 저장소 → 화면 → 시작 -->
+<script defer src="js/vendor/leaflet/leaflet.js"></script>
 <script defer src="js/util.js"></script>
 <script defer src="js/domain.js"></script>
 <script defer src="js/routine.js"></script>
@@ -132,6 +135,7 @@ setTimeout(function () {
 <script defer src="js/auth.js"></script>
 <script defer src="js/store.js"></script>
 <script defer src="js/ui.js"></script>
+<script defer src="js/gyms.js"></script>
 <script defer src="js/art.js"></script>
 <script defer src="js/ads.js"></script>
 <script defer src="js/scoreboard.js"></script>
@@ -139,6 +143,7 @@ setTimeout(function () {
 <script defer src="js/views/profile.js"></script>
 <script defer src="js/views/friends.js"></script>
 <script defer src="js/views/chat.js"></script>
+<script defer src="js/views/gyms.js"></script>
 <script defer src="js/views/log.js"></script>
 <script defer src="js/views/matching.js"></script>
 <script defer src="js/views/community.js"></script>

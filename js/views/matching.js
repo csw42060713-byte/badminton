@@ -279,9 +279,30 @@
             : '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="reset-filter">조건 초기화</button>'));
   }
 
+  /* ---------- 체육관 지도 입구 ----------
+   * 지도 화면은 js/views/gyms.js 가 그리고, 여기서는 들어가는 카드만 그립니다.
+   * 자주 가는 체육관을 등록해 두면 이 줄에 이름이 바로 보입니다. */
+  function gymEntry(state) {
+    var G = BM.gyms;
+    if (!G || !BM.views || !BM.views.gyms) return '';
+    var scope = meKey(state) || 'guest';
+    var favs = G.favorites(scope);
+    var names = favs.map(function (id) { var v = G.get(id); return v && v.name; }).filter(Boolean);
+    var sub = names.length
+      ? '자주 가는 곳 ' + names.length + '곳 · ' + names.slice(0, 2).join(', ') + (names.length > 2 ? ' 외' : '')
+      : '서울·수도권 체육관 ' + G.count() + '곳이 지도에 표시돼요';
+    return '<section class="card card--flush gymentry">' +
+      '<button type="button" class="gymentry__b" data-act="open-gym-map">' +
+      '<span class="gymentry__ic" aria-hidden="true">' + UI.icon('pin') + '</span>' +
+      '<span class="gymentry__t"><b>체육관 지도</b><small>' + U.esc(sub) + '</small></span>' +
+      '<span class="gymentry__go">' +
+      (favs.length ? '<i class="gymentry__n">★ ' + favs.length + '</i>' : '') +
+      UI.icon('arrow') + '</span></button></section>';
+  }
+
   /* ---------- 찾기 탭 ---------- */
   function findTab(state) {
-    return '<section class="card">' +
+    return gymEntry(state) + '<section class="card">' +
       '<header class="card__head"><h2>플레이어 찾기</h2></header>' +
       searchBar(state) + filterBar(state) +
       '<div data-region="results" data-sig="' + U.esc(resultsSig(state)) + '">' + resultsHtml(state) + '</div>' +
@@ -979,6 +1000,14 @@
 
     mount: function (root, ctx) {
       root.addEventListener('click', function (ev) {
+        /* 체육관 지도 (찾기 탭 맨 위 카드) */
+        if (ev.target.closest('[data-act="open-gym-map"]')) {
+          ev.preventDefault();
+          if (BM.views && BM.views.gyms) BM.views.gyms.open(ctx);
+          UI.haptic(6);
+          return;
+        }
+
         /* 탭 */
         var tab = ev.target.closest('[data-match-tab]');
         if (tab) {

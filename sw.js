@@ -69,6 +69,10 @@
  *             캐시 bm-v1.38.1.
  * 2026-11-21: AI 고도화 — 팔꿈치·손목 과사용(라켓 엘보) 보호 체크 블록 + 접전(3점차 이내) 성적과
  *             8~14점 리드 목표 코칭. js만 바뀌어 캐시 bm-v1.39.0.
+ * 2026-11-21(로컬 검토): 체육관 지도 — 매칭 > 찾기 맨 위 '체육관 지도'(지도에 체육관 13곳 기본 표시)와
+ *             자주 가는 체육관 즐겨찾기(기기 저장·즐겨찾기만 보기·주 체육관으로), 커뮤니티 게스트 모집의
+ *             '지도에서 고르기'. 지도는 Leaflet 1.9.4(BSD)를 저장소에 함께 넣어 외부 CDN 없이 뜨고,
+ *             타일을 못 받아도 핀·카드는 그대로 보입니다. (배포 전 VERSION 올리기)
  * ============================================================ */
 var VERSION = 'bm-v1.39.0';
 var SHELL = [
@@ -88,6 +92,7 @@ var SHELL = [
   './js/auth.js',
   './js/store.js',
   './js/ui.js',
+  './js/gyms.js',
   './js/art.js',
   './js/ads.js',
   './js/scoreboard.js',
@@ -95,6 +100,7 @@ var SHELL = [
   './js/views/profile.js',
   './js/views/friends.js',
   './js/views/chat.js',
+  './js/views/gyms.js',
   './js/views/log.js',
   './js/views/matching.js',
   './js/views/community.js',
@@ -104,7 +110,12 @@ var SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
-  './icons/favicon.svg'
+  './icons/favicon.svg',
+  './js/vendor/leaflet/leaflet.js',
+  './js/vendor/leaflet/leaflet.css',
+  './js/vendor/leaflet/images/marker-icon.png',
+  './js/vendor/leaflet/images/marker-icon-2x.png',
+  './js/vendor/leaflet/images/marker-shadow.png'
 ];
 
 self.addEventListener('install', function (event) {
