@@ -463,7 +463,7 @@
     if (closedHiddenCount(state)) {
       return UI.emptyState('community', '지금은 모집 중인 글이 없어요',
         '정원이 다 찬 모집 글은 커뮤니티에서 자동으로 내려가요. 자리가 나면 다시 올라옵니다.',
-        '<button type="button" class="btn btn--ghost btn--sm mt8" data-topicall="1">전체 글 보기</button>');
+        topicFilter === '전체' ? '' : '<button type="button" class="btn btn--ghost btn--sm mt8" data-topicall="1">전체 글 보기</button>');
     }
     return filteredEmpty(topicFilter);
   }
