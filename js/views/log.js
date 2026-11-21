@@ -1109,6 +1109,9 @@
 
         analysisCard(an, state) +
 
+        /* v1.41 — 주간·월간 상세 리포트 입구 (AI 카드 아래 한 줄) */
+        (BM.report ? BM.report.entryHtml() : '') +
+
         /* 복식 파트너별 승률 — 파트너 이름을 적은 일지가 있을 때만 (일지 입력·분석 바로 아래) */
         partnerBlock(state) +
 
@@ -1361,6 +1364,13 @@
         if (ev.target.closest('[data-act="go-coach"]')) {
           ev.preventDefault();
           ctx.actions.setTab('coach');
+          return;
+        }
+        /* v1.41 — 주간·월간 상세 리포트 */
+        if (ev.target.closest('[data-act="open-report"]')) {
+          ev.preventDefault();
+          UI.haptic(8);
+          if (BM.report) BM.report.openFrom(ctx);
           return;
         }
         /* 코트 점수판 — 21·25점 시트 */

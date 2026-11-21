@@ -4900,3 +4900,127 @@ body {
 .rolehint__t { font-size: 14px; font-weight: 900; letter-spacing: -0.3px; }
 .rolehint__s { font-size: 12px; line-height: 1.55; color: var(--muted); }
 .card--rolehint { padding-bottom: 14px; }
+
+/* ============================================================
+ * 주간·월간 상세 리포트 (bm-v1.41.0)
+ *  · 입구는 일지 & AI(AI 카드 아래)·MY(통계 카드 아래)의 한 줄 버튼
+ *  · 리포트는 .bgp 전체화면 패널을 그대로 쓰고, 안쪽만 이 파일에서 칠합니다
+ * ============================================================ */
+
+/* 입구 한 줄 — 카드 사이 gap(14px)은 .view가 잡아 줍니다 */
+.rptbtn {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  margin: 0; padding: 12px 14px; min-height: 52px;
+  border-radius: 15px; border: 1px solid var(--accent-line);
+  background: var(--accent-soft); color: var(--text);
+  text-align: left; font: inherit; cursor: pointer;
+}
+.rptbtn:active { transform: scale(0.985); }
+.rptbtn__t {
+  flex: 1; min-width: 0; display: grid; gap: 2px;
+  font-size: 13px; font-weight: 800; letter-spacing: -0.25px;
+}
+.rptbtn__t small { font-size: 10.5px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.rptbtn__car { flex: 0 0 auto; width: 14px; height: 14px; color: var(--muted); }
+
+/* 리포트 본문 */
+.rptp .bgp__body { padding-top: 2px; }
+.rpt { padding-bottom: calc(24px + var(--safe-b)); }
+.rpt__range { display: grid; gap: 2px; margin: 12px 2px 0; }
+.rpt__range b { font-size: 15.5px; font-weight: 900; letter-spacing: -0.45px; }
+.rpt__range span { font-size: 11px; font-weight: 600; color: var(--muted); }
+
+.rpt__sec {
+  margin-top: 12px; padding: 14px;
+  border-radius: 16px; border: 1px solid var(--line); background: var(--card);
+}
+.rpt__h {
+  display: flex; align-items: center; gap: 6px; margin: 0;
+  font-size: 13px; font-weight: 800; letter-spacing: -0.3px;
+}
+.rpt__h small { font-size: 10.5px; font-weight: 600; color: var(--muted); }
+
+/* 1) 운동량 · 승률 */
+.rpt__stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.rpt__stat {
+  display: grid; gap: 1px; padding: 10px 11px 9px;
+  border-radius: 12px; background: var(--card-2); border: 1px solid var(--line);
+}
+.rpt__stat strong {
+  font-size: 17px; font-weight: 900; letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.rpt__stat span { font-size: 10px; font-weight: 700; color: var(--muted); }
+.rpt__d {
+  margin-top: 2px; font-size: 10.5px; font-style: normal;
+  font-weight: 800; font-variant-numeric: tabular-nums; color: var(--muted);
+}
+.rpt__d.up { color: var(--good); }
+.rpt__d.down { color: var(--bad); }
+.rpt__d.is-first, .rpt__d.is-flat { color: var(--muted); font-weight: 700; }
+.rpt__note {
+  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line);
+  font-size: 11px; line-height: 1.5; color: var(--muted);
+}
+
+/* 2) 약점 TOP 3 */
+.rpt__bars { display: grid; gap: 12px; margin: 12px 0 0; padding: 0; list-style: none; }
+.rpt__bar-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.rpt__bar-top b { font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px; }
+.rpt__bar-top span { font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rpt__bar {
+  height: 7px; margin-top: 6px; border-radius: 999px;
+  background: var(--card-2); overflow: hidden;
+}
+.rpt__bar i {
+  display: block; height: 100%; width: var(--w, 0%);
+  border-radius: 999px; background: var(--accent);
+}
+.rpt__barrow:nth-child(1) .rpt__bar i { opacity: 1; }
+.rpt__barrow:nth-child(2) .rpt__bar i { opacity: 0.72; }
+.rpt__barrow:nth-child(3) .rpt__bar i { opacity: 0.48; }
+.rpt__bar-d { margin-top: 5px; font-size: 10.5px; font-weight: 600; color: var(--muted); }
+
+/* 3) 통증 */
+.rpt__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.rpt__chip {
+  padding: 5px 10px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card-2);
+  font-size: 11.5px; font-weight: 700; letter-spacing: -0.15px;
+}
+.rpt__chip b { font-weight: 900; font-variant-numeric: tabular-nums; }
+.rpt__chip.is-warn {
+  border-color: color-mix(in srgb, var(--warn) 38%, transparent);
+  background: color-mix(in srgb, var(--warn) 13%, transparent);
+  color: var(--warn);
+}
+.rpt__warn {
+  margin-top: 11px; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--warn) 26%, transparent);
+  background: color-mix(in srgb, var(--warn) 11%, transparent);
+}
+.rpt__warn b { display: block; font-size: 10.5px; font-weight: 900; letter-spacing: 0.2px; color: var(--warn); }
+.rpt__warn p { margin-top: 3px; font-size: 12px; line-height: 1.55; }
+.rpt__warn .rpt__warn-s { font-size: 11.5px; color: var(--text-2); }
+
+/* 4) 다음 방향 */
+.rpt__next { display: grid; gap: 9px; margin: 12px 0 0; padding: 0; list-style: none; counter-reset: rptn; }
+.rpt__next li {
+  position: relative; padding-left: 25px;
+  font-size: 12.5px; line-height: 1.6; letter-spacing: -0.15px;
+}
+.rpt__next li::before {
+  counter-increment: rptn; content: counter(rptn);
+  position: absolute; left: 0; top: 1px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 10px; font-weight: 900;
+}
+
+.rpt__none { margin-top: 11px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.rpt__foot {
+  margin: 16px 2px 0; font-size: 10.5px; line-height: 1.5; color: var(--muted);
+}
+.rpt__empty { margin-top: 10px; }
+.rpt__empty .empty { padding: 22px 8px 10px; }
