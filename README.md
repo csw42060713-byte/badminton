@@ -1784,3 +1784,7 @@ bubblewrap build            # → app-release-bundle.aab
 - 로컬 정적 서버(이 스크립트가 직접 띄우고 내림)에서 **36/36 통과**: 입구 카드 → 지도(카드·핀 13곳, Leaflet 컨테이너) → ☆ 즐겨찾기 → `즐겨찾기만` 1곳 → 전체 13곳 → `내 위치 기준`(전 카드 `약 X.X km`·거리 오름차순 7.2→10.2km·내 위치 점) → 새로고침 뒤 즐겨찾기 유지·입구 ★ 개수 → `지도에서 보기` 요약 카드 → MY 주 체육관 고르기·저장·이름 눌러 지도 → 커뮤니티 모집 글 장소 고르기, 그리고 **5개 탭 앱 오류 0건 · 가로 넘침 0(문서 폭 390)**, 위치 거부 시 목록 13곳 유지 + 안내 한 줄.
 - 콘솔에는 체험 모드에서 늘 뜨는 구글 로그인 스크립트(`accounts.google.com/gsi/client`) 403 두 건만 남습니다(지난 사이클과 동일, 앱 오류 아님).
 - 캡처: `downloads/v142_00_entry_matching.png` · `v142_01_map.png` · `v142_02_fav.png` · `v142_03_near.png` · `v142_04_focus.png` · `v142_05_profile_pick.png` · `v142_06_community.png` · `v142_07_denied.png`. 재현 스크립트: `test/local-v142.py`(저장소 전용, gh-pages 제외).
+
+### 6) 라이브 확인 (390×844 · 22/22)
+
+`https://csw42060713-byte.github.io/badminton/?nocache=1` 에 `bm-v1.42.0`(`main` `c8acca3` · `gh-pages` `4384bf1`)이 올라간 뒤 확인했습니다. 라이브 `sw.js` `bm-v1.42.0` · 앱 버전 `v1.42.0`, 지도 입구 → 카드·핀 13곳 · Leaflet 컨테이너, ☆ → 자주 가는 체육관 칩, `즐겨찾기만` 1곳, `내 위치 기준` 전 카드 `약 X.X km`(7.2 → 10.2km 오름차순)과 내 위치 점, 새로고침 뒤 ★ 유지·입구 ★ 개수, 5개 탭과 가로 넘침(문서 폭 390)에서 **앱 오류 0건(콘솔 오류도 0건)**. 캡처: `downloads/v142_live_00_entry.png` · `v142_live_01_map.png` · `v142_live_02_near.png` · `v142_live_03_my.png`. 재현: `test/live-v142.py`(라이브 22항목) · `test/local-v142.py`(로컬 36항목, 모두 저장소 전용 · gh-pages 제외).
