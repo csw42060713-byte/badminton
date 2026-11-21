@@ -105,6 +105,29 @@
  *        proprioceptive knee bracing on biomechanics during a badminton lunge to the net…>, PeerJ 6:e6033,
  *        2018 (DOI: 10.7717/peerj.6033) — 숙련 16명. 백핸드 네트 런지가 포핸드보다 무릎 내회전 속도·
  *        신전 모멘트가 커 위험 요인이 많음(포핸드는 굴곡 각이 큼). 피로 후 시상면 각속도·모멘트 감소.
+ * [BARR16] Barreira J., Chiminazzo J.G.C., Fernandes P.T., <Analysis of point difference established by winners
+ *        and losers in games of badminton>, Int J Perform Anal Sport 16(2):687-694, 2016
+ *        (DOI: 10.1080/24748668.2016.11868916) — 2015 세계선수권 남자단식 136게임(59경기).
+ *        경기를 0~7점·8~14점·15~21점 세 구간으로 나눠 최대 점수차를 봄.
+ *        1구간에서 한 번도 앞서지 못한 선수의 78%가 그 게임을 졌고,
+ *        2·3구간에서 1점차 리드는 이기기에 부족했으며, 승자는 중반~후반에 5점 이상 차를 냄.
+ * [SEN19] Senadheera V.V., Mayooran S., Dissanayake J.K., <Elbow, Wrist and Hand Tendinopathies in Badminton
+ *        Players>, Am J Sports Sci Med 7(1):16-19, 2019 (DOI: 10.12691/ajssm-7-1-3) — 선수 25명 단면조사.
+ *        팔꿈치·손목·손 힘줄 통증 경험 28%(팔꿈치 20%·손목 4%·손 4%), 그중 바깥쪽 팔꿈치(라켓 엘보)가
+ *        45.9%로 가장 흔함. 상지 유연성 운동을 하지 않은 선수는 100%가 통증(연관 유의, p < 0.05).
+ * [YOON21] Yoon S.Y., Kim Y.W., Shin I.S., Kang S., Moon H.I., Lee S.C., <The Beneficial Effects of Eccentric
+ *        Exercise in the Management of Lateral Elbow Tendinopathy: A Systematic Review and Meta-Analysis>,
+ *        J Clin Med 10(17):3968, 2021 (DOI: 10.3390/jcm10173968) — RCT 6편 429명.
+ *        원심성(천천히 내리기) 운동을 더하면 통증(SMD -0.63)과 악력(SMD 1.05)이 더 좋아짐.
+ *        다른 근력운동과 비교해도 통증은 더 줄었지만(SMD -0.30) 근력·기능 차이는 유의하지 않음
+ *        → '천천히 내리기 + 스트레칭'을 기본으로, 세트는 10~15회 2~3세트.
+ * [WEN11] Wen D.Y., Schultz B.J., Schaal B., Graham S.T., Kim B.S., <Eccentric Strengthening for Chronic Lateral
+ *        Epicondylosis: A Prospective Randomized Study>, Sports Health 3(6):500-503, 2011
+ *        (DOI: 10.1177/1941738111409690) — 28명 RCT. 원심성 운동이 스트레칭·물리치료보다 모든 시점에서
+ *        우월하지는 않았고 8주에만 통증 이점 → 과장하지 않고 '4주 이상 꾸준히'로 안내.
+ * [SONG18] Song M-S., Kang J-I., Kim B-R., <The Effect of Proprioceptive Neuromuscular Facilitation Wrist Taping
+ *        and Rhythmic Stabilization Technique on Pain and Grip Strength in Badminton Players with Wrist Pain>,
+ *        PNF and Movement, 2018 — 배드민턴 동호인 41명(손목 과사용 통증), 테이핑 3주에 통증·악력 개선.
  * [FONG21] Fong D.T.P., Mok K.M., Thompson I.M., Wang Y., Shan W., King M.A., <A lateral ankle sprain during
  *        a lateral backward step in badminton: A case report of a televised injury incident>,
  *        J Sport Health Sci 12(1):139-144, 2023 (DOI: 10.1016/j.jshs.2021.03.007) — 측후방 스텝 중 앞발 착지
@@ -783,6 +806,20 @@
     'Valldecabres et al., PeerJ 6:e6033, 2018 (DOI 10.7717/peerj.6033) · ' +
     'Fong et al., J Sport Health Sci 12(1):139-144, 2023 (DOI 10.1016/j.jshs.2021.03.007)';
   var LOWER_SRC_SHORT = '참고 논문 · Du & Fan 2020 · Valldecabres 2018 · Fong 2021';
+  /* 팔꿈치·손목 과사용(라켓 엘보·손목 힘줄) — 내부 수치는 화면 문구와 테스트가 같이 씁니다 */
+  var ARM_RISK = {
+    tendinopathyPct: 28,      /* [SEN19] 25명 중 28%가 팔꿈치·손목·손 힘줄 통증 */
+    elbowPct: 20, wristPct: 4,
+    lateralSharePct: 45.9,    /* [SEN19] 그중 바깥쪽 팔꿈치가 가장 흔함 */
+    noFlexPainPct: 100,       /* [SEN19] 상지 유연성 운동 안 하는 선수 전원 통증 */
+    metaStudies: 6, metaN: 429, /* [YOON21] */
+    eccentricSets: 3, eccentricReps: 15, eccentricWeeks: 4
+  };
+  var ARM_SRC = 'Senadheera et al., Am J Sports Sci Med 7(1):16-19, 2019 (DOI 10.12691/ajssm-7-1-3) · ' +
+    'Yoon et al., J Clin Med 10(17):3968, 2021 (DOI 10.3390/jcm10173968) · ' +
+    'Wen et al., Sports Health 3(6):500-503, 2011 (DOI 10.1177/1941738111409690) · ' +
+    'Song et al., PNF and Movement, 2018';
+  var ARM_SRC_SHORT = '참고 논문 · Senadheera 2019 · Yoon 2021 J Clin Med · Wen 2011 Sports Health';
 
   function guardShoulder() {
     return {
@@ -842,6 +879,39 @@
     };
   }
 
+  /* 팔꿈치·손목 보호 체크 — 라켓을 계속 쥐고 손목으로 마무리하는 동작의 과사용
+   * 화면은 쉬운 말(동호인 열 명 중 셋, 팔꿈치 바깥쪽, 그립 힘)로만 쓰고
+   * 정확한 출처·수치는 stats와 참고 논문 한 줄에 담습니다. */
+  function guardArm() {
+    return {
+      label: '팔꿈치·손목',
+      title: '팔꿈치·손목 보호 체크',
+      thresholdTitle: '쉬운 기준',
+      checkTitle: '자가 체크',
+      guideTitle: '오늘 할 것',
+      thresholds: [
+        '배드민턴은 라켓을 계속 쥐고 손목으로 마무리해서, 동호인 열 명 중 셋꼴로 팔꿈치·손목 힘줄 통증을 겪어요',
+        '그중 제일 흔한 게 바깥쪽 팔꿈치(라켓 엘보)예요 — 팔을 뻗어 손등을 위로 든 채 손목을 누를 때 아프면 이쪽이에요',
+        '운동 전후 팔·손목 스트레칭을 하지 않는 선수는 조사에서 전원이 통증을 겪었어요',
+        '손목 새끼손가락 쪽이 아프면 그립을 꽉 쥐는 습관과 손목 스냅을 먼저 의심하세요'
+      ],
+      checks: [
+        { name: '손등을 위로 두고 손목 눌러 보기', how: '팔을 앞으로 뻗고 손등이 위를 보게 한 뒤 반대 손으로 손목을 아래로 살짝 눌러 3초 — 팔꿈치 바깥이 찌르듯 아프면 라켓 엘보 신호예요.' },
+        { name: '컵이나 라켓 들 때 아픈지', how: '가벼운 컵을 들 때도 팔꿈치 바깥이 아프면 근력보다 그립을 꽉 쥐는 습관부터 고치세요.' },
+        { name: '손목 돌릴 때 힘이 빠지는지', how: '손목을 새끼손가락 쪽으로 돌릴 때 아프거나 힘이 빠지면 그립 두께와 손목 스냅 양을 먼저 줄이세요.' }
+      ],
+      guides: [
+        { name: '손목 천천히 내리기 (15회 × 3세트, 주 3번)', how: '가벼운 물병을 들고 손목을 위로 든 뒤 4~5초에 걸쳐 천천히 내리기 — 아프지 않은 무게로 15회씩 3세트, 4주 이상 꾸고히. 통증이 6/10을 넘으면 무게를 낮추세요.' },
+        { name: '팔뚝·손목 스트레칭 (20~30초 × 3번)', how: '손바닥을 벽에 대고 팔을 편 채 몸을 살짝 돌려 20~30초, 이어 손등을 벽에 대고 같은 방법으로 — 코트 오기 전과 마친 뒤 매일.' },
+        { name: '그립은 10에 3 힘으로', how: '라켓을 쥜 때 손가락 힘을 10에 3 정도로 두고 치는 순간에만 살짝 조이기 — 힘을 빼면 팔꿈치·손목에 가는 부담이 줄어요.' },
+        { name: '손목 스냅은 마지막에 짧게', how: '스매시는 팔꿈치를 먼저 올리고 손목은 마지막에 짧게 — 손목만 튕기는 습관이 팔꿈치 힘줄을 먼저 지치게 해요.' }
+      ],
+      source: ARM_SRC,
+      sourceShort: ARM_SRC_SHORT,
+      stats: ARM_RISK
+    };
+  }
+
   /* jointGuard(painList, weakSkills, ctx)
    *   → { shoulder:{on,level,reason,...}, lower:{on,level,reason,window,...} }
    * 어깨: 통증에 '어깨'가 있거나 스매시·클리어(오버헤드)를 고른 날
@@ -894,12 +964,31 @@
     if (shoulder.on) on.push(shoulder.label);
     if (lower.on) on.push(lower.label);
 
+    /* ---- 팔꿈치·손목 (라켓 엘보·손목 과사용) ----
+     * 통증이 있을 때, 또는 머리 위 샷·드라이브를 약점으로 골랐는데
+     * 강도가 세거나 길게 친 날(과사용이 쌓이기 쉬운 날)에 켜집니다. */
+    var armPain = pains.filter(function (p) { return p === '팔꿈치' || p === '손목'; });
+    var armWork = overhead;
+    var arm = guardArm();
+    arm.on = armPain.length > 0 || (armWork && heavy);
+    arm.level = armPain.length ? 'pain' : (armWork && heavy ? 'load' : '');
+    arm.pain = armPain.slice();
+    if (armPain.length) {
+      arm.reason = armPain.join('·') + ' 통증을 오늘 일지에 남겼어요. 배드민턴은 라켓을 계속 쥐고 손목으로 마무리하는 동작이 많아 팔꿈치·손목 힘줄이 먼저 지쳐요. 오늘은 스매시·드라이브 개수를 절반으로 줄이고 그립 힘을 빼면서, 아래 세 가지를 먼저 해 보세요.';
+    } else if (armWork && heavy) {
+      arm.reason = '오늘은 머리 위 샷이나 드라이브를 많이 치는 날이에요. 스매시를 몰아 치면 팔꿈치·손목에 부담이 쌓여요. 세트 사이에 손목을 풀고, 코트 전후로 아래 스트레칭과 천천히 내리기를 넣어 주세요.';
+    } else {
+      arm.reason = '';
+    }
+    if (arm.on) on.push(arm.label);
+
     return {
       title: '관절 보호 체크',
       areas: on,
-      label: on.length ? on.join(' · ') : '',
+      label: on.length > 2 ? on[0] + ' 외 ' + (on.length - 1) + '곳' : on.join(' · '),
       shoulder: shoulder,
       lower: lower,
+      arm: arm,
       heavy: heavy
     };
   }
@@ -1234,7 +1323,8 @@
     },
     '팔꿈치': {
       signs: ['악력이 떨어지거나 물건 들 때 통증이면 진료', '2주 이상 이어지면 진료'],
-      rehab: ['그립 압력을 낮추고 팔 힘 빼고 치기', '테니스 엘보 밴드 사용 고려', '백핸드 손목 스냅 동작 줄이기'],
+      rehab: ['그립 압력을 낮추고 팔 힘 빼고 치기', '테니스 엘보 밴드 사용 고려', '백핸드 손목 스냅 동작 줄이기',
+        '가벼운 물병을 들고 손목을 4~5초에 걸쳐 천천히 내리기 15회 × 3세트, 주 3번 — 4주 이상 하면 통증과 악력이 같이 좋아져요'],
       stretch: ['손목 굽히기 스트레칭 20초 × 3', '손목 펴기 15회 × 2 (가벼운 덤벨/물병)'],
       ret: ['통증 없는 범위에서 그립부터 바꾸고, 스매시는 통증 2/10 이하에서 재개']
     },
@@ -1337,8 +1427,20 @@
    * 일지에 남긴 "최종 점수"만으로 읽을 수 있는 것만 말합니다.
    * 경기 중간 흐름(역전·연속 실점)은 기록이 없으므로 추측하지 않고 '가능성'으로만 씁니다.
    * [NA24] 국제대회 남자복식 233세트 — 후반 득점이 승패를 가른 주요 변인.
+   * [BARR16] 세계선수권 남자단식 136게임 — 0~7점·8~14점·15~21점 세 구간으로 나눠 보면
+   *         1구간에서 한 번도 앞서지 못한 선수의 78%가 그 게임을 졌고, 2·3구간 1점차는 이기기에 부족했으며,
+   *         승자는 중반~후반에 5점 이상 차를 냈습니다. → '중반(8~14점)까지 3점 이상'을 코트 목표로 안내.
    * [PHOM15] 랠리 약 7초·휴식 약 15초(1:2) — 경기 사이 회복을 규칙적으로.
    * [PHOM20] 부상은 훈련 후반(48%)에 많고 피로로 힘·고유수용감각이 떨어질 때 늘어남. */
+  var GAME_PHASE = {
+    phases: [[0, 7], [8, 14], [15, 21]],   /* [BARR16] 21점제 구간 */
+    noLeadFirstLossPct: 78,                /* [BARR16] 1구간 한 번도 리드 없음 → 패배 */
+    winnerMidMargin: 5,                    /* [BARR16] 승자의 중반~후반 최대 점수차 */
+    targetLead: 3,                         /* 코트 목표: 중반까지 3점 이상 앞서기 */
+    closeMargin: 3,                        /* 접전 기준(3점차 이내) */
+    source: 'Barreira, Chiminazzo & Fernandes, Int J Perform Anal Sport 16(2):687-694, 2016 (DOI 10.1080/24748668.2016.11868916)'
+  };
+
   function gameMode(games, explicit) {
     var m = Number(explicit);
     if (m === 21 || m === 25) return m;
@@ -1377,12 +1479,15 @@
     var flow = {
       mode: gameMode(games, explicitMode), count: 0, wins: 0, losses: 0,
       avgMargin: 0, close: 0, deuce: 0, blowout: 0,
-      firstMargin: 0, lastMargin: 0, fade: false, tips: []
+      firstMargin: 0, lastMargin: 0, fade: false, tips: [],
+      /* 접전(3점차 이내) 성적 — 점수만으로 셀 수 있는 유일한 '마무리' 지표 */
+      clutch: { games: 0, wins: 0, losses: 0 }
     };
     if (!list.length) return flow;
 
     var mode = flow.mode;
     var margins = [], total = 0, close = 0, deuce = 0, blowout = 0;
+    var closeWins = 0, closeLosses = 0;
     list.forEach(function (g) {
       var m = g.a - g.b;
       margins.push(m);
@@ -1393,12 +1498,18 @@
       var r = BM.domain.resultFromScore(g);
       if (r === '승') flow.wins++;
       else if (r === '패') flow.losses++;
+      if (Math.abs(m) <= GAME_PHASE.closeMargin) {
+        if (r === '승') closeWins++;
+        else if (r === '패') closeLosses++;
+      }
     });
     flow.count = list.length;
     flow.avgMargin = Math.round((total / list.length) * 10) / 10;
     flow.close = close;
     flow.deuce = deuce;
     flow.blowout = blowout;
+    flow.clutch = { games: closeWins + closeLosses, wins: closeWins, losses: closeLosses };
+    if (flow.clutch.games) flow.clutch.rate = Math.round((closeWins / flow.clutch.games) * 100);
     flow.firstMargin = margins[0];
     flow.lastMargin = margins[margins.length - 1];
     /* 여러 경기를 치렀는데 마지막 경기에서 점수차가 5점 이상 더 벌어졌으면
@@ -1425,10 +1536,18 @@
         '점차로 벌어졌어요. 여러 경기를 뛰는 날은 경기 사이 60~90초를 규칙적으로 쉬세요 — 물 조금, 앉기, 다리 올리기, 긴 날숨 6회.');
     }
     if (flow.deuce >= 1) {
-      out.push('마지막 2~3점까지 간 경기가 ' + flow.deuce + '경기예요. ' +
-        flow.mode + '점제는 막판 실수 하나가 세트를 바꿉니다. 마지막 3~4점에서는 새 기술을 꺼내지 말고, 서브는 숏서브로 고정하고 리시브는 네트 앞으로 붙이세요.');
+      out.push('마지막 2~3점까지 간 경기가 ' + flow.deuce + '경기예요' +
+        (flow.clutch && flow.clutch.games ? ' (3점차 이내 ' + flow.clutch.games + '경기 중 ' + flow.clutch.wins + '승 ' + flow.clutch.losses + '패)' : '') + '. ' +
+        flow.mode + '점제는 막판 실수 하나가 세트를 바꿉니다. 마지막 3~4점에서는 새 기술을 꺼내지 말고, 서브는 숏서브로 고정하고 리시브는 네트 앞으로 붙이세요. ' +
+        '그 전에 ' + GAME_PHASE.phases[1][0] + '~' + GAME_PHASE.phases[1][1] + '점 구간에서 ' + GAME_PHASE.targetLead + '점 이상 앞서 두면 마지막에 뒤집히지 않아요.');
     } else if (flow.close >= 2) {
-      out.push('3점차 이내 접전이 ' + flow.close + '경기예요. 이길 때도 이긴 이유가 분명해야 다음에 또 이깁니다. 접전에서 통한 샷 하나를 적어 두세요.');
+      out.push('3점차 이내 접전이 ' + flow.close + '경기예요' +
+        (flow.clutch && flow.clutch.games ? ' (' + flow.clutch.wins + '승 ' + flow.clutch.losses + '패)' : '') +
+        '. 이길 때도 이긴 이유가 분명해야 다음에 또 이깁니다. 접전에서 통한 샷 하나를 적어 두고, ' +
+        GAME_PHASE.phases[1][0] + '~' + GAME_PHASE.phases[1][1] + '점 구간에서 ' + GAME_PHASE.targetLead + '점 이상 앞서 두는 걸 목표로 하세요.');
+    } else if (flow.clutch && flow.clutch.games >= 2) {
+      out.push('3점차 이내로 끝난 ' + flow.clutch.games + '경기에서 ' + flow.clutch.wins + '승 ' + flow.clutch.losses + '패였어요. ' +
+        GAME_PHASE.phases[1][0] + '~' + GAME_PHASE.phases[1][1] + '점 구간에서 ' + GAME_PHASE.targetLead + '점 이상 앞서 두면 마지막에 뒤집히지 않아요. 첫 7점에서 한 번도 앞서지 못한 경기는 대부분 그대로 지니, 초반부터 한 점씩 가져가세요.');
     }
     var blowoutLoss = flow.blowout > 0 && flow.losses > 0;
     if (blowoutLoss) {
@@ -1629,12 +1748,27 @@
         icon: 'score',
         label: '오늘 ' + gsum.count + '경기 ' + gsum.wins + '승 ' + gsum.losses + '패' + (gsum.draws ? ' ' + gsum.draws + '무' : ''),
         detail: (flow.fade
-          ? '마지막 경기에서 점수차가 벌어졌어요. 경기 사이 회복 시간을 먼저 챙기세요.'
+          ? '마지막 경기에서 점수차가 벌어졌어요. 경기 사이 회복 시간을 먼저 챙고세요.'
           : flow.deuce >= 1
             ? '접전이 ' + flow.deuce + '경기였어요. 후반 2~3점 운영이 이 경기들의 승부처였습니다.'
             : gsum.wins >= gsum.losses
               ? '여러 경기를 치렀어요. 이긴 경기에서 통한 샷 하나를 다음에도 그대로 써 보세요.'
               : '여러 경기 중 내용이 좋았던 한 경기를 기준으로 다음 훈련을 잡아 보세요.')
+      });
+    }
+    /* 마무리(접전) 성적 — 점수만으로 셀 수 있는 유일한 '막판 운영' 지표
+     * [BARR16] 한 번도 앞서지 못한 경기는 대부분 지고, 중반~후반 1점차로는 부족했습니다. */
+    if (flow.clutch && flow.clutch.games >= 2 && flow.clutch.games < flow.count) {
+      var clutch = flow.clutch;
+      insights.push({
+        icon: 'score',
+        label: '접전 ' + clutch.games + '경기 ' + clutch.wins + '승 ' + clutch.losses + '패',
+        detail: clutch.rate >= 60
+          ? '끝까지 간 경기를 잘 잡았어요. 마지막 3~4점에서 한 선택(서브·리시브 코스)을 그대로 반복하세요.'
+          : clutch.rate >= 40
+            ? '반반이에요. 마지막 3점은 어떤 서브로 시작할지 미리 정해 두면 흔들리지 않아요.'
+            : '아쉽게 놓친 경기가 많아요. ' + GAME_PHASE.phases[1][0] + '~' + GAME_PHASE.phases[1][1] +
+              '점 구간에서 ' + GAME_PHASE.targetLead + '점 이상 앞서 두는 걸 이번 주 목표로 잡아 보세요.'
       });
     }
     if (cond != null && intensity != null) {
@@ -1840,6 +1974,7 @@
     paceGuide: paceGuide, SELF_PACE: SELF_PACE,
     disciplineKey: disciplineKey, PREVENT: PREVENT, LOAD_GUIDE: LOAD_GUIDE,
     /* 논문 기준값 — 화면 문구와 같은 숫자 */
-    SPLIT_STEP: SPLIT_STEP, DOUBLES_SERVE: DOUBLES_SERVE, DOUBLES_RECEIVE: DOUBLES_RECEIVE
+    SPLIT_STEP: SPLIT_STEP, DOUBLES_SERVE: DOUBLES_SERVE, DOUBLES_RECEIVE: DOUBLES_RECEIVE,
+    GAME_PHASE: GAME_PHASE, ARM_RISK: ARM_RISK
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

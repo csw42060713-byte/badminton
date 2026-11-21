@@ -185,7 +185,9 @@
     var a = BM.ai.jointGuard(['어깨'], ['스매시', '풋워크'], { intensity: 8, minutes: 95 });
     var b = BM.ai.jointGuard(['어깨'], ['스매시', '풋워크'], { intensity: 8, minutes: 95 });
     eq(joinText(a), joinText(b), '같은 입력 → 같은 결과');
-    eq(a.label, '어깨 · 무릎·발목', '켜진 부위 요약');
+    /* v1.39: 팔꿈치·손목 블록이 세 번째로 붙어 3곳이면 '첫 부위 외 N곳'으로 줄입니다 */
+    eq(a.label, '어깨 외 2곳', '켜진 부위 요약');
+    eq(a.arm.on, true, '머리 위 샷 + 센 날 → 팔꿈치·손목 켜짐');
   });
 
   /* =========================================================
@@ -265,12 +267,12 @@
    * ========================================================= */
   test('v1.27 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.38.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.38.1'", 'app.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.39.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.39.0'", 'app.js');
     includes(readRoot('index.html'), 'styles.css?v=20261121-50', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.38.1', 'TWA 버전 이름');
+    eq(twa.appVersionName, '1.39.0', 'TWA 버전 이름');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

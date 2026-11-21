@@ -200,7 +200,8 @@
     if (!flow || !flow.count) return '';
     var parts = [flow.count + '경기 ' + flow.wins + '승 ' + flow.losses + '패' + (flow.count - flow.wins - flow.losses > 0 ? ' ' + (flow.count - flow.wins - flow.losses) + '무' : '')];
     parts.push('평균 ' + flow.avgMargin + '점차');
-    if (flow.deuce) parts.push('끝까지 간 경기 ' + flow.deuce);
+    if (flow.clutch && flow.clutch.games >= 2) parts.push('접전(3점차 이내) ' + flow.clutch.games + '경기 ' + flow.clutch.wins + '승 ' + flow.clutch.losses + '패');
+    else if (flow.deuce) parts.push('끝까지 간 경기 ' + flow.deuce);
     else if (flow.close) parts.push('3점차 이내 ' + flow.close);
     if (flow.fade) parts.push('마지막 경기 점수차 확대');
     return parts.join(' · ');
@@ -309,7 +310,7 @@
   function guardFold(an) {
     var g = an && an.guard;
     if (!g) return '';
-    var blocks = [g.shoulder, g.lower].filter(function (b) { return b && b.on; });
+    var blocks = [g.shoulder, g.lower, g.arm].filter(function (b) { return b && b.on; });
     if (!blocks.length) return '';
     return '<details class="fold fold--ai" data-fold="guard">' +
       '<summary class="fold__sum"><span>관절 보호 체크 <small>' + U.esc(g.label) + '</small></span>' +
