@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v132.test.js — bm-v1.36.1
+ * test/v132.test.js — bm-v1.36.2
  *   고도화 4차 사이클(ideas.md 2026-11-21 다음 후보 A·B·C).
  *
  *   1) 복식 파트너 이름 + 파트너별 승률
@@ -467,20 +467,20 @@
 
   test('v1.32 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.36.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.36.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-37', 'index.html 스타일 캐시');
-    includes(readRoot('README.md'), 'v1.36.1', 'README 변경 이력');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.36.2'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.36.2'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-38', 'index.html 스타일 캐시');
+    includes(readRoot('README.md'), 'v1.36.2', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.36.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.36.1', 'TWA appVersion');
-    eq(twa.appVersionCode, 37, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.36.2', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.36.2', 'TWA appVersion');
+    eq(twa.appVersionCode, 38, 'TWA 버전 코드');
   });
 
   test('v1.32 문서: 아이디어 노트에 이번 사이클과 다음 후보가 남는다', function () {
     if (!hasNode) return;
     var doc = readRoot('ideas.md');
-    includes(doc, 'v1.36.1', '이번 사이클');
+    includes(doc, 'v1.36.2', '이번 사이클');
     includes(doc, '파트너', '파트너 승률');
     includes(doc, '영상', '영상 체크 메모');
     includes(doc, '커뮤니티에 자랑하기', '챌린지 공유');

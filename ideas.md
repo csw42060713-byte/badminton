@@ -5,7 +5,7 @@
 
 ## 2026-11-21 (09:00 코드 수정 완료 · bm-v1.36.0)
 
-지금 상태: `bm-v1.36.1`(테스트 702/702 통과 · 새 앱 로고 적용). 새 파일·새 시트 칸·새 DB 컬럼 없음(26칸 그대로).
+지금 상태: `bm-v1.36.2`(테스트 702/702 통과 · 최종 앱 로고 적용). 새 파일·새 시트 칸·새 DB 컬럼 없음(26칸 그대로).
 직전: `bm-v1.35.0`(673/673 — 최근 파트너 원탭 칩 · 일지 첫 화면 밀도 · 5개 탭 UX 정비).
 
 ### A. [반영 완료 · v1.36.0] 광고 중복 적립(txId) 방지 + 7일 연속 출석 보너스
@@ -23,8 +23,8 @@
 - **지금 동작**: 라이브(390×844) 기준 `store-assets/screenshot-1-matching.png`·`-2-chat`·`-3-ai`·`-4-my`를 9:16(1080×1920)으로 다시 찍어 교체. 아이콘(`icons/icon-*.png`)은 사용자가 고르는 중이라 그대로 둡니다.
 - **대상 파일**: `store-assets/*.png`.
 
-### D. [반영 완료 · v1.36.1] 새 앱 로고 적용
-- **지금 동작**: 사용자가 고른 로고(셔틀콕 아래 짧은 파형 + 은은한 테두리 빛)로 `icons/icon-192`·`icon-512`·`icon-maskable-512`(안전 영역 여백 `#050a08`)·`store-assets/icon-512`를 교체하고, `make-store-assets.py`로 `feature-graphic-1024x500.png` 왼쪽 로고도 새 로고로.
+### D. [반영 완료 · v1.36.2] 최종 앱 로고 적용
+- **지금 동작**: 사용자가 최종 확정한 로고(라켓 모양 `1:1` + 가운데 에메랄드 셔틀콕)로 `icons/icon-192`·`icon-512`·`icon-maskable-512`(안전 영역 여백 `#0d0f0e`)·`store-assets/icon-512`·`favicon.svg`를 교체하고, `make-store-assets.py`로 `feature-graphic-1024x500.png` 왼쪽 로고도 새 로고로.
 - **대상 파일**: `icons/*.png`, `store-assets/icon-512.png`, `store-assets/feature-graphic-1024x500.png`, `store-assets/make-store-assets.py`, 캐시 `bm-v1.36.1`.
 
 ### 다음 사이클 후보 (바로 구현 가능)
@@ -89,8 +89,8 @@
   보내기는 여전히 사람이 — 앱은 입력칸에 문구만 채웁니다.
 - **대상 파일**: `js/views/coach.js`, `js/domain.js`, `js/views/chat.js`, `styles.css`, `test/v134.test.js`.
 
-### D. [반영 완료 · v1.36.1] 새 앱 로고 적용
-- **지금 동작**: 사용자가 고른 로고(셔틀콕 아래 짧은 파형 + 은은한 테두리 빛)로 `icons/icon-192`·`icon-512`·`icon-maskable-512`(안전 영역 여백 `#050a08`)·`store-assets/icon-512`를 교체하고, `make-store-assets.py`로 `feature-graphic-1024x500.png` 왼쪽 로고도 새 로고로.
+### D. [반영 완료 · v1.36.2] 최종 앱 로고 적용
+- **지금 동작**: 사용자가 최종 확정한 로고(라켓 모양 `1:1` + 가운데 에메랄드 셔틀콕)로 `icons/icon-192`·`icon-512`·`icon-maskable-512`(안전 영역 여백 `#0d0f0e`)·`store-assets/icon-512`·`favicon.svg`를 교체하고, `make-store-assets.py`로 `feature-graphic-1024x500.png` 왼쪽 로고도 새 로고로.
 - **대상 파일**: `icons/*.png`, `store-assets/icon-512.png`, `store-assets/feature-graphic-1024x500.png`, `store-assets/make-store-assets.py`, 캐시 `bm-v1.36.1`.
 
 ### 다음 사이클 후보 (바로 구현 가능)

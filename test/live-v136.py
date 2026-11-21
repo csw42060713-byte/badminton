@@ -31,10 +31,10 @@ with sync_playwright() as p:
     sw = ''
     for i in range(40):
         sw = page.request.get(BASE + 'sw.js?cachebust=' + str(i)).text()
-        if 'bm-v1.36.1' in sw:
+        if 'bm-v1.36.2' in sw:
             break
         time.sleep(6)
-    check('라이브 sw.js = bm-v1.36.1', 'bm-v1.36.1' in sw, sw[-60:])
+    check('라이브 sw.js = bm-v1.36.2', 'bm-v1.36.2' in sw, sw[-60:])
     app = page.request.get(BASE + 'app.js?x=1').text()
     ads = page.request.get(BASE + 'js/ads.js?x=1').text()
     dom = page.request.get(BASE + 'js/domain.js?x=1').text()
@@ -42,14 +42,14 @@ with sync_playwright() as p:
     logjs = page.request.get(BASE + 'js/views/log.js?x=1').text()
     css = page.request.get(BASE + 'styles.css?x=1').text()
     index = page.request.get(BASE + 'index.html?x=1').text()
-    check('라이브 app.js = v1.36.1', "version: 'v1.36.1'" in app)
+    check('라이브 app.js = v1.36.2', "version: 'v1.36.2'" in app)
     check('라이브 ads.js = onRewardAdResult·newTxId', all(k in ads for k in ('onRewardAdResult', 'newTxId', 'data-streak-bonus')))
     check('라이브 domain.js = STREAK_7_BONUS·adTxSeen·partnerStat',
           all(k in dom for k in ('STREAK_7_BONUS', 'adTxSeen', 'partnerStat', 'challengePartner')))
     check('라이브 store.js = duplicate·challengeShareDraft', all(k in st for k in ("'duplicate'", 'challengeShareDraft')))
     check('라이브 log.js = data-ptn-now', 'data-ptn-now' in logjs)
     check('라이브 styles.css = .ptnnow·.streakbonus', all(k in css for k in ('.ptnnow', '.streakbonus')))
-    check('라이브 index.html = styles.css?v=20261121-37', 'styles.css?v=20261121-37' in index)
+    check('라이브 index.html = styles.css?v=20261121-38', 'styles.css?v=20261121-38' in index)
 
     # ── 앱 열기 (체험 모드)
     page.goto(BASE + '?live=136', wait_until='load')
@@ -61,7 +61,7 @@ with sync_playwright() as p:
         if page.query_selector('#sheet .sheet__head [data-close]'):
             page.click('#sheet .sheet__head [data-close]')
             page.wait_for_timeout(400)
-    check('앱 버전 노출', page.evaluate('window.BM && BM.app && BM.app.version') == 'v1.36.1',
+    check('앱 버전 노출', page.evaluate('window.BM && BM.app && BM.app.version') == 'v1.36.2',
           page.evaluate('window.BM && BM.app && BM.app.version'))
 
     def shot(name, sel=None):
@@ -115,9 +115,9 @@ with sync_playwright() as p:
         return {gap: Math.round(n.top - i.bottom), h: Math.round(n.height)};
     }""")
     check('입력칸 바로 아래(간격 0~20px) · 한 줄 높이', 0 <= box['gap'] <= 20 and box['h'] <= 24, box)
-    shot('배드민턴_파트너전적_bm-v1.36.1_일지.png')
-    page.locator('[data-partner-field]').first.screenshot(path=OUT + '/배드민턴_파트너전적_bm-v1.36.1_확대.png')
-    print('     saved', OUT + '/배드민턴_파트너전적_bm-v1.36.1_확대.png')
+    shot('배드민턴_파트너전적_bm-v1.36.2_일지.png')
+    page.locator('[data-partner-field]').first.screenshot(path=OUT + '/배드민턴_파트너전적_bm-v1.36.2_확대.png')
+    print('     saved', OUT + '/배드민턴_파트너전적_bm-v1.36.2_확대.png')
 
     # 직접 입력해도 그 줄이 따라온다
     page.fill('[data-field="partner"]', '조환비')
@@ -220,9 +220,9 @@ with sync_playwright() as p:
     check('MY 하트 카드에 보너스 한 줄', bonus_line and '보너스 하트 +2' in bonus_line, bonus_line)
     page.evaluate("document.querySelector('.streakbonus')?.scrollIntoView({block:'center'})")
     page.wait_for_timeout(400)
-    shot('배드민턴_연속출석보너스_bm-v1.36.1_MY.png')
-    page.locator('.card--heart').first.screenshot(path=OUT + '/배드민턴_하트카드_bm-v1.36.1_확대.png')
-    print('     saved', OUT + '/배드민턴_하트카드_bm-v1.36.1_확대.png')
+    shot('배드민턴_연속출석보너스_bm-v1.36.2_MY.png')
+    page.locator('.card--heart').first.screenshot(path=OUT + '/배드민턴_하트카드_bm-v1.36.2_확대.png')
+    print('     saved', OUT + '/배드민턴_하트카드_bm-v1.36.2_확대.png')
     before = page.evaluate('BM.app.ctx.store.state.data.hearts.balance')
     ci = page.evaluate("BM.app.ctx.store.actions.checkIn()")
     page.wait_for_timeout(900)
@@ -233,7 +233,7 @@ with sync_playwright() as p:
     page.wait_for_timeout(900)
     line7 = page.evaluate("(() => { const el = document.querySelector('.streakbonus'); return el ? el.textContent.trim() : null; })()")
     check('받은 뒤 안내는 다음 7일', line7 and '7일 더 하면' in line7, line7)
-    shot('배드민턴_연속출석보너스_받은뒤_bm-v1.36.1_MY.png')
+    shot('배드민턴_연속출석보너스_받은뒤_bm-v1.36.2_MY.png')
 
     # ── 5) 공용 하트 충전 시트에도 같은 안내
     page.evaluate("BM.app.ctx.actions.setDraft && null")
@@ -244,7 +244,7 @@ with sync_playwright() as p:
     page.wait_for_timeout(700)
     sheet_line = page.evaluate("(() => { const el = document.querySelector('[data-streak-bonus]'); return el ? el.textContent.trim() : null; })()")
     check('충전 시트에 보너스 안내', sheet_line and '보너스 하트 +2' in sheet_line, sheet_line)
-    shot('배드민턴_하트충전시트_보너스_bm-v1.36.1.png')
+    shot('배드민턴_하트충전시트_보너스_bm-v1.36.2.png')
     if page.query_selector('#sheet .sheet__head [data-close]'):
         page.click('#sheet .sheet__head [data-close]')
         page.wait_for_timeout(400)

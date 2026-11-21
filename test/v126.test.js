@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v126.test.js — bm-v1.36.1
+ * test/v126.test.js — bm-v1.36.2
  *   Supabase Auth 로 이메일 가입·로그인·비밀번호·탈퇴가
  *   Apps Script 브리지 없이 동작하는지, 그리고 그 세션으로
  *   RLS 의 '본인 행' 수정·삭제가 진짜 PATCH/DELETE 로 나가는지 검증합니다.
@@ -528,12 +528,12 @@
 
   test('v1.26 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.36.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.36.1'", 'app.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.36.2'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.36.2'", 'app.js');
     includes(readRoot('index.html'), 'styles.css?v=', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.36.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.36.1', 'TWA appVersion');
+    eq(twa.appVersionName, '1.36.2', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.36.2', 'TWA appVersion');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
