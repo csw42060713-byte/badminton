@@ -397,11 +397,11 @@
   test('v1.35 버전: sw.js·app.js·index.html·twa-manifest가 모두 v1.35', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.40.1'", 'sw.js');
-    includes(app, "version: 'v1.40.1'", 'app.js');
-    includes(index, 'styles.css?v=20261121-52', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.40.1', 'twa appVersionName');
-    eq(twa.appVersion, '1.40.1', 'twa appVersion');
+    includes(sw, "var VERSION = 'bm-v1.41.0'", 'sw.js');
+    includes(app, "version: 'v1.41.0'", 'app.js');
+    includes(index, 'styles.css?v=20261121-53', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.41.0', 'twa appVersionName');
+    eq(twa.appVersion, '1.41.0', 'twa appVersion');
     eq(twa.appVersionCode, 38, 'twa appVersionCode');
   });
 
@@ -438,7 +438,7 @@
     if (!hasNode) return;
     var readme = readRoot('README.md'), ideas = readRoot('ideas.md');
     includes(readme, '## 15-35. v1.35.0', 'README 이번 사이클');
-    includes(ideas, 'bm-v1.40.1', '아이디어 노트 상태');
+    includes(ideas, 'bm-v1.41.0', '아이디어 노트 상태');
     includes(ideas, '최근 파트너', '파트너 칩');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

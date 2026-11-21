@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v140_1.test.js — bm-v1.40.1 (2026-11-21 저녁)
+ * test/v140_1.test.js — bm-v1.41.0 (2026-11-21 저녁)
  *
  *  사용자 기획 요청 2건:
  *   1) 게스트 모집에 '게스트비' 적는 칸 (없음·5천원·1만원 빠른 칩, 모집 카드에도 표시)
@@ -89,7 +89,7 @@
   function rowsWith(extra) { return [postRow()].concat(extra || []); }
 
   /* ---------- 1. 게스트비 정리 ---------- */
-  test('v1.40.1 게스트비: 값을 다듬고 12자에서 자른다', function () {
+  test('v1.41.0 게스트비: 값을 다듬고 12자에서 자른다', function () {
     eq(D.normalizeMeet({ fee: '  1만원  ' }).fee, '1만원', '앞뒤 공백 정리');
     eq(D.normalizeMeet({ fee: '1만    원' }).fee, '1만 원', '가운데 공백 한 칸');
     eq(D.normalizeMeet({ fee: '아주아주아주아주긴게스트비이름' }).fee.length, 12, '12자에서 자름');
@@ -101,7 +101,7 @@
     eq(D.MEET.feeLabel, '게스트비', '칸 이름');
   });
 
-  test('v1.40.1 게스트비: 게스트비만 있어도 모집 글로 본다', function () {
+  test('v1.41.0 게스트비: 게스트비만 있어도 모집 글로 본다', function () {
     eq(D.meetFilled(D.normalizeMeet({ fee: '1만원' })), true, '게스트비만 채워도 모집 정보');
     eq(D.meetFilled(D.normalizeMeet({ fee: '  ' })), false, '공백만이면 빈 값');
     var post = { plan: { topic: '게스트 모집', meet: { fee: '없음' } } };
@@ -117,7 +117,7 @@
   });
 
   /* ---------- 2. 저장 (26칸 그대로) ---------- */
-  test('v1.40.1 게스트비: 글 저장은 26칸 그대로, 훈련계획 JSON에 fee', function () {
+  test('v1.41.0 게스트비: 글 저장은 26칸 그대로, 훈련계획 JSON에 fee', function () {
     return freshStore({ empty: true }).then(function (store) {
       store.actions.setComposerTopic('게스트 모집');
       store.actions.setComposerMeet('when', '11/21(금) 19:00');
@@ -140,7 +140,7 @@
     });
   });
 
-  test('v1.40.1 게스트비: 비워 두어도 등록되고 meet에 fee가 없다', function () {
+  test('v1.41.0 게스트비: 비워 두어도 등록되고 meet에 fee가 없다', function () {
     return freshStore({ empty: true }).then(function (store) {
       var res = store.actions.createPost('게스트비는 나중에 정할게요', '게스트 모집', { when: '11/22', place: '체육관', cap: '4', fee: '' });
       ok(res.ok, '글 저장');
@@ -156,7 +156,7 @@
   });
 
   /* ---------- 3. 화면 ---------- */
-  test('v1.40.1 게스트비 화면: 작성 칸에 입력칸과 빠른 칩이 있다', function () {
+  test('v1.41.0 게스트비 화면: 작성 칸에 입력칸과 빠른 칩이 있다', function () {
     var st = stateOf();
     st.ui.composerTopic = '게스트 모집';
     st.ui.composerMeet = { when: '', place: '', cap: '', fee: '5천원' };
@@ -176,7 +176,7 @@
     eq(free.indexOf('data-vitefee-val') > free.indexOf('data-viteform'), true, '빠른 칩은 접힌 모집 칸 안에만 있음');
   });
 
-  test('v1.40.1 게스트비 화면: 모집 카드에 게스트비 한 줄', function () {
+  test('v1.41.0 게스트비 화면: 모집 카드에 게스트비 한 줄', function () {
     var rows = [postRow({
       id: 'meet-fee', plan: { topic: '게스트 모집', meet: { when: '11/21(금) 19:00', place: '올림픽체육관', cap: '6', fee: '1만원' } }
     })];
@@ -199,7 +199,7 @@
   });
 
   /* ---------- 4. 내 글 삭제(취소) 화면 ---------- */
-  test('v1.40.1 내 글: 내 글에만 삭제 버튼과 확인 줄이 붙는다', function () {
+  test('v1.41.0 내 글: 내 글에만 삭제 버튼과 확인 줄이 붙는다', function () {
     var mine = BM.views.community.render(stateOf([postRow({ id: 'mine-1', userKey: ME.key, nick: '나래' })]));
     includes(mine, 'data-post-del="mine-1"', '내 글 삭제 버튼');
     includes(mine, 'aria-label="내 글 삭제"', '접근성 이름');
@@ -218,7 +218,7 @@
     excludes(guest, 'data-post-del', '로그인 전에는 없음');
   });
 
-  test('v1.40.1 내 글: 브라우저 confirm 대신 앱 안 인라인 확인', function () {
+  test('v1.41.0 내 글: 브라우저 confirm 대신 앱 안 인라인 확인', function () {
     if (!hasNode) return;
     var src = readRoot('js/views/community.js');
     excludes(src, 'window.confirm', '브라우저 confirm 없음');
@@ -229,7 +229,7 @@
   });
 
   /* ---------- 5. 삭제 동작 ---------- */
-  test('v1.40.1 삭제: 내 글·내 답글·내 하트를 정리하고 remove를 큐에 넣는다', function () {
+  test('v1.41.0 삭제: 내 글·내 답글·내 하트를 정리하고 remove를 큐에 넣는다', function () {
     return freshStore({ empty: true }).then(function (store) {
       var made = store.actions.createPost('지울 글', '자유');
       ok(made.ok, '글 저장');
@@ -268,7 +268,7 @@
     });
   });
 
-  test('v1.40.1 삭제: 남의 글·없는 글은 지우지 않는다', function () {
+  test('v1.41.0 삭제: 남의 글·없는 글은 지우지 않는다', function () {
     return freshStore({ empty: true }).then(function (store) {
       store.state.rows.push(postRow({ id: 'not-mine', userKey: 'u_other' }));
       store.state.locks = {};
@@ -287,7 +287,7 @@
     });
   });
 
-  test('v1.40.1 삭제: 연타는 잠금으로 한 번만 처리한다', function () {
+  test('v1.41.0 삭제: 연타는 잠금으로 한 번만 처리한다', function () {
     return freshStore({ empty: true }).then(function (store) {
       store.actions.createPost('연타 글', '자유');
       var pid = String(store.state.rows[0][0]);
@@ -303,7 +303,7 @@
     });
   });
 
-  test('v1.40.1 삭제: 단체방을 열어 두고 지우면 대화도 닫힌다', function () {
+  test('v1.41.0 삭제: 단체방을 열어 두고 지우면 대화도 닫힌다', function () {
     return freshStore({ empty: true }).then(function (store) {
       store.actions.createPost('', '게스트 모집', { when: '11/22 19:00', place: '체육관', cap: '6', fee: '1만원' });
       var pid = String(store.state.rows[0][0]);
@@ -321,7 +321,7 @@
   });
 
   /* ---------- 6. 기존 기능 유지 ---------- */
-  test('v1.40.1 유지: 모집 본문 공란 등록 · 하단 고정 저장 바 · 친구 코드', function () {
+  test('v1.41.0 유지: 모집 본문 공란 등록 · 하단 고정 저장 바 · 친구 코드', function () {
     if (!hasNode) return;
     var community = readRoot('js/views/community.js');
     includes(community, '비워 두어도 올라가요', '모집 칸만으로 등록 안내');
@@ -332,24 +332,24 @@
     includes(readRoot('js/domain.js'), "'상체 근력운동'", '선수 7대 훈련');
   });
 
-  test('v1.40.1 버전: sw.js · app.js · twa-manifest.json이 1.40.1로 맞는다', function () {
+  test('v1.40.1 버전: sw.js · app.js · twa-manifest.json이 1.41.0으로 맞는다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.40.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.40.1'", 'app.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.41.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.41.0'", 'app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.40.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.40.1', 'TWA appVersion');
+    eq(twa.appVersionName, '1.41.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.41.0', 'TWA appVersion');
     eq(twa.appVersionCode, 38, 'TWA 버전 코드는 그대로');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-52', '스타일 캐시 키');
+    includes(readRoot('index.html'), 'styles.css?v=20261121-53', '스타일 캐시 키');
   });
 
-  test('v1.40.1 문서: README·아이디어 노트에 이번 사이클이 남는다', function () {
+  test('v1.41.0 문서: README·아이디어 노트에 이번 사이클이 남는다', function () {
     if (!hasNode) return;
     var readme = readRoot('README.md');
-    includes(readme, 'v1.40.1', 'README 버전 절');
+    includes(readme, 'v1.41.0', 'README 버전 절');
     includes(readme, '게스트비', 'README 게스트비 설명');
     includes(readme, '내 글 삭제', 'README 삭제 설명');
-    includes(readRoot('ideas.md'), 'bm-v1.40.1', '아이디어 노트 상태');
+    includes(readRoot('ideas.md'), 'bm-v1.41.0', '아이디어 노트 상태');
     includes(readRoot('test/run.js'), 'test/v140_1.test.js', '테스트 실행 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -547,6 +547,9 @@
         '<div class="stat"><strong>' + (s.winRate == null ? '—' : s.winRate + '%') + '</strong><span>승률</span></div>' +
         '</div>' + streakBadge(state) + '</section>' +
 
+        /* v1.41 — 통계 카드 아래 주간·월간 상세 리포트 입구 */
+        (BM.report ? BM.report.entryHtml() : '') +
+
         roleCard(state) +
 
         routinePrefCard(state) +
@@ -713,6 +716,12 @@
                 ? '<ul class="ledger ledger--full">' + h.history.map(ledgerRow).join('') + '</ul>'
                 : '<p class="sheet__text">아직 내역이 없어요.</p>')
           });
+          return;
+        }
+        if (ev.target.closest('[data-act="open-report"]')) {
+          ev.preventDefault();
+          UI.haptic(8);
+          if (BM.report) BM.report.openFrom(ctx);
           return;
         }
         if (ev.target.closest('[data-act="decorate-sheet"]')) {
