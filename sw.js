@@ -114,6 +114,7 @@ var SHELL = [
   './js/store.js',
   './js/ui.js',
   './js/gyms.js',
+  './js/nearby.js',
   './js/art.js',
   './js/ads.js',
   './js/scoreboard.js',

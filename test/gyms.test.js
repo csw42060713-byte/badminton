@@ -258,7 +258,7 @@
     includes(off, '위치를 허용하면 가까운 순으로 보여 드려요', '거부 안내');
     eq((off.match(/data-gym-card="/g) || []).length, G().count(), '기본 목록은 서울·수도권 전부');
     eq((off.match(/class="gymcard__dist"/g) || []).length, 0, '거리 칩은 없음');
-    includes(off, '지도에 서울 <b>', '서울 우선 안내도 그대로');
+    includes(off, '서울 <b>', '서울·동탄 안내도 그대로');
   });
 
   /* =========================================================
