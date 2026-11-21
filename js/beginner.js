@@ -211,7 +211,9 @@
   /* ---------- 일지 & AI 첫머리 카드 ---------- */
   function entryHtml(state) {
     var level = (state && state.me && state.me.level) || '';
-    var beginner = isBeginnerGrade(level);
+    /* v1.40 — 유형을 '초보'로 골랐으면 급수와 상관없이 큰 카드로 안내합니다 */
+    var role = BM.domain && BM.domain.roleOf ? BM.domain.roleOf(state && state.me) : '';
+    var beginner = isBeginnerGrade(level) || role === 'beginner';
     var sig = 'beg|' + (beginner ? '1' : '0');
     var label = '🏸 처음이라면 · 용어 사전 &amp; 기초 가이드';
     if (beginner) {

@@ -34,6 +34,77 @@
       (sum.draws ? ' ' + sum.draws + '무' : '') + ' → <b>' + U.esc(sum.result) + '</b>';
   }
 
+  /* 프로필에서 유형에 맞는 안내를 고를 때 쓰는 헬퍼 (domain.proVisible) */
+
+  function roleOf(state) {
+    return D.roleOf((state && state.me) || {});
+  }
+
+  function roleLabel(state) {
+    var r = D.roleById(roleOf(state));
+    return r ? r.label : '';
+  }
+
+  /* ============================================================
+   * 선수용 7대 훈련 (bm-v1.40.0)
+   *  · 선수 유형이면 일지 첫머리 '완료 훈련' 칸 대신 이 블록이 보입니다.
+   *  · 항목을 누르면 체크되면서 '어떤 걸 했는지' 적는 칸이 바로 열립니다.
+   *  · 저장: 체크한 이름은 기존 '완료훈련' 칸으로, 적은 내용은 '훈련계획'
+   *    JSON 칸(plan.pro)으로 들어갑니다 — 시트 26칸·Supabase 그대로.
+   * ============================================================ */
+  function proOn(state) {
+    return D.proVisible ? D.proVisible(state && state.me, state && state.proPref) : roleOf(state) === 'player';
+  }
+
+  function proBlock(state, d) {
+    var pro = D.normalizePro((d && d.pro) || {});
+    return '<div class="field" data-pro-block>' +
+      '<div class="field__label"><span>선수 7대 훈련</span><small>체크하면 적는 칸이 열려요</small></div>' +
+      '<ul class="prolist">' + D.PRO_ITEMS.map(function (it) {
+        var on = Object.prototype.hasOwnProperty.call(pro, it.name);
+        var text = on ? String(pro[it.name] || '') : '';
+        return '<li class="pro' + (on ? ' is-on' : '') + '" data-pro="' + U.esc(it.name) + '">' +
+          '<button type="button" class="pro__top" data-pro-toggle="' + U.esc(it.name) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+          '<span class="pro__box" aria-hidden="true">' + (on ? '✓' : '') + '</span>' +
+          '<span class="pro__name">' + U.esc(it.name) + '</span>' +
+          '<span class="pro__sum">' + U.esc(text) + '</span></button>' +
+          '<input type="text" class="pro__note" maxlength="' + D.PRO_MAX + '" enterkeyhint="done" data-field="proNote" data-pro-note data-pro-name="' + U.esc(it.name) + '"' +
+          ' value="' + U.esc(text) + '" placeholder="' + U.esc(it.hint) + '"' +
+          ' aria-label="' + U.esc(it.name) + ' 어떤 걸 했는지"' + (on ? '' : ' hidden') + '>' +
+          '</li>';
+      }).join('') + '</ul>' +
+      '<p class="pro__foot">체크한 항목은 완료 훈련으로, 적은 내용은 일지에 그대로 쌓여요.</p>' +
+      '</div>';
+  }
+
+  /* 완료 훈련 칩 — 지난 기록을 고칠 때 7대 훈련 이름이 초안에 남아 있으면
+   * 칩 목록에 없어 사라지지 않도록 뒤에 붙여 줍니다. */
+  function doneOptions(d) {
+    var base = D.VOCAB.done.slice();
+    ((d && d.done) || []).forEach(function (v) {
+      var name = String(v == null ? '' : v).trim();
+      if (name && base.indexOf(name) < 0) base.push(name);
+    });
+    return base;
+  }
+
+  function doneField(d) {
+    return '<div class="field"><div class="field__label"><span>완료 훈련</span><small>여러 개 선택</small></div>' +
+      UI.chips('done', doneOptions(d), d.done, { scroll: true }) + '</div>';
+  }
+
+  /* 코치 유형 안내 — 피드백 흐름으로 바로 이어지게 (bm-v1.40.0)
+   *  다른 유형에게는 아무것도 그리지 않아 첫 화면이 짧습니다. */
+  function roleHint(state) {
+    if (roleOf(state) !== 'coach') return '';
+    return '<section class="card card--rolehint" data-region="rolehint" data-sig="coach">' +
+      '<div class="rolehint">' +
+      '<p class="rolehint__t">' + roleLabel(state) + ' 유형으로 시작했어요</p>' +
+      '<p class="rolehint__s">코치 탭에서 선수 일지를 모아 보고 한 줄 피드백을 남길 수 있어요.</p>' +
+      '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="go-coach">코치 탭 열기</button>' +
+      '</div></section>';
+  }
+
   function gameRowHtml(g, i, total) {
     var a = g && g.a != null ? g.a : '';
     var b = g && g.b != null ? g.b : '';
@@ -586,11 +657,14 @@
     var doneTxt = (r.done || []).slice(0, 3).join('·');
     var meta = D.logMeta(r);
     var sub = [meta.partner ? '함께 ' + meta.partner : '', tagTxt, doneTxt].filter(Boolean).join(' · ');
+    var proTxt = D.proLine(D.proOf(r), 2);
     return '<li class="logrow" data-record="' + U.esc(r.id) + '">' +
       '<div class="logrow__date"><strong>' + U.shortDay(r.date) + '</strong><span>' + U.relDay(r.date) + '</span></div>' +
       '<div class="logrow__mid"><p class="logrow__title">' + (r.cond != null ? '컨디션 ' + r.cond : '훈련') +
       (r.minutes ? ' · ' + r.minutes + '분' : '') + '</p>' +
       (sub ? '<p class="logrow__sub">' + U.esc(sub) + '</p>' : '') +
+      /* 선수 7대 훈련에서 적은 내용을 최근 기록에서도 한 줄로 (bm-v1.40.0) */
+      (proTxt ? '<p class="logrow__pro"><span>7대 훈련</span> ' + U.esc(proTxt) + '</p>' : '') +
       /* 영상 링크 — 한 번 누르면 새 창에서 바로 (rel="noopener noreferrer") */
       (meta.video.url
         ? '<a class="logrow__vid" data-video href="' + U.esc(meta.video.url) + '" target="_blank" rel="noopener noreferrer" ' +
@@ -968,6 +1042,9 @@
 
         routineBlock(state) +
 
+        /* 코치 유형이면 피드백 흐름으로 이어지는 짧은 카드 */
+        roleHint(state) +
+
         /* 주간 약점 3회 챌린지 — 루틴 요약 바로 아래(루틴을 건너뛰었거나 초심 1주차 전이면 숨김) */
         challengeBlock(state) +
 
@@ -1001,9 +1078,8 @@
         '<input type="number" inputmode="numeric" min="0" max="300" step="5" value="' + (d.minutes == null ? '' : d.minutes) + '" placeholder="60" data-field="minutes" aria-label="운동 시간(분)">' +
         '<button type="button" class="step" data-step="5" aria-label="5분 늘리기">+</button></div></div>' +
 
-        '<div class="field"><div class="field__label"><span>완료 훈련</span><small>여러 개 선택</small></div>' +
-        UI.chips('done', D.VOCAB.done, d.done, { scroll: true }) + '</div>' +
-
+        /* 선수 유형(또는 MY에서 켠 사람)은 7대 훈련 블록, 그 외에는 지금의 완료 훈련 칩 */
+        (proOn(state) ? proBlock(state, d) : doneField(d)) +
         gamesFold(d, state) +
 
         '<div class="field"><div class="field__label"><span>아픈 부위</span><small>없으면 그대로</small></div>' +
@@ -1139,6 +1215,15 @@
           }
         } else if (f === 'videoNote') {
           ctx.actions.setDraft({ videoNote: el.value });
+        } else if (f === 'proNote') {
+          /* 7대 훈련 — 적는 칸은 입력 중 커서가 끊기지 않게 그대로 두고 초안만 갱신합니다 */
+          var pname = el.getAttribute('data-pro-name');
+          var ppro = JSON.parse(JSON.stringify(ctx.store.state.drafts.log.pro || {}));
+          ppro[pname] = el.value;
+          ctx.actions.setDraft({ pro: ppro });
+          var pli = el.closest('[data-pro]');
+          var psum = pli && pli.querySelector('.pro__sum');
+          if (psum) psum.textContent = el.value;
         }
       }, { passive: true });
 
@@ -1209,6 +1294,40 @@
           UI.haptic(8);
           return;
         }
+        /* 선수 7대 훈련 — 항목을 누르면 체크되면서 적는 칸이 열립니다 */
+        var proBtn = ev.target.closest('[data-pro-toggle]');
+        if (proBtn) {
+          ev.preventDefault();
+          var itemName = proBtn.getAttribute('data-pro-toggle') || '';
+          var itemDef = D.proItemByName(itemName);
+          if (!itemDef) return;
+          var draft0 = ctx.store.state.drafts.log;
+          var nextPro = JSON.parse(JSON.stringify(draft0.pro || {}));
+          var nextDone = (draft0.done || []).slice();
+          var wasOn = Object.prototype.hasOwnProperty.call(nextPro, itemName);
+          var row = proBtn.closest('[data-pro]');
+          var note = row ? row.querySelector('[data-pro-note]') : null;
+          if (wasOn) {
+            delete nextPro[itemName];
+            nextDone = nextDone.filter(function (v) { return v !== itemName; });
+          } else {
+            nextPro[itemName] = note ? String(note.value || '') : '';
+            if (nextDone.indexOf(itemName) < 0) nextDone.push(itemName);
+          }
+          ctx.actions.setDraft({ pro: nextPro, done: nextDone });
+          if (row) row.classList.toggle('is-on', !wasOn);
+          var box = proBtn.querySelector('.pro__box');
+          if (box) box.textContent = wasOn ? '' : '✓';
+          proBtn.setAttribute('aria-pressed', wasOn ? 'false' : 'true');
+          var sumEl = row ? row.querySelector('.pro__sum') : null;
+          if (sumEl) sumEl.textContent = wasOn ? '' : (nextPro[itemName] || '');
+          if (note) {
+            note.hidden = wasOn;
+            if (!wasOn && note.focus) { try { note.focus(); } catch (e) { /* 무시 */ } }
+          }
+          UI.haptic(wasOn ? 4 : 8);
+          return;
+        }
         var chip = ev.target.closest('[data-chip]');
         if (chip) {
           ev.preventDefault();
@@ -1238,6 +1357,12 @@
       });
 
       root.addEventListener('click', function (ev) {
+        /* 코치 유형 안내 → 코치 탭 */
+        if (ev.target.closest('[data-act="go-coach"]')) {
+          ev.preventDefault();
+          ctx.actions.setTab('coach');
+          return;
+        }
         /* 코트 점수판 — 21·25점 시트 */
         if (ev.target.closest('[data-act="open-scoreboard"]')) {
           ev.preventDefault();
@@ -1489,9 +1614,16 @@
       ['아픈부위', (rec.pain || []).join(', ')], ['약점기술', (rec.weakness || []).join(', ')]
     ].filter(function (r) { return r[1] !== '' && r[1] != null; });
     var care = rec.prescription || null;
+    var pro = D.proOf(rec);
+    var proRows = D.PRO_ITEMS.filter(function (it) { return Object.prototype.hasOwnProperty.call(pro, it.name); })
+      .map(function (it) {
+        return '<li><b>' + U.esc(it.name) + '</b>' + (pro[it.name] ? ' — ' + U.esc(pro[it.name]) : '') + '</li>';
+      }).join('');
     return '<dl class="kv">' + rows.map(function (r) {
       return '<dt>' + U.esc(r[0]) + '</dt><dd>' + U.esc(r[1]) + '</dd>';
     }).join('') + '</dl>' +
+      /* 선수 7대 훈련 상세 — 어떤 걸 했는지 (bm-v1.40.0) */
+      (proRows ? '<h3 class="sec-title">선수 7대 훈련</h3><ul class="bullets prodetail">' + proRows + '</ul>' : '') +
       /* 스윙·경기 영상 — 한 줄 체크 포인트 + 버튼 하나로 새 창 */
       (meta.video.url
         ? '<div class="vidbox" data-video-box>' +

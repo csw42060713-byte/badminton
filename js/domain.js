@@ -78,6 +78,161 @@
     return '비공개';
   }
 
+  /* ============================================================
+   * 사용자 유형 (bm-v1.40.0)
+   *  처음 시작할 때 네 가지 중 하나를 고르고, MY에서 언제든 바꿉니다.
+   *  · 초보  — 초보자 4주 루틴 ON · 용어 사전·기초 가이드를 먼저
+   *  · 동호인 — 일반 일지·게스트 모집·1:1 매칭 중심 (4주 루틴 기본 OFF)
+   *  · 선수  — 선수용 7대 훈련 기록 기본 ON (4주 루틴 숨김)
+   *  · 코치  — 코치·피드백 흐름 중심
+   *  저장은 새 칸 없이 프로필 JSON(꾸미기 칸) 안 role 하나로만 합니다(26칸 스키마 유지).
+   * ============================================================ */
+  var ROLES = [
+    { id: 'beginner', label: '초보', answer: '처음 시작해요', desc: '4주 루틴 · 용어 사전', routine: true, pro: false },
+    { id: 'club', label: '동호인', answer: '클럽·동호회에서 치고 있어요', desc: '일지 · 게스트 모집 · 1:1 매칭', routine: false, pro: false },
+    { id: 'player', label: '선수', answer: '선수로 훈련하고 있어요', desc: '7대 훈련 기록 · 강도 조절', routine: false, pro: true },
+    { id: 'coach', label: '코치', answer: '코치·지도자예요', desc: '선수 일지 · 피드백', routine: false, pro: false }
+  ];
+  var ROLE_ALIASES = {
+    '초보': 'beginner', '초심': 'beginner', '입문': 'beginner', 'beginner': 'beginner', '초보자': 'beginner',
+    '동호인': 'club', '동호회': 'club', '일반': 'club', 'club': 'club', 'amateur': 'club',
+    '선수': 'player', '엘리트': 'player', 'player': 'player', '선수부': 'player', 'athlete': 'player',
+    '코치': 'coach', '지도자': 'coach', 'coach': 'coach', '감독': 'coach'
+  };
+
+  function normalizeRole(v) {
+    var s = String(v == null ? '' : v).trim();
+    if (!s) return '';
+    if (ROLE_ALIASES[s]) return ROLE_ALIASES[s];
+    var low = s.toLowerCase();
+    if (ROLE_ALIASES[low]) return ROLE_ALIASES[low];
+    for (var i = 0; i < ROLES.length; i++) {
+      if (ROLES[i].id === low) return ROLES[i].id;
+      if (ROLES[i].label === s) return ROLES[i].id;
+    }
+    return '';
+  }
+
+  function roleById(id) {
+    var key = normalizeRole(id);
+    for (var i = 0; i < ROLES.length; i++) if (ROLES[i].id === key) return ROLES[i];
+    return null;
+  }
+
+  /* 프로필에서 유형 꺼내기 — 새 구조(me.role)와 꾸미기 JSON(theme.role) 둘 다 읽습니다.
+   * 예전 계정은 저장된 값이 없어 ''입니다(화면은 급수로 짐작해 안내만 합니다). */
+  function roleOf(me) {
+    if (!me) return '';
+    var r = normalizeRole(me.role);
+    if (r) return r;
+    var t = me.theme || {};
+    return normalizeRole(t.role || t.userRole || '');
+  }
+
+  /* 저장된 유형이 없을 때 급수로 짐작하는 값 (안내 문구에만 씁니다) */
+  function roleGuess(level) {
+    var g = normalizeGrade(level);
+    if (g === '선수부') return 'player';
+    if (g === '초심') return 'beginner';
+    return '';
+  }
+
+  /* 일지 화면에 선수용 7대 훈련 블록을 보여 줄지
+   *  proPref true → 항상 · false → 숨김 · null/undefined → 유형이 선수일 때만 */
+  function proVisible(me, proPref) {
+    if (proPref === true) return true;
+    if (proPref === false) return false;
+    return roleOf(me) === 'player';
+  }
+
+  /* 선수용 7대 훈련 (bm-v1.40.0)
+   *  체크한 항목은 일지 '완료훈련' 칸에, 어떤 걸 했는지는 '훈련계획' JSON 칸에 남습니다.
+   *  plan.pro = { '스트록': '클리어 100개', '상체 근력운동': '풀업 4세트, 벤치 60kg' } */
+  var PRO_ITEMS = [
+    { id: 'stroke', name: '스트록', hint: '예: 클리어 100개, 드라이브 10분' },
+    { id: 'wall', name: '벽치기', hint: '예: 10분 × 3세트' },
+    { id: 'core', name: '코어', hint: '예: 플랭크 60초 × 3, 데드버그 10회 × 3' },
+    { id: 'footwork', name: '풋워크', hint: '예: 사이드 스텝 10분 × 3세트' },
+    { id: 'smash', name: '스매시', hint: '예: 점프 스매시 30개 × 4세트' },
+    { id: 'upper', name: '상체 근력운동', hint: '예: 풀업 4세트, 벤치프레스 60kg' },
+    { id: 'lower', name: '하체 근력운동', hint: '예: 스쿼트 80kg 5×5, 런지 20보' }
+  ];
+  var PRO_MAX = 120;            /* 한 항목에 적는 글자 수 상한 (시트 한 칸을 지킵니다) */
+
+  function proItemByName(name) {
+    var s = String(name == null ? '' : name).trim();
+    for (var i = 0; i < PRO_ITEMS.length; i++) if (PRO_ITEMS[i].name === s) return PRO_ITEMS[i];
+    return null;
+  }
+
+  function proNames() {
+    return PRO_ITEMS.map(function (p) { return p.name; });
+  }
+
+  function cleanProText(v) {
+    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, PRO_MAX);
+  }
+
+  /* 어떤 모양이 와도 { 항목이름: '적은 내용' } 만 남깁니다.
+   *  체크만 하고 안 적은 항목은 빈 문자열로 남겨 '체크했다'를 기억합니다. */
+  function normalizePro(v) {
+    var out = {};
+    if (!v) return out;
+    if (typeof v === 'string') {
+      /* '스트록,코어' 처럼 이름만 온 경우 (체크만) */
+      String(v).split(',').forEach(function (n) {
+        var it = proItemByName(n);
+        if (it) out[it.name] = '';
+      });
+      return out;
+    }
+    if (typeof v !== 'object') return out;
+    PRO_ITEMS.forEach(function (it) {
+      if (!Object.prototype.hasOwnProperty.call(v, it.name)) return;
+      if (v[it.name] === false || v[it.name] == null) return;
+      out[it.name] = cleanProText(v[it.name]);
+    });
+    return out;
+  }
+
+  /* 일지 한 줄에서 7대 훈련 꺼내기 (훈련계획 JSON → pro) */
+  function proOf(rec) {
+    var plan = rec && rec.plan;
+    if (typeof plan === 'string') plan = U.jsonParse(plan, null);
+    if (!plan || typeof plan !== 'object') return {};
+    return normalizePro(plan.pro);
+  }
+
+  /* 저장할 초안 → '훈련계획' 칸에 넣을 JSON (체크한 항목이 없으면 null) */
+  function proPlan(v) {
+    var pro = normalizePro(v);
+    if (!Object.keys(pro).length) return null;
+    return { pro: pro };
+  }
+
+  /* 체크한 항목만 이름 목록으로 (일지 '완료훈련' 칸에 함께 남깁니다) */
+  function proCheckedNames(pro) {
+    var p = normalizePro(pro);
+    return PRO_ITEMS.filter(function (it) { return Object.prototype.hasOwnProperty.call(p, it.name); })
+      .map(function (it) { return it.name; });
+  }
+
+  /* 최근 기록·상세에 보여 줄 한 줄 — '상체 근력운동 풀업 4세트 · 풋워크 10분 × 3'
+   *  적은 내용이 있는 항목을 먼저, 체크만 한 항목은 뒤로 (최대 max개 + '외 N') */
+  function proLine(pro, max) {
+    var p = normalizePro(pro);
+    var limit = max == null ? 2 : Math.max(1, max);
+    var picked = PRO_ITEMS.filter(function (it) { return Object.prototype.hasOwnProperty.call(p, it.name); });
+    picked.sort(function (a, b) {
+      var ta = p[a.name] ? 1 : 0, tb = p[b.name] ? 1 : 0;
+      if (ta !== tb) return tb - ta;                       /* 적은 내용이 있는 항목 먼저 */
+      return PRO_ITEMS.indexOf(a) - PRO_ITEMS.indexOf(b);  /* 그다음은 정해진 순서 */
+    });
+    var parts = picked.map(function (it) { return it.name + (p[it.name] ? ' ' + p[it.name] : ''); });
+    if (parts.length > limit) return parts.slice(0, limit).join(' · ') + ' 외 ' + (parts.length - limit);
+    return parts.join(' · ');
+  }
+
   /* 프로필 사진 꾸미기 — 프레임 / 배경 / 배지.
    * 실제 저장은 프로필 JSON(꾸미기 칸, 매칭프로필 payload) 안에
    * avatarPhoto·avatarFrame·avatarBg·avatarBadge 로 들어갑니다. */
@@ -840,6 +995,8 @@
       partner: meta.partner,
       video: meta.video.url,
       videoNote: meta.video.label,
+      /* 선수용 7대 훈련 — 수정할 때 체크·적은 내용을 그대로 불러옵니다 */
+      pro: proOf(rec),
       note: rec.text || ''
     };
   }
@@ -860,6 +1017,8 @@
       '아픈부위': (e.pain && e.pain.length) ? e.pain.join(',') : '',
       '약점기술': (e.weakness && e.weakness.length) ? e.weakness.join(',') : '',
       '소셜글': e.text ? String(e.text) : '',
+      /* 선수용 7대 훈련은 '훈련계획' JSON 칸으로 — 비우면 칸도 비웁니다 */
+      '훈련계획': e.plan == null || e.plan === '' ? '' : (typeof e.plan === 'string' ? String(e.plan) : JSON.stringify(e.plan)),
       /* 파트너·영상은 '팀' 칸 JSON 한 줄로 — 비우면 칸도 비웁니다 */
       '팀': e.team == null ? '' : String(e.team)
     };
@@ -2345,6 +2504,10 @@
     COLS: COLS, COL: COL, VOCAB: VOCAB, GRADES: GRADES, GENDERS: GENDERS, THEMES: THEMES, AVATAR: AVATAR, PRESENCE: PRESENCE, PREFS_DEFAULTS: PREFS_DEFAULTS,
     normalizeGrade: normalizeGrade, normalizeGender: normalizeGender, normalizeStyle: normalizeStyle,
     STYLES: STYLES,
+    /* v1.40 — 시작 4유형 선택 · 선수용 7대 훈련 */
+    ROLES: ROLES, normalizeRole: normalizeRole, roleById: roleById, roleOf: roleOf, roleGuess: roleGuess, proVisible: proVisible,
+    PRO_ITEMS: PRO_ITEMS, PRO_MAX: PRO_MAX, proNames: proNames, proItemByName: proItemByName,
+    normalizePro: normalizePro, proOf: proOf, proPlan: proPlan, proCheckedNames: proCheckedNames, proLine: proLine,
     normalizeAvatar: normalizeAvatar, avatarOf: avatarOf,
     DECO_PRICES: DECO_PRICES, STREAK_UNLOCKS: STREAK_UNLOCKS,
     decoId: decoId, decoPrice: decoPrice, decoName: decoName, ownsDeco: ownsDeco,
