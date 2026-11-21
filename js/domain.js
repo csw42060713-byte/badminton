@@ -471,7 +471,12 @@
     /* 정원이 차면 (bm-v1.29.0) — 배지와 버튼 글자가 바뀝니다 */
     closedLabel: '마감',
     waitLabel: '대기 문의',
-    waitTopic: '대기하고 싶어요!'
+    waitTopic: '대기하고 싶어요!',
+    /* 게스트비 (bm-v1.40.1) — 모집할 때 '얼마 받는지'를 한 칸에 적습니다.
+     * 숫자·글자 그대로 적게 두고(없음·5천원·1만원 등), 빠르게 누르는 칩만 정해 둡니다. */
+    feeLabel: '게스트비',
+    feeNone: '없음',
+    feeChips: ['없음', '5천원', '1만원']
   };
 
   function normalizeTopic(v) {
@@ -484,16 +489,19 @@
    * 말머리와 같이 '훈련계획' 칸의 {"topic":"게스트 모집","meet":{...}}로 적어 시트 26칸을 늘리지 않습니다.
    * 모두 비워 두면 일반 글과 똑같이 올라갑니다(선택 입력). */
   var MEET_MAX = 30;          /* 언제·어디 글자 수 */
+  var MEET_FEE_MAX = 12;      /* 게스트비 글자 수 ('없음'·'1만원'·'10,000원' 정도) */
 
   function meetLine(v, max) {
     return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max || MEET_MAX);
   }
 
   function normalizeMeet(m) {
-    var out = { when: '', place: '', cap: '' };
+    var out = { when: '', place: '', cap: '', fee: '' };
     if (!m || typeof m !== 'object') return out;
     out.when = meetLine(m.when);
     out.place = meetLine(m.place);
+    /* 게스트비는 적은 그대로 둡니다 ('없음'도 하나의 값) */
+    out.fee = meetLine(m.fee, MEET_FEE_MAX);
     /* '몇 명'은 cap으로 적습니다. 다른 이름(max)으로 들어온 글도 같이 읽습니다. */
     var rawCap = (m.cap == null || m.cap === '') ? m.max : m.cap;
     var cap = String(rawCap == null ? '' : rawCap).replace(/[^0-9]/g, '').slice(0, 3);
@@ -502,7 +510,13 @@
   }
 
   function meetFilled(m) {
-    return !!(m && (m.when || m.place || m.cap));
+    return !!(m && (m.when || m.place || m.cap || m.fee));
+  }
+
+  /* 카드에 쓰는 한 줄 이름 — 값이 있으면 '게스트비 1만원' (없으면 빈 값) */
+  function meetFeeText(m) {
+    var fee = m ? String(m.fee == null ? '' : m.fee).trim() : '';
+    return fee ? MEET.feeLabel + ' ' + fee : '';
   }
 
   /* 글에서 모집 정보만 꺼냅니다 (없으면 null) */
@@ -515,7 +529,7 @@
   /* 모집 정보 한 줄 — 채팅 미리 채우기·안내에 씁니다 */
   function meetText(m, sep) {
     if (!meetFilled(m)) return '';
-    return [m.when, m.place, m.cap ? m.cap + '명' : ''].filter(Boolean).join(sep || ' · ');
+    return [m.when, m.place, m.cap ? m.cap + '명' : '', meetFeeText(m)].filter(Boolean).join(sep || ' · ');
   }
 
   /* 글의 말머리: 직접 고른 값이 먼저, 없으면 일지 공유 글(target=일지 ID)은 '일지', 나머지는 '자유' */
@@ -2544,7 +2558,7 @@
     matchBetween: matchBetween, canChatWith: canChatWith,
     coachRoomId: coachRoomId, coachChatAllowed: coachChatAllowed,
     POST_TOPICS: POST_TOPICS, MEET: MEET, LEGACY_TOPICS: LEGACY_TOPICS, normalizeTopic: normalizeTopic, topicOf: topicOf,
-    normalizeMeet: normalizeMeet, meetFilled: meetFilled, meetOf: meetOf, meetText: meetText,
+    normalizeMeet: normalizeMeet, meetFilled: meetFilled, meetOf: meetOf, meetText: meetText, meetFeeText: meetFeeText,
     meetCap: meetCap, meetMembers: meetMembers, meetStatus: meetStatus,
     /* v1.29 */
     MANNER_TYPE: MANNER_TYPE, MANNER_TAGS: MANNER_TAGS, MANNER_MAX_BADGES: MANNER_MAX_BADGES,

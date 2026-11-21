@@ -1015,7 +1015,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.40.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.40.1' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

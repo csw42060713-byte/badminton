@@ -158,7 +158,7 @@
         matchSort: 'score',      /* score(궁합순) · recent(최근순) */
         matchFilterOpen: '',     /* 펼친 필터 줄 (level · region · discipline · gender) */
         chatRoom: null, chatOther: '', chatOpen: false, chatDraft: '',
-        coachTab: '', coachPlayer: null, composer: '', composerTopic: '자유', composerMeet: { when: '', place: '', cap: '' }, replyTo: null,
+        coachTab: '', coachPlayer: null, composer: '', composerTopic: '자유', composerMeet: { when: '', place: '', cap: '', fee: '' }, replyTo: null,
         routineWeek: 0,          /* 초보자 루틴: 보고 있는 주차 (0이면 아직 덜 끝낸 주차) */
         editLogId: null,         /* 수정 중인 일지 ID (있으면 저장은 새 줄이 아니라 갱신) */
         lastSavedLog: null       /* 방금 저장한 일지 → 커뮤니티 원탭 공유 */
@@ -951,9 +951,60 @@
         pushRow(entity);
         state.ui.composer = '';
         state.ui.composerTopic = '자유';
-        state.ui.composerMeet = { when: '', place: '', cap: '' };
+        state.ui.composerMeet = { when: '', place: '', cap: '', fee: '' };
         commit();
         return { ok: true, topic: tag, meet: plan.meet || null };
+      },
+
+      /* ---------- 커뮤니티 내 글 삭제(취소) (bm-v1.40.1) ----------
+       * 내가 쓴 글만 지웁니다. 화면에서는 한 번 더 확인한 뒤 부르고,
+       * 일지 삭제(deleteLog)와 같은 방식으로 그 줄만 빼고 큐에 remove를 넣습니다.
+       *  · 글에 달린 답글·하트도 같이 빠져야 빈 글을 가리키는 줄이 남지 않습니다.
+       *    서버(Supabase RLS)는 내 행만 지울 수 있어서, 내가 쓴 답글·내 하트만
+       *    서버 삭제를 보내고 남이 남긴 답글·하트는 이 기기 화면에서만 감춥니다
+       *    (글 자체가 사라지면 그 답글은 어느 화면에도 뜨지 않습니다).
+       *  · 모집 글 단체방을 열어 둔 채 지우면 대화도 닫습니다(글이 없으면 방도 없음). */
+      deletePost: function (postId) {
+        if (!postId) return { ok: false, reason: 'not_found' };
+        var key = String(postId);
+        var me = (state.me && state.me.key) || '';
+        var post = (state.rows || []).map(function (r) { return Array.isArray(r) ? D.fromRow(r) : r; })
+          .filter(function (r) { return String(r.id) === key; })[0];
+        if (!post || (post.type && post.type !== '소셜')) return { ok: false, reason: 'not_found' };
+        if (!me || String(post.userKey || '') !== String(me)) return { ok: false, reason: 'not_mine' };
+        if (!tryLock('delpost:' + key, 1500)) return { ok: false, reason: 'locked' };
+
+        /* 이 글에 달린 답글·하트 (내 것 / 남의 것) */
+        var related = {};
+        (state.rows || []).forEach(function (r) {
+          var id = String(r[0]);
+          if (id === key) return;
+          var rec = Array.isArray(r) ? D.fromRow(r) : r;
+          if (!rec) return;
+          if ((rec.type === '답글' || rec.type === '하트') && String(rec.target || '') === key) {
+            related[id] = String(rec.userKey || '') === String(me);
+          }
+        });
+        state.rows = state.rows.filter(function (r) {
+          var id = String(r[0]);
+          return id !== key && !Object.prototype.hasOwnProperty.call(related, id);
+        });
+
+        /* 서버에는 내 글만 확실히 지웁니다(남의 행은 서버가 거절하므로 큐에 넣지 않음) */
+        enqueue({ kind: 'remove', id: key, clientId: U.clientId() });
+        Object.keys(related).forEach(function (id) {
+          if (related[id]) enqueue({ kind: 'remove', id: id, clientId: U.clientId() });
+        });
+
+        /* 이 글의 단체방을 보고 있었다면 대화도 닫습니다 */
+        if (state.ui && state.ui.chatRoom && String(state.ui.chatRoom) === key) {
+          state.ui.chatRoom = null;
+          state.ui.chatOther = '';
+          state.ui.chatDraft = '';
+          state.ui.chatOpen = false;
+        }
+        commit();
+        return { ok: true, id: key, removed: 1 + Object.keys(related).length };
       },
 
       saveProfile: function (patch) {
@@ -1608,7 +1659,7 @@
       },
       /* 게스트 모집 입력칸 — 글자마다 화면을 다시 그리면 포커스가 끊기므로 저장만 합니다 */
       setComposerMeet: function (field, value) {
-        if (field !== 'when' && field !== 'place' && field !== 'cap') return;
+        if (field !== 'when' && field !== 'place' && field !== 'cap' && field !== 'fee') return;
         var cur = state.ui.composerMeet || {};
         var next = D.normalizeMeet(cur);
         next[field] = value;

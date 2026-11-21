@@ -1602,6 +1602,28 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 .post { padding: 16px 18px; border-top: 1px solid var(--line); }
 .post:first-child { border-top: 0; }
 .post__head { display: flex; align-items: center; gap: 10px; }
+/* 내 글 삭제 입구 · 확인 줄 (bm-v1.40.1) — 작은 휴지통 버튼을 누르면 그 글 안에서 한 번 더 */
+.post__del {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; margin-left: -4px;
+  border-radius: 9px; color: var(--muted);
+  transition: background 120ms, color 120ms, transform 90ms;
+  touch-action: manipulation;
+}
+.post__del .ico { width: 15px; height: 15px; }
+.post__del:hover, .post__del[aria-expanded="true"] { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); }
+.post__del:active { transform: scale(0.92); }
+.post__delbar {
+  display: grid; gap: 9px; margin-top: 10px; padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--bad) 7%, transparent);
+  animation: viewIn 130ms ease-out;
+}
+.post__delbar[hidden] { display: none; }
+.post__delbar-t { font-size: 12px; font-weight: 700; color: var(--text-2); line-height: 1.4; }
+.post__delbar .btn--sm { min-height: 36px; }
+.post__delbar .btn--danger .ico { width: 13px; height: 13px; }
 .post__who strong { display: block; font-size: 13.5px; letter-spacing: -0.2px; }
 .post__text { font-size: 14px; margin-top: 10px; color: var(--text); line-height: 1.55; word-break: break-word; }
 .post__foot { display: flex; gap: 14px; margin-top: 12px; }
@@ -2930,6 +2952,9 @@ summary { display: list-item; }
   border-radius: 10px; background: var(--card-2);
 }
 .viteform__f input::placeholder { color: var(--muted); }
+/* 게스트비 빠른 칩 줄 (bm-v1.40.1) — 입력칸 바로 아래, 한 줄로 */
+.viteform__chips { grid-column: 1 / -1; gap: 6px; margin-top: -2px; }
+.viteform__chips .chip { flex: 0 1 auto; }
 
 .vite {
   display: flex; align-items: center; gap: 10px;
@@ -2955,6 +2980,8 @@ summary { display: list-item; }
 }
 .vite__row .ico { flex: 0 0 auto; width: 13px; height: 13px; color: var(--muted); }
 .vite__row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vite__row--fee { color: var(--text-2); }
+.vite__row--fee .ico { color: var(--accent); }
 .vite__btn { flex: 0 0 auto; }
 .vite__own { flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--muted); }
 
