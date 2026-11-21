@@ -150,7 +150,7 @@ badminton-app/
 ├─ store-assets/         스토어 등록 그래픽 + 만드는 스크립트
 │  ├─ icon-512.png                    512×512 앱 아이콘
 │  ├─ feature-graphic-1024x500.png    대표 그래픽
-│  ├─ screenshot-1-matching.png … screenshot-4-my.png  540×960 화면 4장
+│  ├─ screenshot-1-matching.png … screenshot-4-my.png  1080×1920 화면 4장
 │  ├─ make-store-assets.py            아이콘·대표 그래픽 생성(PIL)
 │  └─ capture-screenshots.py          로컬 서버 + 모바일 뷰포트 촬영(Playwright)
 ├─ icons/                앱 아이콘 192·512·maskable, favicon.svg
