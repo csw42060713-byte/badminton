@@ -220,6 +220,47 @@ with sync_playwright() as p:
         page.click('[data-dm-close]')
         page.wait_for_timeout(500)
 
+    # ---------- B-2. 참여자 화면 — 방장이 지운 방 ----------
+    page.evaluate("""(me) => {
+      const D = BM.domain, U = BM.util;
+      const post = { id: 'roomG148', type: '소셜', createdAt: U.stamp(), date: U.ymd(),
+        nick: '방장', text: '게스트 모집', userKey: 'u_owner148g',
+        plan: { topic: '게스트 모집', meet: { when: '11/23(월) 19:00~21:00', place: '영통 체육관', cap: '4' } } };
+      const app = { id: 'ga1', type: '게스트신청', createdAt: U.stamp(), date: U.ymd(),
+        nick: me.nick, userKey: me.key, target: 'u_owner148g', team: 'roomG148',
+        payload: { kind: '신청', note: '가고 싶어요' } };
+      const ok = { id: 'ga2', type: '게스트신청', createdAt: U.stamp(), date: U.ymd(),
+        nick: '방장', userKey: 'u_owner148g', target: me.key, team: 'roomG148', payload: { kind: '수락' } };
+      const msg = { id: 'gm1', type: '매칭채팅', createdAt: U.stamp(), date: U.ymd(),
+        nick: '방장', userKey: 'u_owner148g', target: '', team: 'roomG148', text: '안녕하세요' };
+      const rows = [D.toRow(post), D.toRow(app), D.toRow(ok), D.toRow(msg)];
+      const cur = JSON.parse(localStorage.getItem('bm_rows_v1') || '[]');
+      localStorage.setItem('bm_rows_v1', JSON.stringify(rows.concat(cur)));
+    }""", me)
+    page.reload(wait_until='load')
+    page.wait_for_timeout(2600)
+    page.evaluate("() => BM.app.ctx.actions.openChats()")
+    page.wait_for_timeout(900)
+    check('참여자 목록에 방장의 단체방', has(page, '[data-thread="roomG148"]'))
+    check('참여자에게는 삭제 버튼 없음', not has(page, '[data-room-del="roomG148"]'))
+    page.click('[data-thread="roomG148"]')
+    page.wait_for_timeout(900)
+    check('참여자 방 화면(입력창 있음)', has(page, '[data-dm-form]'))
+    page.evaluate("""async () => {
+      await BM.app.ctx.actions._api().remove('roomG148', '');
+      await BM.app.ctx.actions.poll();
+    }""")
+    page.wait_for_timeout(1400)
+    check('열어 둔 방이 삭제 안내로 바뀜', '방장이 단체방을 삭제했어요' in text_of(page, '.dm__panel'))
+    check('삭제 안내에는 입력창 없음', not has(page, '[data-dm-form]'))
+    page.screenshot(path=OUT + '/v148l_14_참여자_삭제안내.png')
+    page.click('[data-dm-back]')
+    page.wait_for_timeout(700)
+    check('대화 목록에서도 사라짐', not has(page, '[data-thread="roomG148"]'))
+    if has(page, '[data-dm-close]'):
+        page.click('[data-dm-close]')
+        page.wait_for_timeout(400)
+
     # ---------- C-1. 점수판 (세로 → 가로 보기 버튼) ----------
     page.click("#tabbar [data-tab='log']")
     page.wait_for_timeout(800)
