@@ -283,7 +283,15 @@
 
   /* today 카드 — 큰 숫자 2~3개 (라벨은 숫자 아래 작게) */
   function drawBigs(g, bigs, y, light) {
-    var list = (bigs && bigs.length) ? bigs : [{ value: '—', unit: '', label: '기록 없음' }];
+    var list = bigs || [];
+    if (!list.length) {
+      /* 기록이 없을 때 — 깨진 숫자 대신 한 줄 안내 */
+      g.textAlign = 'left';
+      g.fillStyle = light ? 'rgba(255,255,255,0.8)' : 'rgba(180,196,188,0.9)';
+      g.font = font(42, 800);
+      g.fillText('오늘 기록을 먼저 남겨 주세요', 80, y - 30);
+      return;
+    }
     var n = list.length;
     var colW = (W - 160) / Math.max(1, n);
     var base = n === 1 ? 200 : n === 2 ? 150 : 112;
@@ -582,6 +590,10 @@
       }).join('') + '</div></div>' +
       field('파트너', 'compPartner', ui.compPartner, { max: 12, placeholder: '비워도 돼요' });
 
+    var emptyToday = ui.mode === 'today' && !rec;
+    var emptyNote = emptyToday
+      ? '<p class="notice sc__notice">일지가 아직 없어요. 일지를 저장하면 운동 시간 · 승패 · 연속 일수가 카드에 채워져요.</p>'
+      : '';
     var stylePicks = '<div class="sc__styles">' + STYLES.map(function (s) {
       return '<button type="button" class="sc__style' + (ui.style === s.id ? ' is-on' : '') + '" data-sc-style="' + s.id + '">' +
         '<b>' + U.esc(s.name) + '</b><span>' + U.esc(s.note) + '</span></button>';
@@ -593,13 +605,15 @@
       '<input type="file" accept="image/*" data-sc-photo hidden></label>' +
       '<p class="hint">사진은 폰 안에서만 합쳐져요 · 서버로 보내지 않아요</p></div>';
 
-    return modeTabs +
+    return modeTabs + emptyNote +
       (ui.mode === 'today' ? todayFields : compFields) +
       stylePicks + photoBox +
       '<div class="sc__preview"><canvas class="sc__canvas" width="' + W + '" height="' + H + '" aria-label="공유 카드 미리보기"></canvas></div>' +
       '<p class="sc__summary" data-sc-summary></p>' +
-      '<button type="button" class="btn btn--primary btn--big mt8" data-sc-save>' + BM.ui.icon('send') +
-      '<span>' + (ui.style === 'sticker' ? '투명 PNG 저장 · 공유' : 'PNG 저장 · 공유') + '</span></button>' +
+      '<button type="button" class="btn btn--primary btn--big mt8" data-sc-save' + (emptyToday ? ' disabled' : '') + '>' +
+      BM.ui.icon('send') +
+      '<span>' + (emptyToday ? '일지를 먼저 저장해 주세요'
+        : (ui.style === 'sticker' ? '투명 PNG 저장 · 공유' : 'PNG 저장 · 공유')) + '</span></button>' +
       '<p class="hint">인스타 스토리에 올리면 4:5 카드가 화면에 꽉 차요. 투명 스티커는 사진 위에 붙이기 좋아요.</p>';
   }
 
