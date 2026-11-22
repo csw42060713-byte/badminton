@@ -76,7 +76,7 @@
     var sc = scoreLine(rec);
     if (sc.value) out.push({ value: sc.value, unit: sc.unit, label: sc.label });
     else if (opts.aiScore) out.push({ value: String(opts.aiScore), unit: '점', label: 'AI 점수' });
-    if (opts.streak && opts.streak >= 2) out.push({ value: String(opts.streak), unit: '일', label: '연속 기록' });
+    if (opts.streak && opts.streak >= 2) out.push({ value: String(opts.streak), unit: '일', label: '연속 기록', flame: true });
     return out.slice(0, 3);
   }
 
@@ -312,7 +312,7 @@
       }
       g.fillStyle = light ? 'rgba(255,255,255,0.75)' : 'rgba(160,178,168,0.95)';
       g.font = font(28, 700);
-      g.fillText(String(b.label || ''), cx, y + 52);
+      g.fillText((b.flame ? '🔥 ' : '') + String(b.label || ''), cx, y + 52);
     });
   }
 
