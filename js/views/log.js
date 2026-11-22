@@ -300,6 +300,7 @@
     var bits = [(an.insights || []).length + '개 진단'];
     if (an.flow && an.flow.count) bits.push('경기 흐름');
     if (an.load && an.load.zone) bits.push('부하 점검');
+    if (an.balance && an.balance.on) bits.push('훈련 균형');
     if (partners && partners.length) bits.push('파트너 승률');
     return '<details class="fold fold--ai" data-fold="ai-detail">' +
       '<summary class="fold__sum"><span>자세히 보기 <small>' + U.esc(bits.join(' · ')) + '</small></span>' +
@@ -321,6 +322,12 @@
           '<div class="planbox"><p class="planbox__t">' + U.esc(loadLine(an.load)) + '</p>' +
           '<p class="planbox__v">운동 시간 × 강도로 계산한 내부 부하예요. 직전 4주 평균과 비교합니다.</p>' +
           bulletList(an.load.tips) + '</div>' : '') +
+      (an.rhythm && an.rhythm.on
+        ? '<div class="planbox mt8"><p class="planbox__t">주간 부하 리듬 · 단조로움</p>' +
+          '<p class="planbox__v">' + U.esc(an.rhythm.text) + '</p>' +
+          '<p class="planbox__v">세게 친 날과 쉬는 날이 얼마큼 번갈아 있는지 보는 값이에요. 진단이 아니라 쉬는 날을 넣었는지 보는 참고값입니다.</p>' +
+          bulletList(an.rhythm.tips) +
+          '<p class="planbox__src">' + U.esc(an.rhythm.sourceShort) + '</p></div>' : '') +
       (drills.some(function (d) { return d.point; })
         ? '<div class="care__col mt8"><h4>드릴 포인트</h4>' + bulletList(drills.filter(function (d) {
             return d.point;
@@ -377,6 +384,33 @@
       '<p class="planbox__t mt8">' + U.esc(b.checkTitle || '자가 체크') + '</p><ul class="bullets">' + checks + '</ul>' +
       '<p class="planbox__t mt8">' + U.esc(b.guideTitle || '오늘 할 것') + '</p><ul class="bullets">' + guides + '</ul>' +
       '<p class="planbox__src">' + U.esc(b.sourceShort || b.source) + '</p></div>';
+  }
+
+  /* 선수 7대 훈련 밸런스 — 지난 2주에 안 한 항목만 1~2개로 (bm-v1.49.0)
+   * 숫자는 작게, 이유와 '이번 주에 하나만 더'를 쉬운 말로 */
+  function balanceFold(an) {
+    var b = an && an.balance;
+    if (!b || !b.on) return '';
+    var rows = (b.counts || []).map(function (c) {
+      return '<li><b>' + U.esc(c.name) + '</b> ' + (c.n ? c.n + '번' : '아직 없음') +
+        (c.last ? ' · 마지막 ' + U.esc(String(c.last).slice(5).replace('-', '.')) : '') + '</li>';
+    }).join('');
+    var adds = (b.add || []).map(function (a) {
+      return '<li><b>' + U.esc(a.name) + '</b> — ' + U.esc(a.how) + '<br>' + U.esc(a.why) + '</li>';
+    }).join('');
+    return '<details class="fold fold--ai" data-fold="balance">' +
+      '<summary class="fold__sum"><span>선수 7대 훈련 균형 <small>지난 ' + b.windowDays + '일 · ' + b.sessions + '번 기록</small></span>' +
+      '<i class="fold__val">' + U.esc(b.label) + '</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' +
+      '<div class="planbox"><p class="planbox__t">' + U.esc(b.text) + '</p>' +
+      '<p class="planbox__v">' + U.esc(b.pattern) + '</p>' +
+      '<ul class="bullets">' + rows + '</ul></div>' +
+      (adds
+        ? '<div class="planbox mt8"><p class="planbox__t">이번 주에 하나만 더</p><ul class="bullets">' + adds + '</ul></div>'
+        : '') +
+      '<p class="planbox__v">7가지 전부 하는 게 목표가 아니에요. 지금 비어 있는 곳 하나만 채워도 다음 주 몸이 달라집니다.</p>' +
+      '<p class="planbox__src">' + U.esc(b.sourceShort) + '</p>' +
+      '</div></details>';
   }
 
   function guardFold(an) {
@@ -454,6 +488,7 @@
       analysisDetails(an, D.partnerStats(((state && state.data && state.data.records) || []), { limit: 3 })) +
       preventFold(an) +
       guardFold(an) +
+      balanceFold(an) +
       offcourtFold(an) +
       '<details class="fold fold--ai" data-fold="week">' +
       '<summary class="fold__sum"><span>이번 주 루틴 <small>다음 훈련 · 실전</small></span>' +

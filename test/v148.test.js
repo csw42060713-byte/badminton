@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v148.test.js — bm-v1.48.0
+ * test/v148.test.js — bm-v1.49.0
  *   🗓 게스트 모집 날짜·시간 고르기 · 단체방 삭제 · 코트 점수판 가로 보기
  *
  *  1) 일시 고르기 — 날짜 칩(오늘·내일·이번 주말) + 달력 칸 + 시간 칩이
@@ -429,11 +429,11 @@
 
   test('v1.48 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.48.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.48.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-60', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.48.0"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 40', '앱 버전 코드');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.49.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.49.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-61', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.49.0"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 41', '앱 버전 코드');
   });
 
   test('v1.48 배선: 새 파일 없이 기존 파일만 바뀐다 (서비스워커·테스트 목록)', function () {

@@ -132,6 +132,23 @@
  *        a lateral backward step in badminton: A case report of a televised injury incident>,
  *        J Sport Health Sci 12(1):139-144, 2023 (DOI: 10.1016/j.jshs.2021.03.007) — 측후방 스텝 중 앞발 착지
  *        (발목 33° 저측굴곡·18° 내회전)가 급성 외측 염좌의 메커니즘. 예방은 앞발 착지 순간의 발목 제어.
+ * [FOST98] Foster C., <Monitoring training in athletes with reference to overtraining syndrome>,
+ *        Med Sci Sports Exerc 30(7):1164-1168, 1998 (DOI: 10.1097/00005768-199807000-00023) —
+ *        세션 RPE 부하에서 '단조로움(monotony)' = 하루 부하 평균 ÷ 표준편차, '긴장(strain)' = 주간 총부하 × 단조로움.
+ *        부하가 크면서 매일 비슷하게 쌓이면(단조로움↑) 몸살·감기 같은 증상이 그 선수의 기준선을 넘을 때 몰렸습니다.
+ *        → 앱은 '지난 7일 중 쉰 날'과 하루 부하의 오르내림을 참고 지표로만 보여 줍니다(진단 아님).
+ * [HADD17] Haddad M., Stylianides G., Djaoui L., Dellal A., Chamari K., <Session-RPE Method for Training Load
+ *        Monitoring: Validity, Ecological Usefulness, and Influencing Factors>, Front Neurosci 11:612, 2017
+ *        (DOI: 10.3389/fnins.2017.00612) — 세션 RPE(분 × 주관적 강도) 타당성 총설. 단조로움·긴장 계산식을
+ *        Foster(1998) 그대로 정리: 단조로움 = 주간 하루 부하 평균/표준편차, 긴장 = 주간 총부하 × 단조로움.
+ * [MA25]  Ma S., Xue W., Soh K.G. et al., <Effects of physical training programs on healthy badminton players'
+ *        performance: a systematic review and meta-analysis>, BMC Sports Sci Med Rehabil, 2025
+ *        (DOI: 10.1186/s13102-025-01199-y) — 15편·370명(메타 12편). 코어 훈련이 스매시·전·후위 기술과 민첩성,
+ *        하지 저항운동이 파워, 밸런스 훈련이 균형, HIIT·SIT 가 VO2max 를 올림 → 한 가지 훈련으로는 다 덮이지 않음.
+ * [WANG25] Wang T., Ng Y.G., Amri S., Kamalden T.F., Gao Z., <Effects of resistance training on performance in
+ *        competitive badminton players: a systematic review>, Front Physiol, 2025 (DOI: 10.3389/fphys.2025.1548869) —
+ *        하체 저항운동이 점프력에 가장 크고, 코어는 힘 전달, 상체는 스매시 속도에 도움(근거는 아직 적음).
+ *        8주를 넘긴 프로그램이 짧은 것보다 효과적 → '주 2회로 8주'를 안내.
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -1628,6 +1645,224 @@
     return out.slice(0, 2);
   }
 
+  /* ---------- 주간 부하 리듬 (단조로움 · 긴장) ----------
+   * [FOST98][HADD17] 세션 RPE(분 × 주관적 강도) 부하를 하루 단위로 더해서
+   *   단조로움 = 지난 7일 하루 부하 평균 ÷ 표준편차 (쉰 날은 0으로 셉니다)
+   *   긴장    = 지난 7일 부하 합 × 단조로움
+   * 매일 비슷하게 세게 치면 표준편차가 작아져 단조로움이 커지고, 그 상태에서 부하가 크면
+   * 몸살·감기 같은 게 늘었다는 보고가 있습니다. 진단이 아니라 '쉬는 날을 넣었는지'를 보는 참고값입니다.
+   * (단조로움 2.0 이상을 높은 편으로 보는 것이 이 논문들에서 쓰는 흔한 참고선입니다.) */
+  var RHYTHM = {
+    days: 7,
+    minDays: 3,                 /* 7일 중 3일은 훈련해야 말합니다 */
+    monotonyHigh: 2.0,          /* [FOST98][HADD17] 참고선 */
+    monotonyVeryHigh: 3.0,
+    flatMonotony: 9.9,          /* 하루 부하가 모두 같아 표준편차가 0일 때(계산 불가) */
+    source: 'Foster, Med Sci Sports Exerc 30(7):1164-1168, 1998 (DOI 10.1097/00005768-199807000-00023) · ' +
+      'Haddad et al., Front Neurosci 11:612, 2017 (DOI 10.3389/fnins.2017.00612)',
+    sourceShort: '참고 논문 · Foster 1998 MSSE(단조로움·긴장) · Haddad 2017 Front Neurosci'
+  };
+
+  /* loadRhythm(records, draft) → { on, total, mean, sd, monotony, strain, restDays, level, label, text, tips }
+   * 같은 입력이면 항상 같은 결과 (순수 함수) */
+  function loadRhythm(records, draft) {
+    var out = {
+      on: false, days: RHYTHM.days, total: 0, mean: 0, sd: 0, monotony: 0, strain: 0,
+      restDays: 0, trainDays: 0, level: '', label: '부하 리듬', text: '', tips: [],
+      daily: [], source: RHYTHM.source, sourceShort: RHYTHM.sourceShort
+    };
+    var today = U.parseYmd(U.ymd());
+    if (!today) return out;
+    var daily = [], i;
+    for (i = 0; i < RHYTHM.days; i++) daily.push({ date: U.ymd(U.addDays(today, -(RHYTHM.days - 1 - i))), load: 0 });
+    var index = {};
+    daily.forEach(function (d) { index[d.date] = d; });
+
+    (records || []).forEach(function (r) {
+      var d = index[r.date];
+      if (!d) return;
+      d.load += sessionLoad(r);
+    });
+    /* 오늘 작성 중인 일지도 오늘 부하로 넣습니다 */
+    var todayD = index[U.ymd()];
+    if (todayD) todayD.load += sessionLoad(draft);
+
+    var total = 0, trainDays = 0, lightDays = 0;
+    daily.forEach(function (d) {
+      total += d.load;
+      if (d.load > 0) trainDays++;
+    });
+    if (trainDays < RHYTHM.minDays || total <= 0) return out;
+
+    var mean = total / RHYTHM.days;
+    /* 가벼운 날 = 하루 평균 부하의 절반 이하로 줄인 날(세게 친 날과 번갈아 친 경우) */
+    daily.forEach(function (d) { if (d.load > 0 && d.load <= mean * 0.5) lightDays++; });
+    var variance = 0;
+    daily.forEach(function (d) { variance += Math.pow(d.load - mean, 2); });
+    var sd = Math.sqrt(variance / RHYTHM.days);
+    var monotony = sd > 0 ? mean / sd : RHYTHM.flatMonotony;
+    var strain = total * monotony;
+
+    out.on = true;
+    out.daily = daily;
+    out.total = Math.round(total);
+    out.mean = Math.round(mean);
+    out.sd = Math.round(sd);
+    out.monotony = Math.round(monotony * 10) / 10;
+    /* 하루 부하가 모두 같아 표준편차가 0이면 긴장은 계산하지 않습니다(0으로 두고 문구로만 짚어 줍니다) */
+    out.strain = sd > 0 ? Math.round(strain) : 0;
+    out.trainDays = trainDays;
+    out.lightDays = lightDays;
+    out.restDays = RHYTHM.days - trainDays;
+    out.level = out.monotony >= RHYTHM.monotonyVeryHigh ? 'flat' : out.monotony >= RHYTHM.monotonyHigh ? 'high' : 'ok';
+    out.text = '지난 7일 부하 ' + out.total + ' · ' +
+      (sd > 0 ? '단조로움 ' + out.monotony + ' (2.0 넘으면 높은 편)' : '매일 같은 부하(단조로움 최대)') +
+      ' · 쉰 날 ' + out.restDays + '일';
+
+    var tips = [];
+    if (out.level !== 'ok' && out.restDays === 0) {
+      tips.push('지난 7일 동안 하루도 안 쉬었어요. 부하가 매일 비슷하게 쌓이면 몸살·감기 같은 게 늘 수 있다는 보고가 있어요 — 이번 주 하루는 완전히 쉬거나 20분만 가볍게 하세요.');
+    } else if (out.level !== 'ok') {
+      tips.push('쉰 날은 있는데 운동한 날 강도가 거의 같아요(단조로움 ' + out.monotony + '). 세게 친 날 다음 날은 강도 5 이하로 낮춰 오르내림을 만들어 주세요.');
+    } else if (out.lightDays >= 2) {
+      tips.push('세게 친 날과 가볍게 한 날이 번갈아 있어요. 오르내림은 좋은 리듬이에요' +
+        (out.restDays ? ' — 이대로 가세요.' : ' — 여기에 완전히 쉬는 날 하루만 더 넣으면 금상첨화예요.'));
+    } else if (out.restDays >= 2) {
+      tips.push('세게 친 날과 쉬는 날이 번갈아 있어요. 회복이 들어가는 좋은 리듬이에요 — 이대로 가세요.');
+    } else if (out.restDays === 1) {
+      tips.push('하루는 쉬었어요. 이 정도면 괜찮아요. 대회·시합이 가까운 주에는 하루 더 넣어 보세요.');
+    } else {
+      tips.push('지난 7일 중 완전히 쉰 날은 없었어요. 오르내림은 괜찮지만, 하루는 20분 이하로 확 줄이는 날을 넣어 두세요.');
+    }
+    if (out.level !== 'ok') {
+      tips.push('이번 주는 총량을 20~30% 줄이거나 세트 수를 하나 빼서 부하를 낮춰 보세요.');
+    }
+    out.tips = tips.slice(0, 2);
+    return out;
+  }
+
+  /* ---------- 선수 7대 훈련 밸런스 ----------
+   * 선수 유형은 일지에 7항목(스트록·벽치기·코어·풋워크·스매시·상체·하체)을 적습니다(domain.js PRO_ITEMS).
+   * 최근 2주 기록에서 무엇을 몇 번 했는지 세어 '아예 안 한 항목'만 1~2개로 짚어 줍니다.
+   * [MA25] 훈련 종류마다 올려 주는 게 달라서(코어→스매시·민첩성, 하체→파워, 밸런스→균형, HIIT→VO2max)
+   *        한 가지만 하면 구멍이 남습니다.
+   * [WANG25] 하체가 점프력에 가장 크고 코어는 힘 전달, 상체는 스매시 속도(근거 적음), 8주 넘게 해야 효과적. */
+  var PRO_BAL = {
+    days: 14,                 /* 지난 2주 */
+    minSessions: 3,           /* 7대 훈련을 3번은 적어야 말합니다 */
+    skewShare: 0.6,           /* 한 항목이 절반 넘게 차지하면 '쏠림' */
+    order: ['하체 근력운동', '코어', '상체 근력운동', '풋워크', '스트록', '벽치기', '스매시'],
+    court: ['스트록', '벽치기', '풋워크', '스매시'],
+    strength: ['하체 근력운동', '코어', '상체 근력운동'],
+    items: {
+      '하체 근력운동': {
+        how: '스쿼트 · 런지 10회 × 3세트, 주 2회 (8주는 채워야 늘어요)',
+        why: '점프 스매시 높이와 착지에서 버티는 힘은 하체 근력이 제일 크게 좌우해요.'
+      },
+      '코어': {
+        how: '플랭크 40초 × 3 + 데드버그 10회 × 3, 주 2회',
+        why: '코어가 받쳐 줘야 스매시 힘이 팔까지 그대로 넘어가요 — 8주 코어 훈련이 스매시 속도·정확도를 올렸어요.'
+      },
+      '상체 근력운동': {
+        how: '풀업이나 밴드 당기기 8~12회 × 3세트, 주 2회',
+        why: '어깨 뒤쪽 힘이 받쳐 줘야 스매시를 많이 쳐도 어깨가 안 찝혀요.'
+      },
+      '풋워크': {
+        how: '6코너 스텝 30초 × 6, 주 2회',
+        why: '발이 먼저 붙어야 스매시 준비가 돼요. 민첩성 훈련이 방향 전환을 앞당겨요.'
+      },
+      '스트록': {
+        how: '클리어 · 드롭 50개씩, 주 2~3회',
+        why: '코트에서 제일 많이 쓰는 기본기예요. 양이 줄면 경기에서 먼저 흔들려요.'
+      },
+      '벽치기': {
+        how: '벽치기 10분 × 2세트, 주 2회',
+        why: '짧은 시간에 손목·전완 리듬을 많이 가져갈 수 있어요.'
+      },
+      '스매시': {
+        how: '점프 스매시 20~30개 × 3세트, 주 1~2회',
+        why: '근력·코어가 받쳐 줄 때 스매시가 세지고 정확해져요 — 개수만 늘리면 어깨·팔꿈치가 먼저 지쳐요.'
+      }
+    },
+    source: 'Ma et al., BMC Sports Sci Med Rehabil, 2025 (DOI 10.1186/s13102-025-01199-y) · ' +
+      'Wang et al., Front Physiol, 2025 (DOI 10.3389/fphys.2025.1548869)',
+    sourceShort: '참고 논문 · Ma 2025 BMC Sports Sci Med Rehabil · Wang 2025 Front Physiol'
+  };
+
+  /* proBalance(records, draft) → { on, sessions, counts, missing, add, level, text, pattern }
+   * 같은 입력이면 항상 같은 결과 (순수 함수) */
+  function proBalance(records, draft) {
+    var out = {
+      on: false, title: '7대 훈련 밸런스', windowDays: PRO_BAL.days, sessions: 0,
+      counts: [], missing: [], add: [], level: '', label: '', text: '', pattern: '',
+      source: PRO_BAL.source, sourceShort: PRO_BAL.sourceShort
+    };
+    var today = U.parseYmd(U.ymd());
+    if (!today || !BM.domain || typeof BM.domain.proOf !== 'function') return out;
+
+    var counts = {}, last = {}, sessions = 0;
+    function eat(pro, date) {
+      var keys = Object.keys(pro || {});
+      if (!keys.length) return;
+      sessions++;
+      keys.forEach(function (k) {
+        if (PRO_BAL.order.indexOf(k) < 0) return;
+        counts[k] = (counts[k] || 0) + 1;
+        if (!last[k] || String(date) > String(last[k])) last[k] = date;
+      });
+    }
+
+    (records || []).forEach(function (r) {
+      var d = U.parseYmd(r.date);
+      if (!d) return;
+      var diff = Math.round((today - d) / 86400000);
+      if (diff < 0 || diff > PRO_BAL.days - 1) return;
+      eat(BM.domain.proOf(r), r.date);
+    });
+    /* 오늘 작성 중인 일지(아직 저장 전)도 한 번으로 셉니다 */
+    if (draft && draft.pro) {
+      var pro = BM.domain.normalizePro ? BM.domain.normalizePro(draft.pro) : draft.pro;
+      eat(pro, U.ymd());
+    }
+    if (sessions < PRO_BAL.minSessions) return out;
+
+    out.on = true;
+    out.sessions = sessions;
+    out.counts = PRO_BAL.order.map(function (n) {
+      return { name: n, n: counts[n] || 0, last: last[n] || '' };
+    });
+    out.missing = out.counts.filter(function (c) { return !c.n; }).map(function (c) { return c.name; });
+    var done = out.counts.filter(function (c) { return c.n > 0; })
+      .sort(function (a, b) { return b.n - a.n || (a.name < b.name ? -1 : 1); });
+    var top = done[0] || null;
+    var share = top ? top.n / sessions : 0;
+    var strengthEmpty = PRO_BAL.strength.every(function (n) { return !counts[n]; });
+    var courtDone = PRO_BAL.court.filter(function (n) { return counts[n]; });
+
+    out.level = !out.missing.length ? 'ok' : strengthEmpty ? 'skew' : 'miss';
+    out.label = !out.missing.length ? '7가지 다 했어요' : out.missing.length + '개 비었어요';
+    out.text = '지난 2주 동안 7대 훈련을 ' + sessions + '번 적었어요.';
+    if (out.level === 'skew') {
+      out.pattern = '코트에서 하는 ' + courtDone.join('·') + '만 했고, 힘을 만들어 주는 ' +
+        PRO_BAL.strength.join('·') + '은 한 번도 없어요.';
+    } else if (out.level === 'miss') {
+      out.pattern = (top ? '제일 많이 한 건 ' + top.name + '(' + top.n + '번)' : '고른 항목이 적었어요') +
+        '. ' + out.missing.slice(0, 3).join('·') + (out.missing.length > 3 ? ' 외 ' + (out.missing.length - 3) + '개' : '') + '는 아직 없어요.' +
+        (share >= PRO_BAL.skewShare ? ' 한쪽으로 쏠려 있어요.' : '');
+    } else {
+      out.pattern = '7가지가 다 들어갔어요. 이번 주도 이 순서대로 돌려 가면 돼요.';
+    }
+
+    if (out.missing.length) {
+      var rest = PRO_BAL.order.filter(function (n) { return out.missing.indexOf(n) >= 0; });
+      out.add = rest.slice(0, 2).map(function (n) {
+        var it = PRO_BAL.items[n] || { how: '', why: '' };
+        return { name: n, how: it.how, why: it.why };
+      });
+    }
+    return out;
+  }
+
   /* 급수 플랜 — 화면·시트 어디서든 같은 문구가 나오도록 */
   function gradePlan(level) {
     var g = gradeOf(level);
@@ -1854,6 +2089,9 @@
     /* 통증 부위·종목에 맞춘 예방 워밍업과 종목별 인터벌 기준 (논문 근거) */
     var prevent = preventionWarmup(painList, discipline);
     var guard = jointGuard(painList, weakSkills, { intensity: intensity, minutes: minutes, load: load });
+    /* 선수 7대 훈련 밸런스 · 주간 부하 리듬 (bm-v1.49.0) */
+    var balance = proBalance(history, draft);
+    var rhythm = loadRhythm(history, draft);
     var loadGuide = disciplineLoadGuide(discipline, level);
     painList.slice(0, 2).forEach(function (p) {
       var box = INJURY[p];
@@ -1931,6 +2169,8 @@
       care: care,
       prevent: prevent,
       guard: guard,
+      balance: balance,
+      rhythm: rhythm,
       loadGuide: loadGuide,
       offcourt: offcourtRoutine(discipline),
       pace: pace,
@@ -1970,6 +2210,7 @@
     gameFlow: gameFlow, loadIndex: loadIndex, scoreModeOf: scoreModeOf,
     preventionWarmup: preventionWarmup, disciplineLoadGuide: disciplineLoadGuide,
     jointGuard: jointGuard, SHOULDER_RISK: SHOULDER_RISK, LOWER_RISK: LOWER_RISK,
+    proBalance: proBalance, loadRhythm: loadRhythm, PRO_BAL: PRO_BAL, RHYTHM: RHYTHM,
     offcourtRoutine: offcourtRoutine, OFFCOURT: OFFCOURT,
     paceGuide: paceGuide, SELF_PACE: SELF_PACE,
     disciplineKey: disciplineKey, PREVENT: PREVENT, LOAD_GUIDE: LOAD_GUIDE,
