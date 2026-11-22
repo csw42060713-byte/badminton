@@ -751,6 +751,8 @@
     var host = el('main');
     if (!host) return;
     BM.views.start.mountOnboarding(host, {
+      /* v1.56 — 지금 적용된 테마(me.theme.theme)를 넘겨 시작 화면의 '앱 분위기'에 미리 골라 둡니다 */
+      theme: (store.state.me && store.state.me.theme && store.state.me.theme.theme) || 'th_night',
       onComplete: function (patch) {
         store.actions.saveProfile({
           nick: patch.nick, level: patch.level, discipline: patch.discipline,
@@ -758,6 +760,22 @@
           region: patch.region || '', club: patch.club || '',
           role: patch.role || ''
         });
+        /* v1.56 — 시작에서 고른 앱 분위기(테마)를 저장소에 바로 반영합니다.
+         *  MY › 테마와 같은 저장이라 하단 탭·모든 화면이 즉시 그 테마로 바뀝니다.
+         *  하트가 필요한 테마(사쿠라 등)는 시작 화면 카드에 가격이 보이고,
+         *  모자라면 원래 테마를 그대로 두고 한 줄로 알려 줍니다. */
+        var wantTheme = patch.theme || '';
+        var nowTheme = (store.state.me && store.state.me.theme && store.state.me.theme.theme) || 'th_night';
+        if (wantTheme && wantTheme !== nowTheme) {
+          var tr = store.actions.setTheme(wantTheme);
+          if (tr && tr.ok && tr.purchased) {
+            setTimeout(function () { UI.toast('고른 테마를 열었어요 · 하트 ' + tr.price + '개'); }, 700);
+          } else if (tr && !tr.ok && tr.reason === 'hearts') {
+            setTimeout(function () {
+              UI.toast('그 테마는 하트 ' + tr.price + '개가 필요해요. MY › 테마에서 열 수 있어요.');
+            }, 700);
+          }
+        }
         /* v1.40 — 고른 유형에 맞춰 일지 첫머리를 준비합니다:
          *  초보는 4주 루틴을 켜고, 선수는 7대 훈련 기록을 기본으로 보여 줍니다. */
         var roleDef = BM.domain.roleById(patch.role);
@@ -1034,7 +1052,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.55.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.56.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -446,6 +446,73 @@
     { id: 'th_sakura', name: '사쿠라', hint: '핑크 라이트', price: HEART_RULES.THEME_PRICES.th_sakura }
   ];
 
+  /* ---------- 컨디션 5단계 (bm-v1.56.0) ----------
+   * 저장은 예전처럼 1~10 숫자 그대로입니다(기존 일지·AI 계산·평균 컨디션 그대로).
+   * 입력 화면만 5개 구간으로 접어, 엄지로 한 번에 고르게 했습니다.
+   *   · 구간을 누르면 그 구간의 대표 점수(2·4·6·8·10)로 저장됩니다.
+   *   · 예전에 1·3·5·7·9처럼 저장된 일지를 고치면, 그 숫자가 속한 구간이 켜집니다. */
+  var CONDITION_BANDS = [
+    { id: 'rest', min: 1, max: 2, score: 2, short: '회복', label: '오늘은 회복이 먼저', hint: '피로가 쌓였어요 · 충분히 쉬어요' },
+    { id: 'light', min: 3, max: 4, score: 4, short: '가볍게', label: '가볍게 몸 풀기', hint: '무리하지 않고 가볍게' },
+    { id: 'normal', min: 5, max: 6, score: 6, short: '무난', label: '무난한 컨디션', hint: '평소대로 적당한 강도' },
+    { id: 'go', min: 7, max: 8, score: 8, short: '고강도', label: '오늘은 제대로 달리자', hint: '고강도 훈련 가능' },
+    { id: 'best', min: 9, max: 10, score: 10, short: '최고', label: '컨디션 최고!', hint: '최고의 타이밍' }
+  ];
+
+  function condBandOf(score) {
+    if (score == null || score === '') return null;
+    var n = Number(score);
+    if (!isFinite(n)) return null;
+    n = Math.round(n);
+    for (var i = 0; i < CONDITION_BANDS.length; i++) {
+      if (n >= CONDITION_BANDS[i].min && n <= CONDITION_BANDS[i].max) return CONDITION_BANDS[i];
+    }
+    /* 0이나 11처럼 범위를 벗어난 옛 값도 가장 가까운 끝 구간으로 붙여 줍니다 */
+    return n < CONDITION_BANDS[0].min ? CONDITION_BANDS[0] : CONDITION_BANDS[CONDITION_BANDS.length - 1];
+  }
+
+  function condBandById(id) {
+    for (var i = 0; i < CONDITION_BANDS.length; i++) {
+      if (CONDITION_BANDS[i].id === id) return CONDITION_BANDS[i];
+    }
+    return null;
+  }
+
+  /* 구간 → 저장 점수 (없는 id면 null) */
+  function condScoreOf(id) {
+    var b = condBandById(id);
+    return b ? b.score : null;
+  }
+
+  /* 화면에 쓰는 구간 표기: 5~6점 */
+  function condRangeText(score) {
+    var b = condBandOf(score);
+    return b ? b.min + '~' + b.max + '점' : '';
+  }
+
+  /* ---------- 시작 화면 앱 분위기 3종 (bm-v1.56.0) ----------
+   * MY › 테마와 같은 저장(me.theme.theme)이라 고르는 즉시 화면 전체가 바뀝니다. */
+  var ONB_THEMES = [
+    { id: 'th_night', note: '다크 코트 · 눈이 편한 어두운 화면' },
+    { id: 'th_def', note: '라이트 · 밝은 화이트 화면' },
+    { id: 'th_sakura', note: '사쿠라 핑크 · 부드러운 핑크 화면' }
+  ];
+
+  function onbThemes() {
+    return ONB_THEMES.map(function (t) {
+      var def = themeById(t.id) || {};
+      return {
+        id: t.id, name: def.name || t.id, hint: def.hint || '',
+        note: t.note, price: themePrice(t.id)
+      };
+    });
+  }
+
+  /* 여성이라고 골랐을 때만 사쿠라에 '추천' 배지를 답니다 — 강제 적용은 하지 않습니다. */
+  function onbThemeRecommended(themeId, gender) {
+    return themeId === 'th_sakura' && normalizeGender(gender) === '여성';
+  }
+
   var BASE_HEARTS = HEART_RULES.BASE;            // 가입 축하 하트 (구버전 호환)
   var HEART_COST_MATCH = HEART_RULES.MATCH_COST; // 1:1 매칭 신청 비용
 
@@ -3180,6 +3247,10 @@
     index: index, profileOf: profileOf, displayName: displayName, latestPerUser: latestPerUser,
     heartLedger: heartLedger, heartStatus: heartStatus,
     ownsTheme: ownsTheme, themeById: themeById, themePrice: themePrice,
+    /* v1.56 — 컨디션 5단계 · 시작 화면 앱 분위기 3종 */
+    CONDITION_BANDS: CONDITION_BANDS, condBandOf: condBandOf, condBandById: condBandById,
+    condScoreOf: condScoreOf, condRangeText: condRangeText,
+    ONB_THEMES: ONB_THEMES, onbThemes: onbThemes, onbThemeRecommended: onbThemeRecommended,
     stats: stats, matchScore: matchScore, levelGap: levelGap,
     chatRooms: chatRooms, matchRequests: matchRequests,
     ADMIN_EMAILS: ADMIN_EMAILS, ADMIN_TARGET: ADMIN_TARGET,

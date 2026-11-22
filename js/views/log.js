@@ -12,6 +12,28 @@
     return Math.round((U.clamp(v == null ? 5 : v, 1, 10) - 1) / 9 * 100);
   }
 
+  /* ---------- 컨디션 5단계 구간 (bm-v1.56.0) ----------
+   * 세로 화면에서 엄지로 바로 닿는 5줄 카드입니다. 한 줄에 구간(점수 범위)·한 줄 기준·
+   * 그날의 훈련 방향이 같이 보여서, 숫자를 고민하지 않고 "오늘 몸 상태"로 고를 수 있습니다.
+   * 저장은 예전 그대로 1~10 숫자(구간 대표 2·4·6·8·10)이고, 옛 일지의 1·3·5·7·9도
+   * condBandOf가 제 구간으로 붙여 주므로 수정할 때 그 구간이 켜집니다. */
+  function condBands(d) {
+    var now = D.condBandOf(d.cond);
+    return '<div class="condbands" role="radiogroup" aria-label="오늘 컨디션 5단계">' +
+      D.CONDITION_BANDS.map(function (b) {
+        var on = !!(now && now.id === b.id);
+        return '<button type="button" class="condband condband--' + b.id + (on ? ' is-on' : '') + '"' +
+          ' data-cond-band="' + b.id + '" data-cond-val="' + b.score + '" role="radio"' +
+          ' aria-checked="' + (on ? 'true' : 'false') + '">' +
+          '<span class="condband__range" aria-hidden="true">' + b.min + '~' + b.max + '</span>' +
+          '<span class="condband__txt"><b>' + U.esc(b.label) + '</b><small>' + U.esc(b.hint) + '</small></span>' +
+          '<span class="condband__mark" aria-hidden="true">' + UI.icon('check') + '</span>' +
+          '</button>';
+      }).join('') + '</div>' +
+      /* 저장·수정·자동 채움 연동이 칸 이름으로 값을 찾으므로 숨김 칸을 그대로 둡니다 */
+      '<input type="hidden" data-field="cond" value="' + (d.cond == null ? '' : d.cond) + '">';
+  }
+
   /* 영상 링크 입력칸 아래 한 줄 안내 — http(s)가 아니면 저장되지 않는다고 미리 알려 줍니다 */
   function videoHintOf(v) {
     var raw = String(v == null ? '' : v).trim();
@@ -1538,15 +1560,13 @@
             '<div class="row mt8"><button type="button" class="linkbtn" data-act="cancel-edit">수정 취소</button></div></div>'
           : '') +
 
-        '<div class="fieldgrid">' +
-        '<div class="field"><div class="field__label"><span>컨디션</span><b data-out="cond"' + (d.cond == null ? ' class="is-unset"' : '') + '>' + (d.cond == null ? '미입력' : d.cond) + '</b></div>' +
-        '<input type="range" min="1" max="10" step="1" value="' + (d.cond == null ? 5 : d.cond) + '" data-field="cond" class="range" style="--fill:' + fillOf(d.cond) + '%' + '" aria-label="컨디션 1에서 10">' +
-        '<div class="range__ends"><span>무거움</span><span>가벼움</span></div></div>' +
+        /* v1.56 — 컨디션은 5단계 구간 카드(세로 5줄)로 고릅니다. 훈련강도는 그대로 슬라이더 */
+        '<div class="field field--cond"><div class="field__label"><span>컨디션</span><b data-out="cond"' + (d.cond == null ? ' class="is-unset"' : '') + '>' + (d.cond == null ? '미입력' : D.condRangeText(d.cond)) + '</b></div>' +
+        condBands(d) + '</div>' +
 
-        '<div class="field"><div class="field__label"><span>훈련강도</span><b data-out="intensity"' + (d.intensity == null ? ' class="is-unset"' : '') + '>' + (d.intensity == null ? '미입력' : d.intensity) + '</b></div>' +
+        '<div class="field field--intensity"><div class="field__label"><span>훈련강도</span><b data-out="intensity"' + (d.intensity == null ? ' class="is-unset"' : '') + '>' + (d.intensity == null ? '미입력' : d.intensity) + '</b></div>' +
         '<input type="range" min="1" max="10" step="1" value="' + (d.intensity == null ? 5 : d.intensity) + '" data-field="intensity" class="range" style="--fill:' + fillOf(d.intensity) + '%' + '" aria-label="훈련 강도 1에서 10">' +
         '<div class="range__ends"><span>가볍게</span><span>전력</span></div></div>' +
-        '</div>' +
 
         '<div class="field"><div class="field__label"><span>운동 시간</span><b data-out="minutes"' + (d.minutes == null ? ' class="is-unset"' : '') + '>' + (d.minutes == null ? '미입력' : d.minutes + '분') + '</b></div>' +
         '<div class="stepper"><button type="button" class="step" data-step="-5" aria-label="5분 줄이기">−</button>' +
@@ -1704,6 +1724,32 @@
       }, { passive: true });
 
       form.addEventListener('click', function (ev) {
+        /* v1.56 — 컨디션 5단계: 누른 구간만 켜고, 그 구간의 대표 점수(2·4·6·8·10)를 저장합니다.
+         * 다시 누르면 선택을 풀어 '미입력'으로 돌아갑니다(칸을 비워 저장하는 예전 방식 그대로). */
+        var band = ev.target.closest('[data-cond-band]');
+        if (band) {
+          ev.preventDefault();
+          var wasOn = band.classList.contains('is-on');
+          var picked = wasOn ? null : Number(band.getAttribute('data-cond-val'));
+          Array.prototype.forEach.call(form.querySelectorAll('[data-cond-band]'), function (b) {
+            b.classList.remove('is-on');
+            b.setAttribute('aria-checked', 'false');
+          });
+          if (!wasOn && isFinite(picked)) {
+            band.classList.add('is-on');
+            band.setAttribute('aria-checked', 'true');
+          }
+          var co = form.querySelector('[data-out="cond"]');
+          if (co) {
+            co.textContent = picked == null ? '미입력' : D.condRangeText(picked);
+            co.classList.toggle('is-unset', picked == null);
+          }
+          var hidden = form.querySelector('input[data-field="cond"]');
+          if (hidden) hidden.value = picked == null ? '' : picked;
+          ctx.actions.setDraft({ cond: picked });
+          UI.haptic(wasOn ? 4 : 8);
+          return;
+        }
         var step = ev.target.closest('[data-step]');
         if (step) {
           ev.preventDefault();
