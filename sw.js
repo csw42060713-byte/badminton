@@ -140,8 +140,12 @@
  *             주간 부하 리듬(단조로움 = 7일 하루 부하 평균÷표준편차, 쉰 날 수)이 붙어
  *             매일 비슷하게 세게 친 주를 짚어 줍니다(Foster 1998 MSSE · Haddad 2017 Front Neurosci).
  *             js/ai.js·js/views/log.js만 바뀌었지만 캐시 키를 올려 새 파일을 받도록 합니다.
+ * 2026-11-22: 🎥 영상 자세 비교(bm-v1.50.0) — 일지 & AI 첫 카드에서 여는 전체화면 패널.
+ *             폰에서 고른 짧은 영상을 서버로 보내지 않고 브라우저 안(MediaPipe Pose)에서만 분석해
+ *             33개 관절을 읽고, 스켈레톤 캔버스 + 논문 기준 비교 카드(팔꿈치·타점·무릎·몸통)를 보여 줍니다.
+ *             js/pose.js가 새로 들어갔고, 자세 모델(WASM·task 약 10MB)은 처음 한 번만 CDN에서 받습니다.
  * ============================================================ */
-var VERSION = 'bm-v1.49.0';
+var VERSION = 'bm-v1.50.0';
 var SHELL = [
   './',
   './index.html',
@@ -166,6 +170,7 @@ var SHELL = [
   './js/scoreboard.js',
   './js/timer.js',
   './js/report.js',
+  './js/pose.js',
   './js/views/profile.js',
   './js/views/friends.js',
   './js/views/chat.js',

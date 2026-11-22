@@ -8,8 +8,13 @@
 <!-- bm-v1.41.1 — 보안 장치(CSP). 다른 곳에서 들어온 스크립트·iframe·엉뚱한 주소를
      브라우저가 먼저 막습니다. 아래 두 해시는 이 파일의 인라인 스크립트(테마 부트스트랩·
      로딩 안전망)와 짝입니다. 인라인 스크립트를 고치면 해시도 함께 바꿔야 합니다
-     (test/v141_1.test.js가 자동으로 확인합니다). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com 'sha256-INWe/ZxfH4F6qWiJqxsEThPW9Jdnza93ljULyO5kONE=' 'sha256-rBT/184oEeaTp5T04yQ08/fyWhcM0n8C3Vjm3Zjn3LQ='; style-src 'self' 'unsafe-inline' https://accounts.google.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://mwgpakntlollndfluwgg.supabase.co wss://mwgpakntlollndfluwgg.supabase.co https://accounts.google.com https://script.google.com https://script.googleusercontent.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self'">
+     (test/v141_1.test.js가 자동으로 확인합니다).
+     bm-v1.50.0 — 영상 자세 비교(MediaPipe Pose) 때문에 아래 세 가지만 더 열었습니다.
+       · script-src  https://cdn.jsdelivr.net (자세 모델 코드) · 'wasm-unsafe-eval'(WASM 실행)
+       · connect-src 위 주소와 https://storage.googleapis.com (자세 모델 파일 6MB 다운로드)
+       · media-src   'self' blob: (폰에서 고른 영상 파일을 blob: 주소로만 재생)
+     'unsafe-eval'·'unsafe-inline'는 그대로 막혀 있습니다. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com 'sha256-INWe/ZxfH4F6qWiJqxsEThPW9Jdnza93ljULyO5kONE=' 'sha256-rBT/184oEeaTp5T04yQ08/fyWhcM0n8C3Vjm3Zjn3LQ=' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://accounts.google.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://mwgpakntlollndfluwgg.supabase.co wss://mwgpakntlollndfluwgg.supabase.co https://accounts.google.com https://script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://storage.googleapis.com; frame-src https://accounts.google.com; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="color-scheme" content="light dark">
 <meta name="description" content="일지·AI 분석·1:1 매칭·커뮤니티·코치 피드백을 한 화면에 담은 모바일 배드민턴 앱">
@@ -36,7 +41,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=20261122-61">
+<link rel="stylesheet" href="styles.css?v=20261122-62">
 <!-- 지도(Leaflet) 스타일·코드는 저장소에 함께 넣었습니다 — 오프라인에서도 지도 틀이 뜨고, 외부 CDN에 기대지 않습니다 -->
 <link rel="stylesheet" href="js/vendor/leaflet/leaflet.css">
 <link rel="preconnect" href="https://accounts.google.com">
@@ -148,6 +153,7 @@ setTimeout(function () {
 <script defer src="js/scoreboard.js"></script>
 <script defer src="js/timer.js"></script>
 <script defer src="js/report.js"></script>
+<script defer src="js/pose.js"></script>
 <script defer src="js/views/profile.js"></script>
 <script defer src="js/views/friends.js"></script>
 <script defer src="js/views/chat.js"></script>

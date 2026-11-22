@@ -6017,3 +6017,108 @@ body {
   transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center center;
 }
+
+/* ============================================================
+ * 🎥 영상 자세 비교 (bm-v1.50.0) — 일지 & AI에서 여는 전체화면 패널
+ *  · 두 개의 코트 도구(점수판·영상)는 한 줄에 나란히 둡니다.
+ *  · 캔버스는 세로 영상 비율에 맞춰 폭을 꽉 채우고, 카드는 재지 못한 항목도
+ *    같은 모양으로 보이도록 왼쪽 색 띠로만 판정을 알립니다.
+ * ============================================================ */
+.courttools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.courttools .courttool { margin-top: 0; padding: 10px 11px; gap: 8px; min-height: 52px; }
+.courttools .courttool__t { font-size: 12.5px; }
+.courttools .courttool__t small { font-size: 10px; }
+
+.posep__panel { background: var(--bg); }
+.pose__body { display: grid; gap: 10px; align-content: start; }
+.pose__privacy {
+  display: flex; align-items: flex-start; gap: 7px;
+  margin: 8px 0 0; padding: 9px 11px;
+  border-radius: 12px; border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  font-size: 11.5px; line-height: 1.45; color: var(--text-2);
+}
+.pose__privacy .ico { width: 14px; height: 14px; flex: 0 0 auto; margin-top: 1px; color: var(--accent); }
+.pose__privacy b { color: var(--text); }
+.pose__modes { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin-top: 0; }
+.pose__modes .seg__btn { padding: 0 8px; font-size: 12px; }
+.pose__pick {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 14px; min-height: 58px;
+  border-radius: 16px; border: 1px dashed var(--accent-line);
+  background: var(--card); cursor: pointer;
+}
+.pose__pick:active { transform: scale(0.99); }
+.pose__pick .ico { width: 20px; height: 20px; color: var(--accent); flex: 0 0 auto; }
+.pose__pick span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pose__pick b { font-size: 13.5px; font-weight: 800; letter-spacing: -0.3px; }
+.pose__pick small { font-size: 10.5px; color: var(--muted); }
+.pose__pick input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.pose__status {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 13px; border-radius: 14px;
+  background: var(--card-2); border: 1px solid var(--line);
+  font-size: 12px; line-height: 1.5; color: var(--text-2);
+}
+.pose__status p { margin: 0; flex: 1; min-width: 160px; }
+.pose__status--err { border-color: color-mix(in srgb, var(--danger, #e5484d) 35%, var(--line)); }
+.pose__spin {
+  width: 15px; height: 15px; flex: 0 0 auto; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-top-color: var(--accent);
+  animation: poseSpin 800ms linear infinite;
+}
+@keyframes poseSpin { to { transform: rotate(360deg); } }
+.pose__stage { display: grid; gap: 8px; }
+.pose__stage[hidden] { display: none; }
+.pose__canvas {
+  width: 100%; height: auto; display: block;
+  border-radius: 16px; border: 1px solid var(--line);
+  background: #08100e;
+}
+.pose__scrub { align-items: center; }
+.pose__scrub input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.pose__t { font-size: 11px; font-weight: 700; color: var(--muted); min-width: 46px; text-align: right; }
+.pose__legend { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--muted); }
+.pose__dot { width: 7px; height: 7px; border-radius: 50%; background: #c6f24e; flex: 0 0 auto; }
+.pose__one {
+  padding: 11px 13px; border-radius: 13px;
+  background: var(--accent-soft); border: 1px solid var(--accent-line);
+  font-size: 12.5px; font-weight: 700; line-height: 1.45; letter-spacing: -0.2px;
+}
+.pose__cards:empty { display: none; }
+.pose__actions[hidden] { display: none; }
+.pose__actions.is-off { display: none; }
+.posecards { display: grid; gap: 8px; margin: 2px 0 0; padding: 0; list-style: none; }
+.posecard {
+  position: relative; padding: 11px 13px 11px 15px;
+  border-radius: 14px; border: 1px solid var(--line);
+  background: var(--card);
+}
+.posecard::before {
+  content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px;
+  border-radius: 3px; background: var(--muted);
+}
+.posecard.is-good::before { background: var(--accent); }
+.posecard.is-low::before, .posecard.is-high::before { background: #f5a524; }
+.posecard__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.posecard__name { font-size: 12.5px; font-weight: 800; letter-spacing: -0.25px; }
+.posecard__badge {
+  font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted);
+  white-space: nowrap;
+}
+.posecard.is-good .posecard__badge { background: var(--accent-soft); color: var(--accent); }
+.posecard.is-low .posecard__badge, .posecard.is-high .posecard__badge { background: #f5a52426; color: #b26a00; }
+.posecard__row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.posecard__mine { font-size: 12px; color: var(--muted); }
+.posecard__mine b { font-size: 19px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; }
+.posecard__ref { font-size: 10.5px; color: var(--muted); }
+.posecard__bar {
+  position: relative; height: 4px; margin-top: 7px; border-radius: 4px;
+  background: color-mix(in srgb, var(--text) 8%, transparent); overflow: hidden;
+}
+.posecard__bar i { position: absolute; left: 0; top: 0; bottom: 0; width: var(--w, 0%); border-radius: 4px; background: var(--accent); }
+.posecard.is-low .posecard__bar i, .posecard.is-high .posecard__bar i { background: #f5a524; }
+.posecard__tip { margin: 7px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--text-2); }
+.pose__foot { margin: 4px 2px 0; font-size: 10px; line-height: 1.55; color: var(--muted); }

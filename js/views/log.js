@@ -1228,11 +1228,14 @@
         '<div><span>이번 달</span><strong>' + (stats.minutesMonth || 0) + '<i>분</i></strong></div>' +
         '<div><span>평균 컨디션</span><strong>' + (stats.avgCond == null ? '—' : stats.avgCond) + '</strong></div>' +
         '</div>' +
-        /* 코트에서 바로 쓰는 점수판 입구 — 계산은 js/scoreboard.js */
+        /* 코트에서 바로 쓰는 도구 — 점수판·영상 자세 비교를 한 줄에 (bm-v1.50.0) */
+        '<div class="courttools">' +
         '<button type="button" class="courttool" data-act="open-scoreboard">' +
         UI.icon('plus') +
         '<span class="courttool__t">코트 점수판<small>21·25점 · 듀스 자동 · 끝나면 일지로</small></span>' +
         UI.icon('arrow', 'courttool__car') + '</button>' +
+        (BM.pose ? BM.pose.entryHtml() : '') +
+        '</div>' +
         '</section>' +
 
         routineBlock(state) +
@@ -1573,6 +1576,13 @@
           ev.preventDefault();
           UI.haptic(8);
           scoreboardOpen(ctx);
+          return;
+        }
+        /* 🎥 영상 자세 비교 — 온디바이스 MediaPipe (bm-v1.50.0) */
+        if (ev.target.closest('[data-act="open-pose"]')) {
+          ev.preventDefault();
+          UI.haptic(8);
+          if (BM.pose) BM.pose.openFrom(ctx);
           return;
         }
         /* 드릴 · 워밍업 옆 카운트다운 타이머 (한 번에 하나만) */

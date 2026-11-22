@@ -199,12 +199,12 @@
   /* ---------- 5. 버전 · 문서 ---------- */
   test('v1.42.1 버전: sw · app · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.49.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.49.0'", 'app.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.50.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.50.0'", 'app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.49.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.49.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 41, 'TWA 버전 코드(웹만 바뀌면 그대로)');
+    eq(twa.appVersionName, '1.50.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.50.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 42, 'TWA 버전 코드(웹만 바뀌면 그대로)');
   });
 
   test('v1.42.1 문서: README·아이디어 노트에 이번 사이클이 남는다', function () {
