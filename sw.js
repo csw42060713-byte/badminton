@@ -187,8 +187,20 @@
  *             고를 수 있고(여성일 때만 사쿠라에 은은한 '추천' 배지), 고른 테마는 MY › 테마와 같은
  *             저장이라 시작하자마자 앱 전체에 적용됩니다. js/domain.js·js/views/log.js·
  *             js/views/start.js·app.js·styles.css 가 바뀌어 캐시를 bm-v1.56.0으로 올립니다.
+ * 2026-11-23: 📸 테마 전체 무료 · 인스타 공유 카드 · 푸시 알림 틀(bm-v1.57.0) —
+ *             테마 4종(기본 코트·나이트·사쿠라·라임 코트)을 모두 무료로 바꿨습니다
+ *             (시작 화면 카드의 '하트 2' 배지·안내 삭제, MY › 테마는 누르면 바로 적용).
+ *             일지 저장 직후·최근 기록 상세·MY에서 '인스타 공유 카드'를 열어 1080×1350
+ *             (4:5) 카드를 만듭니다 — 오늘 운동(오운완: 운동 시간·승패/스코어·연속 일수)과
+ *             대회 인증(대회명·급수/종목·성적·파트너) 두 모드, 내 사진 위에 얹기·다크 코트 카드,
+ *             배경 투명 PNG 스티커 세 가지. 사진은 폰 안에서만 합성되고 서버로 보내지 않습니다.
+ *             실시간 푸시 알림(FCM Web Push) 틀을 넣었습니다 — sw.js가 push 페이로드(제목·본문·링크)를
+ *             받아 알림을 띄우고, 누르면 그 탭·채팅으로 열거나 앞으로 가져옵니다. MY › 알림·편지지에
+ *             '실시간 푸시 알림' 스위치와 권한 상태(허용됨·차단됨·미설정·Firebase 연결 준비됨)를
+ *             에러 없이 보여 주고, js/api.js 의 VAPID 공개 키가 채워지면 PushManager.subscribe로
+ *             구독을 이 기기에 저장합니다. js/sharecard.js·js/push.js 가 새로 들어갑니다.
  * ============================================================ */
-var VERSION = 'bm-v1.56.0';
+var VERSION = 'bm-v1.57.0';
 var SHELL = [
   './',
   './index.html',
@@ -215,6 +227,8 @@ var SHELL = [
   './js/report.js',
   './js/pose.js',
   './js/safety.js',
+  './js/sharecard.js',
+  './js/push.js',
   './js/views/profile.js',
   './js/views/friends.js',
   './js/views/chat.js',
@@ -261,18 +275,75 @@ self.addEventListener('message', function (event) {
   if (data && data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-/* v1.20 — 새 메시지 알림을 누르면 앱 창을 앞으로 (안드로이드 크롬은 이 경로로만 알림이 뜹니다) */
+/* v1.20 — 새 메시지 알림을 누르면 앱 창을 앞으로 (안드로이드 크롬은 이 경로로만 알림이 뜹니다)
+ * v1.57 — 푸시 알림의 링크(data.url)를 그 화면으로 이어 줍니다. 앱이 이미 열려 있으면
+ *        postMessage로 화면만 바꾸고, 아니면 해시를 붙여 새 창을 엽니다. */
+var PUSH_TABS = ['log', 'matching', 'community', 'coach', 'my'];
+
+/* 푸시 페이로드 → 알림 글·갈 곳. JSON이 아니면 본문 글자만 씁니다. */
+function pushPayload(data) {
+  var out = { title: '배드민턴', body: '', url: './', tag: '' };
+  try {
+    if (data && typeof data === 'object') {
+      out.title = String(data.title || data.heading || out.title).slice(0, 80);
+      out.body = String(data.body || data.message || data.text || '').slice(0, 180);
+      out.tag = String(data.tag || data.topic || '').slice(0, 64);
+      out.url = pushTargetUrl(data.url || data.link || data.click_action || '');
+    } else if (data != null) {
+      out.body = String(data).slice(0, 180);
+    }
+  } catch (e) { /* 깨진 페이로드는 기본 알림으로 */ }
+  return out;
+}
+
+/* 알림 링크는 앱 안 화면으로만 — 다른 주소가 오면 첫 화면으로 */
+function pushTargetUrl(raw) {
+  var s = String(raw || '').trim();
+  var i = s.indexOf('#');
+  if (i >= 0) s = s.slice(i + 1);
+  s = s.replace(/^\/+/, '');
+  var seg = s.split(/[\/?#&]+/)[0].toLowerCase();
+  if (seg === 'chat') return './#/matching';
+  if (PUSH_TABS.indexOf(seg) >= 0) return './#/' + seg;
+  return './';
+}
+
+self.addEventListener('push', function (event) {
+  var data = null;
+  try { data = event.data ? event.data.json() : null; } catch (e) {
+    try { data = event.data ? event.data.text() : null; } catch (e2) { data = null; }
+  }
+  var msg = pushPayload(data);
+  event.waitUntil(
+    self.registration.showNotification(msg.title, {
+      body: msg.body,
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+      tag: msg.tag || 'bm-push',
+      renotify: !!msg.tag,
+      data: { url: msg.url },
+      timestamp: Date.now()
+    }).catch(function () { /* 알림을 못 띄워도 서비스워커는 살아 있음 */ })
+  );
+});
+
 self.addEventListener('notificationclick', function (event) {
+  var data = event.notification && event.notification.data ? event.notification.data : {};
+  var target = pushTargetUrl(data.url || '');
   event.notification.close();
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
       for (var i = 0; i < list.length; i++) {
         var c = list[i];
         if (c && typeof c.focus === 'function') {
-          return c.focus().then(function () { return c; });
+          return c.focus().then(function () {
+            /* 앱이 이미 열려 있으면 탭 이동 메시지로 — 화면을 다시 띄우지 않습니다 */
+            try { c.postMessage({ type: 'BM_PUSH_OPEN', url: target }); } catch (e) { /* 무시 */ }
+            return c;
+          });
         }
       }
-      if (self.clients.openWindow) return self.clients.openWindow('./');
+      if (self.clients.openWindow) return self.clients.openWindow(target);
     }).catch(function () { /* 무시 */ })
   );
 });

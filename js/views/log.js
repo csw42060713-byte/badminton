@@ -656,14 +656,16 @@
           '</div></details>'
         : '') +
 
-      /* 저장 직후에만 보이는 "커뮤니티에 공유" 스트립 */
+      /* 저장 직후에만 보이는 "커뮤니티에 공유" 스트립 — v1.57 인스타 공유 카드도 바로 */
       (state && state.ui && state.ui.lastSavedLog
         ? '<div class="sharebar" data-region="share">' +
-          '<p class="sharebar__t">오늘 운동을 커뮤니티에 남길까요?</p>' +
+          '<p class="sharebar__t">오늘 운동을 자랑할까요?</p>' +
           '<p class="sharebar__s">' + U.esc(sharePreview(state.ui.lastSavedLog)) + '</p>' +
           '<div class="sharebar__acts">' +
-          '<button type="button" class="btn btn--primary grow" data-act="share-log">' + UI.icon('community') + '커뮤니티에 오늘 운동 공유</button>' +
-          '<button type="button" class="btn btn--ghost" data-act="dismiss-share">나중에</button></div></div>'
+          '<button type="button" class="btn btn--primary grow" data-act="share-card">' + UI.icon('camera') + '인스타 공유 카드 만들기</button>' +
+          '<button type="button" class="btn btn--ghost" data-act="dismiss-share">나중에</button></div>' +
+          '<div class="sharebar__acts">' +
+          '<button type="button" class="btn btn--ghost grow" data-act="share-log">' + UI.icon('community') + '커뮤니티에 오늘 운동 공유</button></div></div>'
         : '') +
       '</section>';
   }
@@ -2007,6 +2009,13 @@
           return;
         }
         /* 저장 직후 공유 스트립 (분석 카드 안 · 폼 밖) */
+        if (ev.target.closest('[data-act="share-card"]')) {
+          ev.preventDefault();
+          if (!BM.sharecard) { UI.toast('공유 카드를 준비하고 있어요', 'error'); return; }
+          UI.haptic(6);
+          BM.sharecard.open(ctx, { mode: 'today', record: ctx.store.state.ui.lastSavedLog || null });
+          return;
+        }
         if (ev.target.closest('[data-act="share-log"]')) {
           ev.preventDefault();
           var shared = ctx.actions.shareLogToCommunity();
@@ -2061,6 +2070,14 @@
           body: recordDetail(rec),
           onMount: function (node) {
             node.addEventListener('click', function (e2) {
+              if (e2.target.closest('[data-act="share-card"]')) {
+                e2.preventDefault();
+                if (!BM.sharecard) { UI.toast('공유 카드를 준비하고 있어요', 'error'); return; }
+                UI.closeSheet();
+                UI.haptic(6);
+                BM.sharecard.open(ctx, { mode: 'today', record: rec });
+                return;
+              }
               if (e2.target.closest('[data-act="edit-log"]')) {
                 e2.preventDefault();
                 /* 시트를 먼저 닫고 그 날 일지를 입력칸으로 불러옵니다 */
@@ -2249,8 +2266,11 @@
         '</div>' : '') +
       (rec.drills && rec.drills.drills ? '<h3 class="sec-title">추천드릴</h3><ul class="bullets">' +
         rec.drills.drills.map(function (d) { return '<li><b>' + U.esc(d.name) + '</b> · ' + U.esc(d.sets) + '</li>'; }).join('') + '</ul>' : '') +
-      /* 지난 일지 고치기 — 닫기(시트 상단 X) 말고 수정·삭제를 바로 둡니다 */
-      '<div class="row gap8 mt16" data-log-actions>' +
+      /* 지난 일지 고치기 — 닫기(시트 상단 X) 말고 수정·삭제를 바로 둡니다.
+       * v1.57 — 이 일지로 인스타 공유 카드를 만드는 버튼은 위에 크게 한 줄로 */
+      '<button type="button" class="btn btn--primary btn--big mt16" data-act="share-card">' +
+      UI.icon('camera') + '인스타 공유 카드 만들기</button>' +
+      '<div class="row gap8 mt8" data-log-actions>' +
       '<button type="button" class="btn btn--ghost grow" data-act="edit-log">' + UI.icon('edit') + '수정</button>' +
       '<button type="button" class="btn btn--ghost grow" data-act="delete-log">' + UI.icon('trash') + '삭제</button>' +
       '</div>';

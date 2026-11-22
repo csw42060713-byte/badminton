@@ -43,61 +43,30 @@
     return '<span class="pill pill--style">' + U.esc(s) + '</span>';
   }
 
+  /* bm-v1.57.0 — 테마 4종은 모두 무료입니다. 하트 배지·잠금·구매 안내 없이
+   * 누르는 즉시 적용되고, 고른 테마는 MY › 테마와 시작 화면이 같은 저장을 씁니다. */
   function themeSwatches(state) {
     var current = (state.me && state.me.theme && state.me.theme.theme) || 'th_def';
-    var meKey = (state.me && state.me.key) || '';
     return '<div class="themes">' + D.THEMES.map(function (t) {
-      var owned = D.ownsTheme(state.data.idx, meKey, t.id);
-      var price = D.themePrice(t.id);
       return '<button class="theme swatch--' + t.id + (current === t.id ? ' is-on' : '') + '" data-theme="' + t.id + '"' +
         ' aria-pressed="' + (current === t.id ? 'true' : 'false') + '"' +
-        ' title="' + U.esc(t.name + (owned ? '' : ' · 하트 ' + price + '개로 열기')) + '">' +
+        ' title="' + U.esc(t.name + (current === t.id ? ' · 지금 테마' : ' · 무료')) + '">' +
         '<span class="theme__dot"></span><span class="theme__name">' + U.esc(t.name) + '</span>' +
-        '<span class="theme__hint">' + U.esc(t.hint) + '</span>' +
-        (owned || price <= 0 ? '' : '<span class="decolock theme__lock">하트 ' + price + '</span>') + '</button>';
+        '<span class="theme__hint">' + U.esc(t.hint) + '</span></button>';
     }).join('') + '</div>';
   }
 
-  /* 테마 고르기 — 저장(하트 차감)이 끝난 뒤에만 화면 테마를 바꿉니다.
-   * 예전에는 결과를 보지 않고 바로 칠해서, 하트가 모자라도 '적용했어요'라고
-   * 알리고 화면만 바뀌었다가 새로고침하면 되돌아갔습니다. */
+  /* 테마 고르기 — 모두 무료라 하트 확인 없이 바로 저장·적용합니다.
+   * 예전에 하트로 열었던 기기·구매 기록은 그대로 남고 원장 계산도 건드리지 않습니다. */
   function pickTheme(ctx, id) {
-    var state = ctx.store.state;
-    var meKey = (state.me && state.me.key) || '';
-    var price = D.themePrice(id);
-    var owned = D.ownsTheme(state.data.idx, meKey, id);
-    var balance = (state.data.hearts && state.data.hearts.balance) || 0;
-
-    function apply() {
-      var res = ctx.actions.setTheme(id);
-      if (res && res.ok) {
-        /* 테마 적용·잔액은 store가 emit하면서 화면에 바로 반영됩니다 */
-        UI.haptic(8);
-        UI.toast(res.purchased ? '하트 ' + res.price + '개로 테마를 열었어요' : '테마를 적용했어요');
-        return;
-      }
-      if (res && res.reason === 'hearts') {
-        /* 테마도 공용 충전 시트에서 바로 채우고 이어서 다시 시도합니다 */
-        var themeName = U.esc((D.themeById(id) || {}).name || '테마');
-        openHeartSheet(ctx, {
-          need: price,
-          intro: function (s) {
-            return '<p class="sheet__text">' + themeName +
-              ' 테마는 <b>하트 ' + price + '개</b>로 열 수 있어요. 지금 <b>' + s.balance + '개</b> 있어요.' +
-              (s.balance < price ? ' <span class="warn">' + (price - s.balance) + '개 부족</span>' : '') + '</p>';
-          },
-          continueLabel: '테마 열기',
-          onContinue: apply
-        });
-        return;
-      }
-      if (res && res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
-      else UI.toast('테마를 바꾸지 못했어요', 'error');
+    var res = ctx.actions.setTheme(id);
+    if (res && res.ok) {
+      UI.haptic(8);
+      UI.toast('테마를 적용했어요');
+      return;
     }
-
-    if (owned || price <= 0) { apply(); return; }
-    UI.confirm(((D.themeById(id) || {}).name || '테마') + ' — 하트 ' + price + '개로 열까요? 한 번 열면 계속 써요. 지금 하트 ' + balance + '개.', '열기')
-      .then(function (yes) { if (yes) apply(); });
+    if (res && res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+    else UI.toast('테마를 바꾸지 못했어요', 'error');
   }
 
   /* ---------- 하트 충전(공용 시트) ----------
@@ -186,8 +155,8 @@
         : '<p class="hint">아직 하트 내역이 없어요. 출석 체크로 시작해 보세요.</p>') +
       (hearts.history && hearts.history.length > 3
         ? '<button class="linkbtn" data-act="history">전체 내역 ' + hearts.history.length + '건 보기</button>' : '') +
-      '<p class="hint">광고는 ' + hearts.adCooldownSec + '초 간격 · 매칭 ' + hearts.matchCost + ' · 테마 ' +
-      D.HEART_RULES.THEME_PRICES.th_court + ' · 선물 ' + hearts.giftCost + '</p>' +
+      '<p class="hint">광고는 ' + hearts.adCooldownSec + '초 간격 · 매칭 ' + hearts.matchCost + ' · 선물 ' + hearts.giftCost +
+      ' · 테마는 모두 무료예요</p>' +
       '</section>';
   }
 
@@ -357,6 +326,31 @@
       '<i aria-hidden="true"></i><span>' + (on ? '켬' : '끔') + '</span></button></div>';
   }
 
+  /* 실시간 푸시 알림 (bm-v1.57.0) — Firebase 키가 붙기 전에도 상태를 에러 없이 보여 주고,
+   * 키가 들어오면 스위치를 켜 둔 사람부터 그대로 구독됩니다. */
+  function pushStatusOf() {
+    if (BM.push && BM.push.status) return BM.push.status();
+    return { id: 'ready', label: 'Firebase 연결 준비됨 · 곧 켜져요' };
+  }
+
+  function pushRow(state) {
+    var on = !!(state && state.prefs && state.prefs.push === true);
+    var st = pushStatusOf();
+    var hint = st.id === 'denied'
+      ? '브라우저 알림이 차단되어 있어요. 폰 설정 > 사이트 설정에서 이 사이트 알림을 허용하면 켜져요.'
+      : st.id === 'unsupported'
+        ? '이 브라우저는 실시간 푸시를 지원하지 않아요. 앱 안 배너로 알려 드려요.'
+        : st.firebaseReady
+          ? '새 메시지·1:1 요청·게스트 신청을 앱을 닫아 둬도 폰 알림으로 받아요.'
+          : '앱을 닫아 둬도 폰 알림으로 받는 기능이에요. 지금은 준비만 해 두고, 키가 연결되면 자동으로 켜집니다.';
+    return '<div class="prefrow prefrow--push" data-pref-row="push">' +
+      '<div class="prefrow__t"><strong>실시간 푸시 알림</strong><p>' + U.esc(hint) + '</p>' +
+      '<span class="pushstatus pushstatus--' + U.esc(st.id) + '" data-push-status>' + U.esc(st.label) + '</span></div>' +
+      '<button type="button" class="switch' + (on ? ' is-on' : '') + '" role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
+      ' aria-label="실시간 푸시 알림 ' + (on ? '끄기' : '켜기') + '" data-act="toggle-push">' +
+      '<i aria-hidden="true"></i><span>' + (on ? '켬' : '끔') + '</span></button></div>';
+  }
+
   function alarmPanel(state) {
     var perm = (typeof Notification !== 'undefined' && Notification.permission) || 'unsupported';
     var hint = perm === 'granted' ? '<p class="hint">브라우저 알림이 허용되어 있어요. 다른 탭·백그라운드에서도 알려 줘요.</p>'
@@ -365,12 +359,29 @@
       : '<p class="hint">이 브라우저는 시스템 알림을 지원하지 않아요. 앱 안 배너로 알려 드려요.</p>';
     return prefRow(state, 'notify', '새 메시지 알림', '상대의 새 메시지·1:1 요청이 오면 앱 안 배너·브라우저 알림·짧은 진동으로 알려 줘요.') +
       hint +
+      pushRow(state) +
       prefRow(state, 'letter', '편지지 형식 사용', '끄면 1:1 요청을 보낼 때와 받을 때 모두 편지지 대신 간단한 요청 카드로 보여요.') +
       '<p class="hint">이 기기에만 저장돼요. 끄고 켜도 보낸 요청과 기록은 그대로예요.</p>';
   }
 
   function alarmSummary(state) {
-    return '알림 ' + (prefOn(state, 'notify') ? '켬' : '끔') + ' · 편지지 ' + (prefOn(state, 'letter') ? '켬' : '끔');
+    return '알림 ' + (prefOn(state, 'notify') ? '켬' : '끔') + ' · 편지지 ' + (prefOn(state, 'letter') ? '켬' : '끔') +
+      (state && state.prefs && state.prefs.push === true ? ' · 푸시 켬' : '');
+  }
+
+  /* ---------- 인스타 공유 카드 (bm-v1.57.0) ----------
+   * MY에서도 오운완·대회 인증 카드를 바로 만듭니다(일지 저장 직후·최근 기록 상세에도 입구). */
+  function sharePanel(state) {
+    var n = ((state.data && state.data.records) || []).length;
+    return '<p class="sheet__text">운동 기록이나 대회 사진을 4:5 인스타 카드로 만들어 스토리에 올려요. ' +
+      '사진은 폰 안에서만 합쳐지고 서버로 보내지 않아요.</p>' +
+      '<div class="row gap8 mt8">' +
+      '<button type="button" class="btn btn--primary grow" data-act="share-card" data-sc-mode="today">' +
+      UI.icon('camera') + '오늘 운동 카드</button>' +
+      '<button type="button" class="btn btn--ghost grow" data-act="share-card" data-sc-mode="comp">' +
+      UI.icon('target') + '대회 인증 카드</button></div>' +
+      (n ? '<p class="hint">최근 일지 ' + n + '건 중에서 골라 만들 수 있어요.</p>'
+        : '<p class="hint">일지를 먼저 저장하면 운동 숫자로 바로 만들 수 있어요.</p>');
   }
 
   /* 데이터 연결 — 안내 문구는 짧게, 버튼은 크게.
@@ -620,6 +631,7 @@
         group('alarm', 'bell', '알림 · 편지지', alarmSummary(state), alarmPanel(state)) +
 
         group('theme', 'palette', '테마', themeName(theme), themeSwatches(state)) +
+        group('share', 'camera', '인스타 공유 카드', '오운완 · 대회 인증', sharePanel(state)) +
         /* v1.55 — 일반 사용자에게는 데이터 연결 대신 '자동 저장'이라는 말로 짧게 */
         group('data', 'chart', dataToolsOpen(state) ? '데이터 연결' : '데이터 · 자동 저장',
           dataToolsOpen(state) ? '시트 연결 · 내보내기' : '자동 저장 · 고급', dataPanel(state)) +
@@ -673,6 +685,37 @@
             try { Notification.requestPermission(); } catch (e) { /* 무시 */ }
           }
           UI.toast('브라우저 알림을 허용하면 다른 탭에서도 알려 드려요');
+          return;
+        }
+
+        if (ev.target.closest('[data-act="toggle-push"]')) {
+          ev.preventDefault();
+          var pushOn = !(ctx.store.state.prefs && ctx.store.state.prefs.push === true);
+          ctx.actions.setPref('push', pushOn);
+          UI.haptic(8);
+          if (!pushOn) {
+            if (BM.push && BM.push.unsubscribe) BM.push.unsubscribe();
+            UI.toast('실시간 푸시 알림을 껐어요');
+            return;
+          }
+          if (!BM.push || !BM.push.enable) { UI.toast('이 브라우저는 실시간 푸시를 지원하지 않아요', 'error'); return; }
+          BM.push.enable().then(function (res) {
+            if (res && res.waiting) UI.toast('스위치를 켜 뒀어요. Firebase가 연결되면 바로 켜져요');
+            else if (res && res.ok) UI.toast('실시간 푸시 알림을 켰어요');
+            else if (res && res.reason === 'denied') UI.toast('브라우저에서 알림을 차단했어요. 사이트 설정에서 허용해 주세요', 'error');
+            else if (res && res.reason === 'permission') UI.toast('알림을 허용해야 켤 수 있어요', 'error');
+            else if (res && res.reason === 'unsupported') UI.toast('이 브라우저는 실시간 푸시를 지원하지 않아요', 'error');
+            else UI.toast('푸시 구독을 마치지 못했어요. 잠시 뒤 다시 켜 주세요', 'error');
+            if (ctx.repaint) ctx.repaint();
+          });
+          return;
+        }
+        if (ev.target.closest('[data-act="share-card"]')) {
+          ev.preventDefault();
+          var scBtn = ev.target.closest('[data-act="share-card"]');
+          if (!BM.sharecard) { UI.toast('공유 카드를 준비하고 있어요', 'error'); return; }
+          UI.haptic(6);
+          BM.sharecard.open(ctx, { mode: scBtn.getAttribute('data-sc-mode') || 'today' });
           return;
         }
 
@@ -1765,6 +1808,8 @@
   BM.views.my.connectDefaults = connectDefaults;     /* 테스트·점검용 (기본 채움 값) */
   BM.views.my.alarmPanel = alarmPanel;               /* 테스트·점검용 (알림·편지지 설정) */
   BM.views.my.prefRow = prefRow;                     /* 테스트·점검용 */
+  BM.views.my.pushRow = pushRow;                     /* 테스트·점검용 (v1.57 푸시 알림 상태) */
+  BM.views.my.sharePanel = sharePanel;               /* 테스트·점검용 (v1.57 인스타 공유 카드) */
   BM.views.my.heartCard = heartCard;                 /* 테스트·점검용 (하트 카드·보너스 줄) */
   BM.views.my.decoPreviewBody = decoPreviewBody;     /* 테스트·점검용 (꾸미기 미리보기 본문) */
   BM.views.my.openDecoPreviewSheet = openDecoPreviewSheet;   /* 테스트·점검용 */

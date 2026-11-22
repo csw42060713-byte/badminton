@@ -1635,7 +1635,8 @@
         return { ok: true, spent: D.HEART_RULES.GIFT_COST, balance: state.data.hearts.balance };
       },
 
-      /* 테마 적용: 무료/이미 산 테마는 바로, 처음 사는 유료 테마는 하트 차감 */
+      /* 테마 적용 (bm-v1.57.0 — 4종 모두 무료). 예전 유료 테마를 사 둔 기기의 구매 행·원장은
+       * 그대로 읽히고, 지금은 어떤 테마를 골라도 하트가 빠지지 않습니다. */
       setTheme: function (themeId) {
         var me = state.me || {};
         if (!tryLock('theme:' + themeId, 900)) return { ok: false, reason: 'locked' };
