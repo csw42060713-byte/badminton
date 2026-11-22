@@ -112,7 +112,7 @@ with sync_playwright() as p:
             break
         page.click('#sheet.is-on .sheet__panel .btn--primary')
         page.wait_for_timeout(400)
-    check('앱 버전 v1.52.0', page.evaluate("() => BM.app.version") == 'v1.52.1',
+    check('앱 버전 v1.53.0', page.evaluate("() => BM.app.version") == 'v1.53.0',
           page.evaluate("() => BM.app.version"))
 
     page.click('[data-act="open-pose"]')
@@ -171,7 +171,7 @@ with sync_playwright() as p:
     check('구간마다 사람을 찾았다', all(g['players'] >= 1 for g in segs), [g['players'] for g in segs])
     check('구간마다 프레임 시각이 그 구간 안', all(g['allInRange'] for g in segs),
           [(g['label'], g['times'][:2], g['times'][-1]) for g in segs])
-    check('구간마다 카드 4장', all(len(g['cards']) == 4 for g in segs), [len(g['cards']) for g in segs])
+    check('구간마다 카드 5장(점프 타이밍 포함)', all(len(g['cards']) == 5 for g in segs), [len(g['cards']) for g in segs])
     two = [i for i, g in enumerate(segs) if g['players'] >= 2]
     check('두 선수가 잡힌 구간이 있다', bool(two), two)
 
@@ -182,7 +182,7 @@ with sync_playwright() as p:
     st2 = state(page)
     check('%d구간으로 바뀐다' % (multi + 1), st2['seg'] == multi and st2['seginfo']['label'] == '%d구간' % (multi + 1),
           (st2['seg'], st2['seginfo'] and st2['seginfo']['label']))
-    check('%d구간 카드 4장' % (multi + 1), count(page, '[data-pose-card]') == 4)
+    check('%d구간 카드 5장' % (multi + 1), count(page, '[data-pose-card]') == 5)
     check('프레임 시간이 그 구간 안', st2['seginfo']['start'] <= float(text_of(page, '[data-pose-time]').replace('초', '') or -1)
           <= st2['seginfo']['end'], text_of(page, '[data-pose-time]'))
     check('선수 칩이 그 구간 인원만큼', count(page, '[data-pose-track]') == st2['seginfo']['players'],
@@ -207,7 +207,7 @@ with sync_playwright() as p:
         check('선수 2 칩이 켜진다', page.evaluate(
             "() => { const n = document.querySelector('[data-pose-track=\"1\"]'); return n && n.classList.contains('is-on'); }"))
         check('선수 2로 바뀌면 카드가 달라진다', cards1 != cards2, '%s → %s' % (cards1[:80], cards2[:80]))
-        check('선수 2 카드도 4장', count(page, '[data-pose-card]') == 4)
+        check('선수 2 카드도 5장', count(page, '[data-pose-card]') == 5)
         check('캔버스 스켈레톤도 바뀐다', ink1 != ink2, '%s → %s' % (ink1, ink2))
         check('선수 2 측정값이 실제로 계산됨', st3['seginfo'] and st3['seginfo']['cards'] is not None,
               st3['seginfo'] and st3['seginfo']['cards'])
