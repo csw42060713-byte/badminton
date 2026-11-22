@@ -154,6 +154,13 @@
 
   function homeOf(m) { return (m && m.home) || N().home(m && m.scope); }
 
+  /* 목록 정렬에 쓰는 '내 집' — 예시 기준점(demo)은 정렬에 쓰지 않습니다.
+   * 직접 정한 집이 있어야 '집 앞 체육관부터'가 의미가 있습니다. */
+  function sortHome(m) {
+    var h = homeOf(m);
+    return (h && !h.demo) ? h : null;
+  }
+
   function lamp(live) { return '<i class="lamp' + (live ? ' lamp--live' : '') + '" aria-hidden="true"></i>'; }
 
   function initial(name) {
@@ -496,7 +503,8 @@
       return noteText('내 위치에서 가까운 순' + (near ? ' · 가장 가까운 곳 <b>' + U.esc(near) + '</b>' : '') +
         ' · ' + list.length + '곳');
     }
-    if (m.onlyFav) return noteText('자주 가는 체육관 <b>' + list.length + '곳</b>만 지도에 보여요');
+    if (m.onlyFav) return noteText('자주 가는 체육관 <b>' + list.length + '곳</b>만 지도에 보여요' +
+      (sortHome(m) ? ' · 내 집에서 가까운 순' : ''));
     var pack = peopleOf(m);
     /* 내 집을 정해 두었을 때만 반경 5km 안 동호인 수를 셉니다 */
     var mine = homeOf(m) ? '동호인 <b>' + pack.inside.length + '명</b> · 파란 불 <b>' +
@@ -513,7 +521,9 @@
       /* 내 집 5km로 보고 있으면 지도에는 그 근처만 보입니다 — 전국은 '전체 보기'로 */
       if (mine) head = '전국 배드민턴 <b>' + list.length + '곳</b> · 서울 ' + seoul + '곳은 <b>전체 보기</b>에서';
     }
-    return noteText(mine ? '내 집 반경 5km · ' + mine + ' · ' + head : head);
+    /* 내 집을 정해 두면 체육관 목록도 집 앞부터 — 정렬 이유를 한 줄로 알려 줍니다 */
+    return noteText(sortHome(m) ? '내 집 반경 5km · 가까운 순 · ' + mine + ' · ' + head :
+      (mine ? '내 집 반경 5km · ' + mine + ' · ' + head : head));
   }
 
   /* 지도 범례 — 파란 불이 무엇을 뜻하는지 한 줄로 */
@@ -566,8 +576,14 @@
     var list = G().filter(G().all(), {
       onlyFav: m.onlyFav, favorites: favs, query: m.query, region: m.region
     });
-    /* '내 위치 기준'을 켜면 거리 순서가 우선합니다(즐겨찾기는 별 표시로 남김) */
-    var out = m.geo ? G().nearby(list, m.geo) : G().withFavoritesFirst(list, favs);
+    /* 정렬 순서: '내 위치 기준' 거리 → 내 집에서 가까운 순 → 즐겨찾기 먼저 + 등록 순
+     * 내 집을 정해 두면 지도 아래 목록도 집 앞 체육관이 위로 올라옵니다(2026-11-22).
+     * 즐겨찾기는 목록 위 '자주 가는 체육관' 줄과 별 표시로 그대로 남습니다. */
+    var home = sortHome(m);
+    var out;
+    if (m.geo) out = G().nearby(list, m.geo);
+    else if (home) out = G().nearby(list, home);
+    else out = G().withFavoritesFirst(list, favs);
     if (m.focus) {
       for (var i = 1; i < out.length; i++) {
         if (out[i].id === m.focus) { out.unshift(out.splice(i, 1)[0]); break; }
