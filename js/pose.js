@@ -1,5 +1,5 @@
 /* ============================================================
- * js/pose.js — 🎥 영상 자세 비교 (bm-v1.52.0)
+ * js/pose.js — 🎥 영상 자세 비교 (bm-v1.52.1)
  *
  *  폰으로 찍은 짧은 배드민턴 영상을 **서버로 보내지 않고** 브라우저 안에서만 봅니다.
  *  · 화면에서 고른 영상 파일은 blob: 주소로 이 기기 안에서만 열립니다(업로드 없음).
@@ -1124,8 +1124,8 @@
       if (!seg) continue;
       var sum = node ? segSummary(node) : { text: '분석 중…', tone: 'wait', people: 0 };
       var on = i === state.seg && node;
-      chips += '<button type="button" class="poseseg' + (on ? ' is-on' : '') + '" role="tab"' +
-        ' aria-selected="' + (on ? 'true' : 'false') + '" data-pose-seg="' + i + '">' +
+      chips += '<button type="button" class="poseseg' + (on ? ' is-on' : '') + (node ? '' : ' is-pending') + '" role="tab"' +
+        ' aria-selected="' + (on ? 'true' : 'false') + '" data-pose-seg="' + i + '"' + (node ? '' : ' disabled') + '>' +
         '<span class="poseseg__t">' + U.esc(seg.label) + '</span>' +
         '<span class="poseseg__time">' + U.esc(segTime(seg)) + '</span>' +
         '<span class="poseseg__sum is-' + sum.tone + '">' + U.esc(sum.text) + '</span>' +
@@ -1161,6 +1161,10 @@
     var r = state.result;
     var oneLine = '';
     if (r && r.ok) oneLine = '<div class="pose__one" data-pose-one>' + U.esc(r.summary) + '</div>';
+    else if (hasFrames && currentSeg() && currentSeg().analysis && !currentSeg().analysis.ok) {
+      oneLine = '<div class="pose__one" data-pose-one>이 구간에서는 사람을 찾지 못했어요. ' +
+        '전신이 크게 나온 다른 구간을 눌러 보세요.</div>';
+    }
     var multi = !!(currentSeg() && currentSeg().analysis && currentSeg().analysis.players.length > 1);
     var legend = multi
       ? '노란 점이 재는 데 쓴 관절이에요 · 흐린 사람을 누르면 그 선수로 바뀌어요'

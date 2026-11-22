@@ -6154,6 +6154,7 @@ body {
 .poseseg__sum.is-good { color: var(--accent); }
 .poseseg__sum.is-off, .poseseg__sum.is-wait { color: var(--muted); }
 .poseseg__who { font-size: 9.5px; color: var(--muted); }
+.poseseg.is-pending { opacity: 0.55; }
 .poseseg.is-on { border-color: var(--accent); background: var(--accent-soft); }
 .poseseg.is-on .poseseg__t { color: var(--accent); }
 .pose__who { display: grid; gap: 6px; }
