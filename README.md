@@ -2154,7 +2154,8 @@ bubblewrap build            # → app-release-bundle.aab
 
 - 로직: `node test/run.js` **1181/1181** — 새 `test/v155.test.js` 26개(접힌 세부 칸·자동 펼침, MY 숨김/접힘·관리자 예외, 신고 저장·사유 검증, 차단 즉시 숨김·해제, 1:1 차단, 보안·버전·스타일) + 기존 회귀 전부.
 - 로컬 390×844: `test/local-v155.py` **47/47** — 5개 탭 정상, 접힌 일지(메모 칸이 화면에 없음) → 점수판 넣기로 **저절로 펼침**, MY `데이터 · 자동 저장`에서 시트 버튼이 **고급 접기 안(안 보임)** → 열면 그대로, 커뮤니티 `⋯ → 신고(광고·도배) → 접수` → `차단(인라인 확인) → 피드에서 사라짐` → MY에서 **해제 → 다시 보임**, 1:1 방 `⋯ → 차단 → 방 닫힘·재진입 불가`, **앱 오류 0 · CSP 위반 0 · 가로 넘침 0**.
-- 캡처(`downloads/`): `v155_log_fold.png` · `v155_log_form.png`(접힌 일지) · `v155_my_clean.png`(정리된 MY) · `v155_community_actions.png` · `v155_report_sheet.png` · `v155_block_confirm.png` · `v155_blocked_feed.png` · `v155_chat_safety.png`.
+- 라이브: `test/live-v155.py` **61/61** — 배포본 파일(`sw bm-v1.55.0` · `app v1.55.0` · `styles.css?v=20261122-69` · TWA `1.55.0` 코드 49 · `js/safety.js` 서빙 · domain/store/views/css 반영) 확인 후 체험(기기 저장) 모드로 5개 탭 → 접힌 일지 → 점수판 넣기로 펼침 → MY 고급 접기 → 커뮤니티 신고·차단 → MY 해제 → 1:1 차단까지 같은 흐름, **앱 오류 0 · CSP 위반 0 · 가로 넘침 0**. Supabase 요청은 막아 서버에 아무것도 쓰지 않았습니다.
+- 캡처(`downloads/`): `v155_log_fold.png` · `v155_log_form.png`(접힌 일지) · `v155_my_clean.png`(정리된 MY) · `v155_community_actions.png` · `v155_report_sheet.png` · `v155_block_confirm.png` · `v155_blocked_feed.png` · `v155_chat_safety.png` · 라이브 `v155_live_*.png`.
 - 버전: `sw.js` `bm-v1.55.0` · `app.js` `v1.55.0` · `twa-manifest.json` `1.55.0`(`appVersionCode` **49**) · `styles.css?v=20261122-69` · sw 캐시에 `./js/safety.js` 추가.
 - 남은 것: 실제 Play 심사 제출용 스크린샷·UGC 정책 문구(개인정보처리방침에 신고·차단 안내 문단 추가 후보) · 관리자 화면에서 신고 목록을 보는 화면(지금은 DB 기록 유지).
 
