@@ -6,8 +6,8 @@
  *      · HEART_RULES.STREAK_7_BONUS = 2 — 7·14일 연속 출석 보너스(원장에서 계산, 새 행 없음)
  *      · MY 하트 카드·공용 하트 시트에 보너스 안내 한 줄
  *   2) [일지 · 커뮤니티 연결]
- *      · 일지 입력칸 바로 아래 파트너 전적 한 줄('조환비 · 4전 3승 1패 (75%)')
- *      · 챌린지 자랑 문구에 함께 친 파트너·전적('조환비와 2경기 2승')을 자연스럽게
+ *      · 일지 입력칸 바로 아래 파트너 전적 한 줄('민호 · 4전 3승 1패 (75%)')
+ *      · 챌린지 자랑 문구에 함께 친 파트너·전적('민호와 2경기 2승')을 자연스럽게
  *   3) 버전 · 회귀 · 보안
  *
  *   실행: node test/run.js
@@ -348,17 +348,17 @@
 
   test('v1.36 파트너 줄: 이름 하나의 전적을 한 줄로 만든다', function () {
     var list = [
-      rec('2026-11-20', '조환비', { tag: 'a', games: [game(21, 15)] }),
-      rec('2026-11-19', '조환비', { tag: 'b', games: [game(21, 18)] }),
-      rec('2026-11-18', '조환비', { tag: 'c', games: [game(17, 21)] }),
-      rec('2026-11-17', '조환비', { tag: 'd', games: [game(21, 12)] })
+      rec('2026-11-20', '민호', { tag: 'a', games: [game(21, 15)] }),
+      rec('2026-11-19', '민호', { tag: 'b', games: [game(21, 18)] }),
+      rec('2026-11-18', '민호', { tag: 'c', games: [game(17, 21)] }),
+      rec('2026-11-17', '민호', { tag: 'd', games: [game(21, 12)] })
     ];
-    var p = D.partnerStat(list, '조환비');
+    var p = D.partnerStat(list, '민호');
     ok(p, '한 명');
     eq(p.games, 4, '4경기');
     eq(p.wins, 3, '3승');
     eq(p.rate, 75, '75%');
-    eq(D.partnerLineText(p), '조환비 · 4전 3승 1패 (75%)', '한 줄 문구');
+    eq(D.partnerLineText(p), '민호 · 4전 3승 1패 (75%)', '한 줄 문구');
     eq(D.partnerStat(list, '없는이름'), null, '기록 없으면 null');
     eq(D.partnerStat(list, '  '), null, '빈 이름');
   });
@@ -373,12 +373,12 @@
   });
 
   test('v1.36 파트너 줄: 일지 화면 입력칸 바로 아래에 붙는다', function () {
-    var list = [rec('2026-11-20', '조환비', { games: [game(21, 15), game(21, 19)] })];
+    var list = [rec('2026-11-20', '민호', { games: [game(21, 15), game(21, 19)] })];
     var state = stateOf(list);
-    var txt = BM.views.log.partnerNowText(state, '조환비');
-    includes(txt, '조환비 · 2전 2승', '미리보기 문구');
+    var txt = BM.views.log.partnerNowText(state, '민호');
+    includes(txt, '민호 · 2전 2승', '미리보기 문구');
     eq(BM.views.log.partnerNowText(state, ''), '', '이름 없으면 빈 줄');
-    var htmlOn = BM.views.log.partnerNow(state, '조환비');
+    var htmlOn = BM.views.log.partnerNow(state, '민호');
     includes(htmlOn, 'data-ptn-now', '표식');
     excludes(htmlOn, ' hidden', '이름이 있으면 보임');
     includes(htmlOn, U.esc(txt), '문구');
@@ -402,8 +402,8 @@
   function challengeRecords() {
     /* 이번 주 3일(오늘·어제·그제) 헤어핀 — 챌린지 달성 */
     return [
-      rec(dayAgo(0), '조환비', { tag: 'a', weakness: ['헤어핀'], games: [game(21, 15)] }),
-      rec(dayAgo(1), '조환비', { tag: 'b', weakness: ['헤어핀'], games: [game(21, 18)] }),
+      rec(dayAgo(0), '민호', { tag: 'a', weakness: ['헤어핀'], games: [game(21, 15)] }),
+      rec(dayAgo(1), '민호', { tag: 'b', weakness: ['헤어핀'], games: [game(21, 18)] }),
       rec(dayAgo(2), '민수', { tag: 'c', weakness: ['헤어핀'], games: [game(15, 21)] })
     ];
   }
@@ -415,11 +415,11 @@
     eq(ch.weakness, '헤어핀', '약점');
     var text = D.challengeShareText(ch, { records: rows, now: NOW });
     includes(text, '이번 주 헤어핀 3회 연습 달성!', '기본 문구');
-    includes(text, '(조환비와 2경기 2승)', '파트너·전적');
+    includes(text, '(민호와 2경기 2승)', '파트너·전적');
     includes(text, '🎉', '마무리');
     var p = D.challengePartner(rows, ch, { now: NOW });
-    ok(p && p.name === '조환비', '가장 많이 함께 친 파트너');
-    eq(D.challengePartnerTail(p), '조환비와 2경기 2승', '꼬리 문구');
+    ok(p && p.name === '민호', '가장 많이 함께 친 파트너');
+    eq(D.challengePartnerTail(p), '민호와 2경기 2승', '꼬리 문구');
   });
 
   test('v1.36 자랑 문구: 기록이 없으면 예전 문구 그대로', function () {
@@ -435,7 +435,7 @@
     eq(D.challengePartnerTail(p), '김철수와 2경기 1승 1패', '받침 없으면 와');
     var q = { name: '박준', games: 3, wins: 2, losses: 0, draws: 1 };
     eq(D.challengePartnerTail(q), '박준과 3경기 2승 1무', '받침 있으면 과');
-    eq(D.challengePartnerTail({ name: '조환비', games: 0 }), '', '경기 없으면 빈 문구');
+    eq(D.challengePartnerTail({ name: '민호', games: 0 }), '', '경기 없으면 빈 문구');
     ok(ch.done, '달성');
   });
 
@@ -443,15 +443,15 @@
     return storeWith(challengeRecords()).then(function (store) {
       var d = store.actions.challengeShareDraft();
       ok(d.ok, '초안');
-      includes(d.text, '(조환비와 2경기 2승)', '파트너 포함');
-      ok(d.partner && d.partner.name === '조환비', '파트너 정보');
+      includes(d.text, '(민호와 2경기 2승)', '파트너 포함');
+      ok(d.partner && d.partner.name === '민호', '파트너 정보');
       var src = readRoot('js/views/log.js');
       includes(src, 'challengeShareDraft', '화면이 저장소 초안을 쓴다');
     });
   });
 
   test('v1.36 자랑 문구: 3회를 못 채우면 초안을 만들지 않는다', function () {
-    return storeWith([rec(dayAgo(0), '조환비', { weakness: ['헤어핀'], games: [game(21, 15)] })]).then(function (store) {
+    return storeWith([rec(dayAgo(0), '민호', { weakness: ['헤어핀'], games: [game(21, 15)] })]).then(function (store) {
       var d = store.actions.challengeShareDraft();
       eq(d.ok, false, '아직 미달');
       eq(d.reason, 'not_done', '사유');
@@ -464,13 +464,13 @@
 
   test('v1.36 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.54.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.54.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-68', '스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.55.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.55.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-69', '스타일 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.54.0', 'TWA 이름');
+    eq(twa.appVersionName, '1.55.0', 'TWA 이름');
     eq(twa.app, undefined, '군더더기 없음');
-    eq(twa.appVersionCode, 48, 'TWA 코드');
+    eq(twa.appVersionCode, 49, 'TWA 코드');
   });
 
   test('v1.36 캐시: 새 파일 없이 기존 목록 그대로', function () {

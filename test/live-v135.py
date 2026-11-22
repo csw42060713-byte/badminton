@@ -63,9 +63,9 @@ with sync_playwright() as p:
 
     # ── 이번 주 일지 3건 (파트너 이름 포함) — 앱 저장 동작 그대로
     saved = []
-    plan = [('2026-11-19', '조환비', '21', '18', ['풋워크']),
+    plan = [('2026-11-19', '민호', '21', '18', ['풋워크']),
             ('2026-11-20', '민수', '21', '19', ['스매시']),
-            ('2026-11-21', '조환비', '21', '15', ['스매시'])]
+            ('2026-11-21', '민호', '21', '15', ['스매시'])]
     for day, partner, a, bb, weak in plan:
         saved.append(page.evaluate("""([d, p, a, b, w]) => {
             const st = BM.app.ctx.store;
@@ -74,7 +74,7 @@ with sync_playwright() as p:
             return st.actions.saveLog().ok;
         }""", [day, partner, a, bb, weak]))
         page.wait_for_timeout(1500)
-    check('일지 3건 저장 (파트너 조환비·민수)', saved and all(saved), saved)
+    check('일지 3건 저장 (파트너 민호·민수)', saved and all(saved), saved)
 
     # 저장 뒤 화면을 새로 그립니다 (이미 열려 있는 탭을 다시 누르면 다시 그리지 않습니다)
     page.reload(wait_until='load')
@@ -118,7 +118,7 @@ with sync_playwright() as p:
     chips = page.evaluate("""() => [...document.querySelectorAll('[data-ptn-chip]')].map(b => ({
         n: b.getAttribute('data-ptn-chip'), pressed: b.getAttribute('aria-pressed'),
         h: Math.round(b.getBoundingClientRect().height)}))""")
-    check('최근 파트너 칩이 보인다 (조환비·민수)', [c['n'] for c in chips][:2] == ['조환비', '민수'], chips)
+    check('최근 파트너 칩이 보인다 (민호·민수)', [c['n'] for c in chips][:2] == ['민호', '민수'], chips)
     check('칩 높이 34px (누르기 좋게)', chips and all(c['h'] >= 34 for c in chips), chips)
     shot('배드민턴_최근파트너칩_bm-v1.35.0_일지.png')
     page.locator('[data-ptnchips]').screenshot(path=OUT + '/배드민턴_최근파트너칩_bm-v1.35.0_확대.png')
@@ -130,7 +130,7 @@ with sync_playwright() as p:
         val = page.evaluate("document.querySelector('[data-field=\"partner\"]').value")
         draft = page.evaluate('BM.app.ctx.store.state.drafts.log.partner')
         pressed = page.evaluate("[...document.querySelectorAll('[data-ptn-chip]')].map(b => b.getAttribute('aria-pressed'))")
-        check('칩 한 번 = 입력칸에 이름', val == '조환비' and draft == '조환비', [val, draft])
+        check('칩 한 번 = 입력칸에 이름', val == '민호' and draft == '민호', [val, draft])
         check('누른 칩만 켜짐 표시', pressed[0] == 'true' and pressed[1] == 'false', pressed)
         shot('배드민턴_최근파트너칩_한탭_bm-v1.35.0.png')
         page.click('[data-ptn-chip]')

@@ -371,6 +371,10 @@
       '<span>' + U.esc([p.level, room && room.kind === 'friend' ? '친구' : (room && room.kind === 'match' ? '매칭' : (room && room.kind === 'coach' ? '코치' : ''))].filter(Boolean).join(' · ') || '1:1 대화') + '</span>' +
       UI.presence(D.presenceOf(state.data.idx, other), { cls: 'presence--head' }) +
       '</div></button>' +
+      /* v1.55 — 1:1 대화방에서도 상대를 신고·차단 (구글 Play UGC 심사 요건) */
+      (other
+        ? '<button class="iconbtn dmhead__more" data-dm-safety="' + U.esc(other) + '" aria-label="신고·차단" title="신고·차단">' + UI.icon('more') + '</button>'
+        : '') +
       '</header>' +
       mannerHtml(state, other, canChat, room && room.kind) +
       '<div class="dm__scroll dm__scroll--chat" data-dm-scroll>' +
@@ -514,6 +518,20 @@
         if (grRes && grRes.ok) { UI.haptic(10); UI.toast('신청을 거절했어요 · 정원은 그대로예요'); }
         else if (grRes && grRes.reason === 'done') UI.toast('이미 답한 신청이에요');
         else UI.toast('거절하지 못했어요', 'error');
+        return;
+      }
+      /* 1:1 대화방 상단 ⋯ — 상대 신고·차단 (bm-v1.55.0) */
+      var safetyBtn = ev.target.closest('[data-dm-safety]');
+      if (safetyBtn) {
+        ev.preventDefault();
+        var sKey = safetyBtn.getAttribute('data-dm-safety');
+        var sp = UI.person(ctx.store.state, sKey);
+        if (BM.safety) {
+          BM.safety.openActionsSheet(ctx, {
+            kind: 'chat', targetUser: sKey, nick: sp.nick || '상대', avatar: sp
+          });
+        }
+        UI.haptic(6);
         return;
       }
       /* 단체방 나가기 / 모집 종료 — 한 번 더 물어보고(인라인 확인 바) 실행합니다 */

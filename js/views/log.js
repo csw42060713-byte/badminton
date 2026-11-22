@@ -221,7 +221,7 @@
   }
 
   /* 입력칸 아래 한 줄 — 지금 적힌 파트너의 전적 (bm-v1.36.0)
-   *  · 예) 조환비 · 4전 3승 1패 (75%)
+   *  · 예) 민호 · 4전 3승 1패 (75%)
    *  · '파트너별 승률' 카드를 펼치지 않아도 바로 보입니다. 기록이 없는 이름이면 숨김. */
   function partnerNowText(state, name) {
     var n = String(name == null ? '' : name).replace(/\s+/g, ' ').trim();
@@ -236,7 +236,7 @@
       UI.icon('chart') + '<span>' + U.esc(txt) + '</span></p>';
   }
 
-  /* 라이벌 전적 한 줄 — '김원호 · 6전 4승 2패 (67%) · 최근 21:17' (bm-v1.54.0) */
+  /* 라이벌 전적 한 줄 — '지호 · 6전 4승 2패 (67%) · 최근 21:17' (bm-v1.54.0) */
   function rivalNowText(state, name) {
     var n = String(name == null ? '' : name).replace(/\s+/g, ' ').trim();
     if (!n) return '';
@@ -319,6 +319,49 @@
       '<summary class="fold__sum"><span>경기 점수 <small>선택</small></span>' +
       '<i class="fold__val">' + U.esc(val) + '</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
       '<div class="fold__body">' + gamesField(d, state) + '</div></details>';
+  }
+
+  /* ---------- 세부 기록(메모·영상) 접기 (bm-v1.55.0) ----------
+   * 컨디션·시간·게임 점수만 남기고, 가끔 쓰는 메모·영상 링크는 기본은 접어 둡니다.
+   * 값이 있으면(지난 일지 수정·점수판·영상 자세 비교가 채운 값) 저절로 펼쳐
+   * 쓰던 흐름이 끊기지 않습니다. 칸 이름(data-field)은 그대로라 저장·자동 채움 연동도 그대로입니다. */
+  var detailOpen = null;    /* null = 값에 따라 · true/false = 사용자가 접었다 편 상태 */
+  var detailSig = '';       /* 마지막으로 본 메모·영상 값 — 새 값이 들어오면 접기를 저절로 엽니다 */
+
+  function hasDetails(d) {
+    return !!(String((d && d.note) || '').trim() || String((d && d.video) || '').trim());
+  }
+
+  function detailSummary(d) {
+    var bits = [];
+    if (String((d && d.note) || '').trim()) bits.push('메모');
+    if (String((d && d.video) || '').trim()) bits.push('영상');
+    return bits.length ? bits.join(' · ') + ' 있음' : '';
+  }
+
+  function detailFields(d) {
+    return '<div class="field"><div class="field__label"><span>메모</span><small>선택 · 한 줄이면 충분해요</small></div>' +
+        '<textarea rows="2" data-field="note" placeholder="오늘 느낀 점 한 줄">' + U.esc(d.note || '') + '</textarea></div>' +
+
+        /* 스윙·경기 영상 — 링크만 저장합니다(앱에 올리지 않음). http(https)만 허용. */
+        '<div class="field" data-video-field>' +
+        '<div class="field__label"><span>영상 링크</span><small>유튜브·드라이브 · 선택</small></div>' +
+        '<input type="url" inputmode="url" maxlength="' + D.VIDEO_URL_MAX + '" data-field="video" ' +
+          'value="' + U.esc(d.video || '') + '" placeholder="https://youtu.be/…" aria-label="영상 링크">' +
+        '<p class="field__hint' + (videoHintOf(d.video).bad ? ' is-warn' : '') + '" data-video-hint>' + U.esc(videoHintOf(d.video).text) + '</p>' +
+        '<input type="text" maxlength="' + D.VIDEO_LABEL_MAX + '" class="mt8" data-field="videoNote" ' +
+          'value="' + U.esc(d.videoNote || '') + '" placeholder="영상에서 볼 한 줄 (예: 스매시 손목 각도)" aria-label="영상 체크 포인트">' +
+        '</div>';
+  }
+
+  function detailFold(d) {
+    var has = hasDetails(d);
+    var open = detailOpen === true || (detailOpen === null && has);
+    detailSig = String((d && d.note) || '') + '\u0000' + String((d && d.video) || '');
+    return '<details class="fold fold--detail" data-fold="detail"' + (open ? ' open' : '') + '>' +
+      '<summary class="fold__sum"><span>메모 · 영상 <small>선택</small></span>' +
+      '<i class="fold__val">' + U.esc(detailSummary(d)) + '</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' + detailFields(d) + '</div></details>';
   }
 
   function scoreRing(score) {
@@ -1520,18 +1563,8 @@
         '<div class="field"><div class="field__label"><span>약점 기술</span><small>오늘 아쉬웠던 것</small></div>' +
         UI.chips('weakness', D.VOCAB.weakness, d.weakness, { scroll: true }) + '</div>' +
 
-        '<div class="field"><div class="field__label"><span>메모</span><small>선택</small></div>' +
-        '<textarea rows="2" data-field="note" placeholder="오늘 느낀 점 한 줄">' + U.esc(d.note || '') + '</textarea></div>' +
-
-        /* 스윙·경기 영상 — 링크만 저장합니다(앱에 올리지 않음). http(https)만 허용. */
-        '<div class="field" data-video-field>' +
-        '<div class="field__label"><span>영상 링크</span><small>유튜브·드라이브 · 선택</small></div>' +
-        '<input type="url" inputmode="url" maxlength="' + D.VIDEO_URL_MAX + '" data-field="video" ' +
-          'value="' + U.esc(d.video || '') + '" placeholder="https://youtu.be/…" aria-label="영상 링크">' +
-        '<p class="field__hint' + (videoHintOf(d.video).bad ? ' is-warn' : '') + '" data-video-hint>' + U.esc(videoHintOf(d.video).text) + '</p>' +
-        '<input type="text" maxlength="' + D.VIDEO_LABEL_MAX + '" class="mt8" data-field="videoNote" ' +
-          'value="' + U.esc(d.videoNote || '') + '" placeholder="영상에서 볼 한 줄 (예: 스매시 손목 각도)" aria-label="영상 체크 포인트">' +
-        '</div>' +
+        /* v1.55 — 메모·영상 링크는 기본 접힘(가끔 쓰는 칸), 값이 있으면 펼쳐집니다 */
+        detailFold(d) +
 
         '<div class="submit-wrap savebar">' +
         '<button class="btn btn--primary btn--big" data-act="save-log">' +
@@ -1562,6 +1595,8 @@
       root.addEventListener('toggle', function (ev) {
         var box = ev.target;
         if (box && box.matches && box.matches('[data-rtn]')) routineOpen = !!box.open;
+        /* 세부 기록(메모·영상) 접기 — 사용자가 접었다 펜 상태를 기억합니다 */
+        if (box && box.matches && box.matches('[data-fold="detail"]')) detailOpen = !!box.open;
       }, true);
 
       /* 초보자 루틴: 체크 · 주차 이동 · 체크 지우기 (카드가 다시 그려져도 살아 있게 위임) */
@@ -2021,6 +2056,34 @@
     },
 
     update: function (root, state) {
+      /* v1.55 — 메모·영상: 값이 새로 채워지면 접힌 칸을 저절로 펼치고(점수판·영상 자세 비교),
+       * 입력 중이 아닌 칸의 글자는 상태에 맞춥니다(입력 중 커서는 건드리지 않음). */
+      var dd = (state && state.drafts && state.drafts.log) || {};
+      var dFold = root.querySelector('[data-fold="detail"]');
+      var dSigNow = String(dd.note || '') + '\u0000' + String(dd.video || '');
+      if (dFold) {
+        var dHas = hasDetails(dd);
+        var prevHas = String(detailSig || '').replace('\u0000', '').length > 0;
+        /* 값이 새로 들어오면(점수판·영상 자세 비교·지난 일지 수정) 접혀 있어도 펼칩니다 */
+        if (dHas && dSigNow !== detailSig && !dFold.open) { dFold.open = true; detailOpen = true; }
+        /* 값이 모두 지워지면(저장하고 초안이 비워짐) 다시 기본(닫힘)으로 */
+        if (!dHas && prevHas) { detailOpen = null; dFold.open = false; }
+        var dVal = dFold.querySelector('.fold__val');
+        if (dVal) dVal.textContent = detailSummary(dd);
+        var dNote = dFold.querySelector('[data-field="note"]');
+        var activeEl = typeof document !== 'undefined' ? document.activeElement : null;
+        if (dNote && activeEl !== dNote && dNote.value !== String(dd.note || '')) dNote.value = String(dd.note || '');
+        var dVid = dFold.querySelector('[data-field="video"]');
+        if (dVid && activeEl !== dVid && dVid.value !== String(dd.video || '')) {
+          dVid.value = String(dd.video || '');
+          var dHint = dFold.querySelector('[data-video-hint]');
+          if (dHint) {
+            var hv = videoHintOf(dd.video);
+            dHint.textContent = hv.text;
+            dHint.classList.toggle('is-warn', hv.bad);
+          }
+        }
+      }
       /* 새로 저장한 파트너·라이벌이 바로 칩으로 (폼은 그대로 두고 칩 줄만) */
       paintDuelChips(root, state);
       /* 주간 약점 3회 챌린지 — 일지를 저장하면 스탬프가 스스로 채워집니다 */
@@ -2167,5 +2230,7 @@
   view.scoreboardHtml = scoreboardHtml;
   view.scoreboardOpen = scoreboardOpen;
   view._resetScoreboard = function () { sbState = null; };
+  view._resetDetailFold = function () { detailOpen = null; };   /* v1.55: 세부 기록 접기 상태 초기화(테스트) */
+  view.detailFold = detailFold;                                  /* v1.55: 메모·영상 접기 (테스트·재사용) */
   BM.views.log = view;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

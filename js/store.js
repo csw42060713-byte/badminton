@@ -24,12 +24,16 @@
     function derive(rows, meKey, meInfo) {
     var idx = D.index(rows.map(function (r) { return Array.isArray(r) ? D.fromRow(r) : r; }));
     var isSample = (BM.seed && BM.seed.isSampleText) ? BM.seed.isSampleText : function () { return false; };
-    /* 커뮤니티에는 실제 사용자가 쓴 글만 보입니다 (예전 앱이 넣은 샘플 글 제외) */
-    var posts = U.sortBy((idx.byType['소셜'] || []).filter(function (p) { return !isSample(p.text); }),
-      function (p) { return p.createdAt || ''; }, true);
-    var replies = (idx.byType['답글'] || []).filter(function (r) { return !isSample(r.text); });
-    var hearts = idx.byType['하트'] || [];
+    /* v1.55 — 내가 차단한 사람은 글·답글·사람 목록·1:1 대화·매칭에서 처음부터 빠집니다.
+     * (차단은 '유형=차단' 내 행 한 줄이라 기기 저장·Supabase 모두 같은 계산을 씁니다) */
     var me = meKey || '';
+    var blocks = me ? D.blockedKeys(idx, me) : {};
+    function blockedKey(k) { return !!k && !!blocks[String(k)]; }
+    /* 커뮤니티에는 실제 사용자가 쓴 글만 보입니다 (예전 앱이 넣은 샘플 글 제외) */
+    var posts = U.sortBy((idx.byType['소셜'] || []).filter(function (p) { return !isSample(p.text) && !blockedKey(p.userKey); }),
+      function (p) { return p.createdAt || ''; }, true);
+    var replies = (idx.byType['답글'] || []).filter(function (r) { return !isSample(r.text) && !blockedKey(r.userKey); });
+    var hearts = idx.byType['하트'] || [];
     var likeSets = {};
     hearts.forEach(function (h) { (likeSets[h.target] = likeSets[h.target] || {})[h.userKey] = h.id; });
     var postViews = posts.map(function (p) {
@@ -56,6 +60,7 @@
     var matchProfiles = [];
     (idx.byType['매칭프로필'] || []).forEach(function (m) {
     if (!m.payload) return;
+    if (blockedKey(m.userKey)) return;      /* v1.55 — 차단한 사람은 매칭에서도 보이지 않습니다 */
     var pl = m.payload;
     var av = D.normalizeAvatar({
       avatarPhoto: pl.avatarPhoto, avatar: pl.avatar,
@@ -78,9 +83,9 @@
     matchProfiles = Object.keys(byUser).map(function (k) { return byUser[k]; });
 
     var requests = idx.byType['매칭신청'] || [];
-    var rooms = me ? D.chatRooms(idx, me) : [];
-    var threads = me ? D.chatThreads(idx, me) : [];
-    var friends = me ? D.friendsOf(idx, me) : [];
+    var rooms = (me ? D.chatRooms(idx, me) : []).filter(function (r) { return !blockedKey(r.other); });
+    var threads = (me ? D.chatThreads(idx, me) : []).filter(function (t) { return !blockedKey(t.other); });
+    var friends = (me ? D.friendsOf(idx, me) : []).filter(function (f) { return !blockedKey(f.key); });
     var friendRequests = me ? D.incomingFriendRequests(idx, me) : [];
     var admin = D.isAdminMe(meInfo || {});
     var mentorApps = me ? D.mentorApplications(idx, me, admin) : [];
@@ -97,7 +102,9 @@
     games: (idx.byType['경기'] || []).filter(function (r) { return !me || r.userKey === me; }),
     posts: postViews,
     matchProfiles: matchProfiles,
-    requests: me ? D.matchRequests(idx, me) : [],
+    requests: me ? D.matchRequests(idx, me).filter(function (r) {
+      return !blockedKey(String(r.userKey) === String(me) ? r.target : r.userKey);
+    }) : [],
     rooms: rooms,
     threads: threads,
     friends: friends,
@@ -117,6 +124,8 @@
       todayEarned: 0, todaySpent: 0
     },
     stats: D.stats(idx, me),
+    /* v1.55 — MY의 '차단한 사람' 목록(해제에 씁니다) */
+    blocks: me ? D.blockList(idx, me) : [],
     unread: U.sum(threads, function (r) { return r.unread; })
     };
     }
@@ -1040,6 +1049,85 @@
         return { ok: true, roomId: key, postId: key, removed: res.removed };
       },
 
+      /* ---------- 신고 (bm-v1.55.0) — 구글 Play UGC 심사 요건 ----------
+       * 다른 사람의 글·답글·1:1 대화를 정해진 사유 4종(욕설·광고·만남·기타)으로 신고합니다.
+       *  · 새 칸·새 컬럼 없이 '유형=신고' 한 줄로 남깁니다(내 행 → RLS 그대로 통과).
+       *  · 사유·대상 종류·신고 당시 내용 앞부분은 '소셜글' 칸 JSON으로 함께 남겨
+       *    나중에 관리자가 DB에서 확인할 수 있게 합니다.
+       *  · 신고한 사람에게는 알리지 않습니다. 같은 내용을 연타해도 한 번만 남습니다. */
+      reportContent: function (input) {
+        input = input || {};
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        var kind = D.REPORT_KINDS[String(input.kind || '')] ? String(input.kind) : '';
+        if (!kind) return { ok: false, reason: 'no_kind' };
+        var reason = D.reportReason(input.reason);
+        if (!reason) return { ok: false, reason: 'no_reason' };
+        var targetId = String(input.targetId == null ? '' : input.targetId);
+        var targetUser = String(input.targetUser == null ? '' : input.targetUser);
+        if (kind === 'chat') {
+          if (!targetUser) return { ok: false, reason: 'no_target' };
+        } else {
+          if (!targetId) return { ok: false, reason: 'no_target' };
+          var row = state.idx && state.idx.byId ? state.idx.byId[targetId] : null;
+          if (!row) return { ok: false, reason: 'not_found' };
+          if (String(row.userKey || '') === String(me)) return { ok: false, reason: 'mine' };
+          if (!targetUser) targetUser = String(row.userKey || '');
+        }
+        if (targetUser && String(targetUser) === String(me)) return { ok: false, reason: 'mine' };
+        if (!tryLock('report:' + kind + ':' + (targetId || targetUser), 2000)) return { ok: false, reason: 'locked' };
+        pushRow(meEntity({
+          type: D.REPORT_TYPE, id: U.uid(), clientId: U.clientId(), date: U.ymd(),
+          target: kind === 'chat' ? targetUser : targetId,
+          payload: D.reportPayload({
+            kind: kind, user: targetUser, reason: reason.code,
+            detail: input.detail, text: input.text, at: U.stamp()
+          })
+        }));
+        commit();
+        return { ok: true, kind: kind, reason: reason.code, label: reason.label };
+      },
+
+      /* ---------- 차단 (bm-v1.55.0) ----------
+       * '유형=차단 · 대상=상대 키' 한 줄만 남깁니다. 같은 사람을 두 번 차단해도 한 줄입니다.
+       * 차단하면 그 사람의 글·답글·매칭 카드·1:1 대화가 곧바로 화면에서 사라집니다
+       * (derive가 차단 목록으로 걸러 냅니다 — 새 칸 없이 26칸 그대로). */
+      blockUser: function (targetKey) {
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        var key = String(targetKey == null ? '' : targetKey).trim();
+        if (!key) return { ok: false, reason: 'no_target' };
+        if (key === String(me)) return { ok: false, reason: 'mine' };
+        if (D.isBlocked(state.idx, me, key)) return { ok: true, already: true, key: key };
+        if (!tryLock('block:' + key, 900)) return { ok: false, reason: 'locked' };
+        pushRow(meEntity({ type: D.BLOCK_TYPE, id: U.uid(), clientId: U.clientId(), date: U.ymd(), target: key }));
+        /* 차단한 사람과 열려 있던 1:1 대화는 닫습니다(화면에 남지 않게) */
+        if (state.ui && state.ui.chatOther && String(state.ui.chatOther) === key) {
+          state.ui.chatRoom = null;
+          state.ui.chatOther = '';
+          state.ui.chatDraft = '';
+        }
+        if (state.ui && state.ui.coachPlayer && String(state.ui.coachPlayer) === key) state.ui.coachPlayer = null;
+        commit();
+        return { ok: true, key: key, nick: D.displayName(state.idx, key) };
+      },
+
+      /* 차단 해제 — 내 '차단' 줄을 지웁니다(이 기기 + 서버 내 행). 그 사람이 다시 보입니다. */
+      unblockUser: function (targetKey) {
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        var key = String(targetKey == null ? '' : targetKey).trim();
+        if (!key) return { ok: false, reason: 'no_target' };
+        var rows = D.blockRows(state.idx, me).filter(function (r) { return String(r.target) === key; });
+        if (!rows.length) return { ok: false, reason: 'not_found' };
+        var ids = {};
+        rows.forEach(function (r) { ids[String(r.id)] = 1; });
+        state.rows = state.rows.filter(function (r) { return !ids[String(r[0])]; });
+        Object.keys(ids).forEach(function (id) { enqueue({ kind: 'remove', id: id, clientId: U.clientId() }); });
+        commit();
+        return { ok: true, key: key, removed: Object.keys(ids).length };
+      },
+
       saveProfile: function (patch) {
         if (!tryLock('profile', 1200)) return { ok: false, reason: 'locked' };
         var me = state.me || {};
@@ -1309,11 +1397,15 @@
       /* draft를 넘기면 입력창에 미리 적어 둡니다(사용자가 고쳐서 보냄).
        * 커뮤니티 '게스트 모집 참여 문의'가 이 자리로 바로 이어집니다. */
       openChat: function (roomId, otherKey, draft) {
+        /* v1.55 — 차단한 사람과의 1:1 대화는 열지 않습니다(차단을 풀면 다시 열립니다) */
+        var me = state.me && state.me.key;
+        if (me && otherKey && D.isBlocked(state.idx, me, otherKey)) return { ok: false, reason: 'blocked' };
         state.ui.chatOpen = true;
         state.ui.chatRoom = roomId || null;
         state.ui.chatOther = otherKey || '';
         state.ui.chatDraft = draft || '';
         emit();
+        return { ok: true, roomId: state.ui.chatRoom };
       },
 
       /* 모집 글 단체방 열기 — 커뮤니티 '참여 문의'가 이리로 이어집니다.
@@ -1800,7 +1892,7 @@
 
       /* 주간 약점 챌린지 자랑 초안 (bm-v1.36.0)
        *  · 이번 주(또는 오늘) 함께 친 파트너의 전적을 문구에 자연스럽게 붙입니다.
-       *    예) '이번 주 헤어핀 3회 연습 달성! (조환비와 2경기 2승) 🎉'
+       *    예) '이번 주 헤어핀 3회 연습 달성! (민호와 2경기 2승) 🎉'
        *  · 3회를 아직 채우지 않았으면 not_done (화면은 그대로 '채우면 자랑할 수 있어요').
        *  · 글은 여기서 채우기만 하고 올리기는 사람이 누릅니다. */
       challengeShareDraft: function (opts) {

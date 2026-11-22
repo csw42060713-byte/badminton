@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v154.test.js — bm-v1.54.0
+ * test/v154.test.js — bm-v1.55.0
  *   🏆 점수판 파트너 · 라이벌 전적 자동 누적
  *
  *  사용자가 고른 기능 그대로 검증합니다.
@@ -100,27 +100,27 @@
    * ========================================================= */
 
   test('v1.54 점수판: 파트너·라이벌 이름은 점수 계산에 영향이 없고, 되돌리기·세트에도 남는다', function () {
-    var st = SB().create({ partner: '조환비', rival: '김원호' });
-    eq(st.partner, '조환비', '파트너 이름');
-    eq(st.rival, '김원호', '라이벌 이름');
+    var st = SB().create({ partner: '민호', rival: '지호' });
+    eq(st.partner, '민호', '파트너 이름');
+    eq(st.rival, '지호', '라이벌 이름');
     eq(st.a, 0, '점수는 0에서');
 
-    var played = SB().nextSet(rally(SB().create({ partner: '조환비', rival: '김원호' }), 'a', 21));
-    eq(played.partner, '조환비', '세트가 끝나도 파트너 유지');
-    eq(played.rival, '김원호', '세트가 끝나도 라이벌 유지');
-    eq(SB().undo(played).partner, '조환비', '되돌려도 파트너 유지');
-    eq(SB().resetSet(played).rival, '김원호', '세트 초기화에도 라이벌 유지');
+    var played = SB().nextSet(rally(SB().create({ partner: '민호', rival: '지호' }), 'a', 21));
+    eq(played.partner, '민호', '세트가 끝나도 파트너 유지');
+    eq(played.rival, '지호', '세트가 끝나도 라이벌 유지');
+    eq(SB().undo(played).partner, '민호', '되돌려도 파트너 유지');
+    eq(SB().resetSet(played).rival, '지호', '세트 초기화에도 라이벌 유지');
   });
 
   test('v1.54 점수판: 이름 바꾸기는 복사본을 만들어 원래 상태를 건드리지 않는다', function () {
-    var st = SB().create({ partner: '조환비' });
+    var st = SB().create({ partner: '민호' });
     var before = JSON.stringify(st);
-    var next = SB().setName(st, 'rival', '김원호');
-    eq(next.rival, '김원호', '라이벌 바뀜');
-    eq(next.partner, '조환비', '파트너 그대로');
+    var next = SB().setName(st, 'rival', '지호');
+    eq(next.rival, '지호', '라이벌 바뀜');
+    eq(next.partner, '민호', '파트너 그대로');
     eq(JSON.stringify(st), before, '원래 상태 그대로');
     eq(SB().setName(st, 'partner', '민수').partner, '민수', '파트너도 바뀜');
-    eq(SB().setName(st, 'nope', 'x').partner, '조환비', '모르는 칸은 무시');
+    eq(SB().setName(st, 'nope', 'x').partner, '민호', '모르는 칸은 무시');
   });
 
   test('v1.54 점수판: 이름은 20자·한 줄로 정리한다 (일지 칸과 같은 상한)', function () {
@@ -138,17 +138,17 @@
    * ========================================================= */
 
   test('v1.54 넘기기: 끝난 세트가 있으면 파트너·라이벌 이름까지 초안에 들어간다', function () {
-    var st = SB().create({ partner: '조환비', rival: '김원호' });
+    var st = SB().create({ partner: '민호', rival: '지호' });
     st = setWon(st, 21, 17);
     var patch = SB().draftPatch(st, {});
-    eq(patch.partner, '조환비', '파트너');
-    eq(patch.rival, '김원호', '라이벌');
+    eq(patch.partner, '민호', '파트너');
+    eq(patch.rival, '지호', '라이벌');
     eq(patch.gameMode, 21, '점수제');
     eq(JSON.stringify(patch.games), '[{"a":21,"b":17}]', '게임 점수');
     eq(patch.result, '승', '결과');
     includes(patch.note, '21:17', '메모에 스코어');
-    includes(patch.note, '함께 조환비', '메모에 파트너');
-    includes(patch.note, '상대 김원호', '메모에 라이벌');
+    includes(patch.note, '함께 민호', '메모에 파트너');
+    includes(patch.note, '상대 지호', '메모에 라이벌');
   });
 
   test('v1.54 넘기기: 점수판에 이름이 없으면 일지에 이미 적어 둔 이름을 지우지 않는다', function () {
@@ -160,16 +160,16 @@
   });
 
   test('v1.54 넘기기: 단식은 파트너 없이 라이벌만 넘어간다', function () {
-    var st = SB().create({ type: '단식', partner: '조환비', rival: '김원호' });
+    var st = SB().create({ type: '단식', partner: '민호', rival: '지호' });
     st = setWon(st, 21, 15);
     var patch = SB().draftPatch(st, {});
-    eq(patch.rival, '김원호', '단식 라이벌');
+    eq(patch.rival, '지호', '단식 라이벌');
     excludes(patch.note, '함께', '단식 메모에는 파트너 없음');
-    includes(patch.note, '상대 김원호', '단식 메모에 라이벌');
+    includes(patch.note, '상대 지호', '단식 메모에 라이벌');
   });
 
   test('v1.54 넘기기: 끝난 세트가 없으면 예전처럼 아무것도 넘기지 않는다', function () {
-    eq(SB().draftPatch(SB().create({ partner: '조환비', rival: '김원호' }), {}), null, '0:0은 null');
+    eq(SB().draftPatch(SB().create({ partner: '민호', rival: '지호' }), {}), null, '0:0은 null');
   });
 
   /* =========================================================
@@ -177,38 +177,38 @@
    * ========================================================= */
 
   test('v1.54 저장: 팀 칸 JSON에 partner·rival이 함께 적히고 다시 읽힌다', function () {
-    var json = D.logExtraJson({ partner: '조환비', rival: '김원호', video: {} });
+    var json = D.logExtraJson({ partner: '민호', rival: '지호', video: {} });
     var back = D.logMeta({ team: json });
-    eq(back.partner, '조환비', '파트너 읽기');
-    eq(back.rival, '김원호', '라이벌 읽기');
-    includes(json, '"rival":"김원호"', 'JSON에 rival');
+    eq(back.partner, '민호', '파트너 읽기');
+    eq(back.rival, '지호', '라이벌 읽기');
+    includes(json, '"rival":"지호"', 'JSON에 rival');
     ok(json.length < 200, '한 칸에 들어가는 짧은 줄');
   });
 
   test('v1.54 호환: 예전 일지(이름만·partner만)는 그대로 읽고 rival은 빈 값', function () {
-    var legacy = D.logMeta({ team: '조환비' });
-    eq(legacy.partner, '조환비', '예전 이름 칸 → 파트너');
+    var legacy = D.logMeta({ team: '민호' });
+    eq(legacy.partner, '민호', '예전 이름 칸 → 파트너');
     eq(legacy.rival, '', '라이벌 없음');
 
-    var v132 = D.logMeta({ team: '{"partner":"조환비"}' });
-    eq(v132.partner, '조환비', 'v1.32 JSON');
+    var v132 = D.logMeta({ team: '{"partner":"민호"}' });
+    eq(v132.partner, '민호', 'v1.32 JSON');
     eq(v132.rival, '', 'rival 없는 JSON');
-    eq(D.logExtraJson({ partner: '조환비' }), '{"partner":"조환비"}', 'rival 없으면 예전과 같은 JSON');
+    eq(D.logExtraJson({ partner: '민호' }), '{"partner":"민호"}', 'rival 없으면 예전과 같은 JSON');
     eq(D.logExtraJson({}), '', '모두 비면 칸 비움');
   });
 
   test('v1.54 저장: 초안의 rival이 일지 저장 경로를 지나 시트 한 줄에 남는다', function () {
     return freshStore().then(function (store) {
-      var st = setWon(SB().create({ partner: '조환비', rival: '김원호' }), 21, 12);
+      var st = setWon(SB().create({ partner: '민호', rival: '지호' }), 21, 12);
       store.actions.setDraft(SB().draftPatch(st, store.state.drafts.log));
-      eq(store.state.drafts.log.rival, '김원호', '초안 라이벌');
+      eq(store.state.drafts.log.rival, '지호', '초안 라이벌');
       var res = store.actions.saveLog();
       ok(res.ok, '저장 성공');
       var row = store.state.rows.filter(function (r) { return String(r[0]) === String(res.entity.id); })[0];
       ok(row, '저장한 일지 행');
       var meta = D.logMeta(row[D.COL['팀']]);
-      eq(meta.partner, '조환비', '행의 파트너');
-      eq(meta.rival, '김원호', '행의 라이벌');
+      eq(meta.partner, '민호', '행의 파트너');
+      eq(meta.rival, '지호', '행의 라이벌');
       eq(meta.video.url, '', '영상은 그대로 빈 값');
       eq(D.COL['팀'] === undefined, false, '팀 칸은 그대로 있다');
 
@@ -220,7 +220,7 @@
 
   test('v1.54 저장: 지난 일지를 고쳐 저장해도 rival이 함께 바뀐다', function () {
     return freshStore().then(function (store) {
-      var st = setWon(SB().create({ partner: '조환비', rival: '김원호' }), 21, 18);
+      var st = setWon(SB().create({ partner: '민호', rival: '지호' }), 21, 18);
       store.actions.setDraft(SB().draftPatch(st, store.state.drafts.log));
       var first = store.actions.saveLog();
       ok(first.ok, '첫 저장');
@@ -228,7 +228,7 @@
 
       var edit = store.actions.startEditLog(id);
       ok(edit.ok, '수정 시작');
-      eq(edit.draft.rival, '김원호', '수정 화면에 라이벌');
+      eq(edit.draft.rival, '지호', '수정 화면에 라이벌');
       store.actions.setDraft({ rival: '지훈' });
       store.state.locks.log = 0;                 /* 저장 연타 잠금(1.2초)은 테스트에서 풀어 줍니다 */
       var res = store.actions.saveLog();
@@ -236,7 +236,7 @@
       var row = store.state.rows.filter(function (r) { return String(r[0]) === String(id); })[0];
       var meta = D.logMeta(row[D.COL['팀']]);
       eq(meta.rival, '지훈', '바뀐 라이벌');
-      eq(meta.partner, '조환비', '파트너는 그대로');
+      eq(meta.partner, '민호', '파트너는 그대로');
       return store.flush();
     });
   });
@@ -247,11 +247,11 @@
 
   test('v1.54 라이벌 전적: 총 경기·승/패·승률·최근 스코어를 센다', function () {
     var records = [
-      rec('2026-11-10', { rival: '김원호', games: [{ a: 21, b: 18 }, { a: 19, b: 21 }] }),
-      rec('2026-11-15', { rival: '김원호', games: [{ a: 21, b: 15 }] }),
-      rec('2026-11-20', { rival: '김원호', games: [{ a: 18, b: 21 }] })
+      rec('2026-11-10', { rival: '지호', games: [{ a: 21, b: 18 }, { a: 19, b: 21 }] }),
+      rec('2026-11-15', { rival: '지호', games: [{ a: 21, b: 15 }] }),
+      rec('2026-11-20', { rival: '지호', games: [{ a: 18, b: 21 }] })
     ];
-    var r = D.rivalStat(records, '김원호');
+    var r = D.rivalStat(records, '지호');
     ok(r, '라이벌을 찾음');
     eq(r.games, 4, '총 4경기');
     eq(r.wins, 2, '2승');
@@ -281,28 +281,28 @@
   });
 
   test('v1.54 라이벌 전적: 같은 날 두 일지면 나중에 쓴 일지의 스코어가 최근 스코어', function () {
-    var a = rec('2026-11-20', { rival: '김원호', games: [{ a: 21, b: 17 }] });
+    var a = rec('2026-11-20', { rival: '지호', games: [{ a: 21, b: 17 }] });
     a.createdAt = '2026-11-20 10:00:00';
-    var b = rec('2026-11-20', { rival: '김원호', games: [{ a: 15, b: 21 }], n: 'b' });
+    var b = rec('2026-11-20', { rival: '지호', games: [{ a: 15, b: 21 }], n: 'b' });
     b.createdAt = '2026-11-20 19:00:00';
     /* 화면은 최신순으로 내려오므로 "나중 일지가 앞" */
-    var r = D.rivalStat([b, a], '김원호');
+    var r = D.rivalStat([b, a], '지호');
     eq(r.games, 2, '2경기');
     eq(r.recent, '15:21', '나중에 쓴 일지의 스코어');
-    eq(D.rivalStat([a, b], '김원호').recent, '15:21', '순서와 상관없이 같은 결과');
+    eq(D.rivalStat([a, b], '지호').recent, '15:21', '순서와 상관없이 같은 결과');
   });
 
   test('v1.54 라이벌 전적: 가장 많이 맞붙은 상대가 위, 이름 하나만 볼 수도 있다', function () {
     var records = [
-      rec('2026-11-10', { rival: '김원호', games: [{ a: 21, b: 5 }] }),
-      rec('2026-11-11', { rival: '김원호', games: [{ a: 21, b: 6 }] }),
+      rec('2026-11-10', { rival: '지호', games: [{ a: 21, b: 5 }] }),
+      rec('2026-11-11', { rival: '지호', games: [{ a: 21, b: 6 }] }),
       rec('2026-11-12', { rival: '지훈', games: [{ a: 21, b: 19 }, { a: 21, b: 20 }, { a: 18, b: 21 }] })
     ];
     var list = D.rivalStats(records, { limit: 5 });
     eq(list.length, 2, '두 명');
     eq(list[0].name, '지훈', '경기 많은 쪽이 먼저');
-    eq(list[1].name, '김원호', '그다음');
-    eq(D.rivalStats(records, { name: '김원호', limit: 5 }).length, 1, '이름 필터');
+    eq(list[1].name, '지호', '그다음');
+    eq(D.rivalStats(records, { name: '지호', limit: 5 }).length, 1, '이름 필터');
     eq(D.rivalStat(records, '없는사람'), null, '기록 없는 이름은 null');
     eq(D.rivalStat(records, ''), null, '빈 이름은 null');
     eq(D.rivalStats(records, { limit: 1 }).length, 1, 'limit');
@@ -310,34 +310,34 @@
 
   test('v1.54 라이벌 전적: 파트너 전적과 섞이지 않는다 (같은 이름이라도 다른 칸)', function () {
     var records = [
-      rec('2026-11-10', { partner: '조환비', rival: '김원호', games: [{ a: 21, b: 10 }] }),
-      rec('2026-11-11', { partner: '김원호', games: [{ a: 21, b: 11 }] })
+      rec('2026-11-10', { partner: '민호', rival: '지호', games: [{ a: 21, b: 10 }] }),
+      rec('2026-11-11', { partner: '지호', games: [{ a: 21, b: 11 }] })
     ];
-    eq(D.rivalStat(records, '김원호').games, 1, '라이벌 김원호 1경기');
-    eq(D.partnerStat(records, '김원호').games, 1, '파트너 김원호 1경기');
-    eq(D.rivalStat(records, '조환비'), null, '파트너 이름은 라이벌로 안 셈');
-    eq(D.partnerStat(records, '조환비').games, 1, '파트너 조환비 1경기');
-    eq(D.rivalStat(records, '김원호').wins, 1, '내가 이긴 경기가 승');
+    eq(D.rivalStat(records, '지호').games, 1, '라이벌 지호 1경기');
+    eq(D.partnerStat(records, '지호').games, 1, '파트너 지호 1경기');
+    eq(D.rivalStat(records, '민호'), null, '파트너 이름은 라이벌로 안 셈');
+    eq(D.partnerStat(records, '민호').games, 1, '파트너 민호 1경기');
+    eq(D.rivalStat(records, '지호').wins, 1, '내가 이긴 경기가 승');
   });
 
   test('v1.54 전적 호환: 기존 파트너 전적은 같은 기록에서 예전 그대로 나온다', function () {
     var records = [
-      rec('2026-11-10', { partner: '조환비', games: [{ a: 21, b: 18 }, { a: 19, b: 21 }] }),
-      rec('2026-11-12', { partner: '조환비', games: [{ a: 21, b: 15 }] }),
+      rec('2026-11-10', { partner: '민호', games: [{ a: 21, b: 18 }, { a: 19, b: 21 }] }),
+      rec('2026-11-12', { partner: '민호', games: [{ a: 21, b: 15 }] }),
       rec('2026-11-13', { partner: '민수', games: [{ a: 18, b: 21 }] })
     ];
     var list = D.partnerStats(records, { limit: 5 });
     eq(list.length, 2, '두 명');
-    eq(list[0].name, '조환비', '승률 높은 파트너 먼저');
+    eq(list[0].name, '민호', '승률 높은 파트너 먼저');
     eq(list[0].line, '3전 2승 1패', '파트너 한 줄');
     eq(list[0].rate, 67, '승률');
-    eq(D.partnerLineText(list[0]), '조환비 · 3전 2승 1패 (67%)', '파트너 한 줄 문구');
-    eq(D.partnerStats(records, { limit: 5 }).map(function (p) { return p.name; }).join(','), '조환비,민수', '정렬 그대로');
+    eq(D.partnerLineText(list[0]), '민호 · 3전 2승 1패 (67%)', '파트너 한 줄 문구');
+    eq(D.partnerStats(records, { limit: 5 }).map(function (p) { return p.name; }).join(','), '민호,민수', '정렬 그대로');
     eq(D.rivalStats(records, { limit: 5 }).length, 0, '라이벌은 없음');
   });
 
   test('v1.54 전적: 입력 기록을 바꾸지 않는다 (순수 함수)', function () {
-    var records = [rec('2026-11-10', { partner: '조환비', rival: '김원호', games: [{ a: 21, b: 18 }] })];
+    var records = [rec('2026-11-10', { partner: '민호', rival: '지호', games: [{ a: 21, b: 18 }] })];
     var before = JSON.stringify(records);
     D.rivalStats(records, { limit: 5 });
     D.partnerStats(records, { limit: 5 });
@@ -365,10 +365,10 @@
   });
 
   test('v1.54 화면: 이름을 고르면 카드 위에 함께 보이고, 단식은 파트너 버튼이 없다', function () {
-    var html = LOG().scoreboardHtml(SB().create({ partner: '조환비', rival: '김원호' }));
-    includes(html, '내 팀 · 조환비', '내 팀 카드에 파트너');
-    includes(html, '상대 팀 · 김원호', '상대 카드에 라이벌');
-    includes(html, '>조환비<', '이름표 버튼에 이름');
+    var html = LOG().scoreboardHtml(SB().create({ partner: '민호', rival: '지호' }));
+    includes(html, '내 팀 · 민호', '내 팀 카드에 파트너');
+    includes(html, '상대 팀 · 지호', '상대 카드에 라이벌');
+    includes(html, '>민호<', '이름표 버튼에 이름');
 
     var single = LOG().scoreboardHtml(SB().create({ type: '단식' }));
     excludes(single, 'data-sb-pick="partner"', '단식엔 파트너 버튼 없음');
@@ -378,15 +378,15 @@
   });
 
   test('v1.54 화면: 이름 고르기 칸 — 최근 칩·직접 적기·지금 전적 한 줄', function () {
-    var html = LOG().scoreboardHtml(SB().create({ partner: '조환비', rival: '김원호' }), {
+    var html = LOG().scoreboardHtml(SB().create({ partner: '민호', rival: '지호' }), {
       picker: 'rival',
-      cands: { rival: ['김원호', '지훈'], partner: ['조환비'], rec: { rival: '김원호 · 4전 2승 2패 (50%) · 최근 18:21' } }
+      cands: { rival: ['지호', '지훈'], partner: ['민호'], rec: { rival: '지호 · 4전 2승 2패 (50%) · 최근 18:21' } }
     });
     includes(html, 'data-sb-picker="rival"', '라이벌 고르기 열림');
     includes(html, 'data-sb-name="rival" data-sb-name-val="지훈"', '최근 상대 칩');
     includes(html, 'data-sb-name-input="rival"', '직접 적는 칸');
     includes(html, 'maxlength="20"', '길이 상한');
-    includes(html, '김원호 · 4전 2승 2패 (50%) · 최근 18:21', '고르는 자리에서 전적');
+    includes(html, '지호 · 4전 2승 2패 (50%) · 최근 18:21', '고르는 자리에서 전적');
     includes(html, 'data-sb-pick-close', '닫기');
     excludes(html, 'data-sb-picker="partner"', '파트너 칸은 닫혀 있음');
 
@@ -395,7 +395,7 @@
   });
 
   test('v1.54 화면: 가로 점수판도 이름표·+1 카드·일지 넣기가 모두 있다', function () {
-    var st = setOver(SB().create({ partner: '조환비', rival: '김원호' }), 21, 17);  /* 세트가 막 끝난 상태 */
+    var st = setOver(SB().create({ partner: '민호', rival: '지호' }), 21, 17);  /* 세트가 막 끝난 상태 */
     var land = LOG().scoreboardHtml(st, { land: true });
     var port = LOG().scoreboardHtml(st, { land: false });
     [land, port].forEach(function (html) {
@@ -403,7 +403,7 @@
       includes(html, 'data-sb-point="a"', '+1 내 팀');
       includes(html, 'data-sb-save', '일지에 넣기');
       includes(html, 'data-sb-next', '다음 세트');
-      includes(html, '내 팀 · 조환비', '카드 위 이름');
+      includes(html, '내 팀 · 민호', '카드 위 이름');
       excludes(html, 'NaN', 'NaN 없음');
     });
     eq(land.indexOf('data-sb-point="a"') < land.indexOf('data-sb-point="b"'), true, '가로는 내 팀이 먼저(왼쪽)');
@@ -424,12 +424,12 @@
   });
 
   test('v1.54 화면: 일지 입력칸에 상대(라이벌) 칸·최근 라이벌 칩·한 줄 전적이 있다', function () {
-    var rows = [rec('2026-11-20', { rival: '김원호', games: [{ a: 21, b: 18 }] })];
+    var rows = [rec('2026-11-20', { rival: '지호', games: [{ a: 21, b: 18 }] })];
     var html = LOG().render(stateOf(rows));
     includes(html, 'data-field="rival"', '라이벌 입력칸');
     includes(html, '상대(라이벌)', '이름표');
     includes(html, 'data-rvlchips', '라이벌 칩 줄');
-    includes(html, 'data-rvl-chip="김원호"', '김원호 칩');
+    includes(html, 'data-rvl-chip="지호"', '지호 칩');
     includes(html, 'data-rvl-now', '라이벌 전적 줄');
     includes(html, '자주 만난 라이벌', '칩 줄 이름표');
     var atPartner = html.indexOf('data-field="partner"');
@@ -438,42 +438,42 @@
   });
 
   test('v1.54 화면: 이름을 적으면 그 자리에서 전적이 보인다 (파트너·라이벌)', function () {
-    var rows = [rec('2026-11-20', { rival: '김원호', games: [{ a: 21, b: 18 }] })];
+    var rows = [rec('2026-11-20', { rival: '지호', games: [{ a: 21, b: 18 }] })];
     var st = stateOf(rows);
-    eq(LOG().rivalNowText(st, '김원호'), '김원호 · 1전 1승 0패 (100%) · 최근 21:18', '라이벌 한 줄');
+    eq(LOG().rivalNowText(st, '지호'), '지호 · 1전 1승 0패 (100%) · 최근 21:18', '라이벌 한 줄');
     eq(LOG().rivalNowText(st, '없는사람'), '', '기록 없으면 빈 줄');
-    eq(LOG().partnerNowText(st, '김원호'), '', '파트너로는 안 셈');
+    eq(LOG().partnerNowText(st, '지호'), '', '파트너로는 안 셈');
     var html = LOG().render(st);
     includes(html, 'data-rvl-now', '줄 자리');
   });
 
   test('v1.54 화면: 라이벌 맞대결 카드 — 몇 승 몇 패·최근 스코어를 한눈에', function () {
     var rows = [
-      rec('2026-11-10', { rival: '김원호', games: [{ a: 21, b: 18 }, { a: 19, b: 21 }] }),
-      rec('2026-11-20', { rival: '김원호', games: [{ a: 21, b: 15 }] }),
+      rec('2026-11-10', { rival: '지호', games: [{ a: 21, b: 18 }, { a: 19, b: 21 }] }),
+      rec('2026-11-20', { rival: '지호', games: [{ a: 21, b: 15 }] }),
       rec('2026-11-12', { rival: '지훈', games: [{ a: 18, b: 21 }] })
     ];
     var st = stateOf(rows);
     var html = LOG().render(st);
     includes(html, 'data-region="rival"', '카드 자리');
     includes(html, '라이벌 맞대결', '카드 이름');
-    includes(html, '김원호에게 2승 1패', '요약 줄에 몇 승 몇 패');
+    includes(html, '지호에게 2승 1패', '요약 줄에 몇 승 몇 패');
     includes(html, '3전 2승 1패', '줄마다 전적');
     includes(html, '최근 21:15', '최근 스코어');
     includes(html, '라이벌', '배지');
-    ok(LOG().rivalBlock(st).indexOf('김원호') < LOG().rivalBlock(st).indexOf('지훈'), '자주 만난 상대가 위');
+    ok(LOG().rivalBlock(st).indexOf('지호') < LOG().rivalBlock(st).indexOf('지훈'), '자주 만난 상대가 위');
 
     /* 라이벌 기록이 없으면 카드도 없다 */
-    eq(LOG().rivalBlock(stateOf([rec('2026-11-10', { partner: '조환비', games: [{ a: 21, b: 5 }] })])), '', '기록 없으면 카드 없음');
+    eq(LOG().rivalBlock(stateOf([rec('2026-11-10', { partner: '민호', games: [{ a: 21, b: 5 }] })])), '', '기록 없으면 카드 없음');
   });
 
   test('v1.54 화면: 일지 상세·최근 기록에도 상대(라이벌)가 보인다', function () {
-    var r = rec('2026-11-20', { partner: '조환비', rival: '김원호', games: [{ a: 21, b: 18 }] });
+    var r = rec('2026-11-20', { partner: '민호', rival: '지호', games: [{ a: 21, b: 18 }] });
     var detail = LOG().recordDetail(r);
     includes(detail, '상대(라이벌)', '상세 이름표');
-    includes(detail, '김원호', '상세 이름');
+    includes(detail, '지호', '상세 이름');
     var html = LOG().render(stateOf([r]));
-    includes(html, 'vs 김원호', '최근 기록 한 줄');
+    includes(html, 'vs 지호', '최근 기록 한 줄');
   });
 
   /* =========================================================
@@ -496,21 +496,21 @@
   test('v1.54 스키마: 새 칸·새 행 유형 없이 기존 26칸 그대로', function () {
     eq(D.COLS.length, 26, '시트 26칸');
     eq(D.COL['팀'] === undefined, false, '팀 칸 그대로');
-    eq(D.logCells({ team: '{"rival":"김원호"}' })['팀'], '{"rival":"김원호"}', '팀 칸으로 나감');
-    eq(D.toRow({ type: '기록', team: '{"partner":"조환비","rival":"김원호"}' })[D.COL['팀']], '{"partner":"조환비","rival":"김원호"}', '행으로 나감');
+    eq(D.logCells({ team: '{"rival":"지호"}' })['팀'], '{"rival":"지호"}', '팀 칸으로 나감');
+    eq(D.toRow({ type: '기록', team: '{"partner":"민호","rival":"지호"}' })[D.COL['팀']], '{"partner":"민호","rival":"지호"}', '행으로 나감');
     eq(D.COLS.filter(function (c) { return c === 'rival' || c === '라이벌'; }).length, 0, '새 칸 없음');
   });
 
-  test('v1.54 버전: sw·app·TWA·styles.css가 bm-v1.54.0으로 맞는다', function () {
+  test('v1.54 버전: sw·app·TWA·styles.css가 bm-v1.55.0으로 맞는다', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js');
-    includes(sw, "var VERSION = 'bm-v1.54.0'", '서비스워커 버전');
-    includes(sw, 'bm-v1.54.0', '변경 이력');
-    includes(readRoot('app.js'), "version: 'v1.54.0'", '앱 버전');
+    includes(sw, "var VERSION = 'bm-v1.55.0'", '서비스워커 버전');
+    includes(sw, 'bm-v1.55.0', '변경 이력');
+    includes(readRoot('app.js'), "version: 'v1.55.0'", '앱 버전');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.54.0', 'TWA 이름');
-    eq(twa.appVersion, '1.54.0', 'TWA 버전');
-    eq(twa.appVersionCode, 48, '업로드 번호 +1');
+    eq(twa.appVersionName, '1.55.0', 'TWA 이름');
+    eq(twa.appVersion, '1.55.0', 'TWA 버전');
+    eq(twa.appVersionCode, 49, '업로드 번호 +1');
     var html = readRoot('index.html');
     ok(/styles\.css\?v=20261122-\d+/.test(html), '스타일 캐시 키');
     includes(html, 'js/views/log.js', '일지 화면 스크립트');

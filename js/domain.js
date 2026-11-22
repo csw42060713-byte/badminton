@@ -449,7 +449,7 @@
   var BASE_HEARTS = HEART_RULES.BASE;            // 가입 축하 하트 (구버전 호환)
   var HEART_COST_MATCH = HEART_RULES.MATCH_COST; // 1:1 매칭 신청 비용
 
-  var JSON_TYPES = { '매칭프로필': 1, '코치신청': 1, '멘토신청': 1, '매칭신청': 1, '코치피드백': 1, '계획': 1, '게스트신청': 1 };
+  var JSON_TYPES = { '매칭프로필': 1, '코치신청': 1, '멘토신청': 1, '매칭신청': 1, '코치피드백': 1, '계획': 1, '게스트신청': 1, '신고': 1 };
 
   /* 커뮤니티 말머리(주제 태그) — 시트 칸을 늘리지 않고 '훈련계획' 칸에
    * {"topic":"게스트 모집"} 로 적습니다(예전 글은 주제가 없으므로 아래에서 자동 판별).
@@ -976,6 +976,100 @@
     };
   }
 
+  /* ---------- 신고 · 차단 (2026-11-22, bm-v1.55.0) — 구글 Play UGC 심사 요건 ----------
+   * 커뮤니티 글·답글·1:1 대화에서 다른 사람의 내용을 신고하거나 그 사람을 차단합니다.
+   * 새 칸·새 DB 컬럼 없이 26칸을 그대로 씁니다.
+   *  · 신고 = '유형=신고 · 대상=신고한 글/답글 ID(대화는 상대 키) · 소셜글=JSON'
+   *    JSON에는 kind(글·답글·대화) · user(신고한 사람 키) · reason(사유 코드) ·
+   *    detail(한 줄, 선택) · text(신고 당시 내용 앞부분)가 들어갑니다.
+   *  · 차단 = '유형=차단 · 대상=차단한 사람 키' 한 줄. 내 행이라 RLS(내 것만 읽기·쓰기)를
+   *    그대로 통과하고, 화면은 이 줄로 글·답글·매칭·1:1 대화를 걸러 냅니다.
+   * ============================================================ */
+  var BLOCK_TYPE = '차단';
+  var REPORT_TYPE = '신고';
+  var REPORT_REASONS = [
+    { code: '욕설', label: '욕설·비방' },
+    { code: '광고', label: '광고·도배' },
+    { code: '만남', label: '부적절한 만남·내용' },
+    { code: '기타', label: '기타' }
+  ];
+  var REPORT_KINDS = { post: '글', reply: '답글', chat: '1:1 대화', profile: '프로필' };
+  var REPORT_NOTE_MAX = 100;      /* 사유 '기타'에 덧붙이는 한 줄 */
+  var REPORT_TEXT_MAX = 200;      /* 신고할 때 함께 남기는 원문 앞부분 */
+
+  function reportReason(code) {
+    var s = String(code == null ? '' : code).trim();
+    for (var i = 0; i < REPORT_REASONS.length; i++) {
+      if (REPORT_REASONS[i].code === s) return REPORT_REASONS[i];
+    }
+    return null;
+  }
+
+  function reportLabel(code) {
+    var r = reportReason(code);
+    return r ? r.label : '';
+  }
+
+  function reportKindLabel(kind) {
+    return REPORT_KINDS[String(kind || '')] || '내용';
+  }
+
+  /* 신고 한 줄의 JSON(소셜글 칸) — 사유 코드는 정해진 4종만, 글은 길이를 자릅니다 */
+  function reportPayload(input) {
+    input = input || {};
+    var reason = reportReason(input.reason) || REPORT_REASONS[REPORT_REASONS.length - 1];
+    var kind = REPORT_KINDS[String(input.kind || '')] ? String(input.kind) : 'post';
+    return {
+      kind: kind,
+      user: String(input.user || ''),
+      reason: reason.code,
+      detail: String(input.detail == null ? '' : input.detail).slice(0, REPORT_NOTE_MAX),
+      text: String(input.text == null ? '' : input.text).replace(/\s+/g, ' ').trim().slice(0, REPORT_TEXT_MAX),
+      at: String(input.at || '')
+    };
+  }
+
+  /* 신고 한 줄 → 화면에 보여 줄 요약(관리자·기록 확인용) */
+  function reportLine(row) {
+    var pl = (row && row.payload) || {};
+    var who = (row && row.nick) || '';
+    return [reportKindLabel(pl.kind), reportLabel(pl.reason), who].filter(Boolean).join(' · ');
+  }
+
+  /* 차단한 사람의 키 — 내가 남긴 '차단' 줄만 셉니다(남의 차단 목록은 보이지 않음) */
+  function blockRows(idx, meKey) {
+    if (!meKey) return [];
+    return ((idx && idx.byType && idx.byType[BLOCK_TYPE]) || []).filter(function (r) {
+      return String(r.userKey || '') === String(meKey) && !!String(r.target || '');
+    });
+  }
+
+  /* { 사람키: 1 } — 화면·파생 데이터가 글·답글·사람 목록을 거를 때 씁니다 */
+  function blockedKeys(idx, meKey) {
+    var map = {};
+    blockRows(idx, meKey).forEach(function (r) { map[String(r.target)] = 1; });
+    return map;
+  }
+
+  function isBlocked(idx, meKey, userKey) {
+    var key = String(userKey == null ? '' : userKey);
+    if (!key || !meKey) return false;
+    return !!blockedKeys(idx, meKey)[key];
+  }
+
+  /* 차단 목록 — 사람별 한 줄(가장 최근에 차단한 줄), 최근 차단 순. MY에서 해제에 씁니다. */
+  function blockList(idx, meKey) {
+    var by = {};
+    U.sortBy(blockRows(idx, meKey), function (r) { return r.createdAt || ''; }).forEach(function (r) {
+      by[String(r.target)] = r;
+    });
+    var out = Object.keys(by).map(function (k) {
+      return { id: by[k].id, key: k, nick: displayName(idx, k), at: by[k].createdAt || by[k].date || '' };
+    });
+    out.sort(function (a, b) { return (a.at || '') < (b.at || '') ? 1 : (a.at || '') > (b.at || '') ? -1 : 0; });
+    return out;
+  }
+
   /* 멘토 심사는 관리자 계정만 할 수 있습니다.
    * 앱(화면)과 브리지(APPS_SCRIPT_BRIDGE.gs CONFIG.ADMIN_EMAILS)가 같은 값을 봅니다. */
   var ADMIN_EMAILS = ['csw42060713@gmail.com'];
@@ -1065,7 +1159,7 @@
   /* ============================================================
    * 일지 부가 정보 — 복식 파트너 · 상대(라이벌) · 영상 링크 (bm-v1.32.0 · v1.54.0)
    *  · 시트 26칸·Supabase 컬럼을 늘리지 않고 '팀' 칸에 JSON 한 줄로 적습니다.
-   *      팀 = {"partner":"조환비","rival":"김원호","video":{"url":"https://…","label":"스매시 폼"}}
+   *      팀 = {"partner":"민호","rival":"지호","video":{"url":"https://…","label":"스매시 폼"}}
    *    rival(상대·라이벌)은 v1.54.0에서 더한 칸이라, 예전 일지에는 없어도 그대로 읽힙니다.
    *    '기록'(일지) 행에서 '팀' 칸은 달리 쓰이지 않으므로 안전합니다.
    *  · 영상은 링크만 저장합니다(http/https). javascript:·data: 같은 주소는
@@ -1278,7 +1372,7 @@
     return partnerStats(records, { name: n, limit: 1 })[0] || null;
   }
 
-  /* 파트너 전적 한 줄 — '조환비 · 4전 3승 1패 (75%)'
+  /* 파트너 전적 한 줄 — '민호 · 4전 3승 1패 (75%)'
    *  무승부만 있으면 승률을 붙이지 않습니다(0%로 보이면 오해). */
   function partnerLineText(p) {
     if (!p) return '';
@@ -1293,7 +1387,7 @@
     return rivalStats(records, { name: n, limit: 1 })[0] || null;
   }
 
-  /* 라이벌 전적 한 줄 — '김원호 · 6전 4승 2패 (67%) · 최근 21:17'
+  /* 라이벌 전적 한 줄 — '지호 · 6전 4승 2패 (67%) · 최근 21:17'
    *  무승부만 있으면 승률을 붙이지 않습니다(파트너 줄과 같은 이유). */
   function rivalLineText(r) {
     if (!r) return '';
@@ -1302,7 +1396,7 @@
       (r.recent ? ' · 최근 ' + r.recent : '');
   }
 
-  /* 라이벌에게 몇 승 몇 패인지 — '라이벌 김원호에게 4승 2패' (한눈에 보는 한 줄)
+  /* 라이벌에게 몇 승 몇 패인지 — '라이벌 지호에게 4승 2패' (한눈에 보는 한 줄)
    *  아직 기록이 없으면 ''(처음 맞붙는 상대). */
   function rivalVersusText(r) {
     if (!r || !r.games) return '';
@@ -2951,7 +3045,7 @@
   /* 챌린지 자랑 문구 — 3회를 채운 카드에서 커뮤니티 글로 그대로 들어갑니다.
    *  예) '이번 주 헤어핀 3회 연습 달성! 🎉'
    *  · 이번 주(또는 오늘) 기록에 함께 친 파트너·전적이 있으면 괄호로 자연스럽게 붙입니다 (bm-v1.36.0).
-   *    예) '이번 주 헤어핀 3회 연습 달성! (조환비와 2경기 2승) 🎉'
+   *    예) '이번 주 헤어핀 3회 연습 달성! (민호와 2경기 2승) 🎉'
    *  · opts.records 를 안 주면 예전과 같은 문구입니다. */
   function challengeShareText(ch, opts) {
     opts = opts || {};
@@ -2962,7 +3056,7 @@
     return '이번 주 ' + w + ' ' + goal + '회 연습 달성!' + (tail ? ' (' + tail + ')' : '') + ' 🎉';
   }
 
-  /* '조환비와' / '민수와' / '김철수와' — 받침에 따라 '와/과'를 고릅니다 */
+  /* '민수와' / '민호와' / '김철수와' — 받침에 따라 '와/과'를 고릅니다 */
   function withAnd(name) {
     var s = String(name == null ? '' : name).trim();
     if (!s) return '와';
@@ -2997,7 +3091,7 @@
     return list[0];
   }
 
-  /* '조환비와 2경기 2승' — 자랑 문구 괄호 안에 들어가는 한 마디 */
+  /* '민호와 2경기 2승' — 자랑 문구 괄호 안에 들어가는 한 마디 */
   function challengePartnerTail(p) {
     if (!p || !p.games) return '';
     var rec = [];
@@ -3125,6 +3219,12 @@
     MANNER_TYPE: MANNER_TYPE, MANNER_TAGS: MANNER_TAGS, MANNER_MAX_BADGES: MANNER_MAX_BADGES,
     mannerTag: mannerTag, mannerLabel: mannerLabel, mannerRows: mannerRows,
     mannerGivenToday: mannerGivenToday, mannerToday: mannerToday, mannerReceived: mannerReceived,
+    /* v1.55 — 신고 · 차단 (구글 Play UGC 심사 요건) */
+    BLOCK_TYPE: BLOCK_TYPE, REPORT_TYPE: REPORT_TYPE, REPORT_REASONS: REPORT_REASONS,
+    REPORT_KINDS: REPORT_KINDS, REPORT_NOTE_MAX: REPORT_NOTE_MAX, REPORT_TEXT_MAX: REPORT_TEXT_MAX,
+    reportReason: reportReason, reportLabel: reportLabel, reportKindLabel: reportKindLabel,
+    reportPayload: reportPayload, reportLine: reportLine,
+    blockRows: blockRows, blockedKeys: blockedKeys, isBlocked: isBlocked, blockList: blockList,
     groupRoomId: groupRoomId, groupPostOf: groupPostOf, isGroupRoom: isGroupRoom,
     groupTitle: groupTitle, groupNote: groupNote, groupMembers: groupMembers,
     groupThread: groupThread, groupThreadById: groupThreadById,

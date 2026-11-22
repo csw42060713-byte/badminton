@@ -87,9 +87,9 @@ with sync_playwright() as p:
         page.wait_for_timeout(wait)
 
     # 1) 파트너 4전 3승 1패 — 같은 주 안 세 날(11/16·11/18·11/20) + 첫 날 2경기
-    save_log(5, [{'a': '21', 'b': '18'}, {'a': '18', 'b': '21'}], ['헤어핀'], '조환비')
-    save_log(3, [{'a': '21', 'b': '15'}], ['헤어핀'], '조환비', VIDEO, '스매시 손목 각도')
-    save_log(1, [{'a': '25', 'b': '23'}], ['헤어핀'], '조환비')
+    save_log(5, [{'a': '21', 'b': '18'}, {'a': '18', 'b': '21'}], ['헤어핀'], '민호')
+    save_log(3, [{'a': '21', 'b': '15'}], ['헤어핀'], '민호', VIDEO, '스매시 손목 각도')
+    save_log(1, [{'a': '25', 'b': '23'}], ['헤어핀'], '민호')
 
     row = page.evaluate("""() => {
         const C = BM.domain.COL, rows = BM.app.ctx.store.state.rows;
@@ -103,7 +103,7 @@ with sync_playwright() as p:
     pcard = page.query_selector('[data-region="partner"]')
     check('파트너 승률 카드', pcard is not None)
     ptext = (pcard.inner_text().replace('\n', ' | ') if pcard else '')
-    check('요약줄에 조환비 4전 3승 1패', '조환비' in ptext and '4전 3승 1패' in ptext, ptext[:160])
+    check('요약줄에 민호 4전 3승 1패', '민호' in ptext and '4전 3승 1패' in ptext, ptext[:160])
     check('승률 75%', '75%' in ptext, ptext[:160])
     page.evaluate("""() => { const d = document.querySelector('[data-region="partner"] details'); if (d) d.open = true; }""")
     page.wait_for_timeout(400)
@@ -129,7 +129,7 @@ with sync_playwright() as p:
         }""")
         page.wait_for_timeout(700)
         sheet = page.inner_text('#sheet') if page.query_selector('#sheet') else ''
-        check('상세 시트에 복식 파트너', '조환비' in sheet, sheet[:200])
+        check('상세 시트에 복식 파트너', '민호' in sheet, sheet[:200])
         check('상세 시트에 체크 포인트', '스매시 손목 각도' in sheet, sheet[:300])
         vbtn = page.query_selector('#sheet a.vidbox__btn')
         check('상세 시트 영상 보기 버튼', vbtn is not None)

@@ -73,9 +73,9 @@ with sync_playwright() as p:
         print('     saved', path)
 
     # ── 1) 일지: 파트너 이름을 적고 전적 한 줄이 뜨는지
-    plan = [('2026-11-19', '조환비', '21', '18'),
-            ('2026-11-20', '조환비', '21', '19'),
-            ('2026-11-21', '조환비', '21', '15')]
+    plan = [('2026-11-19', '민호', '21', '18'),
+            ('2026-11-20', '민호', '21', '19'),
+            ('2026-11-21', '민호', '21', '15')]
     saved = []
     for day, partner, a, bb in plan:
         saved.append(page.evaluate("""([d, p, a, b]) => {
@@ -85,7 +85,7 @@ with sync_playwright() as p:
             return st.actions.saveLog().ok;
         }""", [day, partner, a, bb]))
         page.wait_for_timeout(1400)
-    check('일지 3건 저장 (파트너 조환비 · 이번 주 챌린지 달성)', saved and all(saved), saved)
+    check('일지 3건 저장 (파트너 민호 · 이번 주 챌린지 달성)', saved and all(saved), saved)
 
     page.reload(wait_until='load')
     page.wait_for_timeout(2600)
@@ -101,13 +101,13 @@ with sync_playwright() as p:
     page.evaluate("document.querySelector('[data-ptnchips]')?.scrollIntoView({block:'center'})")
     page.wait_for_timeout(400)
     chips = page.evaluate("[...document.querySelectorAll('[data-ptn-chip]')].map(b => b.getAttribute('data-ptn-chip'))")
-    check('최근 파트너 칩에 조환비', '조환비' in chips, chips)
+    check('최근 파트너 칩에 민호', '민호' in chips, chips)
     page.click('[data-ptn-chip]')
     page.wait_for_timeout(600)
     line = page.evaluate("(() => { const el = document.querySelector('[data-ptn-now]'); return el ? {hidden: el.hidden, text: el.textContent.trim()} : null; })()")
     check('칩을 누르면 전적 한 줄이 바로 보인다', line and not line['hidden'], line)
-    check('한 줄 문구 = 조환비 · 3전 3승 (100%)',
-          line and line['text'] == '조환비 · 3전 3승 0패 (100%)', line)
+    check('한 줄 문구 = 민호 · 3전 3승 (100%)',
+          line and line['text'] == '민호 · 3전 3승 0패 (100%)', line)
     box = page.evaluate("""() => {
         const inp = document.querySelector('[data-field="partner"]');
         const now = document.querySelector('[data-ptn-now]');
@@ -120,15 +120,15 @@ with sync_playwright() as p:
     print('     saved', OUT + '/배드민턴_파트너전적_bm-v1.36.2_확대.png')
 
     # 직접 입력해도 그 줄이 따라온다
-    page.fill('[data-field="partner"]', '조환비')
+    page.fill('[data-field="partner"]', '민호')
     page.wait_for_timeout(500)
     line2 = page.evaluate("document.querySelector('[data-ptn-now]').textContent.trim()")
-    check('직접 입력해도 같은 줄', '조환비 · 3전 3승' in line2, line2)
+    check('직접 입력해도 같은 줄', '민호 · 3전 3승' in line2, line2)
     page.fill('[data-field="partner"]', '없는이름')
     page.wait_for_timeout(400)
     hidden = page.evaluate("document.querySelector('[data-ptn-now]').hidden")
     check('기록 없는 이름이면 줄을 숨긴다', hidden is True, hidden)
-    page.fill('[data-field="partner"]', '조환비')
+    page.fill('[data-field="partner"]', '민호')
     page.wait_for_timeout(400)
 
     # ── 2) 챌린지 자랑 문구에 파트너
@@ -138,12 +138,12 @@ with sync_playwright() as p:
         const d = BM.app.ctx.store.actions.challengeShareDraft();
         return {ok: d.ok, text: d.text, partner: d.partner && d.partner.name};
     }""")
-    check('자랑 초안에 파트너·전적', shared['ok'] and '(조환비와 3경기 3승)' in (shared['text'] or ''), shared)
+    check('자랑 초안에 파트너·전적', shared['ok'] and '(민호와 3경기 3승)' in (shared['text'] or ''), shared)
     if page.query_selector('[data-act="challenge-share"]'):
         page.click('[data-act="challenge-share"]')
         page.wait_for_timeout(700)
         composer = page.evaluate("BM.app.ctx.store.state.ui.composer")
-        check('초안이 커뮤니티 글쓰기에 들어간다', '(조환비와 3경기 3승)' in (composer or ''), composer)
+        check('초안이 커뮤니티 글쓰기에 들어간다', '(민호와 3경기 3승)' in (composer or ''), composer)
     else:
         check('초안이 커뮤니티 글쓰기에 들어간다', False, '자랑하기 버튼 없음')
 

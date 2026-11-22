@@ -234,11 +234,11 @@
 
   test('v1.34 파트너: 닉네임이 정확히 같은 회원 한 명이면 그 키', function () {
     var idx = idxOf([
-      { id: 'p1', type: '프로필', userKey: 'u_a', nick: '조환비', createdAt: '2026-11-10 10:00:00' },
+      { id: 'p1', type: '프로필', userKey: 'u_a', nick: '민호', createdAt: '2026-11-10 10:00:00' },
       { id: 'p2', type: '프로필', userKey: 'u_b', nick: '나래', createdAt: '2026-11-10 10:00:00' }
     ]);
-    eq(D.memberByName(idx, '조환비'), 'u_a', '회원 키');
-    eq(D.memberByName(idx, ' 조환비 '), 'u_a', '공백은 정리');
+    eq(D.memberByName(idx, '민호'), 'u_a', '회원 키');
+    eq(D.memberByName(idx, ' 민호 '), 'u_a', '공백은 정리');
     eq(D.memberByName(idx, '없는사람'), '', '회원 아님');
     eq(D.memberByName(idx, ''), '', '빈 이름');
     eq(D.memberByName(idx, null), '', 'null');
@@ -246,11 +246,11 @@
 
   test('v1.34 파트너: 같은 닉네임이 둘이면 잇지 않는다 (엉뚱한 사람 방지)', function () {
     var idx = idxOf([
-      { id: 'p1', type: '프로필', userKey: 'u_a', nick: '조환비', createdAt: '2026-11-10 10:00:00' },
-      { id: 'p2', type: '프로필', userKey: 'u_c', nick: '조환비', createdAt: '2026-11-11 10:00:00' }
+      { id: 'p1', type: '프로필', userKey: 'u_a', nick: '민호', createdAt: '2026-11-10 10:00:00' },
+      { id: 'p2', type: '프로필', userKey: 'u_c', nick: '민호', createdAt: '2026-11-11 10:00:00' }
     ]);
-    eq(D.memberByName(idx, '조환비'), '', '둘이면 연결 안 함');
-    eq(D.memberByName(idx, '조환비', { meKey: 'u_a' }), 'u_c', '나를 빼면 남은 한 명');
+    eq(D.memberByName(idx, '민호'), '', '둘이면 연결 안 함');
+    eq(D.memberByName(idx, '민호', { meKey: 'u_a' }), 'u_c', '나를 빼면 남은 한 명');
   });
 
   test('v1.34 파트너: 나 자신은 제외 · 최신 닉네임 · 매칭프로필도 본다', function () {
@@ -267,13 +267,13 @@
 
   test('v1.34 파트너: 승률 줄의 이름이 프로필 버튼으로 바뀐다', function () {
     var records = [
-      rec('2026-11-19', '', { tag: 'a', team: JSON.stringify({ partner: '조환비' }), games: [{ a: 21, b: 18 }] }),
+      rec('2026-11-19', '', { tag: 'a', team: JSON.stringify({ partner: '민호' }), games: [{ a: 21, b: 18 }] }),
       rec('2026-11-18', '', { tag: 'b', team: JSON.stringify({ partner: '모르는선수' }), games: [{ a: 21, b: 18 }] })
     ];
-    var idx = idxOf([{ id: 'p1', type: '프로필', userKey: 'u_a', nick: '조환비', createdAt: '2026-11-10 10:00:00' }]);
+    var idx = idxOf([{ id: 'p1', type: '프로필', userKey: 'u_a', nick: '민호', createdAt: '2026-11-10 10:00:00' }]);
     var out = html(BM.views.log.render(stateOf(records, { data: { idx: idx } })), '일지');
     includes(out, 'data-partner="u_a"', '프로필 버튼');
-    includes(out, 'aria-label="조환비 프로필 열기"', '누를 수 있다는 안내');
+    includes(out, 'aria-label="민호 프로필 열기"', '누를 수 있다는 안내');
     includes(out, 'class="ptn__link"', '누를 수 있는 이름');
     includes(out, '모르는선수', '회원 아닌 이름도 그대로 보인다');
     includes(out, '이름을 누르면 프로필', '한 줄 안내');
@@ -421,13 +421,13 @@
   test('v1.34 버전: sw.js·app.js·index.html·twa-manifest가 모두 v1.34', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.54.0'", 'sw.js');
-    includes(app, "version: 'v1.54.0'", 'app.js');
-    includes(index, 'styles.css?v=20261122-68', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.54.0', 'twa appVersionName');
-    eq(twa.appVersion, '1.54.0', 'twa appVersion');
-    eq(twa.appVersionCode, 48, 'twa appVersionCode');
-    includes(app, "version: 'v1.54.0'", '화면 아래 버전');
+    includes(sw, "var VERSION = 'bm-v1.55.0'", 'sw.js');
+    includes(app, "version: 'v1.55.0'", 'app.js');
+    includes(index, 'styles.css?v=20261122-69', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.55.0', 'twa appVersionName');
+    eq(twa.appVersion, '1.55.0', 'twa appVersion');
+    eq(twa.appVersionCode, 49, 'twa appVersionCode');
+    includes(app, "version: 'v1.55.0'", '화면 아래 버전');
   });
 
   test('v1.34 캐시: 새 파일 없이 기존 목록 그대로 (도메인·화면 코드만 갱신)', function () {

@@ -65,11 +65,46 @@
     return '🏸';
   }
 
+  /* ---------- 신고 · 차단 (bm-v1.55.0) ----------
+   * 다른 사람의 글·답글에만 붙습니다. ⋯ 를 누르면 그 글 안에서 신고·차단 두 버튼이 열리고,
+   * 차단은 같은 자리에서 한 번 더 묻습니다(인라인 확인 — 창·페이지 이동 없음).
+   * 저장은 store(reportContent · blockUser)가 하고, 차단하면 파생 데이터에서 바로 빠집니다. */
+  function safetyBar(id, userKey, nick, small) {
+    var cls = 'safetybar' + (small ? ' safetybar--mini' : '');
+    return '<div class="' + cls + '" data-safetybar="' + U.esc(id) + '" hidden>' +
+      '<button type="button" class="safetybtn" data-report="1" data-target="' + U.esc(id) + '"' +
+      ' data-user="' + U.esc(userKey) + '" data-nick="' + U.esc(nick) + '">' + UI.icon('flag') + '신고</button>' +
+      '<button type="button" class="safetybtn safetybtn--danger" data-block-ask="' + U.esc(userKey) + '"' +
+      ' data-nick="' + U.esc(nick) + '" data-target="' + U.esc(id) + '">' + UI.icon('block') + '차단</button>' +
+      '</div>' +
+      '<div class="safetybar safetybar--confirm" data-blockconfirm="' + U.esc(userKey) + '" hidden>' +
+      '<p class="safetybar__t">' + U.esc(nick) + '님을 차단할까요? 이 사람의 글·답글·1:1 대화가 보이지 않아요.</p>' +
+      '<div class="row gap8 mt8">' +
+      '<button type="button" class="btn btn--ghost btn--sm grow" data-block-no="1">취소</button>' +
+      '<button type="button" class="btn btn--danger btn--sm grow" data-block-yes="' + U.esc(userKey) + '">' + UI.icon('block') + '차단</button>' +
+      '</div></div>';
+  }
+
+  /* 신고할 때 함께 보내는 '신고 당시 내용 앞부분' — 화면 데이터에서만 찾습니다 */
+  function targetText(state, kind, id) {
+    var posts = (state && state.data && state.data.posts) || [];
+    for (var i = 0; i < posts.length; i++) {
+      if (kind === 'post' && String(posts[i].id) === String(id)) return posts[i].text || '';
+      var rs = posts[i].replies || [];
+      for (var j = 0; j < rs.length; j++) {
+        if (String(rs[j].id) === String(id)) return rs[j].text || '';
+      }
+    }
+    return '';
+  }
+
   function postCard(p, state) {
     var open = !!openReplies[p.id];
     var me = (state.me && state.me.key) || '';
     /* 내가 쓴 글에만 '삭제' 입구를 붙입니다 (bm-v1.40.1) — 지우기 전에 그 글 안에서 한 번 더 확인합니다 */
     var mine = !!me && String(p.userKey || '') === String(me);
+    /* 다른 사람 글에는 ⋯ 로 신고·차단 (bm-v1.55.0) */
+    var others = !!me && !mine && !!String(p.userKey || '');
     /* 본문을 비우고 모집 정보만 적은 글은 빈 문단을 그리지 않습니다 (bm-v1.39.1) */
     var body = String(p.text == null ? '' : p.text);
     return '<article class="post" data-post="' + U.esc(p.id) + '">' +
@@ -83,7 +118,12 @@
         ? '<button type="button" class="post__del" data-post-del="' + U.esc(p.id) + '" aria-expanded="false"' +
           ' aria-label="내 글 삭제" title="삭제">' + UI.icon('trash') + '</button>'
         : '') +
+      (others
+        ? '<button type="button" class="post__more" data-post-menu="' + U.esc(p.id) + '" aria-expanded="false"' +
+          ' aria-label="이 글 신고·차단" title="신고·차단">' + UI.icon('more') + '</button>'
+        : '') +
       '</header>' +
+      (others ? safetyBar(p.id, p.userKey, p.nick, false) : '') +
       (mine
         ? '<div class="post__delbar" data-delbar="' + U.esc(p.id) + '" hidden>' +
           '<p class="post__delbar-t">이 글을 삭제할까요? 지우면 되돌릴 수 없어요.</p>' +
@@ -102,9 +142,18 @@
       '</footer>' +
       (open ? '<div class="replies">' +
         (p.replies.length ? '<ul>' + p.replies.map(function (r) {
-          return '<li><div class="replies__who"><strong>' + U.esc(r.nick) + '</strong>' +
+          var rMine = String(r.userKey || '') === String(me);
+          var rOthers = !!me && !rMine && !!String(r.userKey || '');
+          return '<li data-reply="' + U.esc(r.id) + '">' +
+            '<div class="replies__who"><strong>' + U.esc(r.nick) + '</strong>' +
             (r.mentor ? '<span class="pill pill--ok replies__mentor">멘토 조언</span>' : '') +
-            '<time>' + U.timeAgo(r.createdAt) + '</time></div><p>' + U.esc(r.text) + '</p></li>';
+            '<time>' + U.timeAgo(r.createdAt) + '</time>' +
+            (rOthers
+              ? '<button type="button" class="replies__more" data-reply-menu="' + U.esc(r.id) + '"' +
+                ' aria-expanded="false" aria-label="이 답글 신고·차단" title="신고·차단">' + UI.icon('more') + '</button>'
+              : '') +
+            '</div><p>' + U.esc(r.text) + '</p>' +
+            (rOthers ? safetyBar(r.id, r.userKey, r.nick, true) : '') + '</li>';
         }).join('') + '</ul>' : '<p class="muted sm">첫 답글을 남겨 보세요.</p>') +
         '<form class="replyform" data-reply-form="' + U.esc(p.id) + '">' +
         '<input type="text" maxlength="200" placeholder="' + U.esc((state.me && state.me.nick) || '나') + '(으)로 답글" data-reply-input="' + U.esc(p.id) + '" value="' + U.esc(replyDrafts[p.id] || '') + '">' +
@@ -674,6 +723,80 @@
           ev.preventDefault();
           topicFilter = '전체';
           paintTopicFilter(root, ctx.store.state);
+          return;
+        }
+        /* ---- 신고 · 차단 (bm-v1.55.0) — 구글 Play UGC 심사 요건 ----
+         * ⋯ 를 누르면 그 글·답글 안에서 '신고'·'차단' 두 버튼이 열리고,
+         * '차단'은 같은 자리에서 한 번 더 묻습니다(인라인 확인). */
+        var moreBtn = ev.target.closest('[data-post-menu]');
+        if (moreBtn) {
+          ev.preventDefault();
+          var mCard = moreBtn.closest('[data-post]');
+          var mBar = mCard ? mCard.querySelector('[data-safetybar="' + moreBtn.getAttribute('data-post-menu') + '"]') : null;
+          if (mBar) {
+            mBar.hidden = !mBar.hidden;
+            moreBtn.setAttribute('aria-expanded', mBar.hidden ? 'false' : 'true');
+          }
+          UI.haptic(6);
+          return;
+        }
+        var rMore = ev.target.closest('[data-reply-menu]');
+        if (rMore) {
+          ev.preventDefault();
+          var rLi = rMore.closest('[data-reply]');
+          var rBar = rLi ? rLi.querySelector('[data-safetybar]') : null;
+          if (rBar) {
+            rBar.hidden = !rBar.hidden;
+            rMore.setAttribute('aria-expanded', rBar.hidden ? 'false' : 'true');
+          }
+          UI.haptic(6);
+          return;
+        }
+        var repBtn = ev.target.closest('[data-report]');
+        if (repBtn) {
+          ev.preventDefault();
+          var repKind = repBtn.closest('[data-reply]') ? 'reply' : 'post';
+          var repId = repBtn.getAttribute('data-target');
+          var repUser = repBtn.getAttribute('data-user');
+          if (!BM.safety) return;
+          /* 신고는 사유를 골라 보내는 시트 하나로 끝냅니다 */
+          BM.safety.openReportSheet(ctx, {
+            kind: repKind, targetId: repId, targetUser: repUser,
+            nick: repBtn.getAttribute('data-nick'),
+            avatar: repUser ? avatarFor(ctx.store.state, repUser) : null,
+            text: targetText(ctx.store.state, repKind, repId)
+          });
+          UI.haptic(6);
+          return;
+        }
+        var askBtn = ev.target.closest('[data-block-ask]');
+        if (askBtn) {
+          ev.preventDefault();
+          var askKey = askBtn.getAttribute('data-block-ask');
+          var askCard = askBtn.closest('[data-post]');
+          if (askCard) {
+            UI.$$('[data-safetybar]', askCard).forEach(function (n) { n.hidden = true; });
+            var conf = askCard.querySelector('[data-blockconfirm="' + askKey + '"]');
+            if (conf) {
+              conf.hidden = false;
+              if (conf.scrollIntoView) conf.scrollIntoView({ block: 'nearest' });
+            }
+          }
+          UI.haptic(6);
+          return;
+        }
+        if (ev.target.closest('[data-block-no]')) {
+          ev.preventDefault();
+          var noBox = ev.target.closest('[data-blockconfirm]');
+          if (noBox) noBox.hidden = true;
+          return;
+        }
+        var blockYes = ev.target.closest('[data-block-yes]');
+        if (blockYes) {
+          ev.preventDefault();
+          var bKey = blockYes.getAttribute('data-block-yes');
+          if (BM.safety) BM.safety.doBlock(ctx, bKey);
+          else ctx.actions.blockUser(bKey);
           return;
         }
         /* 글쓴이 아바타·닉네임을 누르면 프로필(친구 상태·채팅 — 친구 추가는 친구 코드로만, v1.38) */

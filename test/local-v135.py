@@ -40,12 +40,12 @@ with sync_playwright() as p:
 
     print('version', page.evaluate('window.BM && BM.app && BM.app.version'))
 
-    # ── 일지 3건 (파트너: 조환비 2번, 민수 1번 · 하나는 점수 없이)
+    # ── 일지 3건 (파트너: 민호 2번, 민수 1번 · 하나는 점수 없이)
     page.evaluate("""() => {
         const st = BM.app.ctx.store;
         const save = (patch) => { st.actions.setDraft(patch); return st.actions.saveLog().ok; };
         save({ date: '2026-11-20', cond: 6, intensity: 7, minutes: 80, weakness: ['스매시'],
-               done: ['스트록'], games: [{ a: '21', b: 19 }], partner: '조환비' });
+               done: ['스트록'], games: [{ a: '21', b: 19 }], partner: '민호' });
     }""")
     page.wait_for_timeout(1500)
     page.evaluate("""() => {
@@ -58,7 +58,7 @@ with sync_playwright() as p:
     page.evaluate("""() => {
         const st = BM.app.ctx.store;
         st.actions.setDraft({ date: '2026-11-18', cond: 7, intensity: 6, minutes: 70, done: ['게임'],
-          games: [{ a: '21', b: '15' }], partner: '조환비' });
+          games: [{ a: '21', b: '15' }], partner: '민호' });
         return st.actions.saveLog().ok;
     }""")
     page.wait_for_timeout(1600)

@@ -137,8 +137,7 @@
     /* 종목별 안내 문구 */
     includes(AI.offcourtRoutine('단식').disciplineNote, '하체', '단식은 하체 비중');
     includes(AI.offcourtRoutine('복식').disciplineNote, '폼롤러', '복식은 회복');
-    /* 실명은 쓰지 않는다 */
-    excludes(JSON.stringify(AI.offcourtRoutine('단식')), '안세영', '실명 없음');
+    /* 실명은 쓰지 않습니다 — 출처는 '체전 1등 선수'로만 (bm-v1.55.0: 예시 이름도 가명만) */
     includes(AI.offcourtRoutine('단식').source, '체전 1등 선수', '일반화된 출처');
   });
 
@@ -236,10 +235,8 @@
     /* 기존 블록은 그대로 */
     includes(html, 'data-fold="prevent"', '예방 워밍업 블록 유지');
     includes(html, '추천 드릴', '드릴 유지');
-    /* 카드에는 실명을 쓰지 않는다 */
-    excludes(html, '안세영', '실명 없음');
-    excludes(html, '서승재', '실명 없음');
-    excludes(html, '김원호', '실명 없음');
+    /* 카드에는 실명을 쓰지 않습니다 (출처는 일반화된 표현만 — bm-v1.55.0) */
+    includes(html, '체전 1등 선수', '일반화된 출처');
   });
 
   /* =========================================================
@@ -247,17 +244,15 @@
    * ========================================================= */
   test('v1.23 버전: sw · app · 스타일 캐시 · README · TWA가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.54.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.54.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-68', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.55.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.55.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-69', '스타일 캐시 키');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.54.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.54.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 48, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.55.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.55.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 49, 'TWA 버전 코드');
     /* 공개 저장소에 시트 ID·토큰을 남기지 않는다 */
     excludes(readRoot('js/ai.js'), '1sqxAM6eskBYS03s', '시트 ID 없음');
-    excludes(readRoot('js/ai.js'), '안세영', '선수 실명 없음');
-    excludes(readRoot('js/views/log.js'), '서승재', '선수 실명 없음');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

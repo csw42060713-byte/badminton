@@ -69,7 +69,7 @@ DRESS_UP = """
   const U = BM.util, D = BM.domain;
   const col = D.COL;
   const rows = U.readJSON(rowsKey, []);
-  const names = ['조환비', '민수'];
+  const names = ['민호', '민수'];
   let k = 0;
   rows.forEach((r) => {
     if (r[col['유형']] !== '기록') return;
@@ -192,7 +192,7 @@ def main():
           const st = BM.app.ctx.store, U = BM.util;
           st.actions.setDraft({ date: U.ymd(), cond: 6, intensity: 6, minutes: 70,
             done: ['게임', '풋워크'], weakness: ['헤어핀'], games: [{ a: 21, b: 17 }],
-            partner: '조환비', gameMode: 21 });
+            partner: '민호', gameMode: 21 });
         }""")
         btn = page.query_selector("[data-act='save-log']")
         if btn:

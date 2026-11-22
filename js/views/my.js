@@ -374,13 +374,17 @@
   }
 
   /* 데이터 연결 — 안내 문구는 짧게, 버튼은 크게.
-   * 개발자용 Google Client ID 입력은 첫 화면을 어지럽히지 않게 이 묶음 맨 아래에 둡니다. */
+   * bm-v1.55.0: 기록은 이제 Supabase에 자동으로 저장됩니다. 그래서 일반 사용자 화면에서는
+   * 구글 시트 연결·JSON 내보내기·Client ID를 '고급' 접기 안으로 옮겼습니다
+   * ("시트도 연결해야 하나?" 헷갈리지 않게 — 관리자·이미 시트로 쓰는 계정은 예전처럼 바로 보입니다).
+   * 내부 sheets 브리지 코드·data-act 는 그대로라 예전 기기·점검 스크립트도 그대로 동작합니다. */
   function dataPanel(state) {
     var auth = BM.auth;
     var cid = auth.googleClientId();
     var origin = (typeof location !== 'undefined' && location.origin) || '';
     var live = state.mode === 'supabase';
     var signed = !isGuest();
+    var full = dataToolsOpen(state);
     var livePill = state.realtime === 'live'
       ? '<span class="pill pill--ok">실시간 연결됨</span>'
       : '<span class="pill pill--ghost">연결 중…</span>';
@@ -389,7 +393,7 @@
       : state.mode === 'sheets'
         ? '구글 시트의 <b>출력결과</b> 탭과 연결되어 있어요. 저장하면 시트에 바로 쌓입니다.'
         : '이 기기 브라우저에 저장돼요. 로그인하면 실시간 서버에 쌓입니다.';
-    return '<p class="hint">' + modeText + (live && signed ? ' ' + livePill : '') + '</p>' +
+    var tools =
       '<div class="row gap8 mt8">' +
       '<button class="btn btn--ghost grow" data-act="connect">' + UI.icon('edit') +
       (live ? '시트로 바꾸기' : '시트 연결') + '</button>' +
@@ -397,10 +401,6 @@
       (!live && signed
         ? '<button class="btn btn--primary btn--sm mt8" data-act="use-supabase">실시간 서버(Supabase)로 바꾸기</button>'
         : '') +
-      ((state.mode === 'local' && isGuest()) ? '<button class="linkbtn mt8" data-act="reset-demo">저장된 기록 모두 지우기</button>' : '') +
-      '<p class="sync">마지막 동기화 ' + U.esc(state.lastSync || '—') +
-      (state.syncState === 'syncing' ? ' · 보내는 중…' : state.syncState === 'error' ? ' · <b class="warn">재시도 대기</b>' : '') + '</p>' +
-      (state.queue && state.queue.length ? '<button class="linkbtn" data-act="retry">대기 중인 저장 ' + state.queue.length + '건 지금 보내기</button>' : '') +
       '<details class="adv">' +
       '<summary>고급 · Google Client ID</summary>' +
       '<div class="adv__body">' +
@@ -413,6 +413,43 @@
       '<div class="row gap8 mt8"><button type="button" class="btn btn--primary grow btn--sm" data-act="save-client-id">저장</button>' +
       (cid ? '<button type="button" class="btn btn--ghost btn--sm" data-act="clear-client-id">지우기</button>' : '') +
       '</div></div></details>';
+    return '<p class="hint">' + modeText + (live && signed ? ' ' + livePill : '') + '</p>' +
+      (full
+        ? tools
+        : '<p class="hint hint--auto">' + UI.icon('check') +
+          '기록은 자동으로 저장돼요. 시트 연결이나 백업은 필요할 때만 아래 <b>고급</b>을 열어 주세요.</p>' +
+          '<details class="adv adv--dev" data-adv="sheets">' +
+          '<summary>고급 · 시트 연결 · JSON 백업</summary>' +
+          '<div class="adv__body">' + tools + '</div></details>') +
+      ((state.mode === 'local' && isGuest()) ? '<button class="linkbtn mt8" data-act="reset-demo">저장된 기록 모두 지우기</button>' : '') +
+      '<p class="sync">마지막 동기화 ' + U.esc(state.lastSync || '—') +
+      (state.syncState === 'syncing' ? ' · 보내는 중…' : state.syncState === 'error' ? ' · <b class="warn">재시도 대기</b>' : '') + '</p>' +
+      (state.queue && state.queue.length ? '<button class="linkbtn" data-act="retry">대기 중인 저장 ' + state.queue.length + '건 지금 보내기</button>' : '');
+  }
+
+  /* 시트·백업 도구를 접기 없이 보여 줄 사람 — 관리자이거나 이미 시트로 쓰는 계정 */
+  function dataToolsOpen(state) {
+    return !!(state && ((state.data && state.data.isAdmin) || state.mode === 'sheets'));
+  }
+
+  /* ---------- 차단한 사람 (bm-v1.55.0) ----------
+   * 커뮤니티·1:1 대화에서 차단한 사람을 여기서 한눈에 보고 풉니다.
+   * 차단은 '유형=차단' 한 줄이라 기기를 바꿔도 그대로 따라옵니다. */
+  function blockPanel(state) {
+    var list = (state.data && state.data.blocks) || [];
+    if (!list.length) {
+      return '<p class="hint">' + UI.icon('shield') +
+        '차단한 사람이 없어요. 커뮤니티 글·답글이나 1:1 대화 상단의 ⋯에서 차단할 수 있어요.</p>';
+    }
+    return '<ul class="blocklist">' + list.map(function (b) {
+      return '<li data-block-row="' + U.esc(b.key) + '">' +
+        UI.avatar(UI.person(state, b.key), 36) +
+        '<div class="blocklist__mid"><strong>' + U.esc(b.nick) + '</strong>' +
+        '<small>' + (b.at ? U.esc(U.timeAgo(b.at)) + ' 차단' : '차단함') + '</small></div>' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-unblock="' + U.esc(b.key) + '">해제</button>' +
+        '</li>';
+    }).join('') + '</ul>' +
+      '<p class="hint">해제하면 그 사람의 글·답글·매칭·1:1 대화가 다시 보여요.</p>';
   }
 
   /* ---------- 내 유형 (bm-v1.40.0) ----------
@@ -583,7 +620,12 @@
         group('alarm', 'bell', '알림 · 편지지', alarmSummary(state), alarmPanel(state)) +
 
         group('theme', 'palette', '테마', themeName(theme), themeSwatches(state)) +
-        group('data', 'chart', '데이터 연결', '시트 연결 · 내보내기', dataPanel(state)) +
+        /* v1.55 — 일반 사용자에게는 데이터 연결 대신 '자동 저장'이라는 말로 짧게 */
+        group('data', 'chart', dataToolsOpen(state) ? '데이터 연결' : '데이터 · 자동 저장',
+          dataToolsOpen(state) ? '시트 연결 · 내보내기' : '자동 저장 · 고급', dataPanel(state)) +
+        group('blocks', 'shield', '차단한 사람',
+          ((state.data && state.data.blocks && state.data.blocks.length) ? state.data.blocks.length + '명' : ''),
+          blockPanel(state)) +
         group('legal', 'shield', '개인정보 · 계정', '', legalCard(state)) +
 
         '<p class="version">배드민턴 · ' + U.esc((BM.app && BM.app.version) || 'v1.9.1') + ' · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : (state.mode === 'supabase' ? 'Supabase 서울' : '이 기기 저장')) + '</p>';
@@ -776,6 +818,14 @@
         if (ev.target.closest('[data-act="export"]')) {
           ev.preventDefault();
           exportJson(ctx);
+          return;
+        }
+        /* v1.55 — 차단한 사람 해제 */
+        var unblockBtn = ev.target.closest('[data-unblock]');
+        if (unblockBtn) {
+          ev.preventDefault();
+          if (BM.safety) BM.safety.doUnblock(ctx, unblockBtn.getAttribute('data-unblock'));
+          else ctx.actions.unblockUser(unblockBtn.getAttribute('data-unblock'));
           return;
         }
         if (ev.target.closest('[data-act="help"]')) {
@@ -1710,6 +1760,8 @@
   BM.views.my.decorateDraft = decorateDraft;   /* 테스트·점검용 (꾸미기 시트 초기값) */
   BM.views.my.decorateBody = decorateBody;     /* 테스트·점검용 (꾸미기 시트 본문) */
   BM.views.my.openConnectSheet = openConnectSheet;   /* 테스트·점검용 (시트 연결 기본값) */
+  BM.views.my.dataPanel = dataPanel;                 /* 테스트·점검용 (v1.55: 일반 사용자 숨김/접힘) */
+  BM.views.my.blockPanel = blockPanel;               /* 테스트·점검용 (v1.55: 차단한 사람 목록) */
   BM.views.my.connectDefaults = connectDefaults;     /* 테스트·점검용 (기본 채움 값) */
   BM.views.my.alarmPanel = alarmPanel;               /* 테스트·점검용 (알림·편지지 설정) */
   BM.views.my.prefRow = prefRow;                     /* 테스트·점검용 */

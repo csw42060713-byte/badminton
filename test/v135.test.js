@@ -97,7 +97,7 @@
   test('v1.35 파트너 후보: 함수가 있고 기본 4개까지', function () {
     ok(typeof BM.views.log.recentPartners === 'function', 'recentPartners 함수');
     var list = [
-      rec('2026-11-20', '조환비'), rec('2026-11-19', '민수'), rec('2026-11-18', '지훈'),
+      rec('2026-11-20', '민호'), rec('2026-11-19', '민수'), rec('2026-11-18', '지훈'),
       rec('2026-11-17', '태양'), rec('2026-11-16', '서준')
     ];
     eq(names(stateOf(list)).length, 4, '최대 4개');
@@ -106,10 +106,10 @@
 
   test('v1.35 파트너 후보: 자주 친 이름이 먼저', function () {
     var list = [
-      rec('2026-11-20', '민수', { tag: 'a' }), rec('2026-11-20', '조환비', { tag: 'b' }),
-      rec('2026-11-19', '조환비', { tag: 'c' }), rec('2026-11-18', '조환비', { tag: 'd' })
+      rec('2026-11-20', '민수', { tag: 'a' }), rec('2026-11-20', '민호', { tag: 'b' }),
+      rec('2026-11-19', '민호', { tag: 'c' }), rec('2026-11-18', '민호', { tag: 'd' })
     ];
-    eq(names(stateOf(list))[0], '조환비', '3번이 1번보다 앞');
+    eq(names(stateOf(list))[0], '민호', '3번이 1번보다 앞');
     eq(names(stateOf(list))[1], '민수', '그다음');
   });
 
@@ -122,15 +122,15 @@
   });
 
   test('v1.35 파트너 후보: 모자라면 친구 닉네임으로 채운다', function () {
-    var friends = [{ key: 'u_a', nick: '조환비' }, { key: 'u_b', nick: '콕집사' }];
+    var friends = [{ key: 'u_a', nick: '민호' }, { key: 'u_b', nick: '콕집사' }];
     var out = names(stateOf([rec('2026-11-20', '민수')], { data: { friends: friends } }));
-    eq(out.join(','), '민수,조환비,콕집사', '기록 다음에 친구');
+    eq(out.join(','), '민수,민호,콕집사', '기록 다음에 친구');
   });
 
   test('v1.35 파트너 후보: 이미 있는 이름·중복 친구는 한 번만', function () {
-    var friends = [{ key: 'u_a', nick: '조환비' }, { key: 'u_b', nick: '조환비' }, { key: 'u_c', nick: '  ' }];
-    var out = names(stateOf([rec('2026-11-20', '조환비')], { data: { friends: friends } }));
-    eq(out.join(','), '조환비', '중복·빈 이름 없음');
+    var friends = [{ key: 'u_a', nick: '민호' }, { key: 'u_b', nick: '민호' }, { key: 'u_c', nick: '  ' }];
+    var out = names(stateOf([rec('2026-11-20', '민호')], { data: { friends: friends } }));
+    eq(out.join(','), '민호', '중복·빈 이름 없음');
   });
 
   test('v1.35 파트너 후보: 나 자신은 빠진다', function () {
@@ -140,8 +140,8 @@
   });
 
   test('v1.35 파트너 후보: 점수를 안 적은 일지도 함께 친 사람으로 센다', function () {
-    var out = names(stateOf([rec('2026-11-20', '조환비')]));
-    eq(out.join(','), '조환비', '게임 점수 없이도 이름만 있으면 후보');
+    var out = names(stateOf([rec('2026-11-20', '민호')]));
+    eq(out.join(','), '민호', '게임 점수 없이도 이름만 있으면 후보');
   });
 
   test('v1.35 파트너 후보: 이름이 없거나 깨진 팀 칸은 조용히 건너뛴다', function () {
@@ -162,7 +162,7 @@
   });
 
   test('v1.35 파트너 후보: 같은 입력이면 같은 결과 (입력을 건드리지 않는다)', function () {
-    var list = [rec('2026-11-20', '조환비')];
+    var list = [rec('2026-11-20', '민호')];
     var before = JSON.stringify(list);
     eq(JSON.stringify(names(stateOf(list))), JSON.stringify(names(stateOf(list))), '같은 결과');
     eq(JSON.stringify(list), before, '입력 그대로');
@@ -173,7 +173,7 @@
    * ========================================================= */
 
   test('v1.35 칩: 파트너 입력칸 바로 아래에 칩 줄이 온다', function () {
-    var out = html(BM.views.log.render(stateOf([rec('2026-11-20', '조환비')])), '일지');
+    var out = html(BM.views.log.render(stateOf([rec('2026-11-20', '민호')])), '일지');
     includes(out, 'data-ptnchips', '칩 줄');
     includes(out, 'class="ptnchips"', '칩 줄 클래스');
     includes(out, '자주 친 파트너', '이름표');
@@ -184,18 +184,18 @@
 
   test('v1.35 칩: 후보마다 누를 수 있는 버튼 (data-ptn-chip)', function () {
     var out = html(BM.views.log.render(stateOf([
-      rec('2026-11-20', '조환비', { tag: 'a' }), rec('2026-11-19', '민수', { tag: 'b' })
+      rec('2026-11-20', '민호', { tag: 'a' }), rec('2026-11-19', '민수', { tag: 'b' })
     ])), '일지');
-    includes(out, '<button type="button" class="ptnchip" data-ptn-chip="조환비"', '조환비 칩');
+    includes(out, '<button type="button" class="ptnchip" data-ptn-chip="민호"', '민호 칩');
     includes(out, 'data-ptn-chip="민수"', '민수 칩');
     includes(out, 'aria-pressed="false"', '기본은 꺼진 모양');
   });
 
   test('v1.35 칩: 이미 적힌 이름은 켜진 모양 (aria-pressed)', function () {
-    var out = html(BM.views.log.render(stateOf([rec('2026-11-20', '조환비')], {
-      drafts: { log: { partner: '조환비' } }
+    var out = html(BM.views.log.render(stateOf([rec('2026-11-20', '민호')], {
+      drafts: { log: { partner: '민호' } }
     })), '일지');
-    includes(out, 'class="ptnchip is-on" data-ptn-chip="조환비"', '켜진 칩');
+    includes(out, 'class="ptnchip is-on" data-ptn-chip="민호"', '켜진 칩');
     includes(out, 'aria-pressed="true"', '눌린 상태');
   });
 
@@ -223,7 +223,7 @@
   });
 
   test('v1.35 칩: 접힌 경기 점수 안에 그대로 있다 (새 카드 없음)', function () {
-    var out = html(BM.views.log.render(stateOf([rec('2026-11-20', '조환비')])), '일지');
+    var out = html(BM.views.log.render(stateOf([rec('2026-11-20', '민호')])), '일지');
     var fold = out.indexOf('data-fold="games"');
     var chips = out.indexOf('data-ptnchips');
     ok(fold > 0 && chips > fold, '경기 점수 접기 안');
@@ -302,7 +302,7 @@
 
   test('v1.35 밀도: 카드 순서 — 히어로 → 루틴 → 챌린지 → 가이드 → 오늘 일지 → 파트너 승률 → 최근 기록', function () {
     var out = BM.views.log.render(stateOf([
-      rec('2026-11-18', '조환비', { tag: 'a', weakness: ['헤어핀'], games: [{ a: 21, b: 18 }] })
+      rec('2026-11-18', '민호', { tag: 'a', weakness: ['헤어핀'], games: [{ a: 21, b: 18 }] })
     ]));
     var order = ['card--hero', 'data-region="routine"', 'card--wkch', 'data-region="beginner"', 'data-form="log"', 'data-region="partner"', 'data-region="recent"'];
     var at = order.map(function (k) { return out.indexOf(k); });
@@ -312,7 +312,7 @@
 
   test('v1.35 밀도: 파트너 승률 카드는 오늘 일지 아래로 (입력까지 76px 단축)', function () {
     var out = BM.views.log.render(stateOf([
-      rec('2026-11-18', '조환비', { tag: 'a', games: [{ a: 21, b: 18 }] })
+      rec('2026-11-18', '민호', { tag: 'a', games: [{ a: 21, b: 18 }] })
     ]));
     ok(out.indexOf('data-form="log"') < out.indexOf('data-region="partner"'), '입력 다음에 승률');
     includes(out, '파트너별 승률', '카드는 그대로 있다');
@@ -397,12 +397,12 @@
   test('v1.35 버전: sw.js·app.js·index.html·twa-manifest가 모두 v1.35', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.54.0'", 'sw.js');
-    includes(app, "version: 'v1.54.0'", 'app.js');
-    includes(index, 'styles.css?v=20261122-68', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.54.0', 'twa appVersionName');
-    eq(twa.appVersion, '1.54.0', 'twa appVersion');
-    eq(twa.appVersionCode, 48, 'twa appVersionCode');
+    includes(sw, "var VERSION = 'bm-v1.55.0'", 'sw.js');
+    includes(app, "version: 'v1.55.0'", 'app.js');
+    includes(index, 'styles.css?v=20261122-69', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.55.0', 'twa appVersionName');
+    eq(twa.appVersion, '1.55.0', 'twa appVersion');
+    eq(twa.appVersionCode, 49, 'twa appVersionCode');
   });
 
   test('v1.35 캐시: 새 파일 없이 기존 목록 그대로', function () {

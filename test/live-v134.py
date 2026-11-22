@@ -73,20 +73,20 @@ with sync_playwright() as p:
         const st = BM.app.ctx.store;
         st.actions.setDraft({ date: '2026-11-20', cond: 6, intensity: 7, minutes: 80,
           weakness: ['스매시'], done: ['스트록'], games: [{ a: '21', b: '19' }],
-          partner: '조환비', video: video, videoNote: '스매시 손목 각도' });
+          partner: '민호', video: video, videoNote: '스매시 손목 각도' });
         return st.actions.saveLog().ok;
     }""", VIDEO))
     check('일지 4건 저장 (이번 주 3일 + 영상·파트너)', saved and all(saved), saved)
     page.wait_for_timeout(1200)
 
-    # ── 검증용 회원 한 줄: 닉네임 '조환비' 선수 + 승인된 코치 (이 브라우저 저장소에만)
+    # ── 검증용 회원 한 줄: 닉네임 '민호' 선수 + 승인된 코치 (이 브라우저 저장소에만)
     page.evaluate("""() => {
         const U = BM.util, D = BM.domain;
         const rows = U.readJSON('bm_rows_v1', []) || [];
         rows.push(D.toRow({ id: 'row_v134_friend', type: '프로필', createdAt: '2026-11-19 10:00:00',
-          date: '2026-11-19', nick: '조환비', level: 'B조', discipline: '복식', userKey: 'u_v134_friend' }));
+          date: '2026-11-19', nick: '민호', level: 'B조', discipline: '복식', userKey: 'u_v134_friend' }));
         rows.push(D.toRow({ id: 'row_v134_coach', type: '멘토신청', createdAt: '2026-11-19 11:00:00',
-          date: '2026-11-19', nick: '조환비', level: 'B조', discipline: '복식', userKey: 'u_v134_friend',
+          date: '2026-11-19', nick: '민호', level: 'B조', discipline: '복식', userKey: 'u_v134_friend',
           text: JSON.stringify({ status: '승인', experience: '5년', awards: '시 대회 3위', reason: '코트에서 봐 드릴게요' }) }));
         localStorage.setItem('bm_rows_v1', JSON.stringify(rows));
     }""")
@@ -151,7 +151,7 @@ with sync_playwright() as p:
                     chat: !!s.querySelector('[data-friend-chat]') || !!s.querySelector('.pp__friendhint')};
         }""")
         check('프로필 시트가 열린다', pp is not None, pp)
-        check('프로필 시트 = 조환비 · 친구 추가 버튼', pp and pp['name'].strip() == '조환비' and pp['friend'], pp)
+        check('프로필 시트 = 민호 · 친구 추가 버튼', pp and pp['name'].strip() == '민호' and pp['friend'], pp)
         shot('배드민턴_파트너프로필시트_bm-v1.34.0.png')
         if page.query_selector('#sheet .sheet__head [data-close]'):
             page.click('#sheet .sheet__head [data-close]')
