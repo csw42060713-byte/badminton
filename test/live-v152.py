@@ -94,7 +94,7 @@ with sync_playwright() as p:
     check('L 배포본 sw.js bm-v1.52.0', "var VERSION = 'bm-v1.52.0'" in sw, sw[sw.find('var VERSION'):][:40])
     check('L 배포본 app.js v1.52.0', "version: 'v1.52.0'" in app)
     check('L 배포본 styles.css?v=20261122-64', 'styles.css?v=20261122-64' in index)
-    check('L 배포본 TWA 1.51.0 · 코드 43', '"appVersionName": "1.52.0"' in twa and '"appVersionCode": 44' in twa,
+    check('L 배포본 TWA 1.52.0 · 코드 44', '"appVersionName": "1.52.0"' in twa and '"appVersionCode": 44' in twa,
           twa[twa.find('appVersionName'):][:60])
     check('L 배포본 js/pose.js (구간·다인)', 'BM.pose' in pose and 'splitSegments' in pose and 'trackPoses' in pose)
     check('L 배포본 styles.css 에 구간 칩 CSS', '.poseseg' in css and '.posechip' in css)
@@ -198,8 +198,18 @@ with sync_playwright() as p:
     check('D 캔버스 그림이 바뀐다', ink1 != canvas_ink(page, '[data-pose-canvas]'))
     page.screenshot(path=OUT + '/v152l_04_선수2.png')
 
-    box = page.evaluate("() => { const c = document.querySelector('[data-pose-canvas]'); const r = c.getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height}; }")
-    page.mouse.click(box['x'] + box['w'] * 0.27, box['y'] + box['h'] * 0.6)
+    # 캔버스에 그려진 1번 선수의 몸통 중심을 실제 좌표로 계산해 누릅니다
+    page.evaluate("() => document.querySelector('[data-pose-canvas]').scrollIntoView({block: 'center'})")
+    page.wait_for_timeout(300)
+    pt = page.evaluate("""() => {
+      const s = BM.pose._state(); const n = s.segs[s.seg];
+      const c = document.querySelector('[data-pose-canvas]'); const r = c.getBoundingClientRect();
+      const p = n.analysis.players[0]; const hit = p.track.byFrame[s.view];
+      const geo = s.geo || { fx: 1, fy: 1, ox: 0, oy: 0 };
+      return { x: r.x + (geo.ox + hit.box.x * geo.fx) * r.width,
+               y: r.y + (geo.oy + hit.box.y * geo.fy) * r.height };
+    }""")
+    page.mouse.click(pt['x'], pt['y'])
     page.wait_for_timeout(600)
     check('D 캔버스 탭으로 선수 1로 돌아온다', page.evaluate(
         "() => { const n = document.querySelector('[data-pose-track=\"0\"]'); return n && n.classList.contains('is-on'); }"))
