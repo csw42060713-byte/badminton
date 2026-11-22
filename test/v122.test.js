@@ -254,14 +254,14 @@
    * ========================================================= */
   test('v1.22 버전: sw · app · 스타일 캐시 · README · TWA가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.53.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.53.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-67', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.54.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.54.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-68', '스타일 캐시 키');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.53.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.53.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 47, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.54.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.54.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 48, 'TWA 버전 코드');
     /* 공개 저장소에 시트 ID·토큰을 남기지 않는다 */
     excludes(readRoot('js/ai.js'), '1sqxAM6eskBYS03s', '시트 ID 없음');
   });

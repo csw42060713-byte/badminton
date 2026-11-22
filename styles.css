@@ -6002,10 +6002,11 @@ body {
 .sbfull.is-land .sb__board {
   display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; gap: 8px;
 }
-.sbfull.is-land .sb__card { border-radius: 16px; padding: 6px; }
-.sbfull.is-land .sb__card .sb__num { font-size: clamp(44px, 20vh, 128px); letter-spacing: -2px; }
-.sbfull.is-land .sb__card .sb__who { font-size: 11.5px; }
-.sbfull.is-land .sb__plus { margin-top: 0; padding: 1px 8px; font-size: 11px; }
+.sbfull.is-land .sb__card { border-radius: 16px; padding: 4px 6px; gap: 0; }
+/* 가로는 높이가 390px뿐 — 이름 줄이 생긴 만큼 숫자를 조금 줄여 이름·+1이 잘리지 않게 */
+.sbfull.is-land .sb__card .sb__num { font-size: clamp(36px, 12.5vh, 104px); letter-spacing: -2px; }
+.sbfull.is-land .sb__card .sb__who { font-size: 11px; }
+.sbfull.is-land .sb__plus { margin-top: 0; padding: 0 7px; font-size: 10.5px; }
 .sbfull.is-land .sb--full .sb__sets { padding-bottom: 0; }
 .sbfull.is-land .sb--full .sb__set { padding: 4px 8px; font-size: 11.5px; }
 .sbfull.is-land .sb--full .sb__tools { gap: 5px; }
@@ -6021,7 +6022,7 @@ body {
   .sbfull:not(.is-port) .sb__board {
     display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; gap: 8px;
   }
-  .sbfull:not(.is-port) .sb__card .sb__num { font-size: clamp(44px, 20vh, 128px); letter-spacing: -2px; }
+  .sbfull:not(.is-port) .sb__card .sb__num { font-size: clamp(36px, 12.5vh, 104px); letter-spacing: -2px; }
 }
 
 /* 세로 화면에서 '가로 보기' — 화면 회전 잠금과 상관없이 90도 돌려 꽉 채웁니다 */
@@ -6202,3 +6203,103 @@ body {
 .posechip.is-on .posechip__n { background: var(--accent); color: var(--accent-ink); }
 .posechip.is-bad { opacity: 0.62; }
 .posechip small { font-size: 9.5px; font-weight: 700; color: var(--muted); }
+
+/* ============================================================
+ * 🏆 점수판 파트너 · 라이벌 전적 (bm-v1.54.0)
+ *  · 점수판 위에 가느다란 두 버튼(파트너 / 라이벌)을 두고, 누르면 그 자리에서
+ *    최근 이름 칩 + 직접 적는 칸이 열립니다. 보드(+1 큰 터치 영역)는 그대로.
+ *  · 일지 입력칸의 상대(라이벌) 칸·칩과 전적 카드는 파트너 쪽과 같은 모양에
+ *    색만 살짝 다르게(라이벌 = 노랑 계열) 두어 한눈에 구분됩니다.
+ * ============================================================ */
+.sb__teams { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.sb__teams.is-solo { grid-template-columns: 1fr; }
+.sb__team {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+  min-height: 34px; padding: 0 10px; border-radius: 12px;
+  border: 1px solid var(--line-2); background: var(--card); color: var(--text);
+  font-size: 12px; font-weight: 700; text-align: left;
+  touch-action: manipulation;
+}
+.sb__team-l { flex: none; font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: -0.1px; }
+.sb__team-v {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.sb__team-v.is-empty { color: var(--muted); font-weight: 700; }
+.sb__team:active { transform: scale(0.98); }
+.sb__team.is-open { border-color: var(--accent-line); background: var(--accent-soft); }
+.sb__team--rvl.is-open { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.sb__team--rvl .sb__team-v { color: var(--text); }
+
+.sb__pick {
+  flex: none; display: grid; gap: 7px;
+  padding: 9px 10px 10px; border-radius: 14px;
+  border: 1px solid var(--accent-line); background: var(--card-2);
+}
+.sb__pick-row { display: flex; align-items: center; gap: 6px; }
+.sb__pick-l { flex: 1; min-width: 0; font-size: 11px; font-weight: 800; color: var(--text-2); letter-spacing: -0.1px; }
+.sb__pick-x {
+  flex: none; width: 24px; height: 24px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line-2); background: transparent; color: var(--muted);
+}
+.sb__pick-x .ico { width: 12px; height: 12px; }
+.sb__pick-x:active { transform: scale(0.94); }
+.sb__pick-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.sb__pick-chips::-webkit-scrollbar { display: none; }
+.sb__pick-chips .ptnchip { flex: 0 0 auto; }
+.sb__pick-empty { font-size: 11px; line-height: 1.45; color: var(--muted); font-weight: 600; }
+.sb__pick input[type="text"] {
+  width: 100%; min-height: 34px; padding: 0 11px; border-radius: 10px;
+  border: 1px solid var(--line-2); background: var(--bg); color: var(--text);
+  font-size: 13px; font-weight: 700;
+}
+.sb__pick input[type="text"]:focus { border-color: var(--accent); outline: none; }
+.sb__pick-rec {
+  display: flex; align-items: center; gap: 5px; margin: 0;
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sb__pick-rec .ico { flex: none; width: 12px; height: 12px; }
+.sb__pick-rec span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* 가로 점수판 — 이름 줄과 고르는 칸을 한 줄로 낮춰 보드(+1 카드) 자리를 지킵니다 */
+.sbfull.is-land .sb__teams { gap: 5px; }
+.sbfull.is-land .sb__team { min-height: 28px; padding: 0 9px; border-radius: 10px; }
+.sbfull.is-land .sb__team-l { font-size: 10px; }
+.sbfull.is-land .sb__team-v { font-size: 11.5px; }
+.sbfull.is-land .sb__pick {
+  grid-template-columns: 1fr auto; grid-template-areas: 'row row' 'chips input' 'rec rec';
+  gap: 5px 8px; padding: 6px 8px 7px;
+}
+.sbfull.is-land .sb__pick-row { grid-area: row; }
+.sbfull.is-land .sb__pick-chips { grid-area: chips; align-items: center; }
+.sbfull.is-land .sb__pick input[type="text"] { grid-area: input; width: 168px; min-height: 30px; }
+.sbfull.is-land .sb__pick-rec { grid-area: rec; }
+
+/* 일지 — 상대(라이벌) 칸·칩·전적 줄 (파트너와 같은 모양, 색만 다르게) */
+.ptnfield--rvl { margin-top: 10px; }
+.ptnfield--rvl input[type="text"]:focus { border-color: color-mix(in srgb, var(--warn) 65%, var(--line)); }
+.ptnchip--rvl {
+  border: 1px solid var(--line); background: var(--card-2); color: var(--text-2);
+}
+.ptnchip--rvl.is-on {
+  border-color: color-mix(in srgb, var(--duel) 50%, var(--line));
+  background: color-mix(in srgb, var(--duel) 14%, transparent);
+  color: var(--duel);
+}
+.ptnnow--rvl .ico { color: var(--duel); }
+.card--rvl .ptn__t .ico { color: var(--duel); }
+.ptn__row--rvl .ptn__rec { color: var(--text-2); }
+.pill--rvl { background: color-mix(in srgb, var(--duel) 16%, transparent); color: var(--duel); }
+
+/* 라이벌 강조색 — 밤 테마는 노랑, 밝은 테마는 글자가 읽히도록 진한 황토색 */
+:root { --duel: #f2c14e; }
+[data-theme="th_def"] { --duel: #8a6100; }
+[data-theme="th_sakura"] { --duel: #9a4a1e; }
+.ptnchip--rvl.is-on { color: var(--duel); }
+
+/* 라이벌 줄 — 최근 스코어가 길어도 카드 밖으로 넘치지 않게 한 줄로 줄입니다 */
+.ptn__row--rvl .ptn__name { flex: 0 0 auto; max-width: 46%; }
+.ptn__row--rvl .ptn__rec { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.ptn__row--rvl .pill { flex: 0 0 auto; white-space: nowrap; }

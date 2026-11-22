@@ -275,15 +275,15 @@
    * ========================================================= */
   test('v1.37.2 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     var sw = readRoot('sw.js');
-    includes(sw, "var VERSION = 'bm-v1.53.0'", 'sw.js');
+    includes(sw, "var VERSION = 'bm-v1.54.0'", 'sw.js');
     var app = readRoot('app.js');
-    includes(app, "version: 'v1.53.0'", 'app.js');
+    includes(app, "version: 'v1.54.0'", 'app.js');
     var html = readRoot('index.html');
-    includes(html, 'styles.css?v=20261122-67', '스타일 캐시 키');
+    includes(html, 'styles.css?v=20261122-68', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.53.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.53.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 47, 'appVersionCode는 그대로');
+    eq(twa.appVersionName, '1.54.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.54.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 48, 'appVersionCode는 그대로');
   });
 
   test('v1.37.2 문서: README·아이디어 노트에 이번 사이클이 남는다', function () {
