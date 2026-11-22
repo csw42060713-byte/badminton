@@ -664,7 +664,11 @@
       '</div>' +
       '<label class="flabel mt8">한마디 <span class="muted">(선택 · 60자)</span>' +
       '<input type="text" data-note maxlength="60" placeholder="토요일 오전 어떠세요?" value="' + U.esc(note) + '"></label>' +
-      '<p class="pp__cost">보유 하트 <b class="' + (balance < cost ? 'down' : 'up') + '">' + balance + '개</b></p>' +
+      '<p class="pp__cost">보유 하트 <b class="' + (balance < cost ? 'down' : 'up') + '">' + balance + '개</b>' +
+      (balance < cost ? ' <span class="warn">' + (cost - balance) + '개 부족 · 광고 한 번이면 +1</span>' : '') + '</p>' +
+      (balance < cost
+        ? '<button type="button" class="btn btn--ghost btn--big mt8" data-letter-ad>광고 보고 하트 +1</button>'
+        : '') +
       '<div class="row gap8 mt8">' +
       '<button type="button" class="btn btn--ghost grow" data-close>취소</button>' +
       '<button type="button" class="btn btn--primary grow" data-letter-send="' + key + '">편지 보내기</button></div>' +
@@ -702,6 +706,13 @@
             ctx.actions.setPref('letter', false);
             releaseRequest(ctx, p, input ? input.value : note, { letter: false });
             UI.toast('편지지 형식을 꺼 두었어요. 다음부터는 바로 보내요.');
+            return;
+          }
+          /* 하트가 모자를 때 안내 옆에서 바로 광고로 — 채운 뒤 이 편지지로 돌아옵니다 */
+          if (ev.target.closest('[data-letter-ad]')) {
+            ev.preventDefault();
+            if (input) noteDrafts[p.userKey] = input.value;
+            adOneTap(ctx, function () { openLetterCompose(ctx, p); });
             return;
           }
           if (ev.target.closest('[data-close]')) {
@@ -938,6 +949,27 @@
     UI.toast('요청을 거절했어요.');
   }
 
+  /* ---------- 하트 1탭 충전 (bm-v1.47.0) ----------
+   * '광고 보고 +1' — 하트가 모자랄 때 안내 옆에서 바로 광고로 이어집니다.
+   * 재생·적립·안내 문구는 BM.ads.watchForHeart 한 곳이 맡고, 끝나면 화면만 다시 그립니다. */
+  function adOneTap(ctx, after) {
+    if (!BM.ads || typeof BM.ads.watchForHeart !== 'function') {
+      UI.toast('지금은 광고를 볼 수 없어요', 'error');
+      return;
+    }
+    BM.ads.watchForHeart(ctx).then(function (res) {
+      if (res && res.ok) { if (after) after(res); return; }
+      if (res && res.reason === 'limit') UI.toast('오늘 몫을 모두 받았어요. 내일 다시 만나요!');
+      else if (res && res.reason === 'cooldown') UI.toast(res.retryAfter + '초 뒤에 다시 시도해 주세요');
+      else if (res && res.reason === 'duplicate') UI.toast('이미 받은 광고예요');
+      else if (res && res.reason === 'busy') UI.toast('광고를 준비하고 있어요. 잠시만요');
+      else if (res && res.reason === 'cancel') UI.toast('광고를 끝까지 봐야 하트를 받을 수 있어요');
+      else if (res && res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+      else UI.toast('지금은 광고를 볼 수 없어요. 잠시 후 다시 시도해 주세요');
+      if (after) after(res);
+    });
+  }
+
   /* ---------- 하트 충전(공용 시트) ----------
    * 출석·광고·실시간 쿨타임은 js/ads.js 의 openHeartSheet 하나가 맡습니다.
    * 매칭뿐 아니라 하트 선물·유료 테마·프레임/배지 해금에서도 같은 시트가 열립니다. */
@@ -995,8 +1027,14 @@
       '<button type="button" class="btn btn--ghost btn--sm" data-act="edit-match">' + (mp.level || mp.region ? '수정' : '만들기') + '</button></div>' +
       (ready ? '' : '<p class="mycard__hint">급수·종목·지역을 등록하면 맞는 상대부터 보여드려요.</p>') +
       '<div class="mycard__hearts">하트 <b>' + balance + '</b><span>· 수락 시 하트 ' + cost + '개 차감</span>' +
-      (balance < cost ? '<button type="button" class="linkbtn" data-act="charge-hearts">충전</button>' : '') +
-      '</div>';
+      (balance < cost ? '<span class="warn">' + (cost - balance) + '개 부족</span>' : '') +
+      '</div>' +
+      /* 하트가 모자랄 때 — 안내 바로 밑에서 광고 한 번으로 +1 (bm-v1.47.0) */
+      (balance < cost
+        ? '<div class="row gap8 mt8">' +
+          '<button type="button" class="btn btn--primary btn--sm grow" data-act="ad-heart">' + UI.icon('spark') + '광고 보고 하트 +1</button>' +
+          '<button type="button" class="btn btn--ghost btn--sm" data-act="charge-hearts">충전</button></div>'
+        : '');
   }
 
   function myCard(state) {
@@ -1108,6 +1146,12 @@
           ctx.actions.clearMatchFilter();
           UI.toast('조건을 초기화했어요');
           UI.haptic(6);
+          return;
+        }
+
+        if (ev.target.closest('[data-act="ad-heart"]')) {
+          ev.preventDefault();
+          adOneTap(ctx, function () { if (ctx.refresh) ctx.refresh(); });
           return;
         }
 

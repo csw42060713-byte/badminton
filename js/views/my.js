@@ -117,8 +117,11 @@
       : hearts;
   }
 
+  /* 광고 버튼 아래 한 줄 — '남은 3/5회 · 다음 광고까지 12초' (bm-v1.47.0)
+   *  쿨타임 초가 1초마다 줄어 지금 눌러도 되는지가 바로 보입니다. */
   function adLabel(hearts) {
     var h = liveHearts(hearts);
+    if (BM.ads && typeof BM.ads.adMeterText === 'function') return BM.ads.adMeterText(h);
     if (BM.ads && typeof BM.ads.adText === 'function') return BM.ads.adText(h);
     if (!h.adRemaining) return '오늘 모두 받았어요';
     if (h.nextAdInSec > 0) return '다음 광고까지 ' + h.nextAdInSec + '초';
@@ -157,7 +160,7 @@
       '<div class="heartstats">' +
       '<div><strong class="up">+' + (hearts.todayEarned || 0) + '</strong><span>오늘 얻음</span></div>' +
       '<div><strong>' + hearts.balance + '</strong><span>잔액</span></div>' +
-      '<div><strong>' + hearts.adUsedToday + '/' + hearts.adLimit + '</strong><span>오늘 광고</span></div>' +
+      '<div><strong data-ad-stat>' + hearts.adUsedToday + '/' + hearts.adLimit + '</strong><span>오늘 광고</span></div>' +
       '</div>' +
 
       /* 오늘 남은 무료 적립분을 한 줄로 — 이 숫자가 광고 쿨타임과 함께 1초마다 갱신됩니다 */
@@ -294,6 +297,9 @@
       if (!btn) { stopAdTicker(); return; }
       var sub = btn.querySelector('[data-ad-sub]');
       if (sub) sub.textContent = adLabel(hearts);
+      /* '오늘 광고 N/5' 칸도 함께 — 남은 횟수가 바뀌면 바로 따라갑니다 */
+      var stat = root.querySelector('[data-ad-stat]');
+      if (stat) stat.textContent = h.adUsedToday + '/' + h.adLimit;
       var free = root.querySelector('[data-free]');
       if (free && BM.ads && typeof BM.ads.freeText === 'function') free.textContent = BM.ads.freeText(h);
       var freeD = root.querySelector('[data-free-d]');
@@ -857,19 +863,7 @@
     };
   }
 
-  /* 잠긴 꾸미기: 하트로 열지 한 번 묻고, 열면 그대로 이어서 적용합니다 */
-  function unlockDeco(ctx, kind, value, onDone) {
-    var state = ctx.store.state;
-    var d = decoOf(state, kind, value);
-    if (!d.id) { UI.toast('알 수 없는 꾸미기예요', 'error'); return; }
-    if (d.owned) { onDone({ ok: true, purchased: false }); return; }
-    var balance = (state.data.hearts && state.data.hearts.balance) || 0;
-    UI.confirm(D.decoName(d.id) + ' — 하트 ' + d.price + '개로 열까요? 한 번 열면 계속 써요. 지금 하트 ' + balance + '개.', '열기')
-      .then(function (yes) {
-        if (!yes) { onDone({ ok: false, cancelled: true }); return; }
-        buyDeco(ctx, kind, value, onDone);
-      });
-  }
+  /* 잠긴 꾸미기: 미리보기에서 하트로 열지 정하고, 열면 그대로 이어서 적용합니다 */
 
   /* 하트가 모자라면 공용 충전 시트를 열고, 채운 뒤에는 이미 확인한 구매를 바로 이어서 진행합니다 */
   function buyDeco(ctx, kind, value, onDone) {
@@ -906,6 +900,156 @@
 
   function lockTag(d) {
     return d.owned ? '' : '<span class="decolock">하트 ' + d.price + '</span>';
+  }
+
+  /* ---------- 꾸미기 미리보기 → 1탭 해금 (bm-v1.47.0) ----------
+   * 잠긴 테두리·배지를 누르면 바로 결제 확인을 띄우지 않고,
+   * 내 사진·닉네임에 적용한 모습을 먼저 보여 줍니다(지금 ↔ 적용 후).
+   *  · 하트가 충분하면 '하트 N개로 열기' 1탭으로 해금하고 꾸미기 화면으로 돌아갑니다.
+   *  · 모자라면 '광고 보고 하트 +1' 로 바로 이어지고, 채워지면 그 자리에서 해금 버튼이 열립니다. */
+  function decoSim(draft, kind, value) {
+    var sim = {};
+    Object.keys(draft || {}).forEach(function (k) { sim[k] = draft[k]; });
+    if (kind === 'frame') sim.frame = value;
+    else if (kind === 'badge') sim.badge = value;
+    else if (kind === 'bg') sim.bg = value;
+    return sim;
+  }
+
+  function balanceOf(ctx) {
+    var h = (ctx.store.state.data && ctx.store.state.data.hearts) || {};
+    return Math.max(0, Number(h.balance) || 0);
+  }
+
+  /* 미리보기 시트 본문 — shown:'now' 이면 지금 모습, 'next' 이면 적용 후 */
+  function decoPreviewBody(ctx, d, draft, me, shown) {
+    var live = liveHearts((ctx.store.state.data && ctx.store.state.data.hearts) || {});
+    var view = shown === 'now' ? draft : decoSim(draft, d.kind, d.value);
+    var have = balanceOf(ctx);
+    var short = Math.max(0, d.price - have);
+    var name = D.decoName(d.id) || '꾸미기';
+    var meter = adLabel((ctx.store.state.data && ctx.store.state.data.hearts) || {});
+
+    var toggle = '<div class="chips chips--wrap decoprev__seg" data-dpv-seg>' +
+      '<button type="button" class="chip chip--sm' + (shown === 'now' ? ' is-on' : '') + '"' +
+      ' data-dpv="now" aria-pressed="' + (shown === 'now' ? 'true' : 'false') + '">지금 모습</button>' +
+      '<button type="button" class="chip chip--sm' + (shown === 'next' ? ' is-on' : '') + '"' +
+      ' data-dpv="next" aria-pressed="' + (shown === 'next' ? 'true' : 'false') + '">적용 후</button>' +
+      '</div>';
+
+    var main;
+    var hint = '';
+    if (short <= 0) {
+      main = '<button type="button" class="btn btn--primary grow" data-dpv-act="unlock">' +
+        '하트 ' + d.price + '개로 열기</button>';
+      hint = '지금 하트 <b>' + have + '개</b> — 한 번 열면 계속 써요.';
+    } else if (live.adRemaining <= 0) {
+      main = '<button type="button" class="btn btn--ghost grow" disabled>오늘 광고를 모두 봤어요</button>';
+      hint = '하트 <b>' + short + '개</b>가 모자라요. 내일 다시 채우거나 출석으로 모아 주세요.';
+    } else {
+      main = '<button type="button" class="btn btn--primary grow" data-dpv-act="ad">' +
+        '광고 보고 하트 +1</button>';
+      hint = '하트 <b>' + short + '개</b> 부족 · ' + U.esc(meter);
+    }
+
+    return '<div class="decostudio">' +
+        '<div class="decostudio__stage decoprev__stage">' +
+        '<div class="decostudio__av" data-deco-preview>' + UI.avatar(view, 112) + '</div>' +
+        '<div class="decostudio__id"><strong>' + U.esc(view.nick || me.nick || '회원') + '</strong>' +
+        '<div class="decostudio__pills">' + decoPills(view) +
+        '<span class="pill pill--ghost">' + U.esc(name) + '</span></div>' +
+        '<p class="decostudio__meta">' + U.esc(decoMeta(view)) + '</p>' +
+        '</div></div></div>' +
+      toggle +
+      '<p class="sheet__text">' + (short <= 0
+        ? '하트 <b>' + d.price + '개</b>로 열 수 있어요. 지금 <b>' + have + '개</b> 있어요.'
+        : '하트 <b>' + d.price + '개</b>가 필요해요. 지금 <b>' + have + '개</b> — <span class="warn">' + short + '개 부족</span>') + '</p>' +
+      '<div class="row gap8 mt16">' +
+        '<button type="button" class="btn btn--ghost' + (short <= 0 ? ' grow' : '') + '" data-dpv-act="close">닫기</button>' +
+        main +
+      '</div>' +
+      '<p class="hint" data-dpv-meter>' + hint + '</p>';
+  }
+
+  function openDecoPreviewSheet(ctx, kind, value, draft, onDone) {
+    draft = draft || decorateDraft(ctx.store.state);
+    var d = decoOf(ctx.store.state, kind, value);
+    d.kind = kind;
+    d.value = value;
+    if (!d.id) { UI.toast('알 수 없는 꾸미기예요', 'error'); return null; }
+    if (d.owned) { if (onDone) onDone({ ok: true, purchased: false }); return null; }
+
+    var me = ctx.store.state.me || {};
+    var shown = 'next';
+    var busy = false;
+
+    function open() {
+      var wrap = UI.openSheet({
+        title: '미리보기 · ' + (D.decoName(d.id) || '꾸미기'),
+        body: decoPreviewBody(ctx, d, draft, me, shown),
+        onMount: function (node) {
+          node.addEventListener('click', function (ev) {
+            var seg = ev.target.closest('[data-dpv]');
+            if (seg) {
+              ev.preventDefault();
+              shown = seg.getAttribute('data-dpv') === 'now' ? 'now' : 'next';
+              UI.haptic(5);
+              open();
+              return;
+            }
+            var act = ev.target.closest('[data-dpv-act]');
+            if (!act) return;
+            ev.preventDefault();
+            if (busy) return;
+            var what = act.getAttribute('data-dpv-act');
+
+            if (what === 'close') { UI.closeSheet(); return; }
+
+            if (what === 'unlock') {
+              busy = true;
+              act.disabled = true;
+              buyDeco(ctx, kind, value, function (res) {
+                busy = false;
+                if (res && res.ok) {
+                  if (onDone) onDone(res);
+                  else { UI.closeSheet(); if (ctx.refresh) ctx.refresh(); }
+                  return;
+                }
+                /* 취소·잠금·오류 — 시트를 그대로 두고 숫자만 다시 */
+                if (res && res.reason === 'hearts') { open(); return; }
+                if (res && res.reason === 'cancelled') { open(); return; }
+                UI.closeSheet();
+              });
+              return;
+            }
+
+            if (what === 'ad') {
+              if (!BM.ads || typeof BM.ads.watchForHeart !== 'function') {
+                UI.toast('지금은 광고를 볼 수 없어요', 'error');
+                return;
+              }
+              busy = true;
+              act.disabled = true;
+              BM.ads.watchForHeart(ctx).then(function (res) {
+                busy = false;
+                if (res && res.ok) { open(); return; }
+                if (res && res.reason === 'cooldown') { UI.toast(res.retryAfter + '초 뒤에 다시 시도해 주세요'); open(); return; }
+                if (res && res.reason === 'limit') { UI.toast('오늘 몫을 모두 받았어요. 내일 다시 만나요!'); open(); return; }
+                if (res && res.reason === 'cancel') { open(); return; }
+                if (res && res.reason === 'duplicate') { UI.toast('이미 받은 광고예요'); open(); return; }
+                if (res && res.reason === 'busy') { UI.toast('광고를 준비하고 있어요. 잠시만요'); return; }
+                if (res && res.reason === 'locked') { UI.toast('잠시만요, 처리 중이에요'); return; }
+                UI.toast('지금은 광고를 볼 수 없어요. 잠시 후 다시 시도해 주세요');
+                open();
+              });
+            }
+          });
+        }
+      });
+      return wrap;
+    }
+
+    return open();
   }
 
   /* 사진 → 256×256 정사각형으로 잘라 JPEG로 압축 (localStorage·시트 한 칸 보호) */
@@ -1179,7 +1323,7 @@
             var fid = fr.getAttribute('data-dframe');
             var df = decoOf(ctx.store.state, 'frame', fid);
             if (!df.owned) {
-              unlockDeco(ctx, 'frame', fid, function (res) {
+              openDecoPreviewSheet(ctx, 'frame', fid, draft, function (res) {
                 if (res && res.ok) draft.frame = fid;
                 openDecorateSheet(ctx, { draft: draft });
               });
@@ -1224,7 +1368,7 @@
             var bid = bd.getAttribute('data-dbadge');
             var db = decoOf(ctx.store.state, 'badge', bid);
             if (!db.owned) {
-              unlockDeco(ctx, 'badge', bid, function (res) {
+              openDecoPreviewSheet(ctx, 'badge', bid, draft, function (res) {
                 if (res && res.ok) draft.badge = bid;
                 openDecorateSheet(ctx, { draft: draft });
               });
@@ -1536,5 +1680,7 @@
   BM.views.my.alarmPanel = alarmPanel;               /* 테스트·점검용 (알림·편지지 설정) */
   BM.views.my.prefRow = prefRow;                     /* 테스트·점검용 */
   BM.views.my.heartCard = heartCard;                 /* 테스트·점검용 (하트 카드·보너스 줄) */
+  BM.views.my.decoPreviewBody = decoPreviewBody;     /* 테스트·점검용 (꾸미기 미리보기 본문) */
+  BM.views.my.openDecoPreviewSheet = openDecoPreviewSheet;   /* 테스트·점검용 */
   BM.views.my.streakBonusLine = streakBonusLine;     /* 테스트·점검용 (7일 연속 보너스 줄) */
 })(typeof globalThis !== 'undefined' ? globalThis : this);

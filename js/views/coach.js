@@ -501,6 +501,41 @@
     return out;
   }
 
+  /* 활동 소속을 등록 체육관(120곳)과 이어 봅니다 (bm-v1.47.0)
+   *  · '나래울 배드민턴장 · 매원고 배드민턴부' 처럼 여러 곳을 적었으면 '·'로 나눠 각각 찾습니다.
+   *  · 등록되지 않은 곳(학교팀·클럽 이름 등)은 그대로 두고, 찾은 곳만 지도로 이어 줍니다. */
+  function affVenues(affiliation) {
+    var G = BM.gyms;
+    if (!G || !affiliation || typeof G.matchVenue !== 'function') return [];
+    var out = [], seen = {};
+    String(affiliation).split(/[\u00b7,\/|]/).forEach(function (raw) {
+      var name = String(raw == null ? '' : raw).trim();
+      if (!name) return;
+      var v = G.matchVenue(name);
+      /* '매원고 배드민턴부'처럼 뒤에 팀·부서 이름이 붙으면 앞부분(체육관 이름)으로 한 번 더 */
+      if (!v) {
+        var core = name.replace(/\s*(배드민턴부|배드민턴클럽|배드민턴|클럽|팀|동호회|체육부|부)$/, '').trim();
+        if (core && core !== name) v = G.matchVenue(core);
+      }
+      if (!v || seen[v.id]) return;
+      seen[v.id] = 1;
+      out.push(v);
+    });
+    return out;
+  }
+
+  /* 코치 카드의 '지도에서 보기' 칩 — 한 곳이면 짧게, 여러 곳이면 체육관 이름을 붙입니다 */
+  function affMapRow(affiliation) {
+    var venues = affVenues(affiliation);
+    if (!venues.length) return '';
+    return '<p class="coachcard__gyms">' + venues.map(function (v) {
+      var label = venues.length > 1 ? v.name : '소속 지도에서 보기';
+      return '<button type="button" class="gymlink" data-gym-open="' + U.esc(v.id) + '"' +
+        ' aria-label="' + U.esc(v.name + (v.area ? ' ' + v.area : '') + ' · 지도에서 보기') + '">' +
+        UI.icon('pin') + '<span>' + U.esc(label) + '</span><i>' + U.esc(v.area || '지도') + '</i></button>';
+    }).join('') + '</p>';
+  }
+
   /* 코치 카드 — 누르면 바로 피드백 요청(DM 미리 채움) 또는 1:1 채팅으로 이어집니다 */
   function coachCard(c, state) {
     var key = U.esc(c.key);
@@ -517,6 +552,7 @@
       (thread && thread.unread ? ' <i class="badge">' + thread.unread + '</i>' : '') + '</strong>' +
       '<p class="coachcard__type">' + typePill(c.mentorType) +
       (affLine ? '<span class="coachcard__aff">' + UI.icon('shield') + U.esc(affLine) + '</span>' : '') + '</p>' +
+      affMapRow(c.affiliation) +
       (meta ? '<p class="coachcard__meta">' + U.esc(meta) + '</p>' : '') + '</div></div>' +
       '<div class="coachcard__act">' +
       '<button type="button" class="btn btn--primary btn--sm" data-coach-ask="' + key + '">' + UI.icon('spark') + '피드백 요청</button>' +
@@ -918,4 +954,6 @@
   view.feedbackAskText = feedbackAskText;   /* 테스트·점검용 (피드백 요청 한 줄 요약) */
   view.askFeedback = askFeedback;           /* 테스트·점검용 (영상 동봉 확인 시트) */
   view.videoAskLine = videoAskLine;
+  view.affVenues = affVenues;               /* 테스트·점검용 (활동 소속 → 등록 체육관) */
+  view.affMapRow = affMapRow;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
