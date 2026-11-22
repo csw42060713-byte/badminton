@@ -203,8 +203,8 @@
     eq(an.pick, 0, '기본 선택은 주 트랙(1번)');
     var p1 = an.players[0].result, p2 = an.players[1].result;
     ok(p1.ok && p2.ok, '두 선수 모두 카드가 나온다');
-    eq(p1.cards.length, 4, '1번 카드 4장');
-    eq(p2.cards.length, 4, '2번 카드 4장');
+    eq(p1.cards.length, 5, '1번 카드 5장(점프 타이밍 포함)');
+    eq(p2.cards.length, 5, '2번 카드 5장(점프 타이밍 포함)');
     ok(p1.cards[0].text !== p2.cards[0].text, '팔꿈치 수치가 다르다: ' + p1.cards[0].text + ' vs ' + p2.cards[0].text);
     eq(p1.cards[0].verdict, 'good', '1번(166°)는 기준 안');
     eq(p2.cards[0].verdict, 'low', '2번(120°)는 낮음');
@@ -432,10 +432,10 @@
 
   test('v1.52 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.2'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.52.2'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-66', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.2"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 46', '앱 버전 코드 +1');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.53.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.53.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-67', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.53.0"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 47', '앱 버전 코드 +1');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

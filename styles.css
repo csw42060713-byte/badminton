@@ -6116,6 +6116,9 @@ body {
 }
 .posecard.is-good::before { background: var(--accent); }
 .posecard.is-low::before, .posecard.is-high::before { background: #f5a524; }
+/* bm-v1.53.0 — '제자리 타점'은 좋지도 나쁘지도 않은 중립(점프 안 뛴 사람을 지적하지 않음) */
+.posecard.is-stay::before { background: var(--muted); opacity: 0.55; }
+.posecard.is-stay .posecard__badge { background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); }
 .posecard__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .posecard__name { font-size: 12.5px; font-weight: 800; letter-spacing: -0.25px; }
 .posecard__badge {

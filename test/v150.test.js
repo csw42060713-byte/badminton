@@ -91,14 +91,15 @@
     ok(tiny.length >= 12 && tiny[tiny.length - 1] <= 0.4, '짧은 영상도 안전');
   });
 
-  test('v1.50 자세: 스매시 — 임팩트·준비·착지 순간을 고르고 4장 카드를 만든다', function () {
+  test('v1.50 자세: 스매시 — 임팩트·준비·착지 순간을 고르고 카드를 만든다', function () {
     var r = P.measure(P.demoFrames('smash'), 'smash');
     ok(r.ok, '분석 성공');
     eq(r.mode, 'smash', '모드');
     eq(r.count, 16, '16프레임');
-    eq(r.cards.length, 4, '카드 4장');
+    /* bm-v1.53.0 — 점프 최고점 · 타점 타이밍 카드가 한 장 더 붙습니다(제자리 예시는 중립) */
+    eq(r.cards.length, 5, '카드 5장(점프 타이밍 포함)');
     var keys = r.cards.map(function (c) { return c.key; }).join(',');
-    eq(keys, 'elbow,reach,prepKnee,tilt', '카드 순서(팔꿈치·타점·무릎·몸통)');
+    eq(keys, 'elbow,reach,prepKnee,tilt,jump', '카드 순서(팔꿈치·타점·무릎·몸통·점프)');
 
     /* 예시는 팔꿈치 150° — 기준(155~175)보다 낮아서 보완점이 나와야 합니다 */
     var elbow = r.cards[0];
@@ -293,11 +294,11 @@
 
   test('v1.50 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.2'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.52.2'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-66', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.2"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 46', '앱 버전 코드 +1');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.53.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.53.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-67', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.53.0"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 47', '앱 버전 코드 +1');
   });
 
   test('v1.50 근거: 논문 수치는 참고 줄에만, 화면 문구는 코트 말투', function () {

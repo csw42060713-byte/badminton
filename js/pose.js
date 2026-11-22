@@ -1,5 +1,5 @@
 /* ============================================================
- * js/pose.js — 🎥 영상 자세 비교 (bm-v1.52.1)
+ * js/pose.js — 🎥 영상 자세 비교 (bm-v1.53.0)
  *
  *  폰으로 찍은 짧은 배드민턴 영상을 **서버로 보내지 않고** 브라우저 안에서만 봅니다.
  *  · 화면에서 고른 영상 파일은 blob: 주소로 이 기기 안에서만 열립니다(업로드 없음).
@@ -11,9 +11,17 @@
  *    선수 칩이나 캔버스 위 선수를 눌러 분석할 선수를 고릅니다(1명이면 예전 그대로).
  *
  *  ▮ 계산은 전부 순수 함수(frameMetrics · measure · splitSegments · trackPoses ·
- *    analyzeSegment · cardsFor)입니다. 화면·영상 없이 좌표 배열만 넘기면 같은 결과가 나와
- *    node 테스트(test/v150.test.js · test/v152.test.js)에서 그대로 돌려 봅니다.
- *    영상이 없어도 '예시로 보기'(demoFrames · demoDuo)로 같은 파이프라인을 봅니다.
+ *    analyzeSegment · cardsFor · jumpTiming)입니다. 화면·영상 없이 좌표 배열만 넘기면 같은
+ *    결과가 나와 node 테스트(test/v150.test.js · test/v152.test.js · test/v153.test.js)에서
+ *    그대로 돌려 봅니다. 영상이 없어도 '예시로 보기'(demoFrames · demoDuo · demoJump)로
+ *    같은 파이프라인을 봅니다.
+ *
+ *  ▮ bm-v1.53.0 점프 최고점 임팩트 — 체전 1등 선수가 알려 준 실전 원칙
+ *    "점프하고 내려오면서 치면 타점이 떨어져요. 점프한 최고점에서 공을 쳐야 합니다."
+ *    골반 높이를 따라가 점프 최고점 프레임과 임팩트 프레임을 비교해, 최고점 부근에서
+ *    쳤는지 / 내려오면서 쳤는지(타점이 떨어짐)를 코트 말투로 짚어 줍니다.
+ *    제자리 스매시처럼 뜨는 높이가 작으면 '제자리 타점'으로 중립 처리해 억지로 지적하지
+ *    않습니다(오판정 방지).
  *
  *  ▮ 화면에 나가는 말은 전부 쉬운 코트 말투입니다. 논문 이름과 수치는 맨 아래
  *    작은 참고 줄에만 둡니다(앱의 AI 문구 원칙과 같습니다).
@@ -242,6 +250,7 @@
       wristX: wr.x, wristY: wr.y,
       shoulderW: shoulderW,
       torso: torso,
+      hipY: hipMid.y,                                /* 골반 높이 — 점프 최고점 추적용 */
       valid: true
     };
   }
@@ -429,6 +438,139 @@
     return best;
   }
 
+  /* ---------- 1-2b) 점프 최고점 · 임팩트 타이밍 (bm-v1.53.0) ----------
+   * 체전 1등 선수가 알려 준 실전 원칙:
+   *   "점프하고 내려오면서 치면 타점이 떨어져요. 점프한 최고점에서 공을 쳐야 합니다."
+   * 영상에서는 골반 높이(hipY)만으로 점프를 찾습니다(2D). 오판정을 막으려고
+   *   · 그 구간 골반 높이의 중앙값을 '서 있는 기준선'으로 잡고
+   *   · 기준선보다 몸통 길이의 0.30배 이상 솟았고
+   *   · 뜨기 전과 내려온 뒤가 모두 최고점의 45% 아래(땅 근처)일 때만 점프로 인정합니다.
+   * 제자리 스매시는 뜨는 높이가 작아 여기서 걸러지고('제자리 타점'),
+   * 임팩트가 최고점을 지나 최고점 높이의 80% 아래로 내려온 뒤면 '늦어요'로 짚습니다. */
+  var JUMP = {
+    minRise: 0.30,      /* 점프로 인정하는 최소 상승(몸통 길이 배수) */
+    groundPct: 45,      /* 최고점의 이 비율 아래면 땅 근처(0%) */
+    nearPct: 85,        /* 최고점 높이의 85% 이상이면 최고점 부근 */
+    latePct: 80,        /* 이 아래로 내려와 치면 타점이 떨어짐 */
+    tolSec: 0.22        /* 최고점 앞뒤 이 정도는 같은 순간으로 봅니다 */
+  };
+  var JUMP_SRC = '체전 1등 선수 실전 기준 — 점프 최고점에서 타점';
+  var JUMP_TIP = {
+    good: '점프 최고점에서 공을 맞췄어요. 타점이 가장 높은 자리라 상대가 받기 제일 까다로워요.',
+    early: '점프해서 올라가는 중에 맞췄어요. 최고점에 가까워서 괜찮아요 — 한 박자만 늦추면 타점이 조금 더 올라가요.',
+    late: '점프하고 내려오면서 치면 그만큼 타점이 떨어져요. 가장 높이 뜬 순간(최고점)에 맞춘다고 생각하고 그때 스윙을 시작해 보세요.',
+    stay: '제자리에서 친 타점이에요. 점프하는 영상이면 최고점에서 맞췄는지도 같이 봐 드려요.'
+  };
+
+  function medianOf(list) {
+    var a = (list || []).filter(num).slice().sort(function (x, y) { return x - y; });
+    if (!a.length) return NaN;
+    var m = Math.floor(a.length / 2);
+    return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+  }
+
+  /* 이웃 세 프레임 평균 — 한 프레임 튄 좌표를 눌러 줍니다 */
+  function smooth3(list) {
+    var out = [];
+    for (var i = 0; i < (list || []).length; i++) {
+      var box = [];
+      if (num(list[i - 1])) box.push(list[i - 1]);
+      if (num(list[i])) box.push(list[i]);
+      if (num(list[i + 1])) box.push(list[i + 1]);
+      out.push(box.length ? box.reduce(function (s, v) { return s + v; }, 0) / box.length : NaN);
+    }
+    return out;
+  }
+
+  /* 샘플 프레임 간격(초) — '몇 프레임 늦었나'의 기준 */
+  function frameStep(rows) {
+    var ds = [];
+    for (var i = 1; i < (rows || []).length; i++) {
+      var d = rows[i].t - rows[i - 1].t;
+      if (d > 0.001) ds.push(d);
+    }
+    var m = medianOf(ds);
+    return num(m) && m > 0 ? m : 0.25;
+  }
+
+  /* rows(measure의 프레임 목록) + 임팩트 위치 → 점프 타이밍 판정
+   *  반환: { jump, kind: 'good'|'early'|'late'|'stay', pct, gap, dt, lateSec,
+   *          peak, peakT, impact, impactT, rise, tol, step, reason } */
+  function jumpTiming(rows, impactKey) {
+    var n = (rows || []).length;
+    if (n < 6) return { jump: false, kind: 'stay', rise: 0, pct: 0, reason: 'few-frames' };
+    var base = medianOf(rows.map(function (r) { return r.m && r.m.hipY; }));
+    if (!num(base)) return { jump: false, kind: 'stay', rise: 0, pct: 0, reason: 'no-hip' };
+    var raw = rows.map(function (r) {
+      var m = r.m || {};
+      if (!num(m.hipY) || !(m.torso > 0.005)) return NaN;
+      return (base - m.hipY) / m.torso;             /* 기준선보다 솟은 정도(몸통 배수) */
+    });
+    var hs = smooth3(raw);
+    var peak = -1, peakH = -Infinity;
+    for (var i = 0; i < n; i++) {
+      if (num(hs[i]) && hs[i] > peakH) { peakH = hs[i]; peak = i; }
+    }
+    if (peak < 0) return { jump: false, kind: 'stay', rise: 0, pct: 0, reason: 'no-hip' };
+    var rise = Math.max(0, peakH);
+    var lowBefore = Infinity, lowAfter = Infinity;
+    for (i = 0; i < peak; i++) if (num(hs[i]) && hs[i] < lowBefore) lowBefore = hs[i];
+    for (i = peak + 1; i < n; i++) if (num(hs[i]) && hs[i] < lowAfter) lowAfter = hs[i];
+    var floor = rise * JUMP.groundPct / 100;
+    var jumped = rise >= JUMP.minRise && peak > 0 && peak < n - 1 &&
+      lowBefore <= floor && lowAfter <= floor;
+    var ik = Math.max(0, Math.min(n - 1, num(impactKey) ? impactKey : peak));
+    var impH = num(hs[ik]) ? hs[ik] : rise;
+    var pct = rise > 0 ? Math.round(Math.max(0, impH) / rise * 100) : 0;
+    var step = frameStep(rows);
+    var tol = Math.max(1, Math.round(JUMP.tolSec / step));
+    var out = {
+      jump: !!jumped, rise: Math.round(rise * 100) / 100, pct: jumped ? pct : 0,
+      peak: peak, peakT: rows[peak].t, peakFrame: rows[peak].i,
+      impact: ik, impactT: rows[ik].t, impactFrame: rows[ik].i,
+      gap: ik - peak, dt: Math.round((rows[ik].t - rows[peak].t) * 1000) / 1000,
+      step: Math.round(step * 1000) / 1000, tol: tol, lateSec: 0, kind: 'stay', reason: jumped ? '' : 'no-jump'
+    };
+    if (!jumped) return out;
+    if (out.gap > tol && pct < JUMP.latePct) {
+      out.kind = 'late';
+      out.lateSec = Math.round(Math.max(0, out.dt) * 10) / 10;
+    } else if (out.gap < -tol && pct < JUMP.nearPct) {
+      out.kind = 'early';
+    } else {
+      out.kind = 'good';
+    }
+    return out;
+  }
+
+  /* 점프 타이밍 → 비교 카드 한 장(다른 카드와 같은 모양)
+   *  제자리 타점은 verdict 'stay' — 좋지도 나쁘지도 않은 중립이라 '보완 N건'에 세지 않습니다. */
+  function jumpCardOf(jump) {
+    var j = jump || { jump: false, kind: 'stay', pct: 0, gap: 0, lateSec: 0 };
+    var meta = {
+      good: { v: 'good', b: '좋아요' },
+      early: { v: 'good', b: '좋아요' },
+      late: { v: 'low', b: '조금 늦어요' },
+      stay: { v: 'stay', b: '제자리 타점' }
+    };
+    var m = meta[j.kind] || meta.stay;
+    var tip = JUMP_TIP[j.kind] || JUMP_TIP.stay;
+    var note = j.jump ? '점프 최고점에서 타점' : '제자리 타점';
+    if (j.kind === 'late') {
+      var how = (Math.round(j.lateSec * 10) / 10).toFixed(1) + '초(' + j.gap + '프레임)';
+      tip = '최고점보다 ' + how + ' 늦게, 내려오면서 쳤어요. ' + JUMP_TIP.late;
+      note = '점프 최고점보다 ' + how + ' 늦은 타점';
+    }
+    return {
+      key: 'jump', label: '점프 최고점 · 타점 타이밍', unit: j.jump ? '%' : '', digits: 0,
+      value: j.jump ? j.pct : null,
+      text: j.jump ? String(j.pct) : '제자리',
+      refText: j.jump ? '최고점 높이의 ' + JUMP.nearPct + '% 이상' : '점프 없음',
+      ref: { min: JUMP.nearPct, max: 120, text: '최고점 근처' },
+      verdict: m.v, badge: m.b, tip: tip, src: JUMP_SRC, note: note, jump: j
+    };
+  }
+
   /* 프레임 묶음 → 핵심 순간 + 비교 카드
    *  frames: [{ t: 초, lm: 33좌표 또는 null }]  ·  mode: 'smash' | 'foot' */
   function measure(frames, mode) {
@@ -504,12 +646,21 @@
     }
 
     var cards = cardsFor(picks.values, useMode);
+    /* 점프 최고점 시점 비교 — 스매시·클리어 타점 모드에서만 (bm-v1.53.0) */
+    var jump = null;
+    if (useMode === 'smash') {
+      jump = jumpTiming(rows, picks.key);
+      picks.jump = jump;
+      if (jump.jump) picks.extra.jumpPeakT = rows[jump.peak].t;
+      cards = cards.concat([jumpCardOf(jump)]);
+    }
     return {
       ok: true,
       mode: useMode,
       side: side,
       count: rows.length,
       picks: picks,
+      jump: jump,
       rows: rows.map(function (r) { return { t: r.t, i: r.i, m: r.m }; }),
       cards: cards,
       summary: summaryOf(cards, useMode)
@@ -554,12 +705,13 @@
     });
   }
 
-  /* 화면 맨 위 한 줄 — 가장 먼저 고칠 한 가지(없으면 칭찬) */
+  /* 화면 맨 위 한 줄 — 가장 먼저 고칠 한 가지(없으면 칭찬)
+   * 'stay'(제자리 타점)는 좋지도 나쁘지도 않은 중립이라 고칠 거리로 세지 않습니다. */
   function summaryOf(cards, mode) {
     if (!cards || !cards.length) return '';
     var miss = null;
     for (var i = 0; i < cards.length; i++) {
-      if (cards[i].verdict !== 'good' && cards[i].tip) { miss = cards[i]; break; }
+      if (cards[i].verdict !== 'good' && cards[i].verdict !== 'stay' && cards[i].tip) { miss = cards[i]; break; }
     }
     if (miss) return miss.tip;
     return mode === 'foot'
@@ -604,7 +756,7 @@
     if (!a.ok) return { text: '사람을 못 찾음', tone: 'off', people: a.count || 0 };
     var r = a.players[a.pick] && a.players[a.pick].result;
     var miss = 0;
-    (r.cards || []).forEach(function (c) { if (c.verdict !== 'good') miss++; });
+    (r.cards || []).forEach(function (c) { if (c.verdict === 'low' || c.verdict === 'high') miss++; });
     return { text: miss ? '보완 ' + miss + '건' : '좋아요', tone: miss ? 'warn' : 'good', people: a.count };
   }
 
@@ -848,6 +1000,43 @@
       seg: { index: 0, start: 0, end: span, span: span, label: '1구간' },
       frames: frames
     }];
+  }
+
+  /* ---------- 점프 스매시 예시 (bm-v1.53.0) ----------
+   * 체전 1등 선수가 알려 준 원칙을 눈으로 보게 하는 예시입니다.
+   *  1구간: 점프 최고점에서 타점 → '좋아요'
+   *  2구간: 최고점을 지나 내려오면서 타점 → '조금 늦어요'(타점이 떨어짐)
+   * 틀린 예도 같이 보여 줘야 '내려오면서 치면 타점이 떨어진다'가 한 번에 들어옵니다. */
+  var JUMP_DEMO_IMPACT = { good: 8, late: 11 };
+
+  /* 임팩트 프레임에서 손목이 가장 빨라지게 팔을 휘두르는 점프 스매시 16프레임 */
+  function jumpFrames(kind) {
+    var impact = JUMP_DEMO_IMPACT[kind] || JUMP_DEMO_IMPACT.good;
+    var N = 16, out = [];
+    for (var i = 0; i < N; i++) {
+      /* 골반 높이: 준비로 앉고 → 뜨고(최고점 i=8) → 내려와 다시 앉음 */
+      var hipY;
+      if (i <= 3) hipY = 0.60 + 0.04 * (i / 3);
+      else if (i <= 8) hipY = 0.64 - 0.18 * ((i - 3) / 5);
+      else if (i <= 13) hipY = 0.46 + 0.16 * ((i - 8) / 5);
+      else hipY = 0.62;
+      var t = i - impact;
+      var dir = t <= -4 ? 58 : t === -3 ? 76 : t === -2 ? 112 : t === -1 ? 148 : t === 0 ? 182 : 188;
+      var elbow = t <= -4 ? 52 : t === -3 ? 62 : t === -2 ? 96 : t === -1 ? 136 : t === 0 ? 160 : 122;
+      out.push({ t: Math.round(i * 100) / 1000, lm: poseFrame({ hipY: hipY, shoulderY: hipY - 0.20, elbowAng: elbow, armDir: dir, kneeFlex: i <= 3 ? 72 : 20, stanceX: 0.035 }) });
+    }
+    return out;
+  }
+
+  function demoJump() {
+    return ['good', 'late'].map(function (kind, si) {
+      var frames = jumpFrames(kind);
+      var span = round1(frames[frames.length - 1].t);
+      return {
+        seg: { index: si, start: 0, end: span, span: span, label: (si + 1) + '구간' },
+        frames: frames
+      };
+    });
   }
 
   /* ============================================================
@@ -1106,6 +1295,9 @@
       return '<div class="pose__status" data-pose-status>' +
         '<p>영상을 고르면 <b>이 기기 안에서만</b> 5~10초 구간으로 나눠 모두 분석할게요. 15초 안쪽 영상이 가장 정확해요.</p>' +
         '<div class="row gap8 mt8 wrap"><button type="button" class="linkbtn" data-pose-demo>영상 없이 예시로 먼저 보기</button>' +
+        (state.mode === 'smash'
+          ? '<button type="button" class="linkbtn" data-pose-demo="jump">점프 스매시 예시(최고점 타점)</button>'
+          : '') +
         '<button type="button" class="linkbtn" data-pose-demo="duo">복식(2명) 예시</button></div></div>';
     }
     return '';
@@ -1216,6 +1408,7 @@
       CARDS.smash.concat(CARDS.foot);
     var srcs = [];
     defs.forEach(function (d) { if (d.src && srcs.indexOf(d.src) < 0) srcs.push(d.src); });
+    if (mode !== 'foot') srcs.push(JUMP_SRC);   /* bm-v1.53.0 점프 최고점 원칙 */
     return '<details class="pose__ref" data-pose-ref>' +
       '<summary class="pose__refsum">참고 기준 보기<i class="pose__refarw" aria-hidden="true"></i></summary>' +
       '<p class="pose__foot" data-pose-foot>참고 수치: ' + U.esc(srcs.join(' · ')) +
@@ -1513,9 +1706,9 @@
     });
   }
 
-  /* 예시 — kind: '' (1인) | 'duo' (복식 2명·2구간) */
+  /* 예시 — kind: '' (1인) | 'duo' (복식 2명·2구간) | 'jump' (점프 최고점 타점 2구간) */
   function useDemo(kind) {
-    var useKind = kind === 'duo' ? 'duo' : '';
+    var useKind = kind === 'duo' ? 'duo' : (kind === 'jump' ? 'jump' : '');
     state.demo = useKind || 'one';
     state.error = '';
     state.busy = false;
@@ -1523,7 +1716,9 @@
     state.fileName = '';
     state.segs = [];
     state.seg = 0;
-    var packs = useKind === 'duo' ? demoDuo(state.mode) : demoOne(state.mode);
+    var packs = useKind === 'duo' ? demoDuo(state.mode)
+      : useKind === 'jump' ? demoJump()
+        : demoOne(state.mode);
     var last = packs[packs.length - 1];
     state.duration = round1(last.seg.end);
     state.segPlan = packs.map(function (p) { return p.seg; });
@@ -1538,9 +1733,13 @@
 
   function noteLine(r, meta) {
     var parts = [];
-    (r.cards || []).slice(0, 3).forEach(function (c) {
+    var jump = null;
+    (r.cards || []).forEach(function (c) { if (c.key === 'jump' && c.jump && c.jump.kind === 'late') jump = c; });
+    /* 점프가 늦었으면 그 한 가지를 메모에 꼭 남깁니다(나머지 카드 2장 + 점프) */
+    (r.cards || []).filter(function (c) { return c.key !== 'jump'; }).slice(0, jump ? 2 : 3).forEach(function (c) {
       parts.push(c.label.replace(/\s*\(.*?\)\s*/g, ' ').trim() + ' ' + c.text + (c.unit || ''));
     });
+    if (jump) parts.push(jump.note);
     var tag = [];
     if (meta && meta.players > 1) tag.push(meta.player + '번 선수');
     if (meta && meta.segTime) tag.push(meta.segTime);
@@ -1588,13 +1787,21 @@
       if (next === state.mode) return;
       state.mode = next;
       UI().haptic(6);
-      if (state.demo) useDemo(state.demo === 'duo' ? 'duo' : '');   /* 예시는 종목에 맞춰 새로 만듭니다 */
+      if (state.demo) {
+        /* 예시는 종목에 맞춰 새로 만듭니다 — 점프 예시는 타점 모드 전용 */
+        useDemo(state.demo === 'duo' ? 'duo' : (state.demo === 'jump' && next === 'smash') ? 'jump' : '');
+      }
       else if (state.segs.length) { recomputeAll(); paint(); }     /* 저장한 좌표로만 다시 계산 */
       else paint();
       return;
     }
     var dm = ev.target.closest('[data-pose-demo]');
-    if (dm) { ev.preventDefault(); useDemo(dm.getAttribute('data-pose-demo') === 'duo' ? 'duo' : ''); return; }
+    if (dm) {
+      ev.preventDefault();
+      var dk = dm.getAttribute('data-pose-demo');
+      useDemo(dk === 'duo' ? 'duo' : dk === 'jump' ? 'jump' : '');
+      return;
+    }
     if (ev.target.closest('[data-pose-retry]')) { ev.preventDefault(); state.error = ''; paint(); return; }
     if (ev.target.closest('[data-pose-note]')) { ev.preventDefault(); addToNote(panelCtx); return; }
     var sb = ev.target.closest('[data-pose-seg]');
@@ -1702,6 +1909,10 @@
     dist: dist, angleAt: angleAt, frameMetrics: frameMetrics, detectSide: detectSide,
     planSamples: planSamples, measure: measure, cardsFor: cardsFor, summaryOf: summaryOf,
     verdictOf: verdictOf, barPct: barPct, demoFrames: demoFrames, poseFrame: poseFrame,
+    /* 점프 최고점 · 타점 타이밍 (bm-v1.53.0) */
+    JUMP: JUMP, JUMP_SRC: JUMP_SRC, JUMP_TIP: JUMP_TIP,
+    medianOf: medianOf, smooth3: smooth3, frameStep: frameStep, jumpTiming: jumpTiming,
+    jumpCardOf: jumpCardOf, jumpFrames: jumpFrames, demoJump: demoJump,
     /* 구간 · 다인 트랙 */
     splitSegments: splitSegments, sampleTimes: sampleTimes, torsoOf: torsoOf,
     trackPoses: trackPoses, analyzeSegment: analyzeSegment, segSummary: segSummary,
