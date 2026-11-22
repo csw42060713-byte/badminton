@@ -5889,3 +5889,24 @@ body {
   color: var(--good);
 }
 .profile__coachline .ico { width: 12px; height: 12px; flex: none; }
+
+/* ============================================================
+ * 21. bm-v1.47.0 — 하트·광고 표시, 꾸미기 미리보기, 코치 소속 지도
+ * ============================================================ */
+
+/* 코치 카드 — 활동 소속 체육관으로 지도 열기 */
+.coachcard__gyms { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.coachcard__gyms .gymlink { font-size: 11.5px; }
+.coachcard__gyms .gymlink i { background: var(--accent-soft); }
+
+/* MY 하트 카드 — '남은 3/5회 · 다음 광고까지 12초' : 두 줄이 되어도 버튼 높이를 맞춥니다 */
+.heartact__s { line-height: 1.35; letter-spacing: -0.2px; }
+.card--heart .freeline__d { font-variant-numeric: tabular-nums; }
+
+/* 꾸미기 미리보기 — 지금 ↔ 적용 후 비교 */
+.decoprev__stage { padding: 14px 16px; }
+.decoprev__seg { margin-top: 12px; }
+.decoprev__seg .decostudio__note {
+  margin-left: auto; font-size: 11px; font-weight: 700; color: var(--muted);
+  align-self: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%;
+}

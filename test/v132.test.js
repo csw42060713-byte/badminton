@@ -31,7 +31,7 @@
   }
 
   var ME = 'u_v132_me';
-  var NOW = '2026-11-20';
+  var NOW = U.ymd();            /* 날짜가 흐르면 테스트가 깨지지 않게 '오늘' 기준 */
   var VIDEO = 'https://www.youtube.com/watch?v=abc123';
 
   /* '팀' 칸에 들어 있는 JSON 모양 그대로의 일지 한 줄 */
@@ -467,14 +467,14 @@
 
   test('v1.32 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.46.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.46.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261121-58', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.47.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.47.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-59', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.37.2', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.46.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.46.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 38, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.47.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.47.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 39, 'TWA 버전 코드');
   });
 
   test('v1.32 문서: 아이디어 노트에 이번 사이클과 다음 후보가 남는다', function () {

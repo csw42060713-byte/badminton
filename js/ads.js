@@ -23,6 +23,18 @@
  *  - 콜백에 광고 SDK 의 거래 ID 가 있으면 세 번째 인자로 넘기세요:
  *    BM.app.onRewardAdResult(true, 'heart_reward', txId)
  *    (없으면 시각 기반 ID를 만들지만, SDK 값을 주는 쪽이 중복 적립을 더 확실히 막습니다.)
+ *
+ * 다중 슬롯 (bm-v1.47.0)
+ *  - 광고 자리는 SLOTS 에 이름으로 모여 있습니다. 지금 실제로 쓰는 것은 heart_reward 이고,
+ *    heart_boost(하트 2배 시간)·report_detail(주간·월간 상세 리포트)은 단위 ID만 미리
+ *    등록해 둘 수 있는 자리입니다 — setUnits({ heart_boost: 'ca-app-pub-…/…' }).
+ *  - 하루 5회·30초 간격은 슬롯을 합쳐서 셉니다(하트 지급 규칙은 그대로). 어느 자리에서 봤는지는
+ *    적립 행의 target(광고 단위 이름)에 남습니다.
+ *  - 등록하지 않은 자리는 heart_reward 단위로 재생합니다(unitOf 의 기본값).
+ *
+ * 실시간 표시 · 1탭 충전 (bm-v1.47.0)
+ *  - adMeterText: '남은 3/5회 · 다음 광고까지 12초' — MY 하트 카드·충전 시트가 1초마다 다시 씁니다.
+ *  - watchForHeart: 하트가 모자란 자리에서 '광고 보고 +1' 한 번으로 재생→적립까지 끝냅니다.
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -31,6 +43,9 @@
 
   var PREVIEW_SEC = 3;                 /* 웹 미리보기 길이 */
   var NATIVE_TIMEOUT_MS = 90 * 1000;   /* 광고가 안 돌아올 때 화면이 잠기지 않게 */
+
+  /* 광고 슬롯 이름 — 출시하며 광고 단위를 늘릴 자리 (bm-v1.47.0) */
+  var SLOTS = ['heart_reward', 'heart_boost', 'report_detail'];
   var units = { heart_reward: 'heart_reward' };
 
   /* 진행 중인 보상형 광고 요청의 Promise (중복 실행 잠금) */
@@ -50,14 +65,33 @@
     return { native: !!bridge(), preview: true };
   }
 
+  /* 광고 단위 ID 등록 — { heart_reward: 'ca-app-pub-…/…', heart_boost: '…' }
+   *  빈 값(''·null)은 '등록을 지운다'는 뜻으로, 그 슬롯은 heart_reward 단위로 들아갑니다. */
   function setUnits(map) {
-    Object.keys(map || {}).forEach(function (k) { if (map[k]) units[k] = String(map[k]); });
+    Object.keys(map || {}).forEach(function (k) {
+      var v = map[k];
+      var key = String(k);
+      if (SLOTS.indexOf(key) < 0) return;      /* 오타 난 슬롯은 조용히 버립니다 */
+      if (v === '' || v == null) {
+        if (key !== 'heart_reward') delete units[key];
+        return;
+      }
+      units[key] = String(v);
+    });
     return units;
+  }
+
+  /* 이 슬롯에 따로 등록한 단위 ID가 있는지 (없으면 heart_reward 로 재생) */
+  function hasUnit(name) {
+    var k = String(name || '');
+    return !!units[k] && units[k] !== units.heart_reward;
   }
 
   function unitOf(name) {
     return units[name] || units.heart_reward;
   }
+
+  function slotNames() { return SLOTS.slice(); }
 
   function rules() {
     return (BM.domain && BM.domain.HEART_RULES) || {
@@ -156,6 +190,20 @@
     return '남은 ' + s.adRemaining + '회';
   }
 
+  /* 오늘 남은 횟수(N/5회)와 쿨타임을 한 줄에 (bm-v1.47.0)
+   *  · MY 하트 카드·충전 시트가 1초마다 다시 그려 '지금 눌러도 되는지'가 바로 보입니다.
+   *  · 남은 횟수를 먼저, 그다음 쿨타임 초를 둡니다. */
+  function adMeterText(s) {
+    if (!s) return '';
+    var limit = Math.max(0, numVal(s.adLimit, 0));
+    var leftCount = Math.max(0, numVal(s.adRemaining, 0));
+    if (limit <= 0) return '오늘 광고 없음';
+    var head = '남은 ' + leftCount + '/' + limit + '회';
+    if (leftCount <= 0) return head + ' · 오늘 모두 받았어요';
+    if (numVal(s.nextAdInSec, 0) > 0) return head + ' · 다음 광고까지 ' + numVal(s.nextAdInSec, 0) + '초';
+    return head + ' · 지금 바로 +' + numVal(s.adReward, 1);
+  }
+
   function freeText(s) {
     if (!s) return '';
     if (s.freeHeartsLeft <= 0) return '오늘 무료 하트를 모두 받았어요';
@@ -213,7 +261,7 @@
       var UI = BM.ui;
       if (!uiReady()) {
         /* 화면이 없는 환경(테스트)에서는 재생할 수 없습니다 */
-        resolve({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'no_dom' });
+        resolve({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'no_dom', txId: txId });
         return;
       }
       var left = PREVIEW_SEC;
@@ -240,12 +288,12 @@
             '<p class="hint">웹에서는 광고 미리보기예요. 앱(스토어)에서는 이 자리에 실제 광고가 나옵니다.</p></div>'
         });
       } catch (e) {
-        resolve({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'error' });
+        resolve({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'error', txId: txId });
         return;
       }
       if (!wrap) {
         /* 시트를 띄우지 못하면 보상도 없습니다 (버튼이 잠긴 채 남지 않게) */
-        resolve({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'no_sheet' });
+        resolve({ rewarded: false, adUnit: adUnit, source: 'preview', reason: 'no_sheet', txId: txId });
         return;
       }
       /* 닫기(X·배경)로 나가면 지급하지 않습니다 */
@@ -266,6 +314,43 @@
 
   /* 진행 중인 광고가 있는지 — 화면이 버튼을 잠그는 데 씁니다 */
   function busy() { return !!inFlight; }
+
+  /* 하트가 모자란 자리의 1탭 충전 (bm-v1.47.0)
+   *  '광고 보고 하트 +1' 버튼이 이걸 부릅니다 — 재생이 끝나면 바로 적립까지 하고,
+   *  결과 이유(limit·cooldown·duplicate·cancel·busy)를 화면이 그대로 안내합니다.
+   *  opts: { unit, silent(토스트 생략) } */
+  function watchForHeart(ctx, opts) {
+    opts = opts || {};
+    var store = (ctx && ctx.store) || (BM.app && BM.app.ctx && BM.app.ctx.store) || null;
+    var actions = (ctx && ctx.actions) || (store && store.actions) || null;
+    var unit = opts.unit || 'heart_reward';
+    if (!actions || typeof actions.watchAd !== 'function') {
+      return Promise.resolve({ ok: false, reason: 'no_store' });
+    }
+    return showRewarded({ unit: unit }).then(function (r) {
+      if (!r || !r.rewarded) {
+        var why = !r ? 'error' : (r.busy ? 'busy' : (r.reason || 'not_rewarded'));
+        return { ok: false, reason: why, ad: r };
+      }
+      var res = null;
+      try { res = actions.watchAd({ verified: true, adUnit: r.adUnit, txId: r.txId }); }
+      catch (e) { res = { ok: false, reason: 'error' }; }
+      var out = {
+        ok: !!(res && res.ok),
+        reason: res ? res.reason : 'error',
+        gained: res && res.gained,
+        remaining: res && res.remaining,
+        balance: res && res.balance,
+        retryAfter: res && res.retryAfter,
+        ad: r
+      };
+      if (out.ok && !opts.silent && BM.ui) {
+        if (BM.ui.toast) BM.ui.toast('하트 +' + out.gained + ' · 오늘 ' + out.remaining + '회 남음');
+        if (BM.ui.haptic) BM.ui.haptic(16);
+      }
+      return out;
+    }, function () { return { ok: false, reason: 'error' }; });
+  }
 
   /* 보상형 광고 한 번 재생 — { rewarded, adUnit, source, reason }
    *  이미 다른 광고가 진행 중이면 { rewarded:false, source:'lock', reason:'in_flight', busy:true } */
@@ -378,7 +463,7 @@
         '<b class="charge__n">+' + s.checkinReward + '</b></button>' +
         '<button type="button" class="charge__row" data-charge="ad" data-ad-row' + (s.canWatchAd ? '' : ' disabled') + '>' +
         '<span class="charge__t">광고 보고 받기</span>' +
-        '<span class="charge__d" data-ad-sub>' + escText(adText(s)) + '</span>' +
+        '<span class="charge__d" data-ad-sub>' + escText(adMeterText(s)) + '</span>' +
         '<b class="charge__n">+' + s.adReward + '</b></button>';
     }
 
@@ -412,8 +497,9 @@
         if (typeof document !== 'undefined' && document && document.body &&
           wrap.parentNode && !document.body.contains(wrap)) { stop(); return; }
         var s = live();
+        /* 남은 횟수(N/5)와 쿨타임 초를 1초마다 다시 — '지금 눌러도 되는지'가 바로 보입니다 */
         var sub = wrap.querySelector('[data-ad-sub]');
-        if (sub) sub.textContent = adText(s);
+        if (sub) sub.textContent = adMeterText(s);
         var row = wrap.querySelector('[data-ad-row]');
         if (row) row.disabled = !s.canWatchAd;
         var free = wrap.querySelector('[data-free]');
@@ -478,20 +564,13 @@
       if (kind === 'ad') {
         if (b.classList.contains('is-busy')) return;
         b.classList.add('is-busy');
-        showRewarded({ unit: 'heart_reward' }).then(function (r) {
+        watchForHeart(ctx, { unit: 'heart_reward', silent: true }).then(function (res) {
           b.classList.remove('is-busy');
-          if (!r || !r.rewarded) {
-            if (r && r.busy) UI.toast('광고를 준비하고 있어요. 잠시만요');
-            else if (r && r.reason === 'cancel') UI.toast('광고를 끝까지 봐야 하트를 받을 수 있어요');
-            else UI.toast('지금은 광고를 볼 수 없어요. 잠시 후 다시 시도해 주세요');
-            return;
-          }
-          var res = actions.watchAd ? actions.watchAd({ verified: true, adUnit: r.adUnit, txId: r.txId }) : null;
           if (res && res.ok) {
             UI.toast('하트 +' + res.gained + ' · 오늘 ' + res.remaining + '회 남음');
             UI.haptic(16);
             reopen();
-          } else if (res && res.reason === 'limit') {
+          } else if (res && (res.reason === 'limit')) {
             UI.toast('오늘 몫을 모두 받았어요. 내일 다시 만나요!');
             reopen();
           } else if (res && res.reason === 'cooldown') {
@@ -502,6 +581,12 @@
             reopen();
           } else if (res && res.reason === 'locked') {
             UI.toast('잠시만요, 처리 중이에요');
+          } else if (res && res.reason === 'busy') {
+            UI.toast('광고를 준비하고 있어요. 잠시만요');
+          } else if (res && res.reason === 'cancel') {
+            UI.toast('광고를 끝까지 봐야 하트를 받을 수 있어요');
+          } else if (res && (res.reason === 'not_rewarded' || res.reason === 'no_dom')) {
+            UI.toast('지금은 광고를 볼 수 없어요. 잠시 후 다시 시도해 주세요');
           } else {
             UI.toast('하트를 받지 못했어요', 'error');
           }
@@ -530,17 +615,22 @@
 
   BM.ads = {
     UNITS: units,
+    SLOTS: SLOTS,
     PREVIEW_SEC: PREVIEW_SEC,
     bridge: bridge,
     available: available,
     setUnits: setUnits,
+    hasUnit: hasUnit,
+    slotNames: slotNames,
     unitOf: unitOf,
     showRewarded: showRewarded,
+    watchForHeart: watchForHeart,
     onRewardAdResult: onRewardAdResult,
     newTxId: newTxId,
     busy: busy,
     getStatus: getStatus,
     adText: adText,
+    adMeterText: adMeterText,
     freeText: freeText,
     freeDetail: freeDetail,
     streakText: streakText,
