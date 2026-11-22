@@ -2173,7 +2173,7 @@ body.is-onboarding .main { padding: calc(var(--safe-t) + 10px) 18px calc(var(--s
   font-size: 11px; font-weight: 800; letter-spacing: 0.7px;
   color: var(--muted); text-transform: uppercase;
 }
-.dmreqs, .dmrooms { display: grid; gap: 4px; }
+.dmreqs, .dmrooms { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 
 .dmreq {
   display: flex; align-items: center; gap: 10px;
@@ -2192,6 +2192,7 @@ body.is-onboarding .main { padding: calc(var(--safe-t) + 10px) 18px calc(var(--s
   padding: 10px 8px;
   border-radius: 16px;
   cursor: pointer;
+  min-width: 0;
 }
 .dmroom:active { background: color-mix(in srgb, var(--text) 5%, transparent); }
 .dmroom__mid { flex: 1; min-width: 0; }
@@ -5909,4 +5910,110 @@ body {
 .decoprev__seg .decostudio__note {
   margin-left: auto; font-size: 11px; font-weight: 700; color: var(--muted);
   align-self: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%;
+}
+
+/* ============================================================
+ * 22. bm-v1.48.0 — 게스트 모집 날짜·시간 고르기, 단체방 삭제, 점수판 가로 보기
+ * ============================================================ */
+
+/* 모집 작성 — 언제: 빠른 날짜 칩 + 달력·시간 칸 + 글자 한 줄 */
+.vitewhen { gap: 6px; }
+.vitewhen__quick { margin-top: 0; gap: 6px; }
+.vitewhen__quick .chip { gap: 4px; }
+.vitewhen__d { font-style: normal; font-weight: 700; font-size: 10.5px; opacity: .72; }
+.vitewhen__row { display: grid; gap: 6px; }
+.vitewhen__times {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center; gap: 5px;
+}
+.vitewhen__row input {
+  min-height: 40px; padding: 8px 8px;
+  border-radius: 10px; background: var(--card-2);
+  font-size: 13px; font-weight: 700; letter-spacing: -0.2px;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+.vitewhen__tilde { font-size: 11px; font-weight: 800; color: var(--muted); }
+.vitewhen input[data-vitefield="when"] {
+  color: var(--text-2); font-weight: 700;
+}
+
+/* 대화 목록 — 내가 연 단체방만 보이는 삭제 버튼과 그 자리 확인 */
+.dmroom__del {
+  width: 30px; height: 30px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line-2); background: transparent; color: var(--muted);
+}
+.dmroom__del .ico { width: 14px; height: 14px; }
+.dmroom__del:active { transform: scale(0.94); background: color-mix(in srgb, var(--bad) 10%, transparent); color: var(--bad); }
+.dmroom__delbar {
+  margin-top: 7px; padding: 9px 10px;
+  border-radius: 12px; border: 1px solid color-mix(in srgb, var(--bad) 24%, transparent);
+  background: color-mix(in srgb, var(--bad) 7%, var(--card));
+  cursor: default;
+}
+.dmroom__mid .dmroom__delbar-t {
+  font-size: 11.5px; font-weight: 700; color: var(--text); line-height: 1.45;
+  white-space: normal; overflow: visible; text-overflow: clip;
+}
+.dmroom__delbar-t b { font-weight: 900; color: var(--bad); }
+.dmroom__delbar .row { margin-top: 7px; }
+.dmhead__out--del { display: inline-flex; align-items: center; gap: 4px; }
+.dmhead__out--del .ico { width: 13px; height: 13px; }
+
+/* 코트 점수판 — 가로 보기 버튼 */
+.sbfull__rot {
+  flex: none; display: inline-flex; align-items: center; gap: 4px;
+  min-height: 34px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid var(--line-2); background: var(--card); color: var(--text-2);
+  font-size: 11.5px; font-weight: 800; letter-spacing: -0.2px; white-space: nowrap;
+  touch-action: manipulation;
+}
+.sbfull__rot .ico { width: 14px; height: 14px; color: var(--accent); }
+.sbfull__rot[aria-pressed="true"] { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent); }
+.sbfull__rot:active { transform: scale(0.96); }
+
+/* 코트 점수판 — 가로 배치 (내 팀 | 상대 팀 이 좌우로, 위아래 막대는 슬림하게) */
+.sbfull.is-land .sb--full { gap: 6px; }
+.sbfull.is-land .sbfull__hdr { gap: 6px; }
+.sbfull.is-land .sbfull__hdr .iconbtn { width: 34px; height: 34px; }
+.sbfull.is-land .sbfull__t b { font-size: 13.5px; }
+.sbfull.is-land .sbfull__t span { font-size: 10.5px; }
+.sbfull.is-land .sbfull__rot { min-height: 30px; padding: 0 9px; font-size: 11px; }
+.sbfull.is-land .sbfull__set { padding: 4px 9px; font-size: 12px; }
+.sbfull.is-land .sb--full .sb__modes { gap: 5px; }
+.sbfull.is-land .sb--full .sb__modes .seg__btn { min-height: 28px; font-size: 11.5px; }
+.sbfull.is-land .sb--full .sb__state { font-size: 11.5px; }
+.sbfull.is-land .sb__board {
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; gap: 8px;
+}
+.sbfull.is-land .sb__card { border-radius: 16px; padding: 6px; }
+.sbfull.is-land .sb__card .sb__num { font-size: clamp(44px, 20vh, 128px); letter-spacing: -2px; }
+.sbfull.is-land .sb__card .sb__who { font-size: 11.5px; }
+.sbfull.is-land .sb__plus { margin-top: 0; padding: 1px 8px; font-size: 11px; }
+.sbfull.is-land .sb--full .sb__sets { padding-bottom: 0; }
+.sbfull.is-land .sb--full .sb__set { padding: 4px 8px; font-size: 11.5px; }
+.sbfull.is-land .sb--full .sb__tools { gap: 5px; }
+.sbfull.is-land .sb__tool {
+  min-height: 40px; flex-direction: row; gap: 6px; font-size: 10.5px;
+}
+.sbfull.is-land .sb__tool b { font-size: 14px; }
+.sbfull.is-land .sb--full .sb__foot .btn { min-height: 42px; font-size: 13px; }
+.sbfull.is-land .sb--full .sb__hint { padding: 6px 0; }
+
+/* 기기를 실제로 눕혔을 때 — JS 이벤트가 늦어도 바로 좌우 배치 */
+@media (orientation: landscape) {
+  .sbfull:not(.is-port) .sb__board {
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; gap: 8px;
+  }
+  .sbfull:not(.is-port) .sb__card .sb__num { font-size: clamp(44px, 20vh, 128px); letter-spacing: -2px; }
+}
+
+/* 세로 화면에서 '가로 보기' — 화면 회전 잠금과 상관없이 90도 돌려 꽉 채웁니다 */
+.sbfull.is-land.is-qrot {
+  inset: auto;
+  top: 50%; left: 50%;
+  width: 100vh; height: 100vw;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center center;
 }

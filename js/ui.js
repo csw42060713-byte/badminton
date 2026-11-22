@@ -45,7 +45,9 @@
     bell: '<path d="M18 15V10a6 6 0 1 0-12 0v5l-2 3h16z"/><path d="M10 21h4"/>',
     mail: '<path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/>',
     /* 게스트비 동전 — 동글게 안에 ₩ (bm-v1.40.1) */
-    coin: '<circle cx="12" cy="12" r="8.2"/><path d="M9 9l1.4 6 1.6-3.4L13.6 15 15 9"/><path d="M9.8 12.2h4.4"/>'
+    coin: '<circle cx="12" cy="12" r="8.2"/><path d="M9 9l1.4 6 1.6-3.4L13.6 15 15 9"/><path d="M9.8 12.2h4.4"/>',
+    /* 화면 돌리기 — 점수판 가로 보기 (bm-v1.48.0) */
+    rotate: '<rect x="9" y="2.6" width="6" height="11" rx="1.6"/><path d="M3.4 15.2a9 9 0 0 0 3.4 3.6"/><path d="M3 12.6v3.4h3.4"/><path d="M20.6 8.8a9 9 0 0 0-3.4-3.6"/><path d="M21 11.4V8h-3.4"/>'
   };
 
   function icon(name, cls) {

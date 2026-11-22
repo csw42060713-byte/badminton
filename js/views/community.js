@@ -371,6 +371,54 @@
     }).join('');
   }
 
+  /* 날짜·시간 칸 → 글자 한 줄. 칸을 바꿀 때마다 글자 칸과 칩만 맞춥니다 */
+  function syncWhen(root, ctx) {
+    var box = root.querySelector('[data-vitewhenbox]');
+    if (!box || !ctx || !ctx.actions) return '';
+    var date = box.querySelector('[data-vitewhen="date"]');
+    var start = box.querySelector('[data-vitewhen="start"]');
+    var end = box.querySelector('[data-vitewhen="end"]');
+    var text = D.meetWhen.compose(date && date.value, start && start.value, end && end.value);
+    var field = box.querySelector('[data-vitefield="when"]');
+    if (field) field.value = text;
+    ctx.actions.setComposerMeet('when', text);
+    paintWhen(root, { date: (date && date.value) || '', start: (start && start.value) || '', end: (end && end.value) || '' });
+    return text;
+  }
+
+  /* 손으로 적은 글자 → 날짜·시간 칸과 칩 (글자 칸 자체는 건드리지 않음) */
+  function whenFromText(root, ctx, text) {
+    var parsed = D.meetWhen.parse(text);
+    var box = root.querySelector('[data-vitewhenbox]');
+    if (!box) return;
+    ['date', 'start', 'end'].forEach(function (k) {
+      var inp = box.querySelector('[data-vitewhen="' + k + '"]');
+      if (inp && parsed[k]) inp.value = parsed[k];
+    });
+    paintWhen(root, parsed);
+    if (ctx && ctx.actions) ctx.actions.setComposerMeet('when', text);
+  }
+
+  /* 날짜·시간 칩의 켜짐만 바꿉니다 (화면을 다시 그리지 않음 → 포커스 유지) */
+  function paintWhen(root, cur) {
+    var box = root.querySelector('[data-vitewhenbox]');
+    if (!box) return;
+    var day = cur && cur.date ? cur.date : '';
+    UI.$$('[data-viteday-quick]', box).forEach(function (b) {
+      var on = !!day && b.getAttribute('data-viteday-quick') === day;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    var s = D.meetWhen.time(cur && cur.start);
+    var e = D.meetWhen.time(cur && cur.end);
+    var range = (s && e) ? (s + '~' + e) : '';
+    UI.$$('[data-vitetime-quick]', box).forEach(function (b) {
+      var on = !!range && b.getAttribute('data-vitetime-quick') === range;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
   /* 칸에 적힌 값에 맞춰 칩의 켜짐만 바꿉니다 (화면을 다시 그리지 않음 → 포커스 유지) */
   function syncFeeChips(root, val) {
     var host = root.querySelector('[data-vitefee]');
@@ -382,14 +430,54 @@
     });
   }
 
+  /* ---------- 모집 일시 고르기 (bm-v1.48.0) ----------
+   * 예전에는 '11/23(월) 19:00~21:00'을 손으로 쳤습니다. 이제 칩·칸으로 고르면
+   * 같은 글자가 만들어져 지금 그대로 meet.when 한 칸에 들어갑니다(카드·지도·신청 호환).
+   *  · 칸을 바꿀 때마다 화면을 다시 그리지 않고 글자 칸·칩만 맞춥니다(포커스 유지). */
+  function whenQuickChips(cur) {
+    return D.meetWhen.quickDates().map(function (q) {
+      var on = !!cur.date && cur.date === q.date;
+      return '<button type="button" class="chip chip--sm' + (on ? ' is-on' : '') + '"' +
+        ' data-viteday-quick="' + U.esc(q.date) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        U.esc(q.label) + '<i class="vitewhen__d">' + U.esc(q.day) + '</i></button>';
+    }).join('');
+  }
+
+  function whenTimeChips(cur) {
+    var now = (cur.start && cur.end) ? (cur.start + '~' + cur.end) : '';
+    return D.meetWhen.quickTimes.map(function (v) {
+      var on = v === now;
+      return '<button type="button" class="chip chip--sm' + (on ? ' is-on' : '') + '"' +
+        ' data-vitetime-quick="' + U.esc(v) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        U.esc(v) + '</button>';
+    }).join('');
+  }
+
   function meetFields(picked, state) {
     var m = (state.ui && state.ui.composerMeet) || {};
     var on = picked === D.MEET.topic;
+    var cur = D.meetWhen.parse(m.when);
+    var today = U.ymd();
     return '<div class="viteform" data-viteform' + (on ? '' : ' hidden') + '>' +
       '<p class="viteform__t">' + UI.icon('bolt') + U.esc(D.MEET.cardLabel) + ' <small>비워 두어도 올라가요</small></p>' +
       '<div class="viteform__grid">' +
-      '<label class="viteform__f"><span>언제</span>' +
-      '<input type="text" maxlength="30" data-vitefield="when" enterkeyhint="next" placeholder="11/21(금) 19:00" value="' + U.esc(m.when || '') + '"></label>' +
+      '<div class="viteform__f viteform__f--wide vitewhen" data-vitewhenbox>' +
+      '<span>언제 <small>날짜·시간을 눌러서 골라요</small></span>' +
+      '<div class="chips viteform__chips vitewhen__quick" data-viteday>' + whenQuickChips(cur) + '</div>' +
+      '<div class="vitewhen__row">' +
+      '<input type="date" class="vitewhen__date" data-vitewhen="date" min="' + U.esc(today) + '"' +
+      ' value="' + U.esc(cur.date || today) + '" aria-label="모집 날짜">' +
+      '<div class="vitewhen__times">' +
+      '<input type="time" class="vitewhen__time" data-vitewhen="start" step="1800"' +
+      ' value="' + U.esc(cur.start) + '" aria-label="시작 시간">' +
+      '<span class="vitewhen__tilde" aria-hidden="true">~</span>' +
+      '<input type="time" class="vitewhen__time" data-vitewhen="end" step="1800"' +
+      ' value="' + U.esc(cur.end) + '" aria-label="끝 시간">' +
+      '</div></div>' +
+      '<div class="chips viteform__chips vitewhen__quick" data-vitetime>' + whenTimeChips(cur) + '</div>' +
+      '<input type="text" maxlength="30" data-vitefield="when" enterkeyhint="next" placeholder="11/21(금) 19:00"' +
+      ' value="' + U.esc(m.when || '') + '" aria-label="모집 일시">' +
+      '</div>' +
       '<label class="viteform__f"><span>몇 명</span>' +
       '<input type="text" inputmode="numeric" maxlength="3" data-vitefield="cap" enterkeyhint="next" placeholder="6" value="' + U.esc(m.cap || '') + '"></label>' +
       '<label class="viteform__f viteform__f--wide"><span>어디 체육관</span>' +
@@ -509,6 +597,28 @@
 
     mount: function (root, ctx) {
       root.addEventListener('click', function (ev) {
+        /* 모집 날짜·시간 고르기 (bm-v1.48.0) — 칩을 누르면 칸이 채워지고 글자 한 줄이 따라옵니다 */
+        var dchip = ev.target.closest('[data-viteday-quick]');
+        if (dchip) {
+          ev.preventDefault();
+          var dInp = root.querySelector('[data-vitewhen="date"]');
+          if (dInp) dInp.value = dchip.getAttribute('data-viteday-quick') || '';
+          syncWhen(root, ctx);
+          UI.haptic(6);
+          return;
+        }
+        var tchip = ev.target.closest('[data-vitetime-quick]');
+        if (tchip) {
+          ev.preventDefault();
+          var parts = String(tchip.getAttribute('data-vitetime-quick') || '').split('~');
+          var sInp = root.querySelector('[data-vitewhen="start"]');
+          var eInp = root.querySelector('[data-vitewhen="end"]');
+          if (sInp) sInp.value = parts[0] || '';
+          if (eInp) eInp.value = parts[1] || '';
+          syncWhen(root, ctx);
+          UI.haptic(6);
+          return;
+        }
         /* 게스트비 빠른 선택 칩 — 누르면 칸에 그대로 적히고, 같은 칩을 다시 누르면 지웁니다 */
         var fchip = ev.target.closest('[data-vitefee-val]');
         if (fchip) {
@@ -700,6 +810,10 @@
             if (ta) ta.value = '';
             /* 모집 입력칸도 같이 비웁니다 (다음 글은 다시 자유) */
             UI.$$('[data-vitefield]', root).forEach(function (inp) { inp.value = ''; });
+            UI.$$('[data-vitewhen]', root).forEach(function (inp) {
+              inp.value = inp.getAttribute('data-vitewhen') === 'date' ? U.ymd() : '';
+            });
+            paintWhen(root, { date: U.ymd(), start: '', end: '' });
             syncFeeChips(root, '');
             var vf = root.querySelector('[data-viteform]');
             if (vf) vf.hidden = true;
@@ -722,11 +836,20 @@
         /* 게스트 모집 입력 — 화면을 다시 그리지 않고 값만 담아 둡니다 */
         var vf = ev.target.closest('[data-vitefield]');
         if (vf) ctx.actions.setComposerMeet(vf.getAttribute('data-vitefield'), vf.value);
+        /* 일시를 손으로 고쳐도 날짜·시간 칸과 칩이 따라갑니다 */
+        if (vf && vf.getAttribute('data-vitefield') === 'when') whenFromText(root, ctx, vf.value);
         /* 게스트비를 손으로 고쳐도 칩의 켜짐이 따라갑니다 */
         if (vf && vf.getAttribute('data-vitefield') === 'fee') syncFeeChips(root, vf.value);
         var ri = ev.target.closest('[data-reply-input]');
         if (ri) replyDrafts[ri.getAttribute('data-reply-input')] = ri.value;
       }, { passive: true });
+
+      /* 달력·시간 칸을 고르면(change) 글자 한 줄이 바로 바뀝니다 */
+      root.addEventListener('change', function (ev) {
+        if (!ev.target.closest('[data-vitewhen]')) return;
+        syncWhen(root, ctx);
+        UI.haptic(6);
+      });
 
       root.addEventListener('submit', function (ev) {
         var form = ev.target.closest('[data-reply-form]');
@@ -793,6 +916,11 @@
     _applySheet: applySheet,
     _feeChips: feeChips,
     _syncFeeChips: syncFeeChips,
+    _meetFields: meetFields,
+    _whenQuickChips: whenQuickChips,
+    _whenTimeChips: whenTimeChips,
+    _syncWhen: syncWhen,
+    _paintWhen: paintWhen,
     _meetStatus: D.meetStatus
   };
 

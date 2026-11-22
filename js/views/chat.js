@@ -35,6 +35,10 @@
 
   /* 단체방 안에서 열어 둔 확인 바(나가기·모집 종료) — 화면을 다시 그려도 남게 여기에 둡니다 */
   var roomConfirm = { roomId: '', kind: '' };
+  /* 대화 목록에서 여는 삭제 확인 (bm-v1.48.0) — 창(confirm) 대신 목록 안에서 한 번 더 묻습니다 */
+  var listConfirm = { roomId: '' };
+  /* 이번에 단체방으로 그려 본 방 — 방장이 지운 방을 알아보는 데 씁니다 */
+  var seenGroup = {};
 
   /* 급수는 이름 옆 배지로, 이 줄에는 플레이 스타일만 (같은 말이 두 번 보이지 않게) */
   function metaLine(it, p) {
@@ -100,6 +104,10 @@
     var isGroup = t.kind === 'group';
     var p = isGroup ? null : UI.person(state, t.other);
     var pres = isGroup ? null : D.presenceOf(state.data.idx, t.other);
+    var gpost = isGroup ? postOf(state, t.postId || t.roomId) : null;
+    /* 내가 만든 단체방(모집 글 글쓴이)만 목록에서 바로 지울 수 있습니다 (bm-v1.48.0) */
+    var mineGroup = !!(isGroup && gpost && String(gpost.userKey || '') === String(me));
+    var confirming = mineGroup && String(listConfirm.roomId) === String(t.roomId);
     var preview = t.last
       ? (t.last.userKey === me ? '나: ' : (isGroup ? (t.last.nick || '') + ': ' : '')) + t.last.text
       : '대화를 시작해 보세요';
@@ -114,10 +122,23 @@
       kindPill(t.kind) + '</div>' +
       '<p class="' + (t.unread ? 'is-unread' : '') + '">' + U.esc(U.truncate(preview, 42)) + '</p>' +
       (pres ? UI.presence(pres, { cls: 'presence--row' }) : '') +
+      (confirming
+        ? '<div class="dmroom__delbar" data-roomdel-bar>' +
+          '<p class="dmroom__delbar-t">단체방을 삭제할까요? <b>모집 글도 함께</b> 내려가고 되돌릴 수 없어요.</p>' +
+          '<div class="row gap8">' +
+          '<button type="button" class="btn btn--ghost btn--sm grow" data-roomdel-no>' + U.esc(D.MEET.deleteNoLabel) + '</button>' +
+          '<button type="button" class="btn btn--danger btn--sm grow" data-roomdel-yes="' + U.esc(t.roomId) + '">' +
+          UI.icon('trash') + U.esc(D.MEET.deleteLabel) + '</button>' +
+          '</div></div>'
+        : '') +
       '</div>' +
       '<div class="dmroom__right">' +
       (t.at ? '<time>' + U.esc(D.chatListTime(t.at)) + '</time>' : '') +
       (t.unread ? '<span class="badge">' + (t.unread > 9 ? '9+' : t.unread) + '</span>' : '') +
+      (mineGroup && !confirming
+        ? '<button type="button" class="dmroom__del" data-room-del="' + U.esc(t.roomId) + '"' +
+          ' aria-label="' + U.esc(D.MEET.deleteLabel) + '" title="' + U.esc(D.MEET.deleteLabel) + '">' + UI.icon('trash') + '</button>'
+        : '') +
       '</div></li>';
   }
 
@@ -223,7 +244,8 @@
 
   /* 모집 글 단체방 — 글 정보·참여자·대화가 함께 보입니다.
    * bm-v1.43.0 — 헤더에 `나가기`(게스트) / `모집 종료`(글쓴이)를 두고,
-   * 헤더 아래 한 줄에 모집 현황(참여 n/cap · 마감 · 받은 신청)과 명단 보기를 둡니다. */
+   * 헤더 아래 한 줄에 모집 현황(참여 n/cap · 마감 · 받은 신청)과 명단 보기를 둡니다.
+   * bm-v1.48.0 — 글쓴이의 `모집 종료`는 `방 삭제`로 바뀌었습니다(방을 통째로 해산). */
   function groupRoomHtml(state) {
     var roomId = state.ui.chatRoom;
     var room = groupThreadOf(state, roomId);
@@ -247,7 +269,8 @@
     if (st && inRoom && !mine) {
       headAct = '<button type="button" class="dmhead__out" data-vite-leave="' + U.esc(postId) + '">' + U.esc(D.GUEST.leaveLabel) + '</button>';
     } else if (mine) {
-      headAct = '<button type="button" class="dmhead__out" data-vite-end="' + U.esc(postId) + '">모집 종료</button>';
+      headAct = '<button type="button" class="dmhead__out dmhead__out--del" data-vite-end="' + U.esc(postId) + '">' +
+        UI.icon('trash') + U.esc(D.MEET.deleteLabel) + '</button>';
     }
     /* 헤더 아래 모집 현황 줄 */
     var bar = '';
@@ -270,10 +293,10 @@
         '</div></div>';
     } else if (confirming && roomConfirm.kind === 'end') {
       confirmBar = '<div class="dm__leavebar" data-leavebar>' +
-        '<p class="dm__leavebar-t">모집을 끝낼까요? 글과 이 단체방이 함께 사라지고 되돌릴 수 없어요.</p>' +
+        '<p class="dm__leavebar-t">단체방을 삭제할까요? <b>이 방과 모집 글이 함께</b> 사라지고, 참여자 화면의 대화 목록에서도 빠져요. 되돌릴 수 없어요.</p>' +
         '<div class="row gap8">' +
-        '<button type="button" class="btn btn--ghost btn--sm grow" data-act="leave-no">취소</button>' +
-        '<button type="button" class="btn btn--danger btn--sm grow" data-act="leave-yes" data-leave-post="' + U.esc(postId) + '" data-leave-kind="end">' + UI.icon('trash') + '모집 종료</button>' +
+        '<button type="button" class="btn btn--ghost btn--sm grow" data-act="leave-no">' + U.esc(D.MEET.deleteNoLabel) + '</button>' +
+        '<button type="button" class="btn btn--danger btn--sm grow" data-act="leave-yes" data-leave-post="' + U.esc(postId) + '" data-leave-kind="end">' + UI.icon('trash') + U.esc(D.MEET.deleteLabel) + '</button>' +
         '</div></div>';
     }
     return '' +
@@ -328,7 +351,12 @@
 
   function roomHtml(state) {
     var roomId = state.ui.chatRoom;
-    if (roomId && D.isGroupRoom(state.data.idx, roomId)) return groupRoomHtml(state);
+    if (roomId && D.isGroupRoom(state.data.idx, roomId)) {
+      seenGroup[String(roomId)] = 1;
+      return groupRoomHtml(state);
+    }
+    /* 단체방으로 보고 있던 방이 사라졌으면(방장이 방 삭제) 안내하고 목록으로 보냅니다 */
+    if (roomId && seenGroup[String(roomId)]) return deletedRoomHtml();
     var room = findThread(state, roomId);
     var other = (room && room.other) || state.ui.chatOther || '';
     var p = UI.person(state, other);
@@ -360,6 +388,21 @@
           '<button class="btn btn--send" type="submit" aria-label="보내기">' + UI.icon('send') + '</button>' +
           '</form>'
         : '<div class="dm__locked">' + UI.icon('clock') + '친구이거나 매칭이 성사된 상대와 대화할 수 있어요</div>');
+  }
+
+  /* 방장이 지운 방 — 참여자가 열어 둔 화면이 남아 있으면 삭제 안내로 바꿉니다 (bm-v1.48.0) */
+  function deletedRoomHtml() {
+    return '<header class="dmhead dmhead--room">' +
+      '<button class="iconbtn" data-dm-back aria-label="대화 목록">' + UI.icon('arrow') + '</button>' +
+      '<div class="dmhead__who"><div><strong>삭제된 단체방</strong>' +
+      '<span>방장이 방을 삭제했어요</span></div></div></header>' +
+      '<div class="dm__scroll dm__scroll--chat">' +
+      '<div class="dm__start">' +
+      '<span class="dmgroupav dmgroupav--big" aria-hidden="true">' + UI.icon('trash') + '</span>' +
+      '<p class="dm__start-t">방장이 단체방을 삭제했어요</p>' +
+      '<p class="dm__start-s">모집 글도 함께 내려가서 대화가 정리됐어요.</p>' +
+      '<button type="button" class="btn btn--primary btn--sm mt8" data-dm-back>대화 목록으로</button>' +
+      '</div></div>';
   }
 
   function render(host, state) {
@@ -503,9 +546,10 @@
         var lKind = leaveYes.getAttribute('data-leave-kind') || 'leave';
         roomConfirm = { roomId: '', kind: '' };
         if (lKind === 'end') {
-          var endRes = ctx.actions.deletePost(lPost);
-          if (endRes && endRes.ok) { UI.toast('모집을 끝냈어요'); UI.haptic(12); }
-          else UI.toast('모집을 끝내지 못했어요', 'error');
+          var endRes = ctx.actions.deleteGroupRoom(lPost);
+          if (endRes && endRes.ok) { UI.haptic(16); UI.toast('단체방을 삭제했어요 · 모집 글도 함께 내려갔어요'); }
+          else if (endRes && endRes.reason === 'not_owner') UI.toast('글쓴이만 단체방을 삭제할 수 있어요', 'error');
+          else UI.toast('단체방을 삭제하지 못했어요', 'error');
           return;
         }
         var lRes = ctx.actions.leaveGuest(lPost);
@@ -577,6 +621,33 @@
         ev.preventDefault();
         ctx.actions.respondFriendRequest(reject.getAttribute('data-req-reject'), false);
         UI.toast('친구 요청을 거절했어요');
+        return;
+      }
+      /* ---- 대화 목록의 단체방 삭제 (bm-v1.48.0) — 목록 안에서 한 번 더 묻고 지웁나다 ---- */
+      var roomDel = ev.target.closest('[data-room-del]');
+      if (roomDel) {
+        ev.preventDefault();
+        listConfirm = { roomId: String(roomDel.getAttribute('data-room-del') || '') };
+        render(host, ctx.store.state);
+        UI.haptic(6);
+        return;
+      }
+      if (ev.target.closest('[data-roomdel-no]')) {
+        ev.preventDefault();
+        listConfirm = { roomId: '' };
+        render(host, ctx.store.state);
+        return;
+      }
+      var roomDelYes = ev.target.closest('[data-roomdel-yes]');
+      if (roomDelYes) {
+        ev.preventDefault();
+        var delRoom = String(roomDelYes.getAttribute('data-roomdel-yes') || '');
+        listConfirm = { roomId: '' };
+        var delRes = ctx.actions.deleteGroupRoom(delRoom);
+        if (delRes && delRes.ok) { UI.haptic(16); UI.toast('단체방을 삭제했어요 · 모집 글도 함께 내려갔어요'); }
+        else if (delRes && delRes.reason === 'not_owner') UI.toast('글쓴이만 단체방을 삭제할 수 있어요', 'error');
+        else UI.toast('단체방을 삭제하지 못했어요', 'error');
+        render(host, ctx.store.state);
         return;
       }
       var thread = ev.target.closest('[data-thread]');
