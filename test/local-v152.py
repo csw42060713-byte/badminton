@@ -1,26 +1,20 @@
-"""bm-v1.51.0 라이브 점검 — 🎥 영상 자세 비교(구간 나눠 분석 · 선수 선택) 화면
-· 배포본(https://csw42060713-byte.github.io/badminton/)을 390×844 로 열어 확인합니다.
-· 체험(기기 저장) 모드로만 움직입니다 → Supabase에 아무것도 쓰지 않습니다.
+"""bm-v1.52.0 로컬 점검 — 🎥 영상 자세 비교(구간 나눠 분석 · 선수 선택) 화면
 
-· Supabase(서버 DB)·CDN 요청은 막아 둡니다(오프라인 폰과 같은 상태) — 기기에만 저장되는지 확인합니다.
-· 확인 순서
-  A) 배포본 파일(sw·app·index·TWA·js/pose.js)이 v1.51.0인지
-  B) 기존 5개 탭(일지 & AI · 매칭 · 커뮤니티 · 코치 · MY)이 그대로 뜨는지
-  C) 입구 → 패널(개인정보 안내·종목·자동 분할 안내) → 1인 예시(구간 칩 1개·선수 칩 없음)
-  D) 복식 예시 — 구간 2개 · 선수 칩 2개 · 선수 2로 바꾸기 · 캔버스 탭으로 바꾸기 · 구간 2 열기
-  E) 일지 메모(구간 시간 포함)
-  F) CDN을 차단해 오프라인처럼 만들고 영상을 고르면 앱이 죽지 않고 안내만
-  G) 뒤로 가기로 패널만 닫기
-· 실행:
-  LD_LIBRARY_PATH=/workspace/tmp/deblibs/usr/lib/x86_64-linux-gnu:/workspace/tmp/deblibs2/usr/lib/x86_64-linux-gnu:/workspace/tmp/deblibs2/lib/x86_64-linux-gnu python3 test/live-v151.py
+· 127.0.0.1 로 띄운 저장소를 그대로 봅니다(Supabase·구글·CDN 요청은 막습니다 → 인터넷 없는 폰과 같음).
+· 진짜 앱(index.html)을 local 모드로 열고
+  A) 기존 5개 탭(일지 & AI · 매칭 · 커뮤니티 · 코치 · MY)이 그대로 뜨는지
+  B) 일지 & AI 첫 카드의 '영상 자세 비교' 입구 → 전체화면 패널(개인정보 안내·종목·영상 고르기·자동 분할 안내)
+  C) 1인 예시 — 구간 칩 1개 · 선수 칩 없음 · 카드 4장 · 스켈레톤 (v1.50 화면 그대로)
+  D) 복식(2명) 예시 — 구간 2개 · '선수 2명이 보여요' 배너 · 선수 칩으로 바꾸기 · 캔버스 탭으로 바꾸기
+  E) CDN을 막아 둔 상태(오프라인)에서 영상을 고르면 앱이 죽지 않고 안내만
+  F) 뒤로 가기로 패널만 닫기
+· 실행(저장소 루트에서):
+  (python3 -m http.server 8818 --bind 127.0.0.1 &) ; python3 test/local-v152.py
 """
-
-import time
-import urllib.request
 
 from playwright.sync_api import sync_playwright
 
-BASE = 'https://csw42060713-byte.github.io/badminton/'
+BASE = 'http://127.0.0.1:8818/'
 EXE = '/workspace/tmp/chrome159/chrome-headless-shell-linux64/chrome-headless-shell'
 OUT = '/workspace/downloads'
 VIDEO = '/workspace/work/pose-test/pose-duo.webm'
@@ -78,27 +72,6 @@ def watch(page):
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path=EXE)
 
-    # ---------- 배포본 파일 확인 ----------
-    def get(url):
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        return urllib.request.urlopen(req, timeout=30).read().decode('utf-8', 'replace')
-
-    stamp = '?l=' + str(int(time.time()))
-    sw = get(BASE + 'sw.js' + stamp)
-    index = get(BASE + 'index.html' + stamp)
-    app = get(BASE + 'app.js' + stamp)
-    twa = get(BASE + 'twa-manifest.json' + stamp)
-    pose = get(BASE + 'js/pose.js' + stamp)
-    css = get(BASE + 'styles.css' + stamp)
-
-    check('L 배포본 sw.js bm-v1.51.0', "var VERSION = 'bm-v1.51.0'" in sw, sw[sw.find('var VERSION'):][:40])
-    check('L 배포본 app.js v1.51.0', "version: 'v1.51.0'" in app)
-    check('L 배포본 styles.css?v=20261122-63', 'styles.css?v=20261122-63' in index)
-    check('L 배포본 TWA 1.51.0 · 코드 43', '"appVersionName": "1.51.0"' in twa and '"appVersionCode": 43' in twa,
-          twa[twa.find('appVersionName'):][:60])
-    check('L 배포본 js/pose.js (구간·다인)', 'BM.pose' in pose and 'splitSegments' in pose and 'trackPoses' in pose)
-    check('L 배포본 styles.css 에 구간 칩 CSS', '.poseseg' in css and '.posechip' in css)
-
     ctx = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2,
                         is_mobile=True, has_touch=True, locale='ko-KR', service_workers='block')
     ctx.route('**/*', lambda route: route.abort()
@@ -109,22 +82,24 @@ with sync_playwright() as p:
     page = ctx.new_page()
     watch(page)
 
-    page.goto(BASE + 'index.html?l=' + str(int(time.time())), wait_until='load')
+    page.goto(BASE, wait_until='load')
     page.evaluate("""() => {
-      try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
+      try {
+        localStorage.clear(); sessionStorage.clear();
+        localStorage.setItem('bm_backend_v1', JSON.stringify('local'));
+        localStorage.setItem('bm_auth_v1', JSON.stringify({
+          kind: 'email', email: 'pose151@example.com', name: '자세왕', at: new Date().toISOString(),
+          onboardedAt: '2026-11-21 09:00:00',
+          profile: { nick: '자세왕', level: '선수부', discipline: '단식', region: '경기',
+                     club: '나래울', onboardedAt: '2026-11-21 09:00:00', role: 'player' }
+        }));
+        localStorage.setItem('bm_seen_v1', JSON.stringify(true));
+      } catch (e) {}
     }""")
     page.reload(wait_until='load')
     page.wait_for_timeout(2600)
-    if page.query_selector('[data-act="guest"]'):
-        page.click('[data-act="guest"]')
-        page.wait_for_timeout(2400)
-    for _ in range(6):
-        if not page.query_selector('#sheet.is-on .sheet__panel .btn--primary'):
-            break
-        page.click('#sheet.is-on .sheet__panel .btn--primary')
-        page.wait_for_timeout(400)
 
-    check('앱 버전 v1.51.0', page.evaluate("() => BM.app.version") == 'v1.51.0',
+    check('앱 버전 v1.52.0', page.evaluate("() => BM.app.version") == 'v1.52.0',
           page.evaluate("() => BM.app.version"))
 
     # ---------------- A. 기존 5개 탭 ----------------
@@ -153,68 +128,76 @@ with sync_playwright() as p:
     check('B 자동 분할 안내', '5~10초 구간으로 나눠' in panel, panel[:400])
     check('B 처음엔 모델을 안 불러옴', page.evaluate("() => BM.pose.modelState().state") == 'idle')
     check('B 처음엔 구간 칩 없음', count(page, '[data-pose-seg]') == 0)
-    page.screenshot(path=OUT + '/v151l_01_입구.png')
+    check('B 결과 전에는 메모 버튼이 숨음', not page.evaluate(
+        "() => { const n = document.querySelector('[data-pose-actions]'); return n && n.offsetParent !== null; }"))
+    page.screenshot(path=OUT + '/v152l_01_입구.png')
 
-    # ---------------- C. 1인 예시 ----------------
+    # ---------------- C. 1인 예시 (v1.50 화면 그대로) ----------------
     page.click('[data-pose-demo]')
     page.wait_for_timeout(900)
     check('C 카드 4장', count(page, '[data-pose-card]') == 4, count(page, '[data-pose-card]'))
     cards = text_of(page, '[data-pose-cards]')
-    check('C 카드 이름(팔꿈치·타점·무릎·몸통)',
-          '임팩트 팔꿈치 각도' in cards and '타점' in cards and '무릎' in cards and '몸통 기울기' in cards,
+    check('C 카드 이름', '임팩트 팔꿈치 각도' in cards and '타점' in cards and '무릎' in cards and '몸통 기울기' in cards,
           cards[:160])
     check('C 판정 배지', '조금 낮아요' in cards or '좋아요' in cards, cards[:160])
-    check('C 기준 범위 표시', '155~175°' in cards and '58~82°' in cards, cards[:200])
-    check('C 쉬운 말 보완점', '팔을 쭉 펴' in cards, cards[-200:])
-    check('C 캔버스에 스켈레톤이 그려짐', canvas_ink(page, '[data-pose-canvas]') > 2000)
-    check('C 참고 논문 줄', 'Miller' in text_of(page, '[data-pose-foot]'), text_of(page, '[data-pose-foot]')[:80])
+    check('C 쉬운 말 보완점', '팔을 쭉 펴' in cards, cards[-160:])
+    ink = canvas_ink(page, '[data-pose-canvas]')
+    check('C 캔버스에 스켈레톤이 그려짐', ink > 2000, ink)
+    check('C 프레임 시간 표시', '초' in text_of(page, '[data-pose-time]'), text_of(page, '[data-pose-time]'))
     check('C 구간 칩 1개', count(page, '[data-pose-seg]') == 1, count(page, '[data-pose-seg]'))
     segbar = text_of(page, '[data-pose-segs]')
-    check('C 구간 칩에 1구간·0.0~1.0초', '1구간' in segbar and '0.0~1.0초' in segbar, segbar[:100])
-    check('C 1명이면 선수 칩 없음', count(page, '[data-pose-track]') == 0)
-    page.screenshot(path=OUT + '/v151l_02_예시_1인.png')
+    check('C 구간 칩에 1구간·시간', '1구간' in segbar and '0.0~1.0초' in segbar, segbar[:120])
+    check('C 1명이면 선수 칩·배너 없음', count(page, '[data-pose-track]') == 0)
+    check('C 일지 메모 버튼이 나타남', has(page, '[data-pose-note]') and page.evaluate(
+        "() => { const n = document.querySelector('[data-pose-actions]'); return n && n.offsetParent !== null; }"))
+    page.screenshot(path=OUT + '/v152l_02_예시_1인.png')
 
-    # ---------------- D. 복식 예시 · 선수 선택 · 구간 전환 ----------------
+    # ---------------- D. 복식(2명) 예시 — 구간 2개 · 선수 선택 ----------------
     page.evaluate("() => BM.pose.close()")
     page.wait_for_timeout(400)
     page.click('[data-act="open-pose"]')
     page.wait_for_timeout(500)
     page.click('[data-pose-demo="duo"]')
     page.wait_for_timeout(1000)
-    check('D 구간 2개', count(page, '[data-pose-seg]') == 2, count(page, '[data-pose-seg]'))
+    check('D 복식 예시 — 구간 2개', count(page, '[data-pose-seg]') == 2, count(page, '[data-pose-seg]'))
     segbar = text_of(page, '[data-pose-segs]')
-    check('D 구간 시간 0~3·3~6초', '0.0~3.0초' in segbar and '3.0~6.0초' in segbar, segbar[:160])
+    check('D 구간 시간(0~3·3~6초)', '0.0~3.0초' in segbar and '3.0~6.0초' in segbar, segbar[:160])
     who = text_of(page, '[data-pose-who]')
-    check('D 선수 2명 안내 배너', '선수 2명이 보여요' in who and '분석할 선수를 눌러 고르세요' in who, who[:120])
-    check('D 선수 칩 2개', count(page, '[data-pose-track]') == 2)
+    check('D 선수 2명 안내 배너', '선수 2명이 보여요' in who and '분석할 선수를 눌러 고르세요' in who, who[:160])
+    check('D 선수 칩 2개', count(page, '[data-pose-track]') == 2, count(page, '[data-pose-track]'))
     check('D 카드 4장', count(page, '[data-pose-card]') == 4)
     ink1 = canvas_ink(page, '[data-pose-canvas]')
-    page.screenshot(path=OUT + '/v151l_03_복식_예시.png')
+    page.screenshot(path=OUT + '/v152l_03_복식_예시.png')
 
+    # 선수 2 로 바꾸기
     page.click('[data-pose-track="1"]')
     page.wait_for_timeout(600)
     check('D 선수 2 칩이 켜진다', page.evaluate(
         "() => { const n = document.querySelector('[data-pose-track=\"1\"]'); return n && n.classList.contains('is-on'); }"))
-    check('D 캔버스 그림이 바뀐다', ink1 != canvas_ink(page, '[data-pose-canvas]'))
-    page.screenshot(path=OUT + '/v151l_04_선수2.png')
+    check('D 선수 2 카드도 4장', count(page, '[data-pose-card]') == 4)
+    ink2 = canvas_ink(page, '[data-pose-canvas]')
+    check('D 캔버스 그림이 바뀐다(강조 관절 이동)', ink1 != ink2, '%s → %s' % (ink1, ink2))
+    page.screenshot(path=OUT + '/v152l_04_선수2.png')
 
+    # 캔버스에서 왼쪽 선수 누르기 → 선수 1
     box = page.evaluate("() => { const c = document.querySelector('[data-pose-canvas]'); const r = c.getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height}; }")
     page.mouse.click(box['x'] + box['w'] * 0.27, box['y'] + box['h'] * 0.6)
     page.wait_for_timeout(600)
     check('D 캔버스 탭으로 선수 1로 돌아온다', page.evaluate(
         "() => { const n = document.querySelector('[data-pose-track=\"0\"]'); return n && n.classList.contains('is-on'); }"))
 
+    # 구간 2 클릭
     page.click('[data-pose-seg="1"]')
     page.wait_for_timeout(700)
     check('D 2구간이 켜진다', page.evaluate(
         "() => { const n = document.querySelector('[data-pose-seg=\"1\"]'); return n && n.classList.contains('is-on'); }"))
-    t2 = text_of(page, '[data-pose-time]')
-    check('D 2구간 프레임이 3초 이후', float(t2.replace('초', '') or 0) >= 3.0, t2)
+    t_seg2 = text_of(page, '[data-pose-time]')
+    check('D 2구간 프레임 시간이 3초 이후', float(t_seg2.replace('초', '') or 0) >= 3.0, t_seg2)
     check('D 2구간도 카드 4장', count(page, '[data-pose-card]') == 4)
     check('D 2구간도 선수 칩 2개', count(page, '[data-pose-track]') == 2)
-    page.screenshot(path=OUT + '/v151l_05_2구간.png')
+    page.screenshot(path=OUT + '/v152l_05_2구간.png')
 
-    # ---------------- E. 일지 메모 ----------------
+    # ---------------- E. 일지 메모 (구간 시간 포함) ----------------
     page.click('[data-pose-note]')
     page.wait_for_timeout(600)
     note = page.evaluate("() => (BM.app.ctx.store.state.drafts.log || {}).note || ''")
@@ -232,9 +215,9 @@ with sync_playwright() as p:
     check('F 모델 상태 = error', page.evaluate("() => BM.pose.modelState().state") in ('error', 'loading'),
           page.evaluate("() => BM.pose.modelState().state"))
     check('F 앱은 그대로 살아 있음', page.evaluate("() => !!BM.app.ctx.store.state.ready"))
-    page.screenshot(path=OUT + '/v151l_06_오프라인안내.png')
+    page.screenshot(path=OUT + '/v152l_06_오프라인안내.png')
 
-    # ---------------- G. 뒤로 가기 ----------------
+    # ---------------- G. 뒤로 가기로 패널만 닫기 ----------------
     page.go_back()
     page.wait_for_timeout(700)
     check('G 뒤로 가기 → 패널만 닫힘', not has(page, '#posePanel'))

@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v151.test.js — bm-v1.51.0
+ * test/v152.test.js — bm-v1.52.0
  *   🎥 영상 자세 비교 — 영상을 구간으로 나눠 모두 분석 · 선수 직접 선택
  *
  *  1) 구간 나누기 (순수 함수)
@@ -65,7 +65,7 @@
    * 1. 구간 나누기 · 샘플 시각
    * ============================================================ */
 
-  test('v1.51 구간: 영상 길이에 따라 자동으로 나뉜다', function () {
+  test('v1.52 구간: 영상 길이에 따라 자동으로 나뉜다', function () {
     eq(P.splitSegments(0).length, 0, '길이가 0이면 구간 없음');
     eq(P.splitSegments(-3).length, 0, '음수도 안전');
     eq(P.splitSegments(NaN).length, 0, '숫자가 아니면 구간 없음');
@@ -94,7 +94,7 @@
     eq(huge[huge.length - 1].end, 200, '그래도 영상 끝까지');
   });
 
-  test('v1.51 구간: 빈틈없이 이어지고 순서가 맞는다', function () {
+  test('v1.52 구간: 빈틈없이 이어지고 순서가 맞는다', function () {
     [6.4, 12, 21.7, 60, 200].forEach(function (d) {
       var segs = P.splitSegments(d);
       ok(segs.length >= 2 || d <= 6, d + '초 구간 수: ' + segs.length);
@@ -108,7 +108,7 @@
     });
   });
 
-  test('v1.51 구간: 샘플 시각은 고른 구간 안에서만 오름차순', function () {
+  test('v1.52 구간: 샘플 시각은 고른 구간 안에서만 오름차순', function () {
     var st = P.sampleTimes(4, 8, 12);
     eq(st.length, 12, '12프레임');
     ok(st[0] >= 4 && st[st.length - 1] <= 8, '구간(4~8초) 밖으로 안 나감');
@@ -137,7 +137,7 @@
    * 2. 다인 트랙 · 선수 선택
    * ============================================================ */
 
-  test('v1.51 다인: 두 선사를 각자 트랙으로 나눈다', function () {
+  test('v1.52 다인: 두 선수를 각자 트랙으로 나눈다', function () {
     var f2 = duo(seq({ elbowAng: 166 }, 12), seq({ elbowAng: 120 }, 12));
     var tk = P.trackPoses(f2);
     eq(tk.count, 2, '두 명');
@@ -157,7 +157,7 @@
     eq(tk.frameCount, 12, '본 프레임 수');
   });
 
-  test('v1.51 다인: 복식 4명도 트랙이 겹치지 않는다', function () {
+  test('v1.52 다인: 복식 4명도 트랙이 겹치지 않는다', function () {
     var tk = P.trackPoses(quad(seq({ elbowAng: 160 }, 12)));
     eq(tk.count, 4, '네 명');
     var xs = [];
@@ -170,7 +170,7 @@
     ok(P.NUM_POSES === 4, '모델이 한 번에 4명을 찾게 설정');
   });
 
-  test('v1.51 다인: 한 프레임이 비거나 한 장짜리 오검출은 트랙을 흔들지 않는다', function () {
+  test('v1.52 다인: 한 프레임이 비거나 한 장짜리 오검출은 트랙을 흔들지 않는다', function () {
     var f2 = duo(seq({ elbowAng: 166 }, 12), seq({ elbowAng: 120 }, 12));
     /* 6번째 프레임에서 1번 선수를 놓친 경우 */
     var gap = f2.map(function (f, i) {
@@ -194,7 +194,7 @@
     ok(!P.analyzeSegment([{ t: 0, lm: null, poses: [] }], 'smash').ok, '분석 실패도 조용히');
   });
 
-  test('v1.51 다인: 선수마다 따로 재고 카드가 다르다', function () {
+  test('v1.52 다인: 선수마다 따로 재고 카드가 다르다', function () {
     var f2 = duo(seq({ elbowAng: 166 }, 12), seq({ elbowAng: 120 }, 12));
     var an = P.analyzeSegment(f2, 'smash');
     ok(an.ok, '분석 성공');
@@ -215,7 +215,7 @@
     ok(torsoL.x < 0.5 && torsoR.x > 0.5, '선수별 좌표가 섞이지 않음');
   });
 
-  test('v1.51 다인: 1명이면 예전처럼 바로 분석한다(자동 선택)', function () {
+  test('v1.52 다인: 1명이면 예전처럼 바로 분석한다(자동 선택)', function () {
     var one = P.analyzeSegment(P.demoFrames('smash'), 'smash');
     ok(one.ok, '1인 영상도 바로 분석');
     eq(one.count, 1, '선수 1명');
@@ -229,7 +229,7 @@
     eq(foot.players[0].result.cards[0].key, 'stance', '풋워크도 그대로');
   });
 
-  test('v1.51 다인: 상세 화면은 그 선수가 실제로 있는 프레임을 편다', function () {
+  test('v1.52 다인: 상세 화면은 그 선수가 실제로 있는 프레임을 편다', function () {
     var f2 = duo(seq({ elbowAng: 166 }, 12), seq({ elbowAng: 120 }, 12));
     /* 가운데 프레임들에서 2번 선수가 안 잡힌 경우 — 프레임과 잰 프레임 번호가 어긋나기 쉽습니다 */
     var gappy = f2.map(function (f, i) {
@@ -249,7 +249,7 @@
     eq(p1.result.picks.frame, p1.result.picks.key, '모든 프레임에 있으면 그대로');
   });
 
-  test('v1.51 다인: 캔버스에서 누른 자리로 그 선수가 골라진다', function () {
+  test('v1.52 다인: 캔버스에서 누른 자리로 그 선수가 골라진다', function () {
     var an = P.analyzeSegment(duo(seq({ elbowAng: 166 }, 12), seq({ elbowAng: 120 }, 12)), 'smash');
     eq(P.nearestPlayer(an.players, 0, { x: 0.72, y: 0.56 }), 1, '오른쪽 사람을 누르면 2번');
     eq(P.nearestPlayer(an.players, 0, { x: 0.2, y: 0.5 }), 0, '왼쪽 사람을 누르면 1번');
@@ -262,7 +262,7 @@
    * 3. 구간 요약 · 화면
    * ============================================================ */
 
-  test('v1.51 구간: 구간마다 요약이 다르게 나온다', function () {
+  test('v1.52 구간: 구간마다 요약이 다르게 나온다', function () {
     var good = P.analyzeSegment(seq({ elbowAng: 166 }, 12), 'smash');
     var low = P.analyzeSegment(seq({ elbowAng: 120 }, 12), 'smash');
     var none = P.analyzeSegment([{ t: 0, lm: null, poses: [] }], 'smash');
@@ -281,7 +281,7 @@
     eq(P.segSummary({ analysis: low }).people, 1, '사람 수를 함께');
   });
 
-  test('v1.51 화면: 구간 칩 · 선수 칩 · 안내 배너', function () {
+  test('v1.52 화면: 구간 칩 · 선수 칩 · 안내 배너', function () {
     var st = P._state();
     var keep = { segs: st.segs, seg: st.seg, duration: st.duration, mode: st.mode, segPlan: st.segPlan };
     var good = P.analyzeSegment(seq({ elbowAng: 166 }, 12), 'smash');
@@ -330,7 +330,7 @@
     st.mode = keep.mode; st.segPlan = keep.segPlan;
   });
 
-  test('v1.51 화면: 패널에 구간·복식 예시와 1인 안내가 함께 있다', function () {
+  test('v1.52 화면: 패널에 구간·복식 예시와 1인 안내가 함께 있다', function () {
     var shell = P.shellHtml();
     includes(shell, 'data-pose-canvas', '스켈레톤 캔버스');
     includes(shell, 'data-pose-range', '프레임 이동');
@@ -352,7 +352,7 @@
       P.analyzeSegment(d1, 'smash').players[0].result.cards[0].text, '복식 예시도 같은 자세 기준');
   });
 
-  test('v1.51 화면: 일지 메모에 구간 시간이 함께 들어간다', function () {
+  test('v1.52 화면: 일지 메모에 구간 시간이 함께 들어간다', function () {
     var r = P.analyzeSegment(P.demoFrames('smash'), 'smash').players[0].result;
     var line = P.noteLine(r, { segTime: '5.0~10.0초' });
     includes(line, '영상 자세 비교', '제목');
@@ -368,7 +368,7 @@
    * 4. 배선 · 보안 · 버전
    * ============================================================ */
 
-  test('v1.51 MediaPipe: 한 프레임에서 4명까지 찾는다', function () {
+  test('v1.52 MediaPipe: 한 프레임에서 4명까지 찾는다', function () {
     eq(P.NUM_POSES, 4, 'numPoses 4');
     eq(P.modelState().poses, 4, '모델 상태에도 4명');
     var pose = readRoot('js/pose.js');
@@ -380,7 +380,7 @@
     includes(pose, 'data-pose-track', '선수 칩');
   });
 
-  test('v1.51 보안: 영상은 여전히 기기 안에서만 · 서버 없음', function () {
+  test('v1.52 보안: 영상은 여전히 기기 안에서만 · 서버 없음', function () {
     var pose = readRoot('js/pose.js');
     excludes(pose, 'supabase', '실서버(DB) 접근 없음');
     excludes(pose, 'app_records', '앱 기록 테이블 없음');
@@ -401,19 +401,19 @@
     includes(m[1], "'wasm-unsafe-eval'", 'WASM 실행');
   });
 
-  test('v1.51 배선: 테스트 목록에 새 테스트 파일이 들어 있다', function () {
+  test('v1.52 배선: 테스트 목록에 새 테스트 파일이 들어 있다', function () {
     if (!hasNode) return;
-    includes(readRoot('test/run.js'), 'test/v151.test.js', '테스트 목록');
+    includes(readRoot('test/run.js'), 'test/v152.test.js', '테스트 목록');
     includes(readRoot('test/run.js'), 'js/pose.js', 'pose.js는 그대로');
     includes(readRoot('sw.js'), "'./js/pose.js'", '서비스워커 캐시');
   });
 
-  test('v1.51 버전: sw · app · index · TWA 가 함께 올라간다', function () {
+  test('v1.52 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.51.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.51.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-63', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.51.0"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 43', '앱 버전 코드 +1');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.52.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-64', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.0"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 44', '앱 버전 코드 +1');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

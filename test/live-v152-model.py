@@ -1,4 +1,4 @@
-"""bm-v1.51.0 라이브 점검(2) — 배포본에서 진짜 영상 + 진짜 MediaPipe Pose (모델 실제 다운로드)
+"""bm-v1.52.0 라이브 점검(2) — 배포본에서 진짜 영상 + 진짜 MediaPipe Pose (모델 실제 다운로드)
 · 배포본(https://csw42060713-byte.github.io/badminton/)에서 모델을 실제로 받아 분석합니다.
 · 체험(기기 저장) 모드로만 움직입니다 → Supabase에는 아무것도 쓰지 않습니다.
 
@@ -6,7 +6,7 @@
 · 확인: 구간 3개 자동 분할 · 구간 칩(0~4·4~8·8~12초) · 여러 명 구간의 선수 칩 · 선수 2로 바꾸면 카드·스켈레톤 변경 ·
   다른 구간으로 바꾸면 상세가 그 구간 것으로 · 프레임 슬라이더 · 풋워크 재계산 · CSP 0 · 콘솔 오류 0 · 서버 요청 없음
 · 실행:
-  LD_LIBRARY_PATH=/workspace/tmp/deblibs/usr/lib/x86_64-linux-gnu:/workspace/tmp/deblibs2/usr/lib/x86_64-linux-gnu:/workspace/tmp/deblibs2/lib/x86_64-linux-gnu python3 test/live-v151-model.py
+  LD_LIBRARY_PATH=/workspace/tmp/deblibs/usr/lib/x86_64-linux-gnu:/workspace/tmp/deblibs2/usr/lib/x86_64-linux-gnu:/workspace/tmp/deblibs2/lib/x86_64-linux-gnu python3 test/live-v152-model.py
 """
 
 import time
@@ -112,7 +112,7 @@ with sync_playwright() as p:
             break
         page.click('#sheet.is-on .sheet__panel .btn--primary')
         page.wait_for_timeout(400)
-    check('앱 버전 v1.51.0', page.evaluate("() => BM.app.version") == 'v1.51.0',
+    check('앱 버전 v1.52.0', page.evaluate("() => BM.app.version") == 'v1.52.0',
           page.evaluate("() => BM.app.version"))
 
     page.click('[data-act="open-pose"]')
@@ -151,7 +151,7 @@ with sync_playwright() as p:
     check('구간 요약(보완 N건/좋아요)', ('보완' in segbar or '좋아요' in segbar), segbar[:200])
     check('영상 길이·구간 수 표시', '영상 12.0초 · 3구간' in text_of(page, '[data-pose-seghead], [data-pose-segdur]'),
           text_of(page, '[data-pose-segdur]'))
-    page.screenshot(path=OUT + '/v151L_07_영상_1구간.png')
+    page.screenshot(path=OUT + '/v152L_07_영상_1구간.png')
 
     # ---- 구간마다 분석 결과가 따로 있는지 (내부 상태 + 실제 화면) ----
     segs = page.evaluate("""() => {
@@ -186,7 +186,7 @@ with sync_playwright() as p:
     who = text_of(page, '[data-pose-who]')
     check('선수 N명 안내 배너', ('선수 %d명이 보여요' % st2['seginfo']['players']) in who, who[:120])
     cards1 = cards_text(page)
-    page.screenshot(path=OUT + '/v151L_08_2구간_선수칩.png')
+    page.screenshot(path=OUT + '/v152L_08_2구간_선수칩.png')
 
     # ---- 선수 2 로 바꾸기 → 카드·스켈레톤이 바뀐다 ----
     if st2['seginfo']['players'] >= 2:
@@ -205,7 +205,7 @@ with sync_playwright() as p:
               st3['seginfo'] and st3['seginfo']['cards'])
         print('   ... 선수1 카드:', cards1[:120].replace('\n', ' | '))
         print('   ... 선수2 카드:', cards2[:120].replace('\n', ' | '))
-        page.screenshot(path=OUT + '/v151L_09_선수2_카드.png')
+        page.screenshot(path=OUT + '/v152L_09_선수2_카드.png')
     else:
         check('선수 2 칩 (두 선수 구간 필요)', False, '두 선수가 잡힌 구간이 없음')
 
@@ -225,7 +225,7 @@ with sync_playwright() as p:
           (count(page, '[data-pose-track]') == 0) == (st4['seginfo']['players'] < 2),
           (count(page, '[data-pose-track]'), st4['seginfo']['players']))
     check('캔버스에 스켈레톤이 그려진다', canvas_ink(page, '[data-pose-canvas]') > 3000, canvas_ink(page, '[data-pose-canvas]'))
-    page.screenshot(path=OUT + '/v151L_10_%d구간.png' % (other + 1))
+    page.screenshot(path=OUT + '/v152L_10_%d구간.png' % (other + 1))
 
     # ---- 프레임 슬라이더 ----
     t_before = text_of(page, '[data-pose-time]')
@@ -248,7 +248,7 @@ with sync_playwright() as p:
     check('풋워크 카드로 바뀐다', '스플릿 스텝 발 간격' in foot and '런지 앞무릎' in foot, foot[:160])
     check('구간 목록은 그대로 3개', st5['segs'] == 3, st5['segs'])
     check('구간 요약도 풋워크 기준으로 다시 계산', st5['sums'] and all('/' in x for x in st5['sums']), st5['sums'])
-    page.screenshot(path=OUT + '/v151L_11_풋워크.png')
+    page.screenshot(path=OUT + '/v152L_11_풋워크.png')
 
     # ---- 영상은 서버로 안 나간다 ----
     check('서버(DB)로 보낸 요청 없음', not [u for u in requests if 'supabase.co' in u], [u for u in requests if 'supabase' in u][:2])

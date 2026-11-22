@@ -136,7 +136,10 @@
     includes(body, 'data-dbadge="⭐"', '배지 선택');
     includes(body, 'data-dtext="club"', '체육관 입력');
     includes(body, 'data-act="deco-save"', '저장');
-    includes(body, '26칸', '스키마 호환 안내');
+    /* 2026-11-22 — 개발자 문구(JSON·시트 26칸)는 화면에서 빼고 한 줄 안내로 */
+    includes(body, 'MY 카드와 1:1 매칭 프로필에 바로 반영돼요', '저장 안내');
+    excludes(body, '26칸', '개발자 문구 없음');
+    excludes(body, 'JSON', '개발자 문구 없음');
   });
 
   test('v1.13 매칭 카드·프로필 시트: 스타일과 체육관이 함께 보인다', function () {
@@ -238,9 +241,9 @@
   test('v1.13 버전: sw·app·화면 캐시가 함께 올라간다', function () {
     if (!hasNode()) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
-    includes(sw, "var VERSION = 'bm-v1.51.0'", 'sw.js');
-    includes(app, "version: 'v1.51.0'", 'app.js');
-    includes(index, 'styles.css?v=20261122-63', '스타일 캐시 갱신');
+    includes(sw, "var VERSION = 'bm-v1.52.0'", 'sw.js');
+    includes(app, "version: 'v1.52.0'", 'app.js');
+    includes(index, 'styles.css?v=20261122-64', '스타일 캐시 갱신');
     includes(app, 'BM.views.my', 'MY 화면 유지');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
