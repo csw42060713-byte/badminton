@@ -1208,14 +1208,19 @@
     return Math.round(Math.max(6, Math.min(100, pct * 100)));
   }
 
-  /* 맨 아래 작은 참고 줄 — 화면 말에는 논문 수치를 섞지 않고 여기에만 둡니다 */
+  /* 맨 아래 작은 참고 줄 — 화면 말에는 논문 수치를 섞지 않고 여기에만 둡니다.
+   * bm-v1.52.2 (조환비 님 피드백) — 참고 수치 5줄이 늘 펼쳐져 있어 화면이 길었습니다.
+   *  '참고 기준 보기'로 접어 두고(기본 닫힘) 필요한 사람만 눌러서 폅니다. */
   function refNote(mode) {
     var defs = CARDS[mode === 'foot' ? 'foot' : (mode === 'smash' ? 'smash' : null)] ||
       CARDS.smash.concat(CARDS.foot);
     var srcs = [];
     defs.forEach(function (d) { if (d.src && srcs.indexOf(d.src) < 0) srcs.push(d.src); });
-    return '<p class="pose__foot" data-pose-foot>참고 수치: ' + U.esc(srcs.join(' · ')) +
-      '<br>중계 각도·촬영 거리에 따라 오차가 있을 수 있는 참고 값이에요. 영상은 폰 밖으로 나가지 않습니다.</p>';
+    return '<details class="pose__ref" data-pose-ref>' +
+      '<summary class="pose__refsum">참고 기준 보기<i class="pose__refarw" aria-hidden="true"></i></summary>' +
+      '<p class="pose__foot" data-pose-foot>참고 수치: ' + U.esc(srcs.join(' · ')) +
+      '<br>중계 각도·촬영 거리에 따라 오차가 있을 수 있는 참고 값이에요. 영상은 폰 밖으로 나가지 않습니다.</p>' +
+      '</details>';
   }
 
   function shellHtml() {

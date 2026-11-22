@@ -501,22 +501,29 @@
     return out;
   }
 
+  /* 한 곳의 이름을 등록 체육관(120곳)과 이어 봅니다 (bm-v1.52.2)
+   *  · '매원고 배드민턴부'처럼 뒤에 팀·부서 이름이 붙으면 앞부분(체육관 이름)으로 한 번 더 찾습니다.
+   *  · 찾지 못하면 null — 부르는 쪽이 글자 그대로 보여 줍니다. */
+  function venueFor(name) {
+    var G = BM.gyms;
+    var s = String(name == null ? '' : name).trim();
+    if (!G || !s || typeof G.matchVenue !== 'function') return null;
+    var v = G.matchVenue(s);
+    if (!v) {
+      var core = s.replace(/\s*(배드민턴부|배드민턴클럽|배드민턴|클럽|팀|동호회|체육부|부)$/, '').trim();
+      if (core && core !== s) v = G.matchVenue(core);
+    }
+    return v || null;
+  }
+
   /* 활동 소속을 등록 체육관(120곳)과 이어 봅니다 (bm-v1.47.0)
    *  · '나래울 배드민턴장 · 매원고 배드민턴부' 처럼 여러 곳을 적었으면 '·'로 나눠 각각 찾습니다.
    *  · 등록되지 않은 곳(학교팀·클럽 이름 등)은 그대로 두고, 찾은 곳만 지도로 이어 줍니다. */
   function affVenues(affiliation) {
-    var G = BM.gyms;
-    if (!G || !affiliation || typeof G.matchVenue !== 'function') return [];
+    if (!affiliation) return [];
     var out = [], seen = {};
     String(affiliation).split(/[\u00b7,\/|]/).forEach(function (raw) {
-      var name = String(raw == null ? '' : raw).trim();
-      if (!name) return;
-      var v = G.matchVenue(name);
-      /* '매원고 배드민턴부'처럼 뒤에 팀·부서 이름이 붙으면 앞부분(체육관 이름)으로 한 번 더 */
-      if (!v) {
-        var core = name.replace(/\s*(배드민턴부|배드민턴클럽|배드민턴|클럽|팀|동호회|체육부|부)$/, '').trim();
-        if (core && core !== name) v = G.matchVenue(core);
-      }
+      var v = venueFor(raw);
       if (!v || seen[v.id]) return;
       seen[v.id] = 1;
       out.push(v);
@@ -524,36 +531,83 @@
     return out;
   }
 
-  /* 코치 카드의 '지도에서 보기' 칩 — 한 곳이면 짧게, 여러 곳이면 체육관 이름을 붙입니다 */
+  /* 체육관 한 곳 → MY·매칭과 같은 모양의 지도 칩 ([pin] 이름 [지역])
+   *  · opts.area === false 이면 지역 풀을 빼고 이름만 (프로필 줄처럼 지역을 바로 앞에 쓸 때) */
+  function gymChip(v, label, opts) {
+    var withArea = !(opts && opts.area === false);
+    return '<button type="button" class="gymlink" data-gym-open="' + U.esc(v.id) + '"' +
+      ' aria-label="' + U.esc(v.name + (v.area ? ' ' + v.area : '') + ' · 체육관 지도 열기') + '">' +
+      UI.icon('pin') + '<span>' + U.esc(label || v.name) + '</span>' +
+      (withArea ? '<i>' + U.esc(v.area || '지도') + '</i>' : '') + '</button>';
+  }
+
+  /* 활동 소속 줄 (bm-v1.52.2 — 조환비 님 피드백 '코치 소속 체육관도 눌러서 지도 열기')
+   *  · 코치가 적은 소속 이름을 그대로 두되, 등록 체육관과 이어지면 그 이름 자체가
+   *    MY·매칭처럼 눌러서 그 체육관 지도를 여는 칩이 됩니다.
+   *  · 이어지지 않는 팀·클럽 이름은 글자로만 보여 줍니다(없던 곳을 지어내지 않음). */
+  function affRow(affiliation) {
+    var parts = String(affiliation == null ? '' : affiliation).split(/[\u00b7,\/|]/)
+      .map(function (raw) { return String(raw == null ? '' : raw).trim(); })
+      .filter(Boolean);
+    if (!parts.length) return '';
+    var seen = {};
+    return '<p class="coachcard__gyms">' + parts.map(function (name) {
+      var v = venueFor(name);
+      if (!v) return '<span class="coachcard__gymname">' + U.esc(name) + '</span>';
+      if (seen[v.id]) return '<span class="coachcard__gymname">' + U.esc(name) + '</span>';
+      seen[v.id] = 1;
+      return gymChip(v, name);
+    }).join('') + '</p>';
+  }
+
+  /* 예전 이름(테스트·점검용) — 등록 체육관과 이어진 소속만 칩으로. 하나도 없으면 빈 문자열. */
   function affMapRow(affiliation) {
     var venues = affVenues(affiliation);
     if (!venues.length) return '';
-    return '<p class="coachcard__gyms">' + venues.map(function (v) {
-      var label = venues.length > 1 ? v.name : '소속 지도에서 보기';
-      return '<button type="button" class="gymlink" data-gym-open="' + U.esc(v.id) + '"' +
-        ' aria-label="' + U.esc(v.name + (v.area ? ' ' + v.area : '') + ' · 지도에서 보기') + '">' +
-        UI.icon('pin') + '<span>' + U.esc(label) + '</span><i>' + U.esc(v.area || '지도') + '</i></button>';
-    }).join('') + '</p>';
+    return '<p class="coachcard__gyms">' + venues.map(function (v) { return gymChip(v, v.name); }).join('') + '</p>';
+  }
+
+  function normName(s) { return String(s == null ? '' : s).replace(/\s+/g, '').toLowerCase(); }
+
+  /* 프로필의 클럽 이름이 그 체육관 이름과 실제로 겹칠 때만 지도 칩으로 (프로필의 지역·클럽 줄)
+   *  · '나래울' → '나래울 배드민턴장' 은 잇고, 동네 이름만 같은 다른 체육관은 글자로 둡니다. */
+  function gymLinkOrText(name) {
+    var s = String(name == null ? '' : name).trim();
+    if (!s) return '';
+    var v = venueFor(s);
+    if (v) {
+      var n = normName(s), vn = normName(v.name);
+      var core = vn.replace(/(배드민턴장|배드민턴클럽|배드민턴센터|배드민턴|체육관|체육센터|스포츠센터)$/, '');
+      var hit = vn.indexOf(n) >= 0 || (core.length >= 2 && core.indexOf(n) >= 0) || (core.length >= 2 && n.indexOf(core) >= 0);
+      if (!hit) v = null;
+    }
+    return v ? gymChip(v, s, { area: false }) : U.esc(s);
   }
 
   /* 코치 카드 — 누르면 바로 피드백 요청(DM 미리 채움) 또는 1:1 채팅으로 이어집니다 */
   function coachCard(c, state) {
     var key = U.esc(c.key);
-    var meta = [c.level, c.discipline, [c.region, c.club].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+    /* 프로필의 지역·클럽 줄 — 클럽이 등록 체육관이면 '경기 나래울'에서 이름을 눌러 지도 (bm-v1.52.2) */
+    var place = [];
+    if (c.region) place.push(U.esc(c.region));
+    if (c.club) place.push(gymLinkOrText(c.club));
+    var metaBits = [];
+    if (c.level) metaBits.push(U.esc(c.level));
+    if (c.discipline) metaBits.push(U.esc(c.discipline));
+    if (place.length) metaBits.push(place.join(' '));
+    var meta = metaBits.join(' · ');
     var p = UI.person(state, c.key);
     /* 친구·매칭 방이 이미 있으면 그 방을, 없으면 코치 방을 씁니다 */
     var thread = (state.data.threads || []).filter(function (t) { return t.other === c.key; })[0];
     var canChat = D.canChatWith(state.data.idx, state.me && state.me.key, c.key);
-    /* 승인된 코치 — 구분 배지와 'OO체육관 · 활동 증명됨' */
-    var affLine = D.mentorAffiliationLine({ status: '승인', affiliation: c.affiliation, proofed: c.proofed });
     return '<li class="coachcard" data-coach="' + key + '">' +
       '<div class="coachcard__top">' + UI.avatar(p, 42) +
       '<div class="coachcard__id"><strong>' + U.esc(c.nick) +
       (thread && thread.unread ? ' <i class="badge">' + thread.unread + '</i>' : '') + '</strong>' +
       '<p class="coachcard__type">' + typePill(c.mentorType) +
-      (affLine ? '<span class="coachcard__aff">' + UI.icon('shield') + U.esc(affLine) + '</span>' : '') + '</p>' +
-      affMapRow(c.affiliation) +
-      (meta ? '<p class="coachcard__meta">' + U.esc(meta) + '</p>' : '') + '</div></div>' +
+      (c.proofed ? '<span class="coachcard__aff">' + UI.icon('shield') + '활동 증명됨</span>' : '') + '</p>' +
+      affRow(c.affiliation) +
+      (meta ? '<p class="coachcard__meta">' + meta + '</p>' : '') + '</div></div>' +
       '<div class="coachcard__act">' +
       '<button type="button" class="btn btn--primary btn--sm" data-coach-ask="' + key + '">' + UI.icon('spark') + '피드백 요청</button>' +
       (canChat
@@ -956,4 +1010,6 @@
   view.videoAskLine = videoAskLine;
   view.affVenues = affVenues;               /* 테스트·점검용 (활동 소속 → 등록 체육관) */
   view.affMapRow = affMapRow;
+  view.affRow = affRow;                     /* 테스트·점검용 (소속 줄 → 지도 칩) */
+  view.venueFor = venueFor;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
