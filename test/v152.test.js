@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v152.test.js — bm-v1.52.0
+ * test/v152.test.js — bm-v1.52.1
  *   🎥 영상 자세 비교 — 영상을 구간으로 나눠 모두 분석 · 선수 직접 선택
  *
  *  1) 구간 나누기 (순수 함수)
@@ -315,9 +315,30 @@
     includes(who, 'data-pose-track="1"', '선수 2 칩');
     includes(who, 'data-pose-chips', '칩 줄');
 
+    /* 아직 분석 중인 구간(계획만 있는 상태)은 눌리지 않게 */
+    st.segPlan = [st.segs[0].seg, { index: 1, start: 10, end: 12, span: 2, label: '3구간' }];
+    st.segs = [st.segs[0]];
+    st.seg = 0;
+    var pending = P.segBarHtml();
+    includes(pending, '3구간', '아직 분석 중인 구간도 칩으로 보인다');
+    includes(pending, 'disabled', '그 칩은 아직 누를 수 없다');
+    includes(pending, 'is-pending', '흐리게 보인다');
+    includes(pending, '분석 중', '분석 중이라고 적는다');
+    st.segs = [
+      { seg: { index: 0, start: 0, end: 5, span: 5, label: '1구간' }, frames: [], analysis: good, track: 0 },
+      { seg: { index: 1, start: 5, end: 10, span: 5, label: '2구간' }, frames: [], analysis: duoAn, track: 0 }
+    ];
+    st.segPlan = [];
+
     /* 1명 구간에서는 안내·선수 칩이 없다(예전 화면 그대로) */
     st.seg = 0;
     eq(P.whoHtml(), '', '1명이면 선수 칩 없음');
+
+    /* 사람을 못 찾은 구간을 고르면 다음 행동을 알려 준다 */
+    st.segs[0] = { seg: st.segs[0].seg, frames: [{ t: 0, lm: null, poses: [] }], analysis: P.analyzeSegment([{ t: 0, lm: null, poses: [] }], 'smash'), track: 0 };
+    st.frames = st.segs[0].frames;
+    st.result = null;
+    includes(P.stageHtml(), '사람을 찾지 못했어요', '다른 구간을 눌러 보라고 안내');
 
     /* 구간이 아직 없으면 칩도 없다 */
     st.segs = [];
@@ -328,6 +349,7 @@
 
     st.segs = keep.segs; st.seg = keep.seg; st.duration = keep.duration;
     st.mode = keep.mode; st.segPlan = keep.segPlan;
+    st.frames = null; st.result = null;   /* 다음 테스트(처음 화면)를 위해 되돌립니다 */
   });
 
   test('v1.52 화면: 패널에 구간·복식 예시와 1인 안내가 함께 있다', function () {
@@ -410,10 +432,10 @@
 
   test('v1.52 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.52.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-64', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.0"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 44', '앱 버전 코드 +1');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.1'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.52.1'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-65', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.1"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 45', '앱 버전 코드 +1');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -1,4 +1,4 @@
-"""bm-v1.52.0 라이브 점검 — 🎥 영상 자세 비교(구간 나눠 분석 · 선수 선택) 화면
+"""bm-v1.52.1 라이브 점검 — 🎥 영상 자세 비교(구간 나눠 분석 · 선수 선택) 화면
 · 배포본(https://csw42060713-byte.github.io/badminton/)을 390×844 로 열어 확인합니다.
 · 체험(기기 저장) 모드로만 움직입니다 → Supabase에 아무것도 쓰지 않습니다.
 
@@ -91,10 +91,10 @@ with sync_playwright() as p:
     pose = get(BASE + 'js/pose.js' + stamp)
     css = get(BASE + 'styles.css' + stamp)
 
-    check('L 배포본 sw.js bm-v1.52.0', "var VERSION = 'bm-v1.52.0'" in sw, sw[sw.find('var VERSION'):][:40])
-    check('L 배포본 app.js v1.52.0', "version: 'v1.52.0'" in app)
-    check('L 배포본 styles.css?v=20261122-64', 'styles.css?v=20261122-64' in index)
-    check('L 배포본 TWA 1.52.0 · 코드 44', '"appVersionName": "1.52.0"' in twa and '"appVersionCode": 44' in twa,
+    check('L 배포본 sw.js bm-v1.52.1', "var VERSION = 'bm-v1.52.1'" in sw, sw[sw.find('var VERSION'):][:40])
+    check('L 배포본 app.js v1.52.0', "version: 'v1.52.1'" in app)
+    check('L 배포본 styles.css?v=20261122-65', 'styles.css?v=20261122-65' in index)
+    check('L 배포본 TWA 1.52.1 · 코드 45', '"appVersionName": "1.52.1"' in twa and '"appVersionCode": 45' in twa,
           twa[twa.find('appVersionName'):][:60])
     check('L 배포본 js/pose.js (구간·다인)', 'BM.pose' in pose and 'splitSegments' in pose and 'trackPoses' in pose)
     check('L 배포본 styles.css 에 구간 칩 CSS', '.poseseg' in css and '.posechip' in css)
@@ -124,7 +124,7 @@ with sync_playwright() as p:
         page.click('#sheet.is-on .sheet__panel .btn--primary')
         page.wait_for_timeout(400)
 
-    check('앱 버전 v1.52.0', page.evaluate("() => BM.app.version") == 'v1.52.0',
+    check('앱 버전 v1.52.0', page.evaluate("() => BM.app.version") == 'v1.52.1',
           page.evaluate("() => BM.app.version"))
 
     # ---------------- A. 기존 5개 탭 ----------------

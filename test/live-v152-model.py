@@ -1,4 +1,4 @@
-"""bm-v1.52.0 라이브 점검(2) — 배포본에서 진짜 영상 + 진짜 MediaPipe Pose (모델 실제 다운로드)
+"""bm-v1.52.1 라이브 점검(2) — 배포본에서 진짜 영상 + 진짜 MediaPipe Pose (모델 실제 다운로드)
 · 배포본(https://csw42060713-byte.github.io/badminton/)에서 모델을 실제로 받아 분석합니다.
 · 체험(기기 저장) 모드로만 움직입니다 → Supabase에는 아무것도 쓰지 않습니다.
 
@@ -112,7 +112,7 @@ with sync_playwright() as p:
             break
         page.click('#sheet.is-on .sheet__panel .btn--primary')
         page.wait_for_timeout(400)
-    check('앱 버전 v1.52.0', page.evaluate("() => BM.app.version") == 'v1.52.0',
+    check('앱 버전 v1.52.0', page.evaluate("() => BM.app.version") == 'v1.52.1',
           page.evaluate("() => BM.app.version"))
 
     page.click('[data-act="open-pose"]')
@@ -151,6 +151,10 @@ with sync_playwright() as p:
     check('구간 요약(보완 N건/좋아요)', ('보완' in segbar or '좋아요' in segbar), segbar[:200])
     check('영상 길이·구간 수 표시', '영상 12.0초 · 3구간' in text_of(page, '[data-pose-seghead], [data-pose-segdur]'),
           text_of(page, '[data-pose-segdur]'))
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
     page.screenshot(path=OUT + '/v152L_07_영상_1구간.png')
 
     # ---- 구간마다 분석 결과가 따로 있는지 (내부 상태 + 실제 화면) ----
@@ -186,6 +190,10 @@ with sync_playwright() as p:
     who = text_of(page, '[data-pose-who]')
     check('선수 N명 안내 배너', ('선수 %d명이 보여요' % st2['seginfo']['players']) in who, who[:120])
     cards1 = cards_text(page)
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
     page.screenshot(path=OUT + '/v152L_08_2구간_선수칩.png')
 
     # ---- 선수 2 로 바꾸기 → 카드·스켈레톤이 바뀐다 ----
@@ -225,6 +233,10 @@ with sync_playwright() as p:
           (count(page, '[data-pose-track]') == 0) == (st4['seginfo']['players'] < 2),
           (count(page, '[data-pose-track]'), st4['seginfo']['players']))
     check('캔버스에 스켈레톤이 그려진다', canvas_ink(page, '[data-pose-canvas]') > 3000, canvas_ink(page, '[data-pose-canvas]'))
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
     page.screenshot(path=OUT + '/v152L_10_%d구간.png' % (other + 1))
 
     # ---- 프레임 슬라이더 ----
@@ -248,6 +260,10 @@ with sync_playwright() as p:
     check('풋워크 카드로 바뀐다', '스플릿 스텝 발 간격' in foot and '런지 앞무릎' in foot, foot[:160])
     check('구간 목록은 그대로 3개', st5['segs'] == 3, st5['segs'])
     check('구간 요약도 풋워크 기준으로 다시 계산', st5['sums'] and all('/' in x for x in st5['sums']), st5['sums'])
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
+    page.wait_for_timeout(2800)  # 화면 아래 토스트가 사라진 뒤 찍습니다
     page.screenshot(path=OUT + '/v152L_11_풋워크.png')
 
     # ---- 영상은 서버로 안 나간다 ----

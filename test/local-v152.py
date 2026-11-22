@@ -1,4 +1,4 @@
-"""bm-v1.52.0 로컬 점검 — 🎥 영상 자세 비교(구간 나눠 분석 · 선수 선택) 화면
+"""bm-v1.52.1 로컬 점검 — 🎥 영상 자세 비교(구간 나눠 분석 · 선수 선택) 화면
 
 · 127.0.0.1 로 띄운 저장소를 그대로 봅니다(Supabase·구글·CDN 요청은 막습니다 → 인터넷 없는 폰과 같음).
 · 진짜 앱(index.html)을 local 모드로 열고
@@ -99,7 +99,7 @@ with sync_playwright() as p:
     page.reload(wait_until='load')
     page.wait_for_timeout(2600)
 
-    check('앱 버전 v1.52.0', page.evaluate("() => BM.app.version") == 'v1.52.0',
+    check('앱 버전 v1.52.0', page.evaluate("() => BM.app.version") == 'v1.52.1',
           page.evaluate("() => BM.app.version"))
 
     # ---------------- A. 기존 5개 탭 ----------------
