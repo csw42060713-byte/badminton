@@ -397,13 +397,17 @@
     includes(chat, 'ctx = host.__dmCtx || ctx', '이벤트는 기억한 ctx를 사용');
   });
 
-  test('MY: 테마는 저장에 성공했을 때만 적용하고 실패를 알린다', function () {
+  test('MY: 테마는 저장에 성공했을 때만 적용하고 실패를 알린다 (v1.57 무료 테마)', function () {
     var my = readRepo('js/views/my.js');
     includes(my, 'function pickTheme(ctx, id)', '테마 선택 전용 함수');
-    includes(my, "res.reason === 'hearts'", '하트 부족 안내');
+    includes(my, 'var res = ctx.actions.setTheme(id);', '저장을 먼저');
+    includes(my, "if (res && res.ok)", '성공했을 때만 토스트');
+    includes(my, "UI.toast('테마를 바꾸지 못했어요', 'error')", '실패 안내는 그대로');
     excludes(my, "document.documentElement.setAttribute('data-theme'", '테마 적용은 paintChrome이 맡는다');
-    excludes(my, "ctx.actions.setTheme(id);\n          UI.toast('테마를 적용했어요')", '결과를 보지 않고 성공 토스트를 띄우지 않음');
-    includes(my, 'theme__lock', '테마 가격 표시');
+    excludes(my, 'theme__lock', 'bm-v1.57.0 — 테마가 모두 무료라 잠금·가격 표시 없음');
+    var at = my.indexOf('function pickTheme(ctx, id)');
+    var seg = my.slice(at, my.indexOf('\n  }', at));
+    excludes(seg, "res.reason === 'hearts'", '테마에 하트 차감 안내 없음');
   });
 
   test('MY: 다시 그려도 보던 스크롤 위치를 지킨다', function () {

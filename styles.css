@@ -6552,3 +6552,57 @@ body {
 .onbtheme.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
 .onbtheme.is-on .onbtheme__mark { opacity: 1; background: var(--accent); }
 .onb__tip { margin: 1px 0 0; font-size: 11px; line-height: 1.5; color: var(--muted); }
+
+/* ---------- 인스타 공유 카드 (bm-v1.57.0) ----------
+ * 1080×1350 카드를 폰 폭에 맞춰 보여 주고, 세 가지 출력(다크 코트·내 사진·투명 스티커)을
+ * 한 줄 카드로 고릅니다. 투명 스티커는 체크무늬 바탕 위에 보여 투명함이 한눈에 보입니다. */
+.sc__modes { margin-bottom: 12px; }
+.sc__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sc__grid .flabel { margin-bottom: 8px; }
+.sc__styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 12px 0 4px; }
+.sc__style {
+  display: flex; flex-direction: column; gap: 1px; align-items: flex-start;
+  padding: 10px 9px; border-radius: 14px; border: 1px solid var(--line);
+  background: var(--card-2); color: var(--text); text-align: left;
+  transition: border-color 120ms, background 120ms;
+}
+.sc__style b { font-size: 12px; font-weight: 800; letter-spacing: -0.3px; }
+.sc__style span { font-size: 10px; font-weight: 600; color: var(--muted); }
+.sc__style.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
+.sc__style.is-on b { color: var(--accent); }
+.sc__photo { margin: 8px 0 0; }
+.sc__photobtn { width: 100%; }
+.sc__preview {
+  margin: 12px 0 8px; border-radius: 18px; overflow: hidden;
+  border: 1px solid var(--line); box-shadow: var(--shadow-soft);
+  background-color: #0b1210;
+  background-image:
+    linear-gradient(45deg, rgba(255,255,255,0.06) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.06) 75%),
+    linear-gradient(45deg, rgba(255,255,255,0.06) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.06) 75%);
+  background-size: 22px 22px;
+  background-position: 0 0, 11px 11px;
+}
+.sc__canvas { display: block; width: 100%; height: auto; }
+.sc__summary {
+  margin: 0 0 10px; font-size: 11.5px; line-height: 1.5; color: var(--muted);
+  word-break: keep-all;
+}
+
+/* 실시간 푸시 알림 상태 (bm-v1.57.0) */
+.pushstatus {
+  display: inline-block; margin-top: 6px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: -0.2px;
+  padding: 3px 8px; border-radius: 999px;
+  color: var(--text-2); background: var(--card-2); border: 1px solid var(--line);
+}
+.pushstatus--on, .pushstatus--granted { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.pushstatus--denied { color: var(--bad); border-color: rgba(255,107,107,0.4); background: rgba(255,107,107,0.1); }
+.pushstatus--ready { color: var(--warn); border-color: rgba(242,193,78,0.4); background: rgba(242,193,78,0.1); }
+.pushstatus--unsupported { color: var(--muted); }
+.prefrow--push { align-items: flex-start; }
+.flabel select {
+  width: 100%; margin-top: 7px; min-height: 46px; padding: 10px 13px;
+  border-radius: var(--r-sm); border: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--text) 4%, transparent); color: var(--text);
+  font-size: 14px;
+}

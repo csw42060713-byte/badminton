@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v156.test.js — bm-v1.56.0
+ * test/v156.test.js — bm-v1.57.0
  *   ✨ 일지 컨디션 5단계 + 시작(온보딩) 앱 분위기 선택
  *
  *  사용자가 승인한 두 가지 UX 개선을 그대로 검증합니다.
@@ -238,7 +238,9 @@
     includes(html, '다크 코트', '다크 안내');
     includes(html, '라이트', '라이트 안내');
     includes(html, '사쿠라 핑크', '사쿠라 안내');
-    includes(html, '하트 2', '사쿠라는 하트 2개');
+    /* bm-v1.57.0 — 테마가 모두 무료라 카드에 하트 가격 배지가 없습니다 */
+    excludes(html, '하트 2', '무료 테마에 하트 배지 없음');
+    excludes(html, 'onbtheme__price', '가격 배지 자체가 없음');
     includes(html, 'data-onb-theme-note', '아래 한 줄 안내');
     /* 역할·급수·성별 등 기존 온보딩 칸은 그대로 */
     ['role', 'level', 'discipline', 'gender', 'region'].forEach(function (g) {
@@ -262,7 +264,7 @@
     });
     eq(D.themePrice('th_night'), 0, '다크 무료');
     eq(D.themePrice('th_def'), 0, '라이트 무료');
-    eq(D.themePrice('th_sakura'), 2, '사쿠라 하트 2');
+    eq(D.themePrice('th_sakura'), 0, '사쿠라도 무료 (bm-v1.57.0)');
   });
 
   test('v1.56 시작: 여성일 때만 사쿠라에 은은한 추천 배지 (남성·비공개는 표시 안 함)', function () {
@@ -300,7 +302,7 @@
 
     s.onb.theme = 'th_sakura';
     var sakura = START().renderOnboarding({ kind: 'guest', name: '새내기' });
-    includes(sakura, '사쿠라는 하트 2개로 여는 테마예요', '유료 테마 안내');
+    includes(sakura, '누르면 이 화면이 바로 그 테마로 바뀌어요', '무료 테마 안내');
   });
 
   test('v1.56 시작: 시작하기를 누르면 고른 테마가 저장소에 바로 반영된다', function () {
@@ -324,8 +326,8 @@
       store.state.locks = {};
       var r2 = store.actions.setTheme('th_sakura');
       ok(r2.ok, '사쿠라 적용');
-      eq(r2.purchased, true, '처음이면 하트로 연다');
-      eq(r2.price, 2, '하트 2');
+      eq(r2.purchased, false, '무료라 하트로 열지 않음');
+      eq(r2.price, 0, '하트 0');
       eq(store.state.me.theme.theme, 'th_sakura', '사쿠라 즉시 반영');
       /* 사진·프레임 등 나머지 꾸미기는 그대로 */
       ok('avatar' in store.state.me.theme, '아바타 유지');
@@ -384,16 +386,16 @@
     includes(run, 'test/v156.test.js', '테스트 로드');
   });
 
-  test('v1.56 버전: sw · app · index · TWA가 함께 bm-v1.56.0', function () {
+  test('v1.56 버전: sw · app · index · TWA가 함께 bm-v1.57.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.56.0'", 'sw.js');
-    includes(app, "version: 'v1.56.0'", 'app.js');
-    includes(index, 'styles.css?v=20261122-70', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.56.0', 'TWA 이름');
-    eq(twa.appVersion, '1.56.0', 'TWA 버전');
-    eq(twa.appVersionCode, 50, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.57.0'", 'sw.js');
+    includes(app, "version: 'v1.57.0'", 'app.js');
+    includes(index, 'styles.css?v=20261123-1', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.57.0', 'TWA 이름');
+    eq(twa.appVersion, '1.57.0', 'TWA 버전');
+    eq(twa.appVersionCode, 51, 'TWA 코드');
   });
 
   test('v1.56 스타일: 5단계 카드·테마 카드 스타일이 있다', function () {

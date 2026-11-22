@@ -113,13 +113,11 @@
 
   /* 앱 분위기(테마) 3종 — 누르면 이 화면이 바로 그 테마로 바뀌어 미리 보입니다.
    * 저장은 MY › 테마와 같은 곳(me.theme.theme)이라 시작하기를 누르면 전체 화면에 그대로 적용됩니다.
+   * bm-v1.57.0 — 테마는 모두 무료라 카드에 하트 가격이 없습니다.
    * 성별이 '여성'일 때만 사쿠라에 '추천' 배지를 빛깔만 은은하게 올리고(강제 적용 없음),
    * 남녀 모두 원하는 테마를 자유롭게 고릅니다. */
   function themeNote(id) {
     if (!id) return '지금 화면 그대로 시작해요 · MY › 테마에서 언제든 바꿀 수 있어요';
-    var def = D.themeById(id) || {};
-    var price = D.themePrice(id);
-    if (price > 0) return (def.name || '이 테마') + '는 하트 ' + price + '개로 여는 테마예요 · 시작하면 바로 적용돼요';
     return '누르면 이 화면이 바로 그 테마로 바뀌어요 · MY에서 언제든 바꿀 수 있어요';
   }
 
@@ -133,7 +131,6 @@
         '<span class="onbtheme__txt"><b>' + U.esc(t.name) +
         '<i class="onbtheme__rec" data-onb-rec="' + U.esc(t.id) + '"' + (rec ? '' : ' hidden') + '>추천</i></b>' +
         '<small>' + U.esc(t.note) + '</small></span>' +
-        (t.price > 0 ? '<span class="onbtheme__price">하트 ' + t.price + '</span>' : '') +
         '<span class="onbtheme__mark" aria-hidden="true">' + UI.icon('check') + '</span>' +
         '</button>';
     }).join('') + '</div>' +

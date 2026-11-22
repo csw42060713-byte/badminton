@@ -399,25 +399,34 @@
    * 4. 챌린지 자랑 문구에 파트너·전적
    * ========================================================= */
 
+  /* 챌린지 테스트는 '한 주 안의 사흘'이 필요합니다.
+   * 오늘 기준(dayAgo)으로 만들면 월요일에는 그제가 지난주라 3회가 안 채워지므로,
+   * 금요일(2026-11-20)로 날짜를 고정합니다 — 순수 함수라 언제 돌려도 같은 결과입니다. */
+  var FIXED = '2026-11-20';
+
+  function fixedAgo(n) {
+    return U.ymd(U.addDays(U.parseYmd(FIXED), -n));
+  }
+
   function challengeRecords() {
-    /* 이번 주 3일(오늘·어제·그제) 헤어핀 — 챌린지 달성 */
+    /* 같은 주 3일(금·목·수) 헤어핀 — 챌린지 달성 */
     return [
-      rec(dayAgo(0), '민호', { tag: 'a', weakness: ['헤어핀'], games: [game(21, 15)] }),
-      rec(dayAgo(1), '민호', { tag: 'b', weakness: ['헤어핀'], games: [game(21, 18)] }),
-      rec(dayAgo(2), '민수', { tag: 'c', weakness: ['헤어핀'], games: [game(15, 21)] })
+      rec(fixedAgo(0), '민호', { tag: 'a', weakness: ['헤어핀'], games: [game(21, 15)] }),
+      rec(fixedAgo(1), '민호', { tag: 'b', weakness: ['헤어핀'], games: [game(21, 18)] }),
+      rec(fixedAgo(2), '민수', { tag: 'c', weakness: ['헤어핀'], games: [game(15, 21)] })
     ];
   }
 
   test('v1.36 자랑 문구: 파트너·전적이 괄호로 붙는다', function () {
     var rows = challengeRecords();
-    var ch = D.weekChallenge(rows, { now: U.parseYmd(NOW) });
+    var ch = D.weekChallenge(rows, { now: U.parseYmd(FIXED) });
     eq(ch.done, true, '챌린지 달성');
     eq(ch.weakness, '헤어핀', '약점');
-    var text = D.challengeShareText(ch, { records: rows, now: NOW });
+    var text = D.challengeShareText(ch, { records: rows, now: FIXED });
     includes(text, '이번 주 헤어핀 3회 연습 달성!', '기본 문구');
     includes(text, '(민호와 2경기 2승)', '파트너·전적');
     includes(text, '🎉', '마무리');
-    var p = D.challengePartner(rows, ch, { now: NOW });
+    var p = D.challengePartner(rows, ch, { now: FIXED });
     ok(p && p.name === '민호', '가장 많이 함께 친 파트너');
     eq(D.challengePartnerTail(p), '민호와 2경기 2승', '꼬리 문구');
   });
@@ -430,7 +439,7 @@
 
   test('v1.36 자랑 문구: 받침에 따라 와/과를 고른다', function () {
     var rows = challengeRecords();
-    var ch = D.weekChallenge(rows, { now: U.parseYmd(NOW) });
+    var ch = D.weekChallenge(rows, { now: U.parseYmd(FIXED) });
     var p = { name: '김철수', games: 2, wins: 1, losses: 1, draws: 0 };
     eq(D.challengePartnerTail(p), '김철수와 2경기 1승 1패', '받침 없으면 와');
     var q = { name: '박준', games: 3, wins: 2, losses: 0, draws: 1 };
@@ -441,6 +450,7 @@
 
   test('v1.36 자랑 문구: 저장소가 초안을 만들어 준다', function () {
     return storeWith(challengeRecords()).then(function (store) {
+      store.state.ui.challengeNow = FIXED;
       var d = store.actions.challengeShareDraft();
       ok(d.ok, '초안');
       includes(d.text, '(민호와 2경기 2승)', '파트너 포함');
@@ -464,13 +474,13 @@
 
   test('v1.36 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.56.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.56.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-70', '스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.57.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.57.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261123-1', '스타일 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.56.0', 'TWA 이름');
+    eq(twa.appVersionName, '1.57.0', 'TWA 이름');
     eq(twa.app, undefined, '군더더기 없음');
-    eq(twa.appVersionCode, 50, 'TWA 코드');
+    eq(twa.appVersionCode, 51, 'TWA 코드');
   });
 
   test('v1.36 캐시: 새 파일 없이 기존 목록 그대로', function () {

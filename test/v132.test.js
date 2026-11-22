@@ -435,15 +435,16 @@
   test('v1.32 화면: 챌린지 3회 달성 카드에만 자랑하기 버튼', function () {
     var two = [
       { date: '2026-11-10', weakness: ['헤어핀'], done: [] },
-      { date: '2026-11-16', weakness: ['헤어핀'], done: [] },
+      { date: '2026-11-17', weakness: ['헤어핀'], done: [] },
       { date: '2026-11-18', weakness: ['헤어핀'], done: [] }
     ];
-    var notYet = BM.views.log.challengeBlock(stateOf(two));
+    var WK = '2026-11-20';   /* 금요일 고정 — 월요일에 돌려도 같은 주 사흘이 됩니다 */
+    var notYet = BM.views.log.challengeBlock(stateOf(two, { ui: { challengeNow: WK } }));
     includes(notYet, '주간 약점 챌린지', '카드');
     excludes(notYet, 'challenge-share', '2회에는 버튼 없음');
 
-    var done = two.concat([{ date: '2026-11-19', weakness: ['헤어핀'], done: [] }]);
-    var html = BM.views.log.challengeBlock(stateOf(done));
+    var done = two.concat([{ date: '2026-11-19', weakness: ['헤어핀'], done: [] }, { date: '2026-11-20', weakness: ['헤어핀'], done: [] }]);
+    var html = BM.views.log.challengeBlock(stateOf(done, { ui: { challengeNow: WK } }));
     includes(html, 'data-act="challenge-share"', '자랑하기 버튼');
     includes(html, '커뮤니티에 자랑하기', '문구');
     includes(html, '3회 채웠어요', '달성 배지');
@@ -467,14 +468,14 @@
 
   test('v1.32 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.56.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.56.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-70', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.57.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.57.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261123-1', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.37.2', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.56.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.56.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 50, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.57.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.57.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 51, 'TWA 버전 코드');
   });
 
   test('v1.32 문서: 아이디어 노트에 이번 사이클과 다음 후보가 남는다', function () {

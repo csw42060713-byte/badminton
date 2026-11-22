@@ -762,20 +762,10 @@
         });
         /* v1.56 — 시작에서 고른 앱 분위기(테마)를 저장소에 바로 반영합니다.
          *  MY › 테마와 같은 저장이라 하단 탭·모든 화면이 즉시 그 테마로 바뀝니다.
-         *  하트가 필요한 테마(사쿠라 등)는 시작 화면 카드에 가격이 보이고,
-         *  모자라면 원래 테마를 그대로 두고 한 줄로 알려 줍니다. */
+         *  bm-v1.57.0 — 테마는 모두 무료라 하트 확인 없이 그대로 적용됩니다. */
         var wantTheme = patch.theme || '';
         var nowTheme = (store.state.me && store.state.me.theme && store.state.me.theme.theme) || 'th_night';
-        if (wantTheme && wantTheme !== nowTheme) {
-          var tr = store.actions.setTheme(wantTheme);
-          if (tr && tr.ok && tr.purchased) {
-            setTimeout(function () { UI.toast('고른 테마를 열었어요 · 하트 ' + tr.price + '개'); }, 700);
-          } else if (tr && !tr.ok && tr.reason === 'hearts') {
-            setTimeout(function () {
-              UI.toast('그 테마는 하트 ' + tr.price + '개가 필요해요. MY › 테마에서 열 수 있어요.');
-            }, 700);
-          }
-        }
+        if (wantTheme && wantTheme !== nowTheme) store.actions.setTheme(wantTheme);
         /* v1.40 — 고른 유형에 맞춰 일지 첫머리를 준비합니다:
          *  초보는 4주 루틴을 켜고, 선수는 7대 훈련 기록을 기본으로 보여 줍니다. */
         var roleDef = BM.domain.roleById(patch.role);
@@ -833,7 +823,8 @@
       repaint: repaint,
       refresh: repaint,
       signOut: signOut,
-      auth: BM.auth
+      auth: BM.auth,
+      push: BM.push || null
     };
     BM.app.ctx = ctx;
     store.subscribe(onChange);
@@ -856,6 +847,7 @@
       mountView(store.state.ui.tab);
       paintNetBar(store.state);
       startWatchers();
+      resumePush();
       if (store.state.syncError) UI.toast(store.state.syncError, 'error');
       if (!U.readJSON('bm_seen_v1', false)) welcome();
     });
@@ -1031,12 +1023,35 @@
     }, true);
   }
 
+  /* ---------- 실시간 푸시 알림 (bm-v1.57.0) ----------
+   * 서비스워커(sw.js)가 푸시를 받아 알림을 띄우고, 알림을 누르면:
+   *   · 앱 창이 이미 열려 있으면 postMessage로 그 화면으로 이동
+   *   · 아니면 openWindow('./#/matching') 처럼 해시를 붙여 새로 엽니다(startTab이 그 탭으로).
+   * Firebase 키가 연결돼 있고 스위치를 켜 둔 사람은 앱을 열 때마다 조용히 다시 구독합니다. */
+  function bindPushRoute() {
+    if (typeof navigator === 'undefined' || !navigator.serviceWorker) return;
+    if (typeof navigator.serviceWorker.addEventListener !== 'function') return;
+    navigator.serviceWorker.addEventListener('message', function (ev) {
+      var data = ev.data || {};
+      if (!data || data.type !== 'BM_PUSH_OPEN') return;
+      if (BM.push && BM.push.go) BM.push.go(data.url, BM.app.ctx);
+    });
+  }
+
+  function resumePush() {
+    if (!store || !BM.push || !BM.push.autoEnable) return;
+    var prefs = store.state.prefs || {};
+    if (prefs.push !== true) return;
+    BM.push.autoEnable(prefs).catch(function () { /* 키가 없거나 지원 안 하면 조용히 */ });
+  }
+
   /* ---------- 시작 ---------- */
   function boot() {
     bindChrome();
     bindNetBar();
     bindKeyboardScroll();
     bindGymLinks();
+    bindPushRoute();
     /* 비밀번호 재설정 메일 링크로 돌아온 경우(#access_token=…&type=recovery):
        세션을 먼저 받아 두고 시작화면에서 새 비밀번호를 정하게 합니다. */
     var ready = BM.auth.bootstrapRecovery ? BM.auth.bootstrapRecovery() : Promise.resolve(null);
@@ -1052,7 +1067,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.56.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.57.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

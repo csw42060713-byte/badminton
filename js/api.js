@@ -22,6 +22,24 @@
   var DEDUPE_KEY = 'bm_dedupe_v1';
   var SESSION_KEY = 'bm_session_v1';
 
+  /* ---------- 실시간 푸시(FCM Web Push) 설정 (bm-v1.57.0) ----------
+   * Firebase 콘솔 > 프로젝트 설정 > 클라우드 메시징 > 웹 푸시 인증서의 '키 쌍'에서
+   * 공개 키를 vapidPublicKey 에 넣으면, MY › 알림의 '실시간 푸시 알림' 스위치가
+   * 그때부터 실제 구독(PushManager.subscribe)까지 진행합니다.
+   * 넣기 전에는 아무 것도 구독하지 않고 'Firebase 연결 준비됨 · 곧 켜져요'로만 보입니다.
+   * serviceWorker 는 sw.js 의 push·notificationclick 이 받습니다. */
+  var PUSH_CONFIG = {
+    vapidPublicKey: '',          /* 예: 'BEl62iUYgU...' (87자 안팎) */
+    topic: 'badminton'           /* 서버가 보낼 주제(선택) */
+  };
+
+  function pushConfig() {
+    return {
+      vapidPublicKey: String(PUSH_CONFIG.vapidPublicKey || ''),
+      topic: String(PUSH_CONFIG.topic || '')
+    };
+  }
+
   function ApiError(code, message, retryable) {
     this.name = 'ApiError';
     this.code = code || 'error';
@@ -898,6 +916,7 @@
     ApiError: ApiError, savedSession: savedSession, backendFor: backendFor,
     SESSION_KEY: SESSION_KEY, ROWS_KEY: ROWS_KEY, BACKEND_KEY: BACKEND_KEY, BACKENDS: BACKENDS,
     SUPABASE: SB,
+    PUSH_CONFIG: PUSH_CONFIG, pushConfig: pushConfig,
     recordToRow: recordToRow, rowToRecord: rowToRecord, cellsToPatch: cellsToPatch,
     reconcileRecords: reconcileRecords, localStamp: localStamp, isoStamp: isoStamp
   };

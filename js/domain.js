@@ -420,7 +420,9 @@
    * 하트 경제 규칙 — 앱과 브리지(APPS_SCRIPT_BRIDGE.gs CONFIG)가 같은 값이어야 합니다.
    *  적립: 가입 기본 3 / 출석 1(하루 1회) / 광고 1(하루 5회, 30초 간격) /
    *        선물 받음 1 / 하트 합치기 N
-   *  사용: 매칭 신청 2 / 유료 테마 2 / 하트 선물 1
+   *  사용: 매칭 신청 2 / 하트 선물 1
+   *  테마는 bm-v1.57.0부터 모두 무료입니다 — 하트로 여는 테마가 없습니다.
+   *  (가격 칸은 예전 기기의 구매 기록·원장 계산을 그대로 읽으려고 0으로 남겨 둡니다.)
    * ============================================================ */
   var HEART_RULES = {
     BASE: 3,
@@ -433,17 +435,19 @@
     AD_COOLDOWN_SEC: 30,
     MATCH_COST: 2,
     GIFT_COST: 1,
-    THEME_PRICES: { th_def: 0, th_night: 0, th_court: 2, th_sakura: 2 }
+    THEME_PRICES: { th_def: 0, th_night: 0, th_court: 0, th_sakura: 0 }
   };
 
   /* 연속 출석 보너스를 주는 주기(일) — 7·14·21…일째마다 한 번 */
   var STREAK_BONUS_DAYS = 7;
 
+  /* bm-v1.57.0 — 테마 4종 모두 무료. 나이트·기본 코트·사쿠라·라임 코트를
+   * 하트 없이 MY › 테마·시작 화면에서 바로 고릅니다. */
   var THEMES = [
-    { id: 'th_def', name: '기본 코트', hint: '깔끔한 그린', price: HEART_RULES.THEME_PRICES.th_def },
-    { id: 'th_night', name: '나이트', hint: '어두운 네이비', price: HEART_RULES.THEME_PRICES.th_night },
-    { id: 'th_court', name: '라임 코트', hint: '형광 라임 포인트', price: HEART_RULES.THEME_PRICES.th_court },
-    { id: 'th_sakura', name: '사쿠라', hint: '핑크 라이트', price: HEART_RULES.THEME_PRICES.th_sakura }
+    { id: 'th_def', name: '기본 코트', hint: '깔끔한 그린', price: 0 },
+    { id: 'th_night', name: '나이트', hint: '어두운 네이비', price: 0 },
+    { id: 'th_court', name: '라임 코트', hint: '형광 라임 포인트', price: 0 },
+    { id: 'th_sakura', name: '사쿠라', hint: '핑크 라이트', price: 0 }
   ];
 
   /* ---------- 컨디션 5단계 (bm-v1.56.0) ----------
@@ -1888,7 +1892,7 @@
     };
   }
 
-  /* 테마 소유 여부: 무료 테마는 항상 소유, 유료는 구매 행이 있어야 함 */
+  /* 테마 소유 여부: 무료 테마(지금은 4종 모두)는 항상 소유 */
   function ownsTheme(idx, userKey, themeId) {
     var price = HEART_RULES.THEME_PRICES[themeId];
     if (price === undefined) return false;
@@ -2933,13 +2937,16 @@
    * 기기에 저장합니다(계정과 무관). 기본은 둘 다 켜짐이고,
    * 저장된 값이 false일 때만 꺼집니다(예전 기기·깨진 값은 켜짐으로). */
   var PREFS_KEY = 'bm_prefs_v1';
-  var PREFS_DEFAULTS = { notify: true, letter: true };
+  /* push — bm-v1.57.0 실시간 푸시 알림. Firebase 키가 붙기 전에는 기본 꺼짐이고,
+   * 스위치를 켜 두면 키가 연결되는 순간 그대로 켜집니다. */
+  var PREFS_DEFAULTS = { notify: true, letter: true, push: false };
 
   function normalizePrefs(o) {
     o = o || {};
     return {
       notify: o.notify === false ? false : true,
-      letter: o.letter === false ? false : true
+      letter: o.letter === false ? false : true,
+      push: o.push === true
     };
   }
 

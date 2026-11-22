@@ -690,39 +690,42 @@
     });
   });
 
-  test('하트: 유료 테마는 한 번만 차감된다', function () {
+  test('하트: 테마는 모두 무료라 차감이 없다 (bm-v1.57.0)', function () {
     return freshStore().then(function (store) {
       var before = store.state.data.hearts.balance;
-      var price = D.HEART_RULES.THEME_PRICES.th_court;
-      ok(price > 0, '유료 테마 가격');
+      D.THEMES.forEach(function (t) { eq(D.themePrice(t.id), 0, t.id + ' 무료'); });
       var r1 = store.actions.setTheme('th_court');
-      ok(r1.ok, '구매+적용');
-      eq(r1.purchased, true, '구매함');
-      eq(store.state.data.hearts.balance, before - price, '가격만큼 차감');
-      eq(D.ownsTheme(store.state.idx, BM.seed.ME, 'th_court'), true, '소유');
+      ok(r1.ok, '적용');
+      eq(r1.purchased, false, '구매 없음');
+      eq(store.state.data.hearts.balance, before, '하트 그대로');
+      eq(D.ownsTheme(store.state.idx, BM.seed.ME, 'th_court'), true, '무료 테마는 항상 소유');
       store.state.locks = {};
       var queued = store.state.queue.length;
-      var r2 = store.actions.setTheme('th_court');
-      ok(r2.ok, '재적용');
-      eq(r2.purchased, false, '추가 구매 없음');
-      eq(store.state.data.hearts.balance, before - price, '추가 차감 없음');
-      eq(store.state.queue.length, queued + 1, '프로필 행만 추가');
+      var r2 = store.actions.setTheme('th_sakura');
+      ok(r2.ok, '다른 테마도 적용');
+      eq(r2.purchased, false, '구매 없음');
+      eq(store.state.data.hearts.balance, before, '차감 없음');
+      eq(store.state.queue.length, queued + 1, '프로필 행만 추가(꾸미기구매 행 없음)');
+      eq(store.state.me.theme.theme, 'th_sakura', '즉시 적용');
     });
   });
 
-  test('하트: 잔액이 모자라면 테마 구매가 막힌다', function () {
+  test('하트: 잔액이 0이어도 모든 테마를 쓸 수 있다', function () {
     var spend = [];
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 6; i++) {
       spend.push({ id: U.uid(), type: '내하트사용', userKey: BM.seed.ME, date: U.ymd(), likes: 2, createdAt: U.stamp() });
     }
     return freshStoreWith(spend).then(function (store) {
       var st = store.state.data.hearts;
-      ok(st.balance < D.HEART_RULES.THEME_PRICES.th_sakura, '잔액 부족: ' + st.balance);
-      var r = store.actions.setTheme('th_sakura');
-      eq(r.ok, false, '구매 불가');
-      eq(r.reason, 'hearts', '이유');
-      ok(r.need >= 1, '부족 개수');
-      eq(store.state.me.theme.theme === 'th_sakura', false, '적용되지 않음');
+      ok(st.balance <= 0, '잔액 없음: ' + st.balance);
+      ['th_court', 'th_sakura', 'th_night', 'th_def'].forEach(function (id) {
+        store.state.locks = {};
+        var r = store.actions.setTheme(id);
+        ok(r.ok, id + ' 적용');
+        eq(r.purchased, false, id + ' 구매 없음');
+        eq(store.state.me.theme.theme, id, id + ' 즉시 적용');
+      });
+      eq(store.state.data.hearts.balance, st.balance, '하트 그대로');
     });
   });
 
@@ -738,8 +741,8 @@
       var th = store.actions.setTheme('th_sakura');
       ok(th.ok, '테마');
       eq(store.state.me.theme.theme, 'th_sakura', '테마 반영');
-      eq(th.purchased, true, '유료 테마 구매');
-      eq(store.state.queue.length, 3, '프로필 + 구매 + 테마 프로필');
+      eq(th.purchased, false, '무료 테마 (bm-v1.57.0)');
+      eq(store.state.queue.length, 2, '프로필 + 테마 프로필 (구매 행 없음)');
     });
   });
 

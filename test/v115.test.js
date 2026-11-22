@@ -215,8 +215,7 @@
     if (!hasNode()) return;
     var my = readRoot('js/views/my.js');
     var matching = readRoot('js/views/matching.js');
-    includes(my, 'BM.ads.openHeartSheet', 'MY: 테마·프레임/배지 해금 → 공용 시트');
-    includes(my, 'onContinue: apply', 'MY 테마: 채운 뒤 바로 다시 시도');
+    includes(my, 'BM.ads.openHeartSheet', 'MY: 프레임/배지 해금 → 공용 시트');
     includes(my, 'onContinue: function () { buyDeco(', 'MY 꾸미기: 채운 뒤 바로 구매');
     excludes(my, '하트가 \' + res.need + \'개 부족해요. 광고·출석으로 모아 주세요.', '토스트만 띄우던 예전 안내');
     includes(matching, 'BM.ads.openHeartSheet', '매칭: 공용 시트');
@@ -228,9 +227,9 @@
   test('v1.15 버전: sw·app·화면 캐시가 함께 올라간다', function () {
     if (!hasNode()) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
-    includes(sw, "var VERSION = 'bm-v1.56.0'", 'sw.js');
-    includes(app, "version: 'v1.56.0'", 'app.js');
-    includes(index, 'styles.css?v=20261122-70', '스타일 캐시');
+    includes(sw, "var VERSION = 'bm-v1.57.0'", 'sw.js');
+    includes(app, "version: 'v1.57.0'", 'app.js');
+    includes(index, 'styles.css?v=20261123-1', '스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
