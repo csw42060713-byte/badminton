@@ -206,8 +206,8 @@
         games: [{ a: '', b: '' }],
         score: null, result: '',
         pain: [], weakness: [], note: '',
-        /* 복식 파트너 이름 · 스윙·경기 영상 링크와 한 줄 체크 포인트 (선택) */
-        partner: '', video: '', videoNote: '',
+        /* 복식 파트너 · 상대(라이벌) 이름 · 스윙·경기 영상 링크와 한 줄 체크 포인트 (선택) */
+        partner: '', rival: '', video: '', videoNote: '',
         /* 선수용 7대 훈련 — { '스트록': '클리어 100개', ... } (선수 유형에서만 보입니다) */
         pro: {}
       };
@@ -316,8 +316,8 @@
         text: built.d.note || '',
         /* 선수용 7대 훈련 — '훈련계획' JSON 칸 (체크만 하고 안 적었으면 빈 값) */
         plan: D.proPlan(built.d.pro),
-        /* 파트너·영상은 '팀' 칸 JSON — 고칠 때 비우면 칸도 함께 비워집니다 */
-        team: D.logExtraJson({ partner: built.d.partner, video: { url: built.d.video, label: built.d.videoNote } })
+        /* 파트너 · 상대(라이벌) · 영상은 '팀' 칸 JSON — 고칠 때 비우면 칸도 함께 비워집니다 */
+        team: D.logExtraJson({ partner: built.d.partner, rival: built.d.rival, video: { url: built.d.video, label: built.d.videoNote } })
       };
       var cells = D.logCells(entity);
       patchRowById(id, cells);
@@ -734,8 +734,8 @@
           prescription: built.an.care, drills: built.an.drills,
           /* 선수용 7대 훈련 — 새 칸 없이 '훈련계획' JSON 칸에 (시트 26칸 그대로) */
           plan: D.proPlan(built.d.pro),
-          /* 복식 파트너 · 영상 링크 — 새 칸 없이 '팀' 칸에 JSON 한 줄 */
-          team: D.logExtraJson({ partner: built.d.partner, video: { url: built.d.video, label: built.d.videoNote } })
+          /* 복식 파트너 · 상대(라이벌) · 영상 링크 — 새 칸 없이 '팀' 칸에 JSON 한 줄 */
+          team: D.logExtraJson({ partner: built.d.partner, rival: built.d.rival, video: { url: built.d.video, label: built.d.videoNote } })
         });
         if (built.d.note) entity.text = built.d.note;   /* 메모는 소셜글 칸에 남깁니다 */
         pushRow(entity);

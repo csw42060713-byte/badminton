@@ -20,16 +20,27 @@
   var CAP = 30;
   var TYPES = ['단식', '복식'];
   var MAX_UNDO = 60;
+  var NAME_MAX = 20;                 /* 파트너·상대 이름 글자 수 (일지 '팀' 칸과 같은 상한) */
 
   function normalMode(m) { return Number(m) === 25 ? 25 : 21; }
   function normalType(t) { return String(t) === '단식' ? '단식' : '복식'; }
 
-  /* 새 점수판 — 0:0에서 시작, 아직 끝난 세트 없음 */
+  /* 이름 한 칸 — 줄바꿈·중복 공백은 한 칸으로, 20자까지 */
+  function cleanName(v) {
+    var s = String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return s.length > NAME_MAX ? s.slice(0, NAME_MAX).trim() : s;
+  }
+
+  /* 새 점수판 — 0:0에서 시작, 아직 끝난 세트 없음
+   *  · partner(내 팀 파트너)·rival(상대 팀·라이벌)은 이름표일 뿐이라 점수 계산에 영향이 없습니다.
+   *    비워 두어도 예전처럼 점수판만 쓸 수 있습니다. (bm-v1.54.0) */
   function create(opts) {
     opts = opts || {};
     return {
       mode: normalMode(opts.mode),
       type: normalType(opts.type),
+      partner: cleanName(opts.partner),
+      rival: cleanName(opts.rival),
       a: 0,
       b: 0,
       over: '',        /* '' | 'a' | 'b' — 지금 세트가 끝났는지 */
@@ -43,12 +54,22 @@
     return {
       mode: normalMode(st.mode),
       type: normalType(st.type),
+      partner: cleanName(st.partner),
+      rival: cleanName(st.rival),
       a: Number(st.a) || 0,
       b: Number(st.b) || 0,
       over: st.over === 'a' || st.over === 'b' ? st.over : '',
       sets: (st.sets || []).map(function (s) { return { a: Number(s.a) || 0, b: Number(s.b) || 0 }; }),
       history: (st.history || []).slice(-MAX_UNDO)
     };
+  }
+
+  /* 이름표 바꾸기 — 'partner' | 'rival' (점수·세트는 그대로). 순수 함수. */
+  function setName(st, field, name) {
+    var next = copy(st);
+    if (field === 'rival') next.rival = cleanName(name);
+    else if (field === 'partner') next.partner = cleanName(name);
+    return next;
   }
 
   function target(st) { return normalMode(st && st.mode); }
@@ -177,14 +198,20 @@
     };
   }
 
+  /* 메모 한 줄 — 파트너·상대 이름을 적었으면 함께 붙입니다 (bm-v1.54.0) */
   function memoText(st, sum) {
     sum = sum || summary(st);
+    var who = '';
+    if (st.type !== '단식' && cleanName(st.partner)) who += ' · 함께 ' + cleanName(st.partner);
+    if (cleanName(st.rival)) who += ' · 상대 ' + cleanName(st.rival);
     return '코트 점수판 · ' + normalType(st.type) + ' ' + target(st) + '점제 ' + sum.text +
-      ' (' + sum.wins + '승 ' + sum.losses + '패' + (sum.draws ? ' ' + sum.draws + '무' : '') + ')';
+      ' (' + sum.wins + '승 ' + sum.losses + '패' + (sum.draws ? ' ' + sum.draws + '무' : '') + ')' + who;
   }
 
   /* 일지 입력칸에 넣을 값 — 종목(게임)·점수·한 줄 메모를 한 번에 채웁니다.
-   * 이미 쓴 메모와 완료 훈련은 지우지 않고 그대로 둡니다. */
+   *  · 파트너·상대(라이벌) 이름도 같이 넘겨 저장할 때 전적이 함께 쌓입니다(bm-v1.54.0).
+   *    점수판에 안 적었으면 일지에 이미 적어 둔 이름을 지우지 않습니다.
+   *  · 이미 쓴 메모와 완료 훈련은 지우지 않고 그대로 둡니다. */
   function draftPatch(st, draft) {
     var list = games(st);
     if (!list.length) return null;
@@ -197,6 +224,8 @@
       games: list,
       result: sum.result,
       done: done,
+      partner: cleanName(st.partner) || cleanName(draft.partner),
+      rival: cleanName(st.rival) || cleanName(draft.rival),
       note: (draft.note && String(draft.note).trim()) ? draft.note : memoText(st, sum)
     };
   }
@@ -212,8 +241,9 @@
   }
 
   BM.scoreboard = {
-    MODES: MODES, TYPES: TYPES, CAP: CAP,
-    create: create, copy: copy, target: target, normalMode: normalMode, normalType: normalType,
+    MODES: MODES, TYPES: TYPES, CAP: CAP, NAME_MAX: NAME_MAX,
+    create: create, copy: copy, cleanName: cleanName, setName: setName,
+    target: target, normalMode: normalMode, normalType: normalType,
     winner: winner, deuce: deuce, matchPoint: matchPoint,
     point: point, undo: undo, nextSet: nextSet, resetSet: resetSet,
     setNo: setNo, setScore: setScore,

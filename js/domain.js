@@ -1063,14 +1063,16 @@
   }
 
   /* ============================================================
-   * 일지 부가 정보 — 복식 파트너 · 영상 링크 (bm-v1.32.0)
+   * 일지 부가 정보 — 복식 파트너 · 상대(라이벌) · 영상 링크 (bm-v1.32.0 · v1.54.0)
    *  · 시트 26칸·Supabase 컬럼을 늘리지 않고 '팀' 칸에 JSON 한 줄로 적습니다.
-   *      팀 = {"partner":"조환비","video":{"url":"https://…","label":"스매시 폼"}}
+   *      팀 = {"partner":"조환비","rival":"김원호","video":{"url":"https://…","label":"스매시 폼"}}
+   *    rival(상대·라이벌)은 v1.54.0에서 더한 칸이라, 예전 일지에는 없어도 그대로 읽힙니다.
    *    '기록'(일지) 행에서 '팀' 칸은 달리 쓰이지 않으므로 안전합니다.
    *  · 영상은 링크만 저장합니다(http/https). javascript:·data: 같은 주소는
    *    읽을 때도, 쓸 때도 걸러 내 화면에 href로 나가지 않습니다.
    * ============================================================ */
   var PARTNER_MAX = 20;         /* 파트너 이름 글자 수 */
+  var RIVAL_MAX = 20;           /* 상대(라이벌) 이름 글자 수 */
   var VIDEO_URL_MAX = 500;      /* 링크 길이 상한 */
   var VIDEO_LABEL_MAX = 60;     /* 한 줄 체크 포인트 */
 
@@ -1085,6 +1087,10 @@
 
   function cleanPartner(v) {
     return tidyText(v, PARTNER_MAX);
+  }
+
+  function cleanRival(v) {
+    return tidyText(v, RIVAL_MAX);
   }
 
   function cleanVideoLabel(v) {
@@ -1135,9 +1141,9 @@
     return s;
   }
 
-  function emptyMeta() { return { partner: '', video: { url: '', label: '' } }; }
+  function emptyMeta() { return { partner: '', rival: '', video: { url: '', label: '' } }; }
 
-  /* 일지 한 줄(또는 '팀' 칸 문자열) → { partner, video:{url,label} }
+  /* 일지 한 줄(또는 '팀' 칸 문자열) → { partner, rival, video:{url,label} }
    * 예전에 '팀' 칸에 이름만 적힌 일지도 파트너로 읽습니다(값을 잃지 않게). */
   function logMeta(recOrTeam) {
     var out = emptyMeta();
@@ -1147,6 +1153,7 @@
     var obj = looksJson(text) ? U.jsonParse(text, null) : null;
     if (obj && typeof obj === 'object' && !(obj instanceof Array)) {
       out.partner = cleanPartner(obj.partner);
+      out.rival = cleanRival(obj.rival);
       var v = obj.video;
       if (typeof v === 'string') v = { url: v };
       if (v && typeof v === 'object') {
@@ -1159,34 +1166,40 @@
     return out;
   }
 
-  /* { partner, video } → '팀' 칸에 넣을 JSON 문자열 (둘 다 비면 '' — 칸을 비웁니다) */
+  /* { partner, rival, video } → '팀' 칸에 넣을 JSON 문자열 (모두 비면 '' — 칸을 비웁니다) */
   function logExtraJson(o) {
     o = o || {};
     var partner = cleanPartner(o.partner);
+    var rival = cleanRival(o.rival);
     var video = o.video || {};
     var url = safeVideoUrl(video.url);
     var label = url ? cleanVideoLabel(video.label) : '';
-    if (!partner && !url) return '';
+    if (!partner && !rival && !url) return '';
     var out = {};
     if (partner) out.partner = partner;
+    if (rival) out.rival = rival;
     if (url) out.video = { url: url, label: label };
     return JSON.stringify(out);
   }
 
-  /* 파트너별 승률 — 일지에 파트너 이름을 적은 기록만 셉니다.
+  /* 파트너·상대(라이벌) 전적 — 일지에 그 이름을 적은 기록만 셉니다.
    *  · 한 일지에 여러 게임이 있으면 그 게임 수만큼 셉니다(승/패/무도 게임 단위).
    *  · 점수 없이 '승패'만 적힌 일지는 1경기로 셉니다.
    *  · 승률은 승+패로 나눕니다(무승부는 분모에서 뺌).
-   *  정렬: 승률 높은 순 → 함께 친 경기 많은 순 → 이름 순. */
-  function partnerStats(records, opts) {
+   *  · field 'partner'는 함께 뛴 사람, 'rival'은 맞선 상대입니다.
+   *    어느 쪽이든 승/패는 내 팀 기준(o.a > o.b = 승)이라 라이벌은 '내가 이긴 경기'가 승입니다.
+   *  정렬: 파트너는 승률 → 함께 친 경기 → 이름,
+   *        라이벌은 맞붙은 경기 → 승률 → 이름(가장 자주 만난 상대가 위로). */
+  function duelStats(records, opts) {
     opts = opts || {};
+    var field = opts.field === 'rival' ? 'rival' : 'partner';
     var limit = Math.max(1, U.num(opts.limit, 5) || 5);
     var want = tidyText(opts.name || '').toLowerCase();
     var map = {}, order = [];
     (records || []).forEach(function (r) {
       if (!r) return;
       var meta = logMeta(r);
-      var name = meta.partner;
+      var name = meta[field];
       if (!name) return;
       var games = (r.games && r.games.length) ? cleanGames(r.games) : (r.score ? cleanGames([r.score]) : []);
       var sum = gamesSummary(games);
@@ -1199,12 +1212,21 @@
       }
       if (!count) return;
       var e = map[name];
-      if (!e) { e = map[name] = { name: name, games: 0, wins: 0, losses: 0, draws: 0, days: [], last: '' }; order.push(name); }
+      if (!e) { e = map[name] = { name: name, games: 0, wins: 0, losses: 0, draws: 0, days: [], last: '', recent: '', recentKey: '' }; order.push(name); }
       e.games += count; e.wins += wins; e.losses += losses; e.draws += draws;
       var day = dayKey(r.date);
       if (day) {
         if (e.days.indexOf(day) < 0) e.days.push(day);
         if (day > e.last) e.last = day;
+      }
+      /* 최근 스코어 — 가장 최근 날 일지의 점수 한 줄 ('21:17, 19:21')
+       *  · 같은 날짜 일지가 둘이면 작성일시(createdAt)가 늦은 쪽(나중에 쓴 일지)을 씁니다. */
+      if (sum.count) {
+        var txt = games.map(function (g) { return g.a + ':' + g.b; }).join(', ');
+        var m25 = (r.games && r.games[0] && Number(r.games[0].mode) === 25) || /25\s*점/.test(String(r.scoreRaw || ''));
+        if (m25) txt = '25점제 ' + txt;
+        var key = (day || String(r.date || '')) + '|' + String(r.createdAt || '');
+        if (!e.recentKey || key > e.recentKey) { e.recent = txt; e.recentKey = key; }
       }
     });
     var list = order.map(function (name) {
@@ -1214,14 +1236,37 @@
       e.line = e.games + '전 ' + e.wins + '승' + (e.draws ? ' ' + e.draws + '무' : '') + ' ' + e.losses + '패';
       return e;
     });
-    list.sort(function (a, b) {
-      if (b.rate !== a.rate) return b.rate - a.rate;
-      if (b.games !== a.games) return b.games - a.games;
-      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
-    });
+    list.sort(field === 'rival'
+      ? function (a, b) {
+        if (b.games !== a.games) return b.games - a.games;
+        if (b.rate !== a.rate) return b.rate - a.rate;
+        return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+      }
+      : function (a, b) {
+        if (b.rate !== a.rate) return b.rate - a.rate;
+        if (b.games !== a.games) return b.games - a.games;
+        return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+      });
     /* 이름 하나만 볼 때(일지 입력칸 아래 미리보기) */
     if (want) list = list.filter(function (e) { return e.name.toLowerCase() === want; });
     return list.slice(0, limit);
+  }
+
+  /* 파트너별 승률 — 함께 뛴 사람(기존 이름 그대로, bm-v1.32.0) */
+  function partnerStats(records, opts) {
+    var o = {};
+    Object.keys(opts || {}).forEach(function (k) { o[k] = opts[k]; });
+    o.field = 'partner';
+    return duelStats(records, o);
+  }
+
+  /* 라이벌(상대) 맞대결 전적 — bm-v1.54.0
+   *  · 총 경기 수·승/패·승률·최근 스코어까지 한 번에 셉니다. */
+  function rivalStats(records, opts) {
+    var o = {};
+    Object.keys(opts || {}).forEach(function (k) { o[k] = opts[k]; });
+    o.field = 'rival';
+    return duelStats(records, o);
   }
 
   /* 파트너 한 명의 전적 — 일지 입력칸 아래 한 줄 미리보기 (bm-v1.36.0)
@@ -1239,6 +1284,31 @@
     if (!p) return '';
     var decided = (p.wins || 0) + (p.losses || 0);
     return p.name + ' · ' + p.line + (decided ? ' (' + p.rate + '%)' : '');
+  }
+
+  /* 라이벌 한 명의 전적 — 일지 입력칸·점수판 아래 한 줄 미리보기 (bm-v1.54.0) */
+  function rivalStat(records, name) {
+    var n = tidyText(name || '');
+    if (!n) return null;
+    return rivalStats(records, { name: n, limit: 1 })[0] || null;
+  }
+
+  /* 라이벌 전적 한 줄 — '김원호 · 6전 4승 2패 (67%) · 최근 21:17'
+   *  무승부만 있으면 승률을 붙이지 않습니다(파트너 줄과 같은 이유). */
+  function rivalLineText(r) {
+    if (!r) return '';
+    var decided = (r.wins || 0) + (r.losses || 0);
+    return r.name + ' · ' + r.line + (decided ? ' (' + r.rate + '%)' : '') +
+      (r.recent ? ' · 최근 ' + r.recent : '');
+  }
+
+  /* 라이벌에게 몇 승 몇 패인지 — '라이벌 김원호에게 4승 2패' (한눈에 보는 한 줄)
+   *  아직 기록이 없으면 ''(처음 맞붙는 상대). */
+  function rivalVersusText(r) {
+    if (!r || !r.games) return '';
+    var decided = (r.wins || 0) + (r.losses || 0);
+    return r.name + '에게 ' + r.wins + '승 ' + (r.draws ? r.draws + '무 ' : '') + r.losses + '패' +
+      (decided ? ' (' + r.rate + '%)' : '');
   }
 
   /* 파트너 이름 → 앱 회원 키 (bm-v1.34.0)
@@ -1337,6 +1407,7 @@
       pain: (rec.pain || []).slice(),
       weakness: (rec.weakness || []).slice(),
       partner: meta.partner,
+      rival: meta.rival,
       video: meta.video.url,
       videoNote: meta.video.label,
       /* 선수용 7대 훈련 — 수정할 때 체크·적은 내용을 그대로 불러옵니다 */
@@ -3001,11 +3072,14 @@
     JSON_TYPES: JSON_TYPES,
     fromRow: fromRow, toRow: toRow, asCells: asCells,
     recordDraft: recordDraft, logCells: logCells,
-    logMeta: logMeta, logExtraJson: logExtraJson, partnerStats: partnerStats, partnerStat: partnerStat, partnerLineText: partnerLineText, memberByName: memberByName,
+    logMeta: logMeta, logExtraJson: logExtraJson,
+    partnerStats: partnerStats, partnerStat: partnerStat, partnerLineText: partnerLineText,
+    rivalStats: rivalStats, rivalStat: rivalStat, rivalLineText: rivalLineText, rivalVersusText: rivalVersusText,
+    duelStats: duelStats, memberByName: memberByName,
     linkify: linkify,
     cleanPartner: cleanPartner, safeVideoUrl: safeVideoUrl, cleanVideoLabel: cleanVideoLabel,
     safeLinkUrl: safeLinkUrl, safeImageUrl: safeImageUrl, clampText: clampText,
-    PARTNER_MAX: PARTNER_MAX, VIDEO_URL_MAX: VIDEO_URL_MAX, VIDEO_LABEL_MAX: VIDEO_LABEL_MAX,
+    PARTNER_MAX: PARTNER_MAX, RIVAL_MAX: RIVAL_MAX, VIDEO_URL_MAX: VIDEO_URL_MAX, VIDEO_LABEL_MAX: VIDEO_LABEL_MAX,
     parseScore: parseScore, parseGames: parseGames, cleanGames: cleanGames,
     gamesSummary: gamesSummary, formatGames: formatGames,
     resultFromScore: resultFromScore, splitList: splitList,

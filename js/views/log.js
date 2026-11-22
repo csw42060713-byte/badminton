@@ -129,8 +129,11 @@
    *  운동 앱들이 '최근 함께한 상대'를 칩으로 띄우듯, 일지에 적어 둔 파트너 이름을
    *  자주·최근 순으로 최대 4개 보여 주고 1탭으로 입력합니다.
    *  · 기록이 4개보다 적으면 친구 목록 닉네임으로 채웁니다(이미 있는 이름·나 자신 제외).
-   *  · 이름만 넣고 점수를 안 적은 일지도 '함께 친 사람'으로 셉니다. */
-  function recentPartnerNames(state, limit) {
+   *  · 이름만 넣고 점수를 안 적은 일지도 '함께 친 사람'으로 셉니다.
+   *  · v1.54.0: 같은 함수로 상대(라이벌) 이름도 모읍니다(field 'rival'). 라이벌은
+   *    친구 목록으로 채우지 않습니다 — 같이 안 쳐 본 사람을 라이벌로 권하지 않게. */
+  function recentDuelNames(state, field, limit, opts) {
+    var o = opts || {};
     var max = Math.max(1, U.num(limit, 4) || 4);
     var me = state && state.me;
     var myNick = String((me && me.nick) || '').trim();
@@ -146,14 +149,14 @@
     }
     ((state && state.data && state.data.records) || []).forEach(function (r) {
       var meta = r ? D.logMeta(r) : null;
-      if (meta && meta.partner) add(meta.partner, r.date || r.createdAt || '');
+      if (meta && meta[field]) add(meta[field], r.date || r.createdAt || '');
     });
     list.sort(function (a, b) {
       if (b.count !== a.count) return b.count - a.count;
       return a.last < b.last ? 1 : a.last > b.last ? -1 : 0;
     });
     var names = list.slice(0, max).map(function (e) { return e.name; });
-    if (names.length < max) {
+    if (o.fill && names.length < max) {
       ((state && state.data && state.data.friends) || []).forEach(function (f) {
         if (names.length >= max) return;
         var n = String((f && f.nick) || '').replace(/\s+/g, ' ').trim();
@@ -164,19 +167,48 @@
     return names;
   }
 
+  function recentPartnerNames(state, limit) { return recentDuelNames(state, 'partner', limit, { fill: true }); }
+  function recentRivalNames(state, limit) { return recentDuelNames(state, 'rival', limit); }
+
   /* 입력칸 아래 칩 한 줄 — 지금 적힌 이름은 켜진 모양(aria-pressed)입니다 */
-  function partnerChips(state, d) {
-    var names = recentPartnerNames(state, 4);
+  function duelChips(state, d, field) {
+    var rival = field === 'rival';
+    var names = rival ? recentRivalNames(state, 4) : recentPartnerNames(state, 4);
     if (!names.length) return '';
-    var cur = String((d && d.partner) || '').replace(/\s+/g, ' ').trim();
-    return '<div class="ptnchips" data-ptnchips>' +
-      '<span class="ptnchips__lab">자주 친 파트너</span>' +
+    var cur = String((d && d[field]) || '').replace(/\s+/g, ' ').trim();
+    var attr = rival ? 'data-rvl-chip' : 'data-ptn-chip';
+    return '<div class="' + (rival ? 'ptnchips ptnchips--rvl' : 'ptnchips') + '" data-' + (rival ? 'rvlchips' : 'ptnchips') + '>' +
+      '<span class="ptnchips__lab">' + (rival ? '자주 만난 라이벌' : '자주 친 파트너') + '</span>' +
       names.map(function (n) {
         var on = n === cur;
-        return '<button type="button" class="ptnchip' + (on ? ' is-on' : '') + '" data-ptn-chip="' + U.esc(n) + '"' +
+        return '<button type="button" class="' + (rival ? 'ptnchip ptnchip--rvl' : 'ptnchip') + (on ? ' is-on' : '') + '" ' + attr + '="' + U.esc(n) + '"' +
           ' aria-pressed="' + (on ? 'true' : 'false') + '">' + U.esc(n) + '</button>';
       }).join('') +
       '</div>';
+  }
+
+  function partnerChips(state, d) { return duelChips(state, d, 'partner'); }
+  function rivalChips(state, d) { return duelChips(state, d, 'rival'); }
+
+  /* 저장하거나 이름을 적는 동안 칩 줄만 새로 고칩니다 (폼을 다시 그리지 않아 커서가 안 끊깁니다).
+   *  · 방금 저장한 라이벌·파트너가 바로 '자주 만난 상대' 칩으로 나와 다음 경기에 1탭.
+   *  · 칩이 하나도 없으면 줄을 지우고, 처음 생기면 전적 줄 아래에 끼워 넣습니다. */
+  function paintDuelChips(root, state) {
+    if (!root || !root.querySelector) return;
+    var d = (state && state.drafts && state.drafts.log) || {};
+    ['partner', 'rival'].forEach(function (field) {
+      var rival = field === 'rival';
+      var html = duelChips(state, d, field);
+      var host = root.querySelector(rival ? '[data-rvlchips]' : '[data-ptnchips]');
+      if (host) {
+        if (!html) host.remove();
+        else if (host.outerHTML !== html) host.outerHTML = html;
+      } else if (html) {
+        var anchor = root.querySelector(rival ? '[data-rvl-now]' : '[data-ptn-now]') ||
+          root.querySelector(rival ? '[data-rival-field]' : '[data-partner-field]');
+        if (anchor) anchor.insertAdjacentHTML('afterend', html);
+      }
+    });
   }
 
   /* 입력칸 아래 한 줄 — 지금 적힌 파트너의 전적 (bm-v1.36.0)
@@ -195,6 +227,20 @@
       UI.icon('chart') + '<span>' + U.esc(txt) + '</span></p>';
   }
 
+  /* 라이벌 전적 한 줄 — '김원호 · 6전 4승 2패 (67%) · 최근 21:17' (bm-v1.54.0) */
+  function rivalNowText(state, name) {
+    var n = String(name == null ? '' : name).replace(/\s+/g, ' ').trim();
+    if (!n) return '';
+    var r = D.rivalStat(((state && state.data && state.data.records) || []), n);
+    return r ? D.rivalLineText(r) : '';
+  }
+
+  function rivalNow(state, name) {
+    var txt = rivalNowText(state, name);
+    return '<p class="ptnnow ptnnow--rvl" data-rvl-now' + (txt ? '' : ' hidden') + '>' +
+      UI.icon('chart') + '<span>' + U.esc(txt) + '</span></p>';
+  }
+
   /* 입력 중에 전적 줄만 다시 칠합니다 — 폼을 다시 그리지 않아 커서가 끊기지 않습니다 */
   function paintPartnerNow(ctx, form, name) {
     if (!form) return;
@@ -202,6 +248,17 @@
     if (!host) return;
     var state = (ctx && ctx.store && ctx.store.state) || null;
     var txt = partnerNowText(state, name);
+    host.hidden = !txt;
+    var span = host.querySelector('span');
+    if (span) span.textContent = txt;
+  }
+
+  function paintRivalNow(ctx, form, name) {
+    if (!form) return;
+    var host = form.querySelector('[data-rvl-now]');
+    if (!host) return;
+    var state = (ctx && ctx.store && ctx.store.state) || null;
+    var txt = rivalNowText(state, name);
     host.hidden = !txt;
     var span = host.querySelector('span');
     if (span) span.textContent = txt;
@@ -228,6 +285,14 @@
       '</div>' +
       partnerNow(state, d && d.partner) +
       partnerChips(state, d) +
+      /* 상대(라이벌) — 맞선 상대 이름. 비워 두면 그냥 점수만 쌓입니다 (bm-v1.54.0) */
+      '<div class="ptnfield ptnfield--rvl" data-rival-field>' +
+      '<label class="ptnfield__lab" for="log-rival">상대(라이벌)</label>' +
+      '<input id="log-rival" type="text" maxlength="' + D.RIVAL_MAX + '" enterkeyhint="done" data-field="rival" ' +
+        'value="' + U.esc((d && d.rival) || '') + '" placeholder="맞선 상대 이름 (선택)" aria-label="상대(라이벌) 이름">' +
+      '</div>' +
+      rivalNow(state, d && d.rival) +
+      rivalChips(state, d) +
       '</div>';
   }
 
@@ -691,7 +756,7 @@
     var tagTxt = [].concat(r.pain || [], r.weakness || []).slice(0, 2).join(' · ');
     var doneTxt = (r.done || []).slice(0, 3).join('·');
     var meta = D.logMeta(r);
-    var sub = [meta.partner ? '함께 ' + meta.partner : '', tagTxt, doneTxt].filter(Boolean).join(' · ');
+    var sub = [meta.partner ? '함께 ' + meta.partner : '', meta.rival ? 'vs ' + meta.rival : '', tagTxt, doneTxt].filter(Boolean).join(' · ');
     var proTxt = D.proLine(D.proOf(r), 2);
     return '<li class="logrow" data-record="' + U.esc(r.id) + '">' +
       '<div class="logrow__date"><strong>' + U.shortDay(r.date) + '</strong><span>' + U.relDay(r.date) + '</span></div>' +
@@ -896,9 +961,106 @@
     return BM.timer ? BM.timer.widget(key, name) : '';
   }
 
+  /* ============================================================
+   * 라이벌(상대) 맞대결 전적 (bm-v1.54.0)
+   *  · 일지에 상대(라이벌) 이름을 적은 기록만 셉니다(집계는 D.rivalStats 순수 함수).
+   *  · 한 번도 맞붙은 적 없는 이름뿐이면 카드를 그리지 않습니다.
+   *  · 줄마다 총 경기·승/패·승률과 최근 스코어를 함께 보여 줍니다.
+   *  · 가장 많이 맞붙은 상대가 위로 옵니다 — '내 라이벌'은 자주 만나는 사람.
+   * ============================================================ */
+  function rivalStatsOf(state) {
+    return D.rivalStats((state && state.data && state.data.records) || [], { limit: 5 });
+  }
+
+  function rivalSig(state) {
+    return 'rvl|' + rivalStatsOf(state).map(function (r) {
+      return r.name + ':' + r.games + ':' + r.wins + ':' + r.losses + ':' + r.draws + ':' + (r.recent || '');
+    }).join('|');
+  }
+
+  function rivalRow(r, top) {
+    return '<li class="ptn__row ptn__row--rvl">' +
+      '<span class="ptn__name">' + U.esc(r.name) +
+      (top && r.games >= 2 ? '<i class="pill pill--rvl ptn__best">라이벌</i>' : '') + '</span>' +
+      '<span class="ptn__rec">' + U.esc(r.line) +
+      (r.recent ? ' · 최근 ' + U.esc(r.recent) : '') + '</span>' +
+      '<b class="ptn__rate">' + r.rate + '%</b></li>';
+  }
+
+  function rivalBlock(state) {
+    var list = rivalStatsOf(state);
+    if (!list.length) return '';
+    var top = list[0];
+    return '<section class="card card--ptn card--rvl" data-region="rival" data-sig="' + U.esc(rivalSig(state)) + '">' +
+      '<details class="ptn" data-rvl>' +
+      '<summary class="ptn__sum">' +
+      '<span class="ptn__sum-main">' +
+      '<span class="ptn__t">' + UI.icon('target') + '라이벌 맞대결<small>상대</small></span>' +
+      '<span class="ptn__sum-s">' + U.esc(top.name + '에게 ' + top.wins + '승 ' + top.losses + '패 · ' + top.rate + '%') + '</span></span>' +
+      UI.icon('arrow', 'ptn__car') +
+      '</summary>' +
+      '<div class="ptn__body">' +
+      '<ul class="ptn__list">' + list.map(function (r) { return rivalRow(r, r === top); }).join('') + '</ul>' +
+      '<p class="ptn__note">일지나 코트 점수판에 상대 이름을 적으면 맞대결 전적이 자동으로 쌓여요</p>' +
+      '</div></details></section>';
+  }
+
   function sbTeam(st, side) {
-    if (side === 'a') return st.type === '단식' ? '나' : '내 팀';
-    return st.type === '단식' ? '상대' : '상대 팀';
+    /* 이름표(파트너·라이벌)를 고르면 카드 위 이름에 함께 붙습니다 — 코트에서 누구와
+     * 치는지 한눈에 (bm-v1.54.0). 단식은 파트너가 없어 '나' 그대로. */
+    var name = side === 'a' ? (st.type === '단식' ? '' : st.partner) : st.rival;
+    var base = side === 'a' ? (st.type === '단식' ? '나' : '내 팀') : (st.type === '단식' ? '상대' : '상대 팀');
+    return name ? base + ' · ' + name : base;
+  }
+
+  /* ---------- 파트너 · 라이벌 이름 고르기 (bm-v1.54.0) ----------
+   *  · 점수판 위 가느다란 두 버튼으로 열리고, 칩 한 번이면 끝(2탭).
+   *  · 칩이 없으면 바로 이름을 적을 수 있는 칸이 열려 있습니다.
+   *  · 현재 이름의 전적 한 줄('4전 3승 1패')을 고르는 자리에서 보여 줍니다. */
+  function sbTeamBtn(st, field, picker) {
+    var rival = field === 'rival';
+    var name = rival ? st.rival : st.partner;
+    var open = picker === field;
+    return '<button type="button" class="sb__team' + (rival ? ' sb__team--rvl' : '') + (open ? ' is-open' : '') + '" ' +
+      'data-sb-pick="' + field + '" aria-expanded="' + (open ? 'true' : 'false') + '" ' +
+      'aria-label="' + U.esc((rival ? '상대(라이벌)' : '파트너') + ' 이름 ' + (name ? name + ' 바꾸기' : '고르기')) + '">' +
+      '<span class="sb__team-l">' + (rival ? '라이벌' : '파트너') + '</span>' +
+      '<b class="sb__team-v' + (name ? '' : ' is-empty') + '">' + U.esc(name || '고르기') + '</b>' +
+      '</button>';
+  }
+
+  function sbPickerPanel(st, field, cands) {
+    var rival = field === 'rival';
+    var name = rival ? st.rival : st.partner;
+    var list = (cands && cands[field]) || [];
+    var rec = (cands && cands.rec && cands.rec[field]) || '';
+    var chips = list.length
+      ? list.map(function (n) {
+        var on = n === name;
+        return '<button type="button" class="ptnchip' + (rival ? ' ptnchip--rvl' : '') + (on ? ' is-on' : '') + '" ' +
+          'data-sb-name="' + field + '" data-sb-name-val="' + U.esc(n) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+          U.esc(n) + '</button>';
+      }).join('')
+      : '<span class="sb__pick-empty">' + (rival
+        ? '아직 맞붙은 상대가 없어요 — 이름을 적어 두면 다음부터 칩으로 나와요'
+        : '아직 함께 친 파트너가 없어요 — 아래에 이름을 적어 주세요') + '</span>';
+    return '<div class="sb__pick" data-sb-picker="' + field + '">' +
+      '<div class="sb__pick-row"><span class="sb__pick-l">' + (rival ? '상대(라이벌) 이름' : '파트너 이름') + '</span>' +
+        '<button type="button" class="sb__pick-x" data-sb-pick-close aria-label="이름 고르기 닫기">' + UI.icon('close') + '</button></div>' +
+      '<div class="sb__pick-chips">' + chips + '</div>' +
+      '<input type="text" data-sb-name-input="' + field + '" maxlength="' +
+        ((BM.scoreboard && BM.scoreboard.NAME_MAX) || 20) + '" value="' + U.esc(name) + '" ' +
+        'placeholder="이름 (비워도 돼요)" aria-label="' + (rival ? '상대(라이벌) 이름' : '파트너 이름') + ' 적기" enterkeyhint="done">' +
+      (rec ? '<p class="sb__pick-rec">' + UI.icon('chart') + '<span>' + U.esc(rec) + '</span></p>' : '') +
+      '</div>';
+  }
+
+  function sbTeams(st, picker, cands) {
+    var doubles = st.type !== '단식';
+    return '<div class="sb__teams' + (doubles ? '' : ' is-solo') + '">' +
+      (doubles ? sbTeamBtn(st, 'partner', picker) : '') +
+      sbTeamBtn(st, 'rival', picker) +
+      '</div>' + (picker ? sbPickerPanel(st, picker, cands) : '');
   }
 
   function sbSeg(attr, values, cur, suffix) {
@@ -919,6 +1081,7 @@
    *  · 화면이 넘치지 않도록 .sb--full 은 100dvh 안에서 flex 로만 나눕니다.
    * ============================================================ */
   var sbSwap = false;          /* 코트 교대 — 화면에서 두 카드의 자리만 바꿉니다(점수 기록은 그대로) */
+  var sbPicker = '';           /* '' | 'partner' | 'rival' — 지금 열린 이름 고르기 (bm-v1.54.0) */
 
   /* ---------- 가로 보기 (bm-v1.48.0) ----------
    * "그리고 점수판 가로로해야지" — 코트 옆에 폰을 눕혀 두고 쓰는 화면입니다.
@@ -996,6 +1159,8 @@
         ' <i class="sb__res sb__res--' + (win === '승' ? 'w' : win === '패' ? 'l' : 'd') + '">' + win + '</i></li>';
     }).join('');
     var land = typeof opts.land === 'boolean' ? opts.land : sbIsLand();
+    var picker = typeof opts.picker === 'string' ? opts.picker : sbPicker;
+    var cands = opts.cands || {};
     /* 세로: 상대(위) → 내 팀(아래) / 가로: 내 팀(왼쪽) → 상대(오른쪽). 코트 교대는 그 자리를 바꿉니다 */
     var order = land ? (swap ? ['b', 'a'] : ['a', 'b']) : (swap ? ['a', 'b'] : ['b', 'a']);
     var cards = sbCard(st, order[0]) + sbCard(st, order[1]);
@@ -1011,6 +1176,7 @@
         '<span class="sbfull__set" aria-label="세트 스코어 ' + U.esc(ss.text) + '">' + U.esc(ss.text) + '</span>' +
       '</header>' +
       '<div class="sb__modes">' + sbSeg('mode', [21, 25], st.mode, '점제') + sbSeg('type', ['복식', '단식'], st.type, '') + '</div>' +
+      sbTeams(st, picker, cands) +
       '<p class="sb__state sb__state--' + U.esc(stt.kind) + '">' + U.esc(stt.text) + '</p>' +
       '<div class="sb__board">' + cards + '</div>' +
       (sets ? '<ul class="sb__sets">' + sets + '</ul>' : '') +
@@ -1042,10 +1208,24 @@
     var node = null;
 
     function sync() { sbState.over = SB.winner(sbState); }
+
+    /* 이름 고르기 칩·전적 줄에 넣을 값 — 지금 저장된 일지에서 가벼지게 계산합니다 */
+    function cands() {
+      var state = (ctx.store && ctx.store.state) || null;
+      return {
+        partner: recentPartnerNames(state, 6),
+        rival: recentRivalNames(state, 6),
+        rec: {
+          partner: sbState.partner ? partnerNowText(state, sbState.partner) : '',
+          rival: sbState.rival ? rivalNowText(state, sbState.rival) : ''
+        }
+      };
+    }
+
     function repaint() {
       if (!node) return;
       var host = node.querySelector('[data-sb]');
-      if (host) host.outerHTML = scoreboardHtml(sbState, { swap: sbSwap });
+      if (host) host.outerHTML = scoreboardHtml(sbState, { swap: sbSwap, picker: sbPicker, cands: cands() });
     }
     function save() {
       sync();
@@ -1053,12 +1233,16 @@
       var patch = SB.draftPatch(sbState, draft);
       if (!patch) { UI.toast('한 세트를 마치면 넣을 수 있어요'); return; }
       var summary = SB.summary(sbState);
+      var who = [];
+      if (patch.partner && sbState.type !== '단식') who.push(patch.partner);
+      if (patch.rival) who.push(patch.rival);
       sbClose();
       sbState = null;                       /* 넣었으니 다음엔 새 점수판으로 */
       ctx.actions.setDraft(patch);
       UI.haptic(16);
       if (ctx.repaint) ctx.repaint();
-      UI.toast((summary.count > 1 ? summary.count + '세트 ' : '') + '점수를 일지에 넣었어요 · 저장을 누르면 AI 분석까지 이어져요');
+      UI.toast((summary.count > 1 ? summary.count + '세트 ' : '') + '점수를 일지에 넣었어요' +
+        (who.length ? ' · ' + who.join(' vs ') : '') + ' · 저장을 누르면 AI 분석까지 이어져요');
       setTimeout(function () {
         var form = document.querySelector('[data-form="log"]');
         if (form && form.scrollIntoView) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1074,6 +1258,7 @@
       window.removeEventListener('orientationchange', sbOnResize);
       if (sbOrient === 'land') sbLockOrient(false);
       sbOrient = '';
+      sbPicker = '';
       n.classList.remove('is-on');
       document.body.classList.remove('no-scroll');
       setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, 200);
@@ -1098,6 +1283,7 @@
       window.removeEventListener('orientationchange', sbOnResize);
       if (sbOrient === 'land') sbLockOrient(false);
       sbOrient = '';
+      sbPicker = '';
       n.classList.remove('is-on');
       document.body.classList.remove('no-scroll');
       setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, 200);
@@ -1109,7 +1295,7 @@
     node.setAttribute('role', 'dialog');
     node.setAttribute('aria-modal', 'true');
     node.setAttribute('aria-label', '코트 점수판');
-    node.innerHTML = scoreboardHtml(sbState, { swap: sbSwap });
+    node.innerHTML = scoreboardHtml(sbState, { swap: sbSwap, picker: sbPicker, cands: cands() });
     document.body.appendChild(node);
     document.body.classList.add('no-scroll');
     sbApplyOrient(node);                       /* 가로로 든 채면 바로 가로 배치로 */
@@ -1119,11 +1305,50 @@
     window.addEventListener('orientationchange', sbOnResize);
     requestAnimationFrame(function () { if (node) node.classList.add('is-on'); });
 
+    /* 이름 고르기 칸에 적는 동안 — 화면을 다시 그리지 않아 키보드·커서가 끊기지 않습니다.
+     * 이름표 버튼 글자와 전적 줄만 그 자리에서 고칩니다. */
+    node.addEventListener('input', function (ev) {
+      var el = ev.target;
+      var field = el && el.getAttribute && el.getAttribute('data-sb-name-input');
+      if (!field) return;
+      sbState = SB.setName(sbState, field, el.value);
+      var btnV = node.querySelector('[data-sb-pick="' + field + '"] .sb__team-v');
+      if (btnV) {
+        btnV.textContent = el.value || '고르기';
+        btnV.classList.toggle('is-empty', !el.value);
+      }
+    });
+
     node.addEventListener('click', function (ev) {
       var el;
       if ((el = ev.target.closest('[data-sb-close]'))) {
         ev.preventDefault();
         sbClose();
+        return;
+      }
+      if ((el = ev.target.closest('[data-sb-pick]'))) {
+        ev.preventDefault();
+        var pickField = el.getAttribute('data-sb-pick') === 'rival' ? 'rival' : 'partner';
+        sbPicker = sbPicker === pickField ? '' : pickField;
+        UI.haptic(6);
+        repaint();
+        return;
+      }
+      if (ev.target.closest('[data-sb-pick-close]')) {
+        ev.preventDefault();
+        sbPicker = '';
+        repaint();
+        return;
+      }
+      if ((el = ev.target.closest('[data-sb-name]'))) {
+        ev.preventDefault();
+        var nameField = el.getAttribute('data-sb-name') === 'rival' ? 'rival' : 'partner';
+        var picked = el.getAttribute('data-sb-name-val') || '';
+        /* 같은 칩을 다시 누르면 이름을 지웁니다(일지 파트너 칩과 같은 규칙) */
+        sbState = SB.setName(sbState, nameField, sbState[nameField] === picked ? '' : picked);
+        sbPicker = '';
+        UI.haptic(8);
+        repaint();
         return;
       }
       if ((el = ev.target.closest('[data-sb-point]'))) {
@@ -1313,6 +1538,9 @@
         /* 복식 파트너별 승률 — 파트너 이름을 적은 일지가 있을 때만 (일지 입력·분석 바로 아래) */
         partnerBlock(state) +
 
+        /* 라이벌(상대) 맞대결 전적 — 상대 이름을 적은 일지가 있을 때만 (bm-v1.54.0) */
+        rivalBlock(state) +
+
         '<section class="card" data-region="recent">' +
         '<header class="card__head"><h2>최근 기록</h2><span class="muted">' + recent.length + '건</span></header>' +
         (recent.length ? '<ul class="loglist">' + recent.map(recentRow).join('') + '</ul>'
@@ -1406,6 +1634,9 @@
           /* 이름은 저장할 때 정리합니다(20자·줄바꿈 제거) — 입력 중 커서가 끊기지 않게 그대로 둡니다 */
           ctx.actions.setDraft({ partner: el.value });
           paintPartnerNow(ctx, form, el.value);
+        } else if (f === 'rival') {
+          ctx.actions.setDraft({ rival: el.value });
+          paintRivalNow(ctx, form, el.value);
         } else if (f === 'video') {
           ctx.actions.setDraft({ video: el.value });
           var vh = form.querySelector('[data-video-hint]');
@@ -1482,13 +1713,33 @@
           ev.preventDefault();
           var ptnInput = form.querySelector('[data-field="partner"]');
           var picked = ptnChip.getAttribute('data-ptn-chip') || '';
-          var now = ptnInput ? String(ptnInput.value || '').replace(/\s+/g, ' ').trim() : '';
+          /* 지금 값은 저장소 초안이 기준 — 저장한 뒤 폼에 남은 글자와 어긋나지 않게 (v1.54) */
+          var now = String(((ctx.store.state.drafts.log || {}).partner) || '').replace(/\s+/g, ' ').trim();
           var next = now === picked ? '' : picked;
           if (ptnInput) ptnInput.value = next;
           ctx.actions.setDraft({ partner: next });
           paintPartnerNow(ctx, form, next);
           UI.$$('[data-ptn-chip]', form).forEach(function (b) {
             var on = next !== '' && b.getAttribute('data-ptn-chip') === next;
+            b.classList.toggle('is-on', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+          UI.haptic(8);
+          return;
+        }
+        /* 최근 라이벌 칩 — 1탭으로 상대 이름을 넣고, 같은 칩을 다시 누르면 지웁니다 (bm-v1.54.0) */
+        var rvlChip = ev.target.closest('[data-rvl-chip]');
+        if (rvlChip) {
+          ev.preventDefault();
+          var rvlInput = form.querySelector('[data-field="rival"]');
+          var rvlPicked = rvlChip.getAttribute('data-rvl-chip') || '';
+          var rvlNow = String(((ctx.store.state.drafts.log || {}).rival) || '').replace(/\s+/g, ' ').trim();
+          var rvlNext = rvlNow === rvlPicked ? '' : rvlPicked;
+          if (rvlInput) rvlInput.value = rvlNext;
+          ctx.actions.setDraft({ rival: rvlNext });
+          paintRivalNow(ctx, form, rvlNext);
+          UI.$$('[data-rvl-chip]', form).forEach(function (b) {
+            var on = rvlNext !== '' && b.getAttribute('data-rvl-chip') === rvlNext;
             b.classList.toggle('is-on', on);
             b.setAttribute('aria-pressed', on ? 'true' : 'false');
           });
@@ -1761,6 +2012,8 @@
     },
 
     update: function (root, state) {
+      /* 새로 저장한 파트너·라이벌이 바로 칩으로 (폼은 그대로 두고 칩 줄만) */
+      paintDuelChips(root, state);
       /* 주간 약점 3회 챌린지 — 일지를 저장하면 스탬프가 스스로 채워집니다 */
       var chHost = root.querySelector('[data-region="challenge"]');
       var chHtml = challengeBlock(state);
@@ -1778,8 +2031,31 @@
         if (!ptnHtml) ptnHost.remove();
         else if (ptnHost.getAttribute('data-sig') !== partnerSig(state)) ptnHost.outerHTML = ptnHtml;
       } else if (ptnHtml) {
-        var ptnAnchor = root.querySelector('[data-region="challenge"]') || root.querySelector('[data-region="routine"]') || root.querySelector('.card--hero');
-        if (ptnAnchor) ptnAnchor.insertAdjacentHTML('afterend', ptnHtml);
+        /* 처음 생길 때는 render()와 같은 자리 — '최근 기록' 바로 위 (bm-v1.54) */
+        var ptnAnchor = root.querySelector('[data-region="recent"]');
+        if (ptnAnchor) ptnAnchor.insertAdjacentHTML('beforebegin', ptnHtml);
+        else {
+          var ptnFallback = root.querySelector('[data-region="analysis"]') || root.querySelector('[data-form="log"]') ||
+            root.querySelector('[data-region="challenge"]') || root.querySelector('.card--hero');
+          if (ptnFallback) ptnFallback.insertAdjacentHTML('afterend', ptnHtml);
+        }
+      }
+      /* 라이벌 맞대결 전적 — 일지를 저장하면 그 자리에서 숫자가 바뀝니다 (bm-v1.54.0) */
+      var rvlHost = root.querySelector('[data-region="rival"]');
+      var rvlHtml = rivalBlock(state);
+      if (rvlHost) {
+        if (!rvlHtml) rvlHost.remove();
+        else if (rvlHost.getAttribute('data-sig') !== rivalSig(state)) rvlHost.outerHTML = rvlHtml;
+      } else if (rvlHtml) {
+        /* 새로 생길 때는 '최근 기록' 바로 위(파트너 카드 다음 자리)에 */
+        var rvlAnchor = root.querySelector('[data-region="recent"]');
+        if (rvlAnchor) rvlAnchor.insertAdjacentHTML('beforebegin', rvlHtml);
+        else {
+          var rvlFallback = root.querySelector('[data-region="partner"]') || root.querySelector('[data-region="analysis"]') ||
+            root.querySelector('[data-form="log"]') || root.querySelector('[data-region="challenge"]') ||
+            root.querySelector('.card--hero');
+          if (rvlFallback) rvlFallback.insertAdjacentHTML('afterend', rvlHtml);
+        }
       }
       var rtn = root.querySelector('[data-region="routine"]');
       var rtnHtml = routineBlock(state);
@@ -1824,7 +2100,7 @@
     }).join(' / ');
     var rows = [
       ['컨디션', rec.cond], ['훈련강도', rec.intensity], ['운동시간', rec.minutes ? rec.minutes + '분' : ''],
-      ['완료훈련', (rec.done || []).join(', ')], ['복식 파트너', meta.partner],
+      ['완료훈련', (rec.done || []).join(', ')], ['복식 파트너', meta.partner], ['상대(라이벌)', meta.rival],
       ['게임점수', gameText || rec.scoreRaw || ''], ['결과', rec.result],
       ['아픈부위', (rec.pain || []).join(', ')], ['약점기술', (rec.weakness || []).join(', ')]
     ].filter(function (r) { return r[1] !== '' && r[1] != null; });
@@ -1868,6 +2144,12 @@
   view.challengeHidden = challengeHidden;
   view.partnerBlock = partnerBlock;
   view.partnerStatsOf = partnerStatsOf;
+  view.rivalBlock = rivalBlock;                 /* v1.54: 라이벌 맞대결 전적 카드 */
+  view.rivalStatsOf = rivalStatsOf;
+  view.recentRivals = recentRivalNames;         /* v1.54: 최근 라이벌 칩 후보 */
+  view.rivalChips = rivalChips;
+  view.rivalNow = rivalNow;                     /* v1.54: 입력칸 아래 라이벌 전적 한 줄 */
+  view.rivalNowText = rivalNowText;
   view.recentPartners = recentPartnerNames;   /* v1.35: 최근 파트너 칩 후보 (테스트·재사용) */
   view.partnerChips = partnerChips;
   view.partnerNow = partnerNow;               /* v1.36: 입력칸 아래 파트너 전적 한 줄 */
