@@ -583,19 +583,28 @@
     return s ? date + ' ' + s : date;
   }
 
-  /* 빠른 날짜 칩 — 오늘 · 내일 · 이번 주말(주말이면 오늘, 아니면 다가오는 토요일) */
+  /* 빠른 날짜 칩 — 오늘 · 내일 · 이번 주말(다가오는 토요일). 날짜가 겹치는 칩은 빼둡니다.
+   *  bm-v1.52.2 (조환비 님 피드백) — 일요일에는 '이번 주말'이 오늘(11/22)과 같은 날이라
+   *  '오늘 11/22(일)'·'이번 주말 11/22(일)'이 나란히 중복됐습니다. 토요일도 마찬가지입니다.
+   *  · 이미 나온 날짜와 겹치는 칩은 돌려주지 않습니다(오늘을 먼저 두므로 주말 칩만 빠짐).
+   *    앞날을 고를 때는 바로 아래 날짜 칸(달력)을 그대로 쓰면 됩니다. */
   function whenQuickDates(now) {
     var base = (now instanceof Date && !isNaN(now.getTime())) ? now : new Date();
     var today = new Date(base.getFullYear(), base.getMonth(), base.getDate());
     var wd = today.getDay();
     var sat = (wd === 0 || wd === 6) ? 0 : 6 - wd;
-    return WHEN_QUICK_DATES.map(function (q) {
+    var seen = {};
+    var out = [];
+    WHEN_QUICK_DATES.forEach(function (q) {
       var d = today;
       if (q.key === 'tomorrow') d = U.addDays(today, 1);
       if (q.key === 'weekend') d = U.addDays(today, sat);
       var key = U.ymd(d);
-      return { key: q.key, label: q.label, date: key, day: whenDateLabel(key) };
+      if (seen[key]) return;           /* 같은 날짜는 한 번만 */
+      seen[key] = 1;
+      out.push({ key: q.key, label: q.label, date: key, day: whenDateLabel(key) });
     });
+    return out;
   }
 
   /* 적힌 글자에서 날짜·시간을 다시 꺼냅니다 (예전 자유 입력도 칸에 채워 고칠 수 있게)

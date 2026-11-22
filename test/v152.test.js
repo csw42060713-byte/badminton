@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v152.test.js — bm-v1.52.1
+ * test/v152.test.js — bm-v1.52.2
  *   🎥 영상 자세 비교 — 영상을 구간으로 나눠 모두 분석 · 선수 직접 선택
  *
  *  1) 구간 나누기 (순수 함수)
@@ -432,10 +432,10 @@
 
   test('v1.52 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.52.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-65', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.1"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 45', '앱 버전 코드 +1');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.2'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.52.2'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-66', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.2"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 46', '앱 버전 코드 +1');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

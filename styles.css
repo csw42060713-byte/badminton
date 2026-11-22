@@ -5905,10 +5905,15 @@ body {
  * 21. bm-v1.47.0 — 하트·광고 표시, 꾸미기 미리보기, 코치 소속 지도
  * ============================================================ */
 
-/* 코치 카드 — 활동 소속 체육관으로 지도 열기 */
-.coachcard__gyms { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+/* 코치 카드 — 활동 소속 체육관으로 지도 열기
+ *  bm-v1.52.2: 소속 이름 자체가 누를 수 있는 칩 (MY·매칭의 체육관 칩과 같은 모양) */
+.coachcard__gyms { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 5px; }
 .coachcard__gyms .gymlink { font-size: 11.5px; }
 .coachcard__gyms .gymlink i { background: var(--accent-soft); }
+.coachcard__gymname { font-size: 11.5px; color: var(--text-2); }
+.coachcard__meta .gymlink { font-size: 11.5px; font-weight: 700; vertical-align: baseline; }
+.coachcard__meta .gymlink .ico { width: 11px; height: 11px; }
+.coachcard__meta .gymlink i { font-size: 9px; padding: 1.5px 4px; }
 
 /* MY 하트 카드 — '남은 3/5회 · 다음 광고까지 12초' : 두 줄이 되어도 버튼 높이를 맞춥니다 */
 .heartact__s { line-height: 1.35; letter-spacing: -0.2px; }
@@ -6132,6 +6137,24 @@ body {
 .posecard.is-low .posecard__bar i, .posecard.is-high .posecard__bar i { background: #f5a524; }
 .posecard__tip { margin: 7px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--text-2); }
 .pose__foot { margin: 4px 2px 0; font-size: 10px; line-height: 1.55; color: var(--muted); }
+
+/* 참고 기준 접기 (bm-v1.52.2) — 기본은 닫힘, '참고 기준 보기'를 누르면 펼침 */
+.pose__ref { margin: 6px 2px 0; }
+.pose__refsum {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 0; list-style: none; cursor: pointer;
+  font-size: 10.5px; font-weight: 700; color: var(--muted);
+}
+.pose__refsum::-webkit-details-marker { display: none; }
+.pose__refsum::marker { content: ''; }
+.pose__refarw {
+  width: 0; height: 0; flex: none; margin-top: 1px;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent;
+  transition: transform 0.16s ease;
+}
+.pose__ref[open] .pose__refarw { transform: rotate(90deg); }
+.pose__ref[open] .pose__refsum { color: var(--accent); }
 
 /* ---------- 영상 자세 비교 · 구간 나눠 보기 (bm-v1.51.0) ---------- */
 .pose__segshead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 2px 2px 0; }

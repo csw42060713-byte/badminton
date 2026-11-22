@@ -517,14 +517,14 @@
 
   test('v1.29 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.52.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-65', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.2'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.52.2'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-66', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.52.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.52.1', 'TWA appVersion');
-    eq(twa.appVersionCode, 45, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.52.2', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.52.2', 'TWA appVersion');
+    eq(twa.appVersionCode, 46, 'TWA 버전 코드');
     includes(readRoot('index.html'), 'js/views/chat.js', '채팅 화면 파일 유지');
     includes(readRoot('sw.js'), "'./js/views/profile.js'", '서비스워커 캐시 목록 유지');
   });

@@ -286,7 +286,8 @@
     });
   });
 
-  test('v1.45 코치 카드: 구분 배지와 "OO체육관 · 활동 증명됨"이 보인다', function () {
+  /* bm-v1.52.2 — 소속 이름이 '지도 열기' 칩(버튼)이 되면서 '증명됨'은 따로 붙습니다. */
+  test('v1.45 코치 카드: 구분 배지와 소속·활동 증명됨이 보인다', function () {
     var rows = rowsWith([appRow({
       id: 'mentor-145-b', userKey: 'demo_chi', nick: '콕집사', type: '체육관 코치',
       affiliation: '나래울 배드민턴장', proof: '재직 확인', status: '승인'
@@ -296,21 +297,25 @@
       var html = BM.views.coach.render(store.state);
       includes(html, 'data-coach="demo_chi"', '코치 카드');
       includes(html, '체육관 코치', '구분 배지');
-      includes(html, '나래울 배드민턴장 · 활동 증명됨', '소속 + 활동 증명됨');
+      includes(html, '나래울 배드민턴장', '소속 이름');
+      includes(html, '활동 증명됨', '활동 증명됨');
     });
   });
 
-  test('v1.45 코치 카드: 증명이 없는 승인 코치는 소속만 보인다', function () {
+  test('v1.45 코치 카드: 증명이 없는 승인 코치에게는 활동 증명됨이 붙지 않는다', function () {
     var rows = rowsWith([appRow({
       id: 'mentor-145-c', userKey: 'demo_suttle', nick: '셔틀버스', type: '개인 멘토',
-      affiliation: '', proof: '', status: '승인'
+      affiliation: '우리동네 배드민턴 크루', proof: '', status: '승인'
     })]);
     return localStore({ rows: rows, meKey: 'demo_me', me: { nick: '나래' } }).then(function (store) {
       store.state.ui.coachTab = 'feedback';
       var html = BM.views.coach.render(store.state);
+      var start = html.indexOf('data-coach="demo_suttle"');
+      var card = html.slice(start, html.indexOf('</li>', start));
       includes(html, 'data-coach="demo_suttle"', '코치 카드');
-      includes(html, '개인 멘토', '구분 배지');
-      excludes(html, '셔틀버스 · 활동 증명됨', '증명 없으면 붙지 않음');
+      includes(card, '개인 멘토', '구분 배지');
+      includes(card, '우리동네 배드민턴 크루', '소속은 그대로');
+      excludes(card, '활동 증명됨', '증명 없으면 붙지 않음');
     });
   });
 
@@ -402,10 +407,10 @@
 
   test('v1.45 버전: sw · app · index · TWA가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.52.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-65', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.1"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 45', '앱 버전 코드는 그대로');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.2'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.52.2'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-66', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.2"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 46', '앱 버전 코드는 그대로');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

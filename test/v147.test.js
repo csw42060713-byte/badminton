@@ -391,8 +391,14 @@
   test('v1.47 코치 소속: 칩을 누르면 그 체육관 지도로 (id·이름·안내)', function () {
     var row = BM.views.coach.affMapRow('나래울 배드민턴장');
     includes(row, 'data-gym-open="naraeul"', '지도 열기 id');
-    includes(row, '소속 지도에서 보기', '한 곳일 때 짧은 문구');
+    includes(row, '나래울 배드민턴장', '한 곳일 때도 체육관 이름');
     includes(row, 'coachcard__gyms', '스타일 자리');
+    /* bm-v1.52.2 — 소속 이름 자체가 누를 수 있는 칩 */
+    var aff = BM.views.coach.affRow('나래울 배드민턴장');
+    includes(aff, '나래울 배드민턴장', '소속 이름 칩');
+    includes(aff, 'data-gym-open="naraeul"', '소속 이름 클릭 → 지도');
+    includes(BM.views.coach.affRow('우리동네 크루'), 'coachcard__gymname', '등록에 없으면 글자만');
+    excludes(BM.views.coach.affRow('우리동네 크루'), 'data-gym-open', '없는 곳은 링크 없음');
 
     var rows2 = BM.views.coach.affMapRow('나래울 배드민턴장 · 매원고 배드민턴부');
     includes(rows2, 'data-gym-open="naraeul"', '첫째');
@@ -409,7 +415,8 @@
       store.state.ui.coachTab = 'feedback';
       var html = BM.views.coach.render(store.state);
       includes(html, 'data-coach="demo_chi"', '코치 카드');
-      includes(html, '나래울 배드민턴장 · 활동 증명됨', '기존 소속 줄 그대로');
+      includes(html, '나래울 배드민턴장', '소속 이름');
+      includes(html, '활동 증명됨', '활동 증명됨');
       includes(html, 'data-gym-open="naraeul"', '지도 입구');
       includes(html, 'coachcard__gyms', '칩 줄');
     });
@@ -424,7 +431,8 @@
       var html = BM.views.coach.render(store.state);
       includes(html, 'data-coach="demo_suttle"', '코치 카드');
       includes(html, '우리동네 배드민턴 크루', '소속 글자');
-      excludes(html, 'coachcard__gyms', '지도 칩 없음');
+      includes(html, 'coachcard__gymname', '글자로만');
+      excludes(html, 'coachcard__gyms [data-gym-open', '소속 지도 칩 없음');
     });
   });
 
@@ -434,11 +442,11 @@
 
   test('v1.47 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.52.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-65', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.1"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 45', '앱 버전 코드');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.2'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.52.2'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-66', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.2"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 46', '앱 버전 코드');
   });
 
   test('v1.47 배선: 새 파일 없이 기존 파일만 바뀐다 (서비스워커·테스트 목록)', function () {

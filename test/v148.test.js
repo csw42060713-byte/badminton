@@ -128,18 +128,20 @@
     eq(D.meetWhen.parse(null, now).date, '', 'null');
   });
 
-  test('v1.48 일시: 빠른 칩은 오늘·내일·이번 주말(주말이면 오늘)', function () {
+  /* bm-v1.52.2 — 일요일이면 '이번 주말'이 오늘과 같은 날이라 칩을 하나만 두도록 바뀌었습니다
+   * (조환비 님 피드백: '오늘 11/22(일)'·'이번 주말 11/22(일)' 중복) */
+  test('v1.48 일시: 빠른 칩은 오늘·내일·이번 주말(주말에는 겹치는 주말 칩을 빼둠)', function () {
     var q = D.meetWhen.quickDates(new Date(2026, 10, 22));   /* 일요일 */
-    eq(q.length, 3, '칩 3개');
+    eq(q.length, 2, '일요일에는 칩 2개(오늘·내일)');
     eq(q[0].label, '오늘', '첫 칩');
     eq(q[0].date, '2026-11-22', '오늘 날짜');
     eq(q[0].day, '11/22(일)', '요일까지');
     eq(q[1].label, '내일', '둘째 칩');
     eq(q[1].date, '2026-11-23', '내일 날짜');
-    eq(q[2].label, '이번 주말', '셋째 칩');
-    eq(q[2].date, '2026-11-22', '일요일이면 이번 주말은 오늘');
 
     var wed = D.meetWhen.quickDates(new Date(2026, 10, 25));  /* 수요일 */
+    eq(wed.length, 3, '평일에는 칩 3개');
+    eq(wed[2].label, '이번 주말', '셋째 칩');
     eq(wed[2].date, '2026-11-28', '수요일이면 다가오는 토요일');
     eq(wed[2].day, '11/28(토)', '토요일 표기');
 
@@ -429,11 +431,11 @@
 
   test('v1.48 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.52.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-65', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.1"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 45', '앱 버전 코드');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.2'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.52.2'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-66', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.52.2"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 46', '앱 버전 코드');
   });
 
   test('v1.48 배선: 새 파일 없이 기존 파일만 바뀐다 (서비스워커·테스트 목록)', function () {

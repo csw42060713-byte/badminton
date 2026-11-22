@@ -461,14 +461,14 @@
    * ========================================================= */
   test('v1.24 버전: sw · app · 스타일 캐시 · README · TWA가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.1'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.52.1'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-65', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.52.2'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.52.2'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-66', '스타일 캐시 키');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.52.1', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.52.1', 'TWA appVersion');
-    eq(twa.appVersionCode, 45, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.52.2', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.52.2', 'TWA appVersion');
+    eq(twa.appVersionCode, 46, 'TWA 버전 코드');
     /* 서비스워커가 새 파일을 먼저 받아 두는 목록에 api.js 가 있다 */
     includes(readRoot('sw.js'), "./js/api.js", 'sw.js 캐시 목록');
     /* 앱 화면이 Supabase 모드를 알고 있다 */
