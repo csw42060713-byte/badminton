@@ -6606,3 +6606,4 @@ body {
   background: color-mix(in srgb, var(--text) 4%, transparent); color: var(--text);
   font-size: 14px;
 }
+.sc__notice { margin: 0 0 4px; }
