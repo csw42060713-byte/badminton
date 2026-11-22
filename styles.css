@@ -6122,3 +6122,46 @@ body {
 .posecard.is-low .posecard__bar i, .posecard.is-high .posecard__bar i { background: #f5a524; }
 .posecard__tip { margin: 7px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--text-2); }
 .pose__foot { margin: 4px 2px 0; font-size: 10px; line-height: 1.55; color: var(--muted); }
+
+/* ---------- 영상 자세 비교 · 구간 나눠 보기 (bm-v1.51.0) ---------- */
+.pose__segshead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 2px 2px 0; }
+.pose__segshead b { font-size: 12.5px; font-weight: 800; letter-spacing: -0.25px; }
+.pose__segshead span { font-size: 10.5px; color: var(--muted); }
+.pose__segs {
+  display: flex; gap: 7px; overflow-x: auto; padding: 2px 2px 4px;
+  margin: 0 -2px; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.pose__segs::-webkit-scrollbar { display: none; }
+.poseseg {
+  flex: 0 0 auto; display: grid; gap: 1px; min-width: 94px;
+  padding: 8px 11px 9px; border-radius: 13px;
+  border: 1px solid var(--line); background: var(--card); text-align: left;
+}
+.poseseg__t { font-size: 12px; font-weight: 800; letter-spacing: -0.25px; color: var(--text); }
+.poseseg__time { font-size: 10px; color: var(--muted); }
+.poseseg__sum { font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.poseseg__sum.is-warn { color: var(--warn); }
+.poseseg__sum.is-good { color: var(--accent); }
+.poseseg__sum.is-off, .poseseg__sum.is-wait { color: var(--muted); }
+.poseseg__who { font-size: 9.5px; color: var(--muted); }
+.poseseg.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.poseseg.is-on .poseseg__t { color: var(--accent); }
+.pose__who { display: grid; gap: 6px; }
+.pose__notice { margin: 0; font-size: 11.5px; line-height: 1.45; font-weight: 700; color: var(--text-2); }
+.pose__chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.pose__chips::-webkit-scrollbar { display: none; }
+.posechip {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 11px 6px 7px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card);
+  font-size: 11.5px; font-weight: 700; color: var(--text-2);
+}
+.posechip__n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--bg-2); font-size: 9.5px; font-weight: 900; color: var(--text-2);
+}
+.posechip.is-on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.posechip.is-on .posechip__n { background: var(--accent); color: var(--accent-ink); }
+.posechip.is-bad { opacity: 0.62; }
+.posechip small { font-size: 9.5px; font-weight: 700; color: var(--muted); }

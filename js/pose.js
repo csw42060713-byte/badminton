@@ -1,16 +1,19 @@
 /* ============================================================
- * js/pose.js — 🎥 영상 자세 비교 (bm-v1.50.0)
+ * js/pose.js — 🎥 영상 자세 비교 (bm-v1.51.0)
  *
  *  폰으로 찍은 짧은 배드민턴 영상을 **서버로 보내지 않고** 브라우저 안에서만 봅니다.
  *  · 화면에서 고른 영상 파일은 blob: 주소로 이 기기 안에서만 열립니다(업로드 없음).
  *  · MediaPipe Pose(tasks-vision PoseLandmarker)를 처음 쓸 때 한 번만 CDN에서 받아 옵니다
  *    (WASM + 자세 모델 합쳐 약 10MB · 이후 브라우저가 캐시합니다).
- *  · 영상에서 12~20프레임을 골라 33개 관절 좌표를 읽고, 스켈레톤을 그린 미리보기와
- *    논문 기준과 나란히 놓은 비교 카드를 보여 줍니다.
+ *  · 영상을 5~10초 구간으로 **자동으로 나눠** 순서대로 모두 분석하고(최대 8구간),
+ *    구간 카드를 누르면 그 구간의 스켈레톤·비교 카드가 바로 나옵니다.
+ *  · 한 화면에 여러 명(복식까지 최대 4명)이 잡히면 **선수 트랙**을 만들어
+ *    선수 칩이나 캔버스 위 선수를 눌러 분석할 선수를 고릅니다(1명이면 예전 그대로).
  *
- *  ▮ 계산은 전부 순수 함수(frameMetrics · measure · cardsFor)입니다.
- *    화면·영상 없이 좌표 배열만 넘기면 같은 결과가 나와 node 테스트(test/v150.test.js)에서
- *    그대로 돌려 봅니다. 영상이 없어도 '예시로 보기'(demoFrames)로 같은 파이프라인을 봅니다.
+ *  ▮ 계산은 전부 순수 함수(frameMetrics · measure · splitSegments · trackPoses ·
+ *    analyzeSegment · cardsFor)입니다. 화면·영상 없이 좌표 배열만 넘기면 같은 결과가 나와
+ *    node 테스트(test/v150.test.js · test/v151.test.js)에서 그대로 돌려 봅니다.
+ *    영상이 없어도 '예시로 보기'(demoFrames · demoDuo)로 같은 파이프라인을 봅니다.
  *
  *  ▮ 화면에 나가는 말은 전부 쉬운 코트 말투입니다. 논문 이름과 수치는 맨 아래
  *    작은 참고 줄에만 둡니다(앱의 AI 문구 원칙과 같습니다).
@@ -26,7 +29,7 @@
  *      Wang et al. 1998 (ISBS, 대만 엘리트 7명) 타점이 신장의 145%(스매시)·159%(점프 스매시)
  *    · 런지 앞무릎: Nishino·大熊 2014 (JSME, 고교 8명) 무릎 굽힘 70°,
  *      Xie·Pan·Liang·Wu·Chen 2025 (PLOS ONE, 아마추어 24명) 최대 굽힘 81.7±8.6°
- *    · 런지 몸통: Lam·Wong·Lee 2020 (PeerJ 리뷰) — 런지 프로토콜의 몸통 앞굽힘 45°,
+ *    · 런지 몸통: Lam·Wong·Lee 2020 (PeerJ 리뷰) — 러지 프로토콜의 몸통 앞굽힘 45°,
  *      뒷다리는 뒤로 펴서 버팀(Kuntze·Mansfield·Sellers 2010)
  *    · 스플릿 스텝 발 간격: Shishido·Nishijima 2025 (BWF 세계선수권 2023 남자 단식 1~4위)
  *      스플릿 스텝 자세 발 간격 = 신장의 50%, 반응 0.25초 · Hsueh·Pan·Tsai 2016 (ISBS)
@@ -52,6 +55,13 @@
   var SAMPLE_MAX = 20;
   var MAX_MB = 200;           /* 이보다 큰 파일은 기기에서 열기 전에 안내합니다 */
   var THUMB_W = 360;          /* 미리보기용 프레임 그림 폭(px) */
+
+  var NUM_POSES = 4;          /* 복식까지 — 한 프레임에서 최대 4명을 찾습니다 */
+  var SEG_SHORT = 6;          /* 이 길이 이하 영상은 나누지 않고 1구간 */
+  var SEG_UNIT = 5;           /* 40초 이하 영상: 5초 단위 */
+  var SEG_UNIT_LONG = 10;     /* 그보다 길면 10초 단위 */
+  var SEG_MAX = 8;            /* 아무리 길어도 8구간까지만 */
+  var SEG_SAMPLE = 16;        /* 구간마다 뽑는 프레임 수 */
 
   /* BlazePose 33 관절 번호 */
   var LM = {
@@ -176,6 +186,7 @@
    * 1) 순수 함수 — 좌표만 있으면 계산되는 부분
    * ============================================================ */
   function num(v) { return typeof v === 'number' && isFinite(v); }
+  function round1(v) { return Math.round((Number(v) || 0) * 10) / 10; }
 
   function dist(a, b) {
     var dx = a.x - b.x, dy = a.y - b.y;
@@ -252,21 +263,170 @@
     return best.side;
   }
 
-  /* 촬영 길이 → 샘플 시각(초). 앞뒤 가장자리는 조금 비웁니다(검은 프레임 방지) */
-  function planSamples(duration, count) {
-    var n = Math.round(count || SAMPLE_N);
-    if (n < SAMPLE_MIN) n = SAMPLE_MIN;
+  /* ---------- 1-1) 영상 구간 나누기 · 구간 안 샘플 시각 ---------- */
+
+  /* 영상 길이 → 자동 구간 목록
+   *  · 6초 이하: 1구간(나누지 않음)
+   *  · 40초 이하: 5초 단위 · 그보다 길면 10초 단위
+   *  · 아무리 길어도 8구간 — 길면 구간 길이가 늘어납니다(예: 120초 → 15초×8) */
+  function splitSegments(duration) {
+    var d = num(duration) ? round1(duration) : 0;
+    if (!(d > 0)) return [];
+    if (d <= SEG_SHORT) {
+      return [{ index: 0, start: 0, end: d, span: d, label: '1구간' }];
+    }
+    var unit = d <= 40 ? SEG_UNIT : SEG_UNIT_LONG;
+    var n = Math.ceil(d / unit);
+    if (n > SEG_MAX) n = SEG_MAX;
+    if (n < 2) n = 2;
+    var chunk = d / n;
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var s = i === 0 ? 0 : out[out.length - 1].end;
+      var e = i === n - 1 ? d : round1(chunk * (i + 1));
+      /* 0.2초도 안 되는 꼬리는 앞 구간에 붙입니다(누를 수 없는 칩 방지) */
+      if (out.length && e - s < 0.2) {
+        out[out.length - 1].end = e;
+        out[out.length - 1].span = round1(e - out[out.length - 1].start);
+        continue;
+      }
+      out.push({ index: out.length, start: round1(s), end: round1(e), span: round1(e - s), label: (out.length + 1) + '구간' });
+    }
+    return out;
+  }
+
+  /* 구간(초) 안에서 count개의 시각. 앞뒤 가장자리는 조금 비웁니다(검은 프레임 방지) */
+  function sampleTimes(startSec, endSec, count) {
+    var s = num(startSec) ? startSec : 0;
+    var e = num(endSec) ? endSec : 0;
+    if (e < s) { var tmp = s; s = e; e = tmp; }
+    if (!(e > s)) return [];
+    var n = Math.round(num(count) ? count : SEG_SAMPLE);
+    if (n < 4) n = 4;
     if (n > SAMPLE_MAX) n = SAMPLE_MAX;
-    if (!(duration > 0)) return [];
-    var pad = Math.min(0.12, duration * 0.06);
-    var from = pad;
-    var to = Math.max(pad + 0.02, duration - pad);
+    var pad = Math.min(0.06, (e - s) * 0.04);
+    var from = s + pad, to = e - pad;
+    if (!(to > from)) { from = s; to = e; }
     var out = [];
     for (var i = 0; i < n; i++) {
       var t = from + (to - from) * (i / (n - 1));
       out.push(Math.round(t * 1000) / 1000);
     }
     return out;
+  }
+
+  /* 촬영 길이 → 샘플 시각(초). 구간을 안 고르고 영상 전체를 볼 때 씁니다 */
+  function planSamples(duration, count) {
+    if (!(duration > 0)) return [];
+    var n = Math.round(count || SAMPLE_N);
+    if (n < SAMPLE_MIN) n = SAMPLE_MIN;
+    if (n > SAMPLE_MAX) n = SAMPLE_MAX;
+    return sampleTimes(0, duration, n);
+  }
+
+  /* ---------- 1-2) 여러 선수 → 선수 트랙 ---------- */
+
+  function detectionsOf(f) {
+    if (!f) return [];
+    if (f.poses && f.poses.length) return f.poses;
+    if (f.lm && okLandmarks(f.lm)) return [f.lm];
+    return [];
+  }
+
+  /* 한 사람의 몸 위치·크기 — 몸통 중심(어깨·골반)과 몸 전체 상자 */
+  function torsoOf(lm) {
+    if (!okLandmarks(lm)) return null;
+    var shMid = mid(lm[LM.lSh], lm[LM.rSh]);
+    var hipMid = mid(lm[LM.lHip], lm[LM.rHip]);
+    var size = dist(shMid, hipMid);
+    if (!(size > 0.008)) return null;
+    var idx = [LM.nose, LM.lSh, LM.rSh, LM.lHip, LM.rHip, LM.lKn, LM.rKn, LM.lAn, LM.rAn];
+    var minx = 2, maxx = -1, miny = 2, maxy = -1;
+    for (var i = 0; i < idx.length; i++) {
+      var p = lm[idx[i]];
+      if (!p) continue;
+      if (p.x < minx) minx = p.x;
+      if (p.x > maxx) maxx = p.x;
+      if (p.y < miny) miny = p.y;
+      if (p.y > maxy) maxy = p.y;
+    }
+    return {
+      x: (minx + maxx) / 2, y: (miny + maxy) / 2,
+      size: size, w: Math.max(0.01, maxx - minx), h: Math.max(0.01, maxy - miny),
+      headY: (lm[LM.nose] ? lm[LM.nose].y : miny)
+    };
+  }
+
+  /* 프레임마다 잡힌 여러 명을 몸통 중심 거리로 이어 붙여 선수 트랙을 만듭니다.
+   *  · 큰 사람부터 자리를 잡습니다(작은 사람이 큰 사람 자리를 훔치지 않게).
+   *  · 앞 프레임에서 그 선수 몸통 길이의 gate배 안에 있으면 같은 선수.
+   *  · 두 프레임 이상 잡힌 트랙만 진짜 선수로 봅니다(한 장짜리 오검출 제거).
+   *  · 가장 크고 뚜렷한 트랙이 1번(주 트랙)입니다. */
+  function trackPoses(frames, opts) {
+    opts = opts || {};
+    var gate = num(opts.gate) ? opts.gate : 0.7;
+    var list = [];
+    var total = (frames || []).length;
+    (frames || []).forEach(function (f, fi) {
+      var infos = [];
+      detectionsOf(f).forEach(function (lm) {
+        var t = torsoOf(lm);
+        if (t) infos.push({ lm: lm, t: t });
+      });
+      infos.sort(function (a, b) { return b.t.size - a.t.size; });
+      var taken = {};
+      infos.forEach(function (d) {
+        var best = -1, bestD = Infinity;
+        for (var ti = 0; ti < list.length; ti++) {
+          if (taken[ti]) continue;
+          var tr = list[ti];
+          if (tr.last < fi - 2) continue;               /* 3프레임 넘게 비면 새 사람 */
+          if (dist(tr.c, d.t) > gate * Math.max(tr.size, d.t.size)) continue;
+          var dd = dist(tr.c, d.t) / Math.max(0.02, tr.size);
+          if (dd < bestD) { bestD = dd; best = ti; }
+        }
+        if (best < 0) {
+          list.push({ c: { x: d.t.x, y: d.t.y }, size: d.t.size, last: fi, hits: [] });
+          best = list.length - 1;
+        }
+        taken[best] = true;
+        var tr = list[best];
+        tr.c = { x: d.t.x, y: d.t.y };
+        tr.size = tr.size * 0.65 + d.t.size * 0.35;
+        tr.last = fi;
+        tr.hits.push({ fi: fi, lm: d.lm, box: d.t });
+      });
+    });
+
+    var need = Math.max(2, Math.round(total * 0.2));
+    var keep = list.filter(function (tr) { return tr.hits.length >= need; });
+    if (!keep.length) keep = list.filter(function (tr) { return tr.hits.length >= 2; });
+    keep.sort(function (a, b) { return b.size - a.size; });
+
+    var tracks = keep.map(function (tr, i) {
+      var byFrame = {};
+      tr.hits.forEach(function (h) { byFrame[h.fi] = h; });
+      return {
+        id: i + 1, label: '선수 ' + (i + 1), primary: i === 0,
+        count: tr.hits.length, size: tr.size,
+        byFrame: byFrame, hits: tr.hits
+      };
+    });
+    return { tracks: tracks, count: tracks.length, frameCount: total };
+  }
+
+  /* 캔버스에서 누른 자리 → 그 사람(가장 가까운 트랙). 없으면 -1 */
+  function nearestPlayer(players, frameIdx, pt) {
+    if (!players || !players.length || !pt) return -1;
+    var best = -1, bestD = Infinity;
+    players.forEach(function (p, i) {
+      var hit = p && p.track && p.track.byFrame ? p.track.byFrame[frameIdx] : null;
+      if (!hit || !hit.box) return;
+      var d = dist({ x: hit.box.x, y: hit.box.y }, pt);
+      var lim = Math.min(0.3, Math.max(0.08, (hit.box.h || 0.4) * 0.7));
+      if (d <= lim && d < bestD) { bestD = d; best = i; }
+    });
+    return best;
   }
 
   /* 프레임 묶음 → 핵심 순간 + 비교 카드
@@ -309,7 +469,8 @@
         var lf = Math.max(rows[q].m.kneeFlexL, rows[q].m.kneeFlexR);
         if (isFinite(lf) && lf > landFlex) { landFlex = lf; land = q; }
       }
-      picks = { key: impact, prep: prep, landing: land };
+      /* key = 잰 프레임 중 몇 번째인지(rows 기준) · frame = 영상 프레임 번호(화면에서 그 프레임을 폅니다) */
+      picks = { key: impact, prep: prep, landing: land, frame: rows[impact].i, prepFrame: rows[prep].i, landingFrame: rows[land].i };
       picks.values = {
         elbow: rows[impact].m.elbow,
         reach: rows[impact].m.reach,
@@ -332,7 +493,7 @@
       var flexMin = Math.min(rows[deep].m.kneeFlexL, rows[deep].m.kneeFlexR);
       /* 스플릿 스텝 간격 = 영상에서 가장 좁은 순간(모아 선 자세)이 아니라,
        * 발이 가장 넓게 벌어진 순간을 씁니다 — 두 발이 땅에 닿은 자세 기준 */
-      picks = { key: deep };
+      picks = { key: deep, frame: rows[deep].i };
       picks.values = {
         stance: deepV,
         lungeKnee: flexMax,
@@ -406,6 +567,52 @@
       : '지금 타점 모양이 좋아요. 이대로 한 번 더 찍어서 비교해 보세요.';
   }
 
+  /* ---------- 1-3) 한 구간 = 선수 트랙 + 선수별 결과 ---------- */
+
+  /* frames: [{ t, poses: [33좌표...], thumb }] → 선수별 비교 카드까지 */
+  function analyzeSegment(frames, mode) {
+    var useMode = mode === 'foot' ? 'foot' : 'smash';
+    var tk = trackPoses(frames);
+    var players = tk.tracks.map(function (tr) {
+      var seq = (frames || []).map(function (f, i) {
+        var hit = tr.byFrame[i];
+        return { t: (f && f.t) || 0, lm: hit ? hit.lm : null, thumb: f && f.thumb };
+      });
+      return { track: tr, index: tr.id - 1, seq: seq, result: measure(seq, useMode) };
+    });
+    var pick = -1;
+    for (var i = 0; i < players.length; i++) {
+      if (players[i].result && players[i].result.ok) { pick = i; break; }
+    }
+    if (pick < 0 && players.length) pick = 0;
+    var ok = pick >= 0 && !!(players[pick].result && players[pick].result.ok);
+    return {
+      ok: ok,
+      mode: useMode,
+      tracks: tk.tracks,
+      players: players,
+      pick: pick,
+      count: tk.count,
+      reason: ok ? '' : (players.length ? ((players[pick].result && players[pick].result.reason) || 'few-frames') : 'no-person')
+    };
+  }
+
+  /* 구간 칩에 쓰는 한 줄 요약 — '보완 2건' / '좋아요' / '사람을 못 찾음' */
+  function segSummary(node) {
+    var a = node && node.analysis;
+    if (!a) return { text: '분석 중…', tone: 'wait', people: 0 };
+    if (!a.ok) return { text: '사람을 못 찾음', tone: 'off', people: a.count || 0 };
+    var r = a.players[a.pick] && a.players[a.pick].result;
+    var miss = 0;
+    (r.cards || []).forEach(function (c) { if (c.verdict !== 'good') miss++; });
+    return { text: miss ? '보완 ' + miss + '건' : '좋아요', tone: miss ? 'warn' : 'good', people: a.count };
+  }
+
+  function segTime(seg) {
+    if (!seg) return '';
+    return round1(seg.start).toFixed(1) + '~' + round1(seg.end).toFixed(1) + '초';
+  }
+
   /* ============================================================
    * 2) 스켈레톤 그리기 — 캔버스 2D
    * ============================================================ */
@@ -417,12 +624,13 @@
     var Y = function (p) { return p.y * h; };
     var side = opts.side === 'L' ? 'L' : 'R';
     var S = SIDE_IDX[side];
+    var faint = !!opts.faint;
     g.save();
     g.lineCap = 'round';
     g.lineJoin = 'round';
     /* 뼈대 */
-    g.strokeStyle = opts.bone || 'rgba(120,255,214,0.85)';
-    g.lineWidth = Math.max(1.6, w * 0.006);
+    g.strokeStyle = faint ? 'rgba(200,214,226,0.42)' : (opts.bone || 'rgba(120,255,214,0.85)');
+    g.lineWidth = Math.max(faint ? 1.2 : 1.6, w * (faint ? 0.004 : 0.006));
     BONES.forEach(function (b) {
       var a = lm[b[0]], c = lm[b[1]];
       if (!a || !c) return;
@@ -436,8 +644,8 @@
     for (var i = 0; i < lm.length; i++) {
       if (i === 0) continue;
       g.beginPath();
-      g.fillStyle = 'rgba(255,255,255,0.55)';
-      g.arc(X(lm[i]), Y(lm[i]), r * 0.62, 0, Math.PI * 2);
+      g.fillStyle = faint ? 'rgba(214,226,236,0.5)' : 'rgba(255,255,255,0.55)';
+      g.arc(X(lm[i]), Y(lm[i]), r * (faint ? 0.45 : 0.62), 0, Math.PI * 2);
       g.fill();
     }
     /* 측정에 쓴 관절은 크게 (팔꿈치·손목·어깨·무릎·발목) */
@@ -446,10 +654,10 @@
       var p = lm[idx];
       if (!p) return;
       g.beginPath();
-      g.fillStyle = opts.hot || '#c6f24e';
+      g.fillStyle = faint ? 'rgba(214,226,236,0.6)' : (opts.hot || '#c6f24e');
       g.strokeStyle = 'rgba(0,0,0,0.35)';
       g.lineWidth = Math.max(1, w * 0.003);
-      g.arc(X(p), Y(p), r * 1.15, 0, Math.PI * 2);
+      g.arc(X(p), Y(p), r * (faint ? 0.8 : 1.15), 0, Math.PI * 2);
       g.fill();
       g.stroke();
     });
@@ -460,7 +668,7 @@
       var a2 = Math.atan2(Y(wr) - Y(el), X(wr) - X(el));
       var rr = Math.max(10, w * 0.05);
       g.beginPath();
-      g.strokeStyle = 'rgba(198,242,78,0.55)';
+      g.strokeStyle = faint ? 'rgba(214,226,236,0.3)' : 'rgba(198,242,78,0.55)';
       g.lineWidth = Math.max(1, w * 0.004);
       var diff = a2 - a1;
       while (diff > Math.PI) diff -= Math.PI * 2;
@@ -468,6 +676,23 @@
       g.arc(X(el), Y(el), rr, a1, a1 + diff, diff < 0);
       g.stroke();
     }
+    g.restore();
+  }
+
+  /* 다른 선수 머리 위 번호 마커 */
+  function drawTag(g, x, y, text, opts) {
+    opts = opts || {};
+    var r = opts.r || 10;
+    g.save();
+    g.beginPath();
+    g.fillStyle = opts.faint ? 'rgba(236,244,249,0.82)' : '#c6f24e';
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#0b1210';
+    g.font = 'bold ' + Math.round(r * 1.15) + 'px system-ui, -apple-system, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(String(text), x, y + 0.5);
     g.restore();
   }
 
@@ -585,6 +810,46 @@
     return out;
   }
 
+  /* 자세를 크기 s로 줄여 (ox, oy)에 놓기 — 각도는 그대로라 카드도 그대로 */
+  function placePose(lm, ox, oy, s) {
+    return lm.map(function (p) {
+      return {
+        x: ox + (p.x - 0.5) * s,
+        y: oy + (p.y - 0.5) * s,
+        z: p.z || 0,
+        visibility: p.visibility == null ? 1 : p.visibility
+      };
+    });
+  }
+
+  /* 복식(2명) 예시 — 3초짜리 구간 2개, 한 구간에 두 선수 */
+  function demoDuo(mode) {
+    var base = demoFrames(mode === 'foot' ? 'foot' : 'smash');
+    var out = [];
+    for (var si = 0; si < 2; si++) {
+      var frames = base.map(function (f, i) {
+        var a = placePose(f.lm, 0.27, 0.50, 0.56);
+        var b = placePose(f.lm, 0.73, 0.50, 0.56);
+        return { t: round1(si * 3 + i * 0.2), lm: a, poses: [a, b], thumb: null };
+      });
+      out.push({
+        seg: { index: si, start: si * 3, end: si * 3 + 3, span: 3, label: (si + 1) + '구간' },
+        frames: frames
+      });
+    }
+    return out;
+  }
+
+  /* 1인 예시를 구간 하나로 감싸기 (영상 없이 같은 화면·계산) */
+  function demoOne(mode) {
+    var frames = demoFrames(mode);
+    var span = round1(frames[frames.length - 1].t);
+    return [{
+      seg: { index: 0, start: 0, end: span, span: span, label: '1구간' },
+      frames: frames
+    }];
+  }
+
   /* ============================================================
    * 4) MediaPipe — 처음 한 번만 불러옵니다
    * ============================================================ */
@@ -603,7 +868,7 @@
         return vision.PoseLandmarker.createFromOptions(fileset, {
           baseOptions: { modelAssetPath: MODEL_URL, delegate: 'CPU' },
           runningMode: 'IMAGE',
-          numPoses: 1,
+          numPoses: NUM_POSES,                 /* 복식까지 — 최대 4명 */
           minPoseDetectionConfidence: 0.5,
           minPosePresenceConfidence: 0.5
         });
@@ -620,7 +885,7 @@
   }
 
   function modelState() {
-    return { state: loadState, ready: loadState === 'ready' };
+    return { state: loadState, ready: loadState === 'ready', poses: NUM_POSES };
   }
 
   function loadHint() {
@@ -668,39 +933,74 @@
     } catch (e) { return null; }
   }
 
-  /* 영상 파일 → [{ t, lm, thumb }] (모두 이 기기 안에서) */
-  function readVideo(file, opts) {
+  /* 영상 하나를 열어 정해진 구간들을 차례로 읽습니다.
+   *  opts.plan(duration) → [{ start, end, label }]   (기본: 영상 전체 1구간)
+   *  opts.perSegment → 구간마다 뽑을 프레임 수
+   *  onProgress({ phase }) — model · meta · segment · frames · segmentDone */
+  function scanVideo(file, opts) {
     opts = opts || {};
     var onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : function () {};
+    var plan = typeof opts.plan === 'function'
+      ? opts.plan
+      : function (d) { return [{ index: 0, start: 0, end: round1(d), span: round1(d), label: '1구간' }]; };
+    var per = Math.max(4, Math.min(SAMPLE_MAX, Math.round(opts.perSegment || SEG_SAMPLE)));
     var landmarker = null;
-    onProgress({ phase: 'model', done: 0, total: 0 });
+    onProgress({ phase: 'model' });
     return loadLandmarker().then(function (inst) {
       landmarker = inst;
       return openVideo(file);
     }).then(function (video) {
-      var duration = video.duration;
-      var times = planSamples(duration, opts.count);
-      var frames = [];
+      var duration = round1(video.duration);
+      var segs = plan(duration);
+      onProgress({ phase: 'meta', duration: duration, total: segs.length, segments: segs });
+      var packs = [];
       var chain = Promise.resolve();
-      times.forEach(function (t, i) {
+      segs.forEach(function (seg, si) {
         chain = chain.then(function () {
-          onProgress({ phase: 'frames', done: i, total: times.length });
-          return seekTo(video, t).then(function () {
-            var thumb = captureThumb(video);
-            var lm = null;
-            try {
-              var res = landmarker.detect(video);
-              lm = (res && res.landmarks && res.landmarks[0]) || null;
-            } catch (e) { lm = null; }
-            frames.push({ t: t, lm: lm, thumb: thumb });
+          if (typeof opts.shouldStop === 'function' && opts.shouldStop()) return;
+          onProgress({ phase: 'segment', done: si, total: segs.length, seg: seg });
+          var times = sampleTimes(seg.start, seg.end, per);
+          var frames = [];
+          var inner = Promise.resolve();
+          times.forEach(function (t) {
+            inner = inner.then(function () {
+              return seekTo(video, t).then(function () {
+                var thumb = captureThumb(video);
+                var poses = [];
+                try {
+                  var res = landmarker.detect(video);
+                  poses = (res && res.landmarks) ? res.landmarks : [];
+                } catch (e) { poses = []; }
+                frames.push({ t: t, lm: poses[0] || null, poses: poses, thumb: thumb });
+                onProgress({ phase: 'frames', done: frames.length, total: times.length, segIndex: si, segs: segs.length });
+              });
+            });
+          });
+          return inner.then(function () {
+            var pack = { seg: seg, frames: frames };
+            packs.push(pack);
+            onProgress({ phase: 'segmentDone', pack: pack, done: si, total: segs.length });
           });
         });
       });
       return chain.then(function () {
-        onProgress({ phase: 'frames', done: times.length, total: times.length });
         closeVideo(video);
-        return { frames: frames, duration: duration };
+        onProgress({ phase: 'done', packs: packs, duration: duration, segments: segs });
+        return { duration: duration, segments: segs, packs: packs };
       });
+    });
+  }
+
+  /* 영상 파일 → [{ t, lm, poses, thumb }] (모두 이 기기 안에서) */
+  function readVideo(file, opts) {
+    opts = opts || {};
+    return scanVideo(file, {
+      onProgress: opts.onProgress,
+      perSegment: opts.count || SAMPLE_N,
+      plan: function (d) { return [{ index: 0, start: 0, end: round1(d), span: round1(d), label: '1구간' }]; }
+    }).then(function (out) {
+      var first = out.packs[0] || { frames: [] };
+      return { frames: first.frames, duration: out.duration };
     });
   }
 
@@ -758,14 +1058,20 @@
   var panelEl = null;
   var state = {
     mode: 'smash',
-    frames: null,        /* [{ t, lm, thumb }] */
-    result: null,
+    segs: [],            /* [{ seg, frames, analysis, track }] — 분석이 끝난 구간부터 차례로 */
+    segPlan: [],         /* 분석 중인 영상의 구간 계획(칩을 미리 보여 주려고) */
+    seg: 0,              /* 지금 보고 있는 구간 */
+    frames: null,        /* 지금 구간의 프레임(모든 선수) */
+    result: null,        /* 지금 선수의 비교 결과(예전 화면 코드와 호환) */
     view: 0,
+    duration: 0,
     busy: false,
     error: '',
     hint: '',
-    demo: false,
-    fileName: ''
+    demo: '',
+    fileName: '',
+    file: null,
+    geo: null
   };
 
   function entryHtml() {
@@ -796,12 +1102,58 @@
       return '<div class="pose__status" data-pose-status><span class="pose__spin" aria-hidden="true"></span>' +
         '<p>' + U.esc(state.hint || '영상을 읽고 있어요…') + '</p></div>';
     }
-    if (!state.frames) {
+    if (!state.segs.length) {
       return '<div class="pose__status" data-pose-status>' +
-        '<p>영상을 고르면 <b>이 기기 안에서만</b> 관절을 찾아 볼게요. 5~15초짜리 짧은 영상이 가장 정확해요.</p>' +
-        '<button type="button" class="linkbtn mt6" data-pose-demo>영상 없이 예시로 먼저 보기</button></div>';
+        '<p>영상을 고르면 <b>이 기기 안에서만</b> 5~10초 구간으로 나눠 모두 분석할게요. 15초 안쪽 영상이 가장 정확해요.</p>' +
+        '<div class="row gap8 mt8 wrap"><button type="button" class="linkbtn" data-pose-demo>영상 없이 예시로 먼저 보기</button>' +
+        '<button type="button" class="linkbtn" data-pose-demo="duo">복식(2명) 예시</button></div></div>';
     }
     return '';
+  }
+
+  /* ---------- 구간 칩 · 선수 칩 ---------- */
+  function segBarHtml() {
+    var done = state.segs;
+    var plan = state.segPlan || [];
+    var n = Math.max(done.length, plan.length);
+    if (!n) return '';
+    var chips = '';
+    for (var i = 0; i < n; i++) {
+      var node = done[i];
+      var seg = node ? node.seg : plan[i];
+      if (!seg) continue;
+      var sum = node ? segSummary(node) : { text: '분석 중…', tone: 'wait', people: 0 };
+      var on = i === state.seg && node;
+      chips += '<button type="button" class="poseseg' + (on ? ' is-on' : '') + '" role="tab"' +
+        ' aria-selected="' + (on ? 'true' : 'false') + '" data-pose-seg="' + i + '">' +
+        '<span class="poseseg__t">' + U.esc(seg.label) + '</span>' +
+        '<span class="poseseg__time">' + U.esc(segTime(seg)) + '</span>' +
+        '<span class="poseseg__sum is-' + sum.tone + '">' + U.esc(sum.text) + '</span>' +
+        (sum.people > 1 ? '<span class="poseseg__who">선수 ' + sum.people + '명</span>' : '') +
+        '</button>';
+    }
+    var head = state.duration
+      ? '영상 ' + round1(state.duration).toFixed(1) + '초 · ' + n + '구간'
+      : n + '구간';
+    return '<div class="pose__segshead"><b>구간별 분석</b><span data-pose-segdur>' + U.esc(head) + '</span></div>' +
+      '<div class="pose__segs" data-pose-segs role="tablist" aria-label="분석 구간">' + chips + '</div>';
+  }
+
+  function whoHtml() {
+    var node = currentSeg();
+    if (!node || !node.analysis || node.analysis.players.length < 2) return '';
+    var count = node.analysis.players.length;
+    return '<div class="pose__who" data-pose-who>' +
+      '<p class="pose__notice">' + U.esc('선수 ' + count + '명이 보여요. 분석할 선수를 눌러 고르세요') + '</p>' +
+      '<div class="pose__chips" data-pose-chips>' +
+      node.analysis.players.map(function (p, i) {
+        var on = i === node.track;
+        var bad = !(p.result && p.result.ok);
+        return '<button type="button" class="posechip' + (on ? ' is-on' : '') + (bad ? ' is-bad' : '') + '"' +
+          ' data-pose-track="' + i + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+          '<span class="posechip__n">' + (i + 1) + '</span>선수 ' + (i + 1) +
+          (bad ? '<small>못 잼</small>' : '') + '</button>';
+      }).join('') + '</div></div>';
   }
 
   function stageHtml() {
@@ -809,12 +1161,18 @@
     var r = state.result;
     var oneLine = '';
     if (r && r.ok) oneLine = '<div class="pose__one" data-pose-one>' + U.esc(r.summary) + '</div>';
-    return '<div class="pose__stage"' + (hasFrames ? '' : ' hidden') + ' data-pose-stage>' +
+    var multi = !!(currentSeg() && currentSeg().analysis && currentSeg().analysis.players.length > 1);
+    var legend = multi
+      ? '노란 점이 재는 데 쓴 관절이에요 · 흐린 사람을 누르면 그 선수로 바뀌어요'
+      : '노란 점이 재는 데 쓴 관절(어깨·팔꿈치·손목·무릎·발목)이에요';
+    return segBarHtml() +
+      '<div class="pose__stage"' + (hasFrames ? '' : ' hidden') + ' data-pose-stage>' +
+      whoHtml() +
       '<canvas class="pose__canvas" data-pose-canvas width="360" height="480"></canvas>' +
       '<div class="pose__scrub row gap8" data-pose-scrub>' +
       '<input type="range" min="0" max="15" step="1" value="0" data-pose-range aria-label="프레임 이동">' +
       '<span class="pose__t" data-pose-time>0.00초</span></div>' +
-      '<div class="pose__legend"><span class="pose__dot"></span>노란 점이 재는 데 쓴 관절(어깨·팔꿈치·손목·무릎·발목)이에요</div>' +
+      '<div class="pose__legend"><span class="pose__dot"></span>' + U.esc(legend) + '</div>' +
       oneLine + '</div>' +
       '<div class="pose__cards" data-pose-cards>' + (r && r.ok ? cardsHtml(r) : '') + '</div>';
   }
@@ -866,7 +1224,7 @@
       '<p class="pose__privacy">' + UI().icon('shield') + '<span>영상은 서버로 전송되지 않고 <b>내 폰 안에서만</b> 분석돼요.</span></p>' +
       '<div data-pose-modes>' + modesHtml() + '</div>' +
       '<label class="pose__pick">' + UI().icon('camera') +
-      '<span><b>폰에서 영상 고르기</b><small>스매시·클리어 또는 풋워크가 나오는 짧은 영상</small></span>' +
+      '<span><b>폰에서 영상 고르기</b><small>스매시·클리어 또는 풋워크가 나오는 영상</small></span>' +
       '<input type="file" accept="video/*" data-pose-file></label>' +
       '<div data-pose-status-wrap>' + statusHtml() + '</div>' +
       '<div data-pose-stage-wrap>' + stageHtml() + '</div>' +
@@ -878,6 +1236,45 @@
   }
 
   function host(sel) { return panelEl ? panelEl.querySelector(sel) : null; }
+
+  function currentSeg() { return state.segs[state.seg] || null; }
+
+  function currentPlayer() {
+    var node = currentSeg();
+    if (!node || !node.analysis || !node.analysis.players.length) return null;
+    return node.analysis.players[node.track] || node.analysis.players[0] || null;
+  }
+
+  function currentResult() {
+    var p = currentPlayer();
+    return p ? p.result : null;
+  }
+
+  function currentSeq() {
+    var p = currentPlayer();
+    if (p) return p.seq;
+    var node = currentSeg();
+    return node ? node.frames : null;
+  }
+
+  /* 구간·선수가 바뀌면 화면 상태를 맞춥니다 */
+  function syncView() {
+    var node = currentSeg();
+    state.frames = node ? node.frames : null;
+    state.result = node && node.analysis ? currentResult() : null;
+    var key = 0;
+    var r = state.result;
+    if (r && r.ok && r.picks && node) {
+      var at = r.picks.frame != null ? r.picks.frame : r.picks.key;
+      if (node.frames[at]) key = at;
+    }
+    state.view = Math.max(0, Math.min((state.frames ? state.frames.length : 1) - 1, key));
+  }
+
+  function updateStatusText() {
+    var st = host('[data-pose-status] p');
+    if (st) st.textContent = state.hint || '';
+  }
 
   function paint() {
     if (!panelEl) return;
@@ -902,21 +1299,51 @@
     drawView();
   }
 
-  /* 지금 보는 프레임을 캔버스에 (영상 그림 + 스켈레톤) */
+  /* 지금 보는 프레임을 캔버스에 (영상 그림 + 선택한 선수 스켈레톤 + 다른 선수는 흐리게) */
   function drawView() {
     var c = host('[data-pose-canvas]');
-    if (!c || !state.frames || !state.frames.length) return;
-    var idx = Math.max(0, Math.min(state.frames.length - 1, state.view));
-    var f = state.frames[idx];
+    var node = currentSeg();
+    var seq = currentSeq();
+    if (!c || !seq || !seq.length) return;
+    var idx = Math.max(0, Math.min(seq.length - 1, state.view));
+    var f = seq[idx] || {};
+    /* 캔버스를 영상 비율에 맞춰 검은 여백 없이 — 세로 폰 화면을 아끼고 그림도 크게 */
+    if (f.thumb && f.thumb.w && f.thumb.h) {
+      var wantH = Math.max(180, Math.min(480, Math.round(c.width * f.thumb.h / f.thumb.w)));
+      if (c.height !== wantH) c.height = wantH;
+    }
     var w = c.width, h = c.height;
     var g = c.getContext('2d');
     if (!g) return;
+    var side = state.result ? state.result.side : 'R';
+    var fx = 1, fy = 1, ox = 0, oy = 0;
+
+    function mapped(lm) {
+      if (!lm) return null;
+      if (fx === 1 && fy === 1 && ox === 0 && oy === 0) return lm;
+      return lm.map(function (p) { return { x: ox + p.x * fx, y: oy + p.y * fy }; });
+    }
+
+    function drawFrame() {
+      state.geo = { fx: fx, fy: fy, ox: ox, oy: oy };
+      /* 다른 선수 — 흐린 윤곽 + 번호 */
+      if (node && node.analysis) {
+        node.analysis.players.forEach(function (p, pi) {
+          if (pi === node.track) return;
+          var hit = p.track.byFrame[idx];
+          if (!hit) return;
+          var lm = mapped(hit.lm);
+          drawSkeleton(g, lm, { w: w, h: h, side: (p.result && p.result.side) || 'R', faint: true });
+          var t = torsoOf(lm);
+          if (t) drawTag(g, t.x * w, Math.max(12, (t.headY * h) - 14), pi + 1, { faint: true, r: Math.max(8, w * 0.026) });
+        });
+      }
+      drawSkeleton(g, mapped(f.lm), { w: w, h: h, side: side });
+      var t2 = host('[data-pose-time]');
+      if (t2) t2.textContent = (Number(f.t) || 0).toFixed(2) + '초';
+    }
+
     g.clearRect(0, 0, w, h);
-    var paint = function () {
-      drawSkeleton(g, f.lm, { w: w, h: h, side: state.result ? state.result.side : 'R' });
-      var t = host('[data-pose-time]');
-      if (t) t.textContent = (Number(f.t) || 0).toFixed(2) + '초';
-    };
     if (f.thumb && f.thumb.url) {
       var img = new Image();
       img.onload = function () {
@@ -926,18 +1353,9 @@
         var scale = Math.min(w / sw, h / shh);
         var dw = sw * scale, dh = shh * scale;
         g.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
-        /* 그림 위 좌표도 같은 비율로 옮겨 그립니다 */
-        if (scale < 1 || scale > 1) {
-          var offX = (w - dw) / 2 / w, offY = (h - dh) / 2 / h;
-          var mapped = f.lm ? f.lm.map(function (p) {
-            return { x: offX + p.x * (dw / w), y: offY + p.y * (dh / h) };
-          }) : null;
-          drawSkeleton(g, mapped, { w: w, h: h, side: state.result ? state.result.side : 'R' });
-        } else {
-          drawSkeleton(g, f.lm, { w: w, h: h, side: state.result ? state.result.side : 'R' });
-        }
-        var t2 = host('[data-pose-time]');
-        if (t2) t2.textContent = (Number(f.t) || 0).toFixed(2) + '초';
+        fx = dw / w; fy = dh / h;
+        ox = ((w - dw) / 2) / w; oy = ((h - dh) / 2) / h;
+        drawFrame();
       };
       img.src = f.thumb.url;
       g.fillStyle = 'rgba(11,18,16,0.9)';
@@ -955,30 +1373,56 @@
     for (var y = 24; y < h; y += 24) {
       g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
     }
-    paint();
+    drawFrame();
   }
 
   function setHint(text) { state.hint = text || ''; }
 
-  function runAnalysis(frames, opts) {
-    state.frames = frames;
-    var res = measure(frames, state.mode);
-    state.result = res;
-    /* 처음 보여 줄 프레임 = 핵심 순간(임팩트·런지) */
-    state.view = 0;
-    if (res.ok && res.picks && state.frames[res.picks.key]) state.view = res.picks.key;
-    if (!res.ok) {
-      state.error = res.count
-        ? '관절을 찾지 못했어요. 사람이 전신으로 나오고, 영상이 너무 짧지 않은지 확인해 주세요.'
-        : '영상에서 사람을 찾지 못했어요. 전신이 나오게 조금 멀리서 찍어 주세요.';
-    } else {
-      state.error = '';
-    }
-    if (opts && opts.demo) state.demo = true;
+  /* 분석이 끝난 구간 하나를 화면 목록에 넣습니다(끝난 순서대로) */
+  function applySegment(pack) {
+    if (!pack || !pack.frames) return;
+    var analysis = analyzeSegment(pack.frames, state.mode);
+    state.segs.push({
+      seg: pack.seg,
+      frames: pack.frames,
+      analysis: analysis,
+      track: analysis.pick >= 0 ? analysis.pick : 0
+    });
+  }
+
+  /* 종목(스매시/풋워크)을 바꾸면 저장해 둔 좌표로만 다시 계산합니다(영상 다시 안 읽음) */
+  function recomputeAll() {
+    state.segs.forEach(function (node) {
+      var prev = node.track;
+      node.analysis = analyzeSegment(node.frames, state.mode);
+      if (prev != null && prev < node.analysis.players.length) node.track = prev;
+      else node.track = node.analysis.pick >= 0 ? node.analysis.pick : 0;
+    });
+    syncView();
+  }
+
+  function selectSegment(i, opts) {
+    if (!state.segs.length) return;
+    var idx = Math.max(0, Math.min(state.segs.length - 1, Math.round(i) || 0));
+    state.seg = idx;
+    syncView();
+    if (opts && opts.quiet) return;
+    UI().haptic(5);
     paint();
   }
 
-  function startAnalysis(file) {
+  function selectTrack(i) {
+    var node = currentSeg();
+    if (!node || !node.analysis) return;
+    var idx = Math.max(0, Math.min(node.analysis.players.length - 1, Math.round(i) || 0));
+    if (idx === node.track) return;
+    node.track = idx;
+    syncView();
+    UI().haptic(8);
+    paint();
+  }
+
+  function startBatch(file) {
     if (!file) return;
     if (state.busy) return;
     state.error = '';
@@ -988,29 +1432,68 @@
       return;
     }
     state.busy = true;
-    state.demo = false;
+    state.demo = '';
+    state.file = file;
     state.fileName = file.name || '';
+    state.segs = [];
+    state.segPlan = [];
+    state.seg = 0;
+    state.duration = 0;
+    state.view = 0;
     state.frames = null;
     state.result = null;
-    setHint(loadState === 'ready' ? '영상에서 관절을 찾는 중이에요…' : loadHint());
+    setHint(loadState === 'ready' ? '영상을 나눠서 분석하는 중이에요…' : loadHint());
     paint();
-    readVideo(file, {
+    scanVideo(file, {
+      plan: function (d) { return splitSegments(d); },
+      perSegment: SEG_SAMPLE,
       onProgress: function (p) {
-        if (p.phase === 'model') setHint(loadHint());
-        else setHint('관절을 찾는 중이에요… ' + p.done + '/' + p.total);
-        var st = host('[data-pose-status] p');
-        if (st) st.textContent = state.hint;
+        if (p.phase === 'meta') {
+          state.duration = p.duration;
+          state.segPlan = p.segments || [];
+          setHint('영상 ' + round1(p.duration).toFixed(1) + '초 · ' + p.total + '구간으로 나눠서 차례로 분석하는 중이에요…');
+          paint();
+          return;
+        }
+        if (p.phase === 'segment') {
+          setHint((p.done + 1) + '/' + p.total + ' 구간 분석 중… (' + segTime(p.seg) + ')');
+          updateStatusText();
+          return;
+        }
+        if (p.phase === 'frames') {
+          setHint((p.segIndex + 1) + '/' + (p.segs || state.segPlan.length) + ' 구간 · ' + p.done + '/' + p.total + '프레임');
+          updateStatusText();
+          return;
+        }
+        if (p.phase === 'segmentDone') {
+          applySegment(p.pack);
+          paint();
+        }
       }
-    }).then(function (pack) {
+    }).then(function (out) {
       state.busy = false;
-      if (!pack.frames.length) { state.error = '영상이 너무 짧아 프레임을 못 골랐어요.'; paint(); return; }
-      runAnalysis(pack.frames);
-      if (state.result && state.result.ok) {
+      state.file = null;
+      if (!state.segs.length) {
+        state.error = '영상이 너무 짧아 분석할 구간이 없어요. 2초 이상 영상으로 다시 골라 주세요.';
+        paint();
+        return;
+      }
+      var first = 0;
+      for (var i = 0; i < state.segs.length; i++) { if (state.segs[i].analysis.ok) { first = i; break; } }
+      selectSegment(first, { quiet: true });
+      var r = currentResult();
+      if (r && r.ok) {
+        state.error = '';
+        paint();
         UI().haptic(12);
-        UI().toast('자세를 비교했어요. 카드를 확인해 보세요.');
+        UI().toast('영상 ' + state.segs.length + '구간을 모두 분석했어요. 구간을 눌러 보세요.');
+      } else {
+        state.error = '영상에서 사람을 찾지 못했어요. 전신이 나오게 조금 멀리서 찍어 주세요.';
+        paint();
       }
     }).catch(function (err) {
       state.busy = false;
+      state.file = null;
       closeVideo();
       if (err && err.message === 'video-decode') {
         state.error = '이 영상은 폰 브라우저가 읽지 못해요. mp4(H.264)로 다시 찍거나 변환해 주세요.';
@@ -1021,26 +1504,48 @@
     });
   }
 
-  function useDemo() {
-    state.demo = true;
+  /* 예시 — kind: '' (1인) | 'duo' (복식 2명·2구간) */
+  function useDemo(kind) {
+    var useKind = kind === 'duo' ? 'duo' : '';
+    state.demo = useKind || 'one';
     state.error = '';
     state.busy = false;
-    runAnalysis(demoFrames(state.mode), { demo: true });
+    state.file = null;
+    state.fileName = '';
+    state.segs = [];
+    state.seg = 0;
+    var packs = useKind === 'duo' ? demoDuo(state.mode) : demoOne(state.mode);
+    var last = packs[packs.length - 1];
+    state.duration = round1(last.seg.end);
+    state.segPlan = packs.map(function (p) { return p.seg; });
+    packs.forEach(applySegment);
+    syncView();
+    if (!(state.result && state.result.ok)) {
+      state.error = '예시 자세를 읽지 못했어요. 다시 열어 주세요.';
+    }
+    paint();
     UI().haptic(8);
   }
 
-  function noteLine(r) {
+  function noteLine(r, meta) {
     var parts = [];
     (r.cards || []).slice(0, 3).forEach(function (c) {
       parts.push(c.label.replace(/\s*\(.*?\)\s*/g, ' ').trim() + ' ' + c.text + (c.unit || ''));
     });
-    return '🎥 영상 자세 비교(' + modeDef(r.mode).short + ') — ' + parts.join(' · ');
+    var tag = [];
+    if (meta && meta.players > 1) tag.push(meta.player + '번 선수');
+    if (meta && meta.segTime) tag.push(meta.segTime);
+    return '🎥 영상 자세 비교(' + modeDef(r.mode).short + (tag.length ? '·' + tag.join('·') : '') + ') — ' +
+      parts.join(' · ');
   }
 
   function addToNote(ctx) {
     if (!ctx || !state.result || !state.result.ok) return;
     var cur = (ctx.store && ctx.store.state.drafts.log.note) || '';
-    var add = noteLine(state.result);
+    var node = currentSeg();
+    var add = noteLine(state.result, node && node.analysis && node.analysis.players.length > 1
+      ? { player: node.track + 1, segTime: segTime(node.seg), players: node.analysis.players.length }
+      : { segTime: node ? segTime(node.seg) : '' });
     var next = (cur ? cur.trim() + ' ' : '') + add;
     if (next.length > 160) next = next.slice(0, 157) + '…';
     ctx.actions.setDraft({ note: next });
@@ -1049,23 +1554,52 @@
     close();
   }
 
+  /* 캔버스에서 다른 선수를 눌렀을 때 */
+  function tapCanvas(ev, canvas) {
+    var node = currentSeg();
+    if (!node || !node.analysis || node.analysis.players.length < 2) return;
+    var rect = canvas.getBoundingClientRect ? canvas.getBoundingClientRect() : null;
+    if (!rect || !rect.width || !rect.height) return;
+    var px = (ev.clientX - rect.left) * (canvas.width / rect.width);
+    var py = (ev.clientY - rect.top) * (canvas.height / rect.height);
+    var geo = state.geo || { fx: 1, fy: 1, ox: 0, oy: 0 };
+    var nx = geo.fx ? (px / canvas.width - geo.ox) / geo.fx : px / canvas.width;
+    var ny = geo.fy ? (py / canvas.height - geo.oy) / geo.fy : py / canvas.height;
+    var pick = nearestPlayer(node.analysis.players, state.view, { x: nx, y: ny });
+    if (pick >= 0 && pick !== node.track) selectTrack(pick);
+  }
+
   function onClick(ev) {
     if (ev.target.closest('[data-pose-close]')) { ev.preventDefault(); close(); return; }
     var mb = ev.target.closest('[data-pose-mode]');
     if (mb) {
       ev.preventDefault();
+      if (state.busy) { UI().toast('분석이 끝나면 바꿀 수 있어요'); return; }
       var next = mb.getAttribute('data-pose-mode') === 'foot' ? 'foot' : 'smash';
       if (next === state.mode) return;
       state.mode = next;
       UI().haptic(6);
-      if (state.demo) useDemo();                 /* 예시는 종목에 맞춰 새로 만듭니다 */
-      else if (state.frames) runAnalysis(state.frames);
+      if (state.demo) useDemo(state.demo === 'duo' ? 'duo' : '');   /* 예시는 종목에 맞춰 새로 만듭니다 */
+      else if (state.segs.length) { recomputeAll(); paint(); }     /* 저장한 좌표로만 다시 계산 */
       else paint();
       return;
     }
-    if (ev.target.closest('[data-pose-demo]')) { ev.preventDefault(); useDemo(); return; }
+    var dm = ev.target.closest('[data-pose-demo]');
+    if (dm) { ev.preventDefault(); useDemo(dm.getAttribute('data-pose-demo') === 'duo' ? 'duo' : ''); return; }
     if (ev.target.closest('[data-pose-retry]')) { ev.preventDefault(); state.error = ''; paint(); return; }
     if (ev.target.closest('[data-pose-note]')) { ev.preventDefault(); addToNote(panelCtx); return; }
+    var sb = ev.target.closest('[data-pose-seg]');
+    if (sb) {
+      ev.preventDefault();
+      var si = Number(sb.getAttribute('data-pose-seg'));
+      if (si >= state.segs.length) return;          /* 아직 분석 중인 구간 */
+      selectSegment(si);
+      return;
+    }
+    var tb = ev.target.closest('[data-pose-track]');
+    if (tb) { ev.preventDefault(); selectTrack(Number(tb.getAttribute('data-pose-track')) || 0); return; }
+    var cv = ev.target.closest('[data-pose-canvas]');
+    if (cv) { ev.preventDefault(); tapCanvas(ev, cv); return; }
   }
 
   function onInput(ev) {
@@ -1077,7 +1611,7 @@
     }
     var fileEl = ev.target.closest && ev.target.closest('[data-pose-file]');
     if (fileEl && fileEl.files && fileEl.files[0]) {
-      startAnalysis(fileEl.files[0]);
+      startBatch(fileEl.files[0]);
       fileEl.value = '';
     }
   }
@@ -1119,7 +1653,15 @@
     state.mode = opts.mode === 'foot' ? 'foot' : (state.mode || 'smash');
     state.error = '';
     state.hint = '';
-    if (!opts.keep) { state.frames = null; state.result = null; }
+    if (!opts.keep) {
+      state.segs = [];
+      state.segPlan = [];
+      state.seg = 0;
+      state.frames = null;
+      state.result = null;
+      state.duration = 0;
+      state.demo = '';
+    }
     var node = document.createElement('div');
     node.id = 'posePanel';
     node.className = 'bgp posep';
@@ -1136,29 +1678,38 @@
     else node.classList.add('is-on');
     var wrap = node.querySelector('[data-pose-file]');
     if (wrap) wrap.setAttribute('aria-label', '영상 고르기');
-    if (opts.demo) useDemo();
+    if (opts.demo) useDemo(opts.demo === 'duo' ? 'duo' : '');
     return node;
   }
 
   function openFrom(ctx, opts) { return open(ctx, opts || {}); }
 
   BM.pose = {
-    MODES: MODES, CARDS: CARDS, BONES: BONES, SAMPLE_N: SAMPLE_N, MAX_MB: MAX_MB,
+    MODES: MODES, CARDS: CARDS, BONES: BONES, SAMPLE_N: SAMPLE_N, SAMPLE_MIN: SAMPLE_MIN,
+    SAMPLE_MAX: SAMPLE_MAX, MAX_MB: MAX_MB,
     CDN_BASE: CDN_BASE, MODEL_URL: MODEL_URL,
+    NUM_POSES: NUM_POSES, SEG_SAMPLE: SEG_SAMPLE, SEG_MAX: SEG_MAX, SEG_SHORT: SEG_SHORT,
     /* 계산 (순수 함수) */
     dist: dist, angleAt: angleAt, frameMetrics: frameMetrics, detectSide: detectSide,
     planSamples: planSamples, measure: measure, cardsFor: cardsFor, summaryOf: summaryOf,
     verdictOf: verdictOf, barPct: barPct, demoFrames: demoFrames, poseFrame: poseFrame,
+    /* 구간 · 다인 트랙 */
+    splitSegments: splitSegments, sampleTimes: sampleTimes, torsoOf: torsoOf,
+    trackPoses: trackPoses, analyzeSegment: analyzeSegment, segSummary: segSummary,
+    segTime: segTime, nearestPlayer: nearestPlayer, demoDuo: demoDuo, placePose: placePose,
     /* 그리기·영상 */
-    drawSkeleton: drawSkeleton, readVideo: readVideo, loadLandmarker: loadLandmarker,
+    drawSkeleton: drawSkeleton, drawTag: drawTag, readVideo: readVideo, scanVideo: scanVideo,
+    loadLandmarker: loadLandmarker,
     modelState: modelState, loadHint: loadHint, failHint: failHint, seekTo: seekTo,
     /* 화면 */
     entryHtml: entryHtml, shellHtml: shellHtml, cardsHtml: cardsHtml, stageHtml: stageHtml, refNote: refNote,
-    modesHtml: modesHtml, statusHtml: statusHtml, noteLine: noteLine,
+    modesHtml: modesHtml, statusHtml: statusHtml, noteLine: noteLine, segBarHtml: segBarHtml, whoHtml: whoHtml,
     open: open, openFrom: openFrom, close: close, isOpen: function () { return !!panelEl; },
     /* 테스트용 — 지금 화면 상태 확인 */
     _state: function () { return state; },
     _setMode: function (m) { state.mode = m === 'foot' ? 'foot' : 'smash'; },
-    _analyzeDemo: function (mode) { state.mode = mode === 'foot' ? 'foot' : state.mode; useDemo(); }
+    _analyzeDemo: function (mode) { state.mode = mode === 'foot' ? 'foot' : state.mode; useDemo(''); },
+    _selectSeg: function (i) { selectSegment(i); },
+    _selectTrack: function (i) { selectTrack(i); }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
