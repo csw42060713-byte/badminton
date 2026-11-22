@@ -6303,3 +6303,147 @@ body {
 .ptn__row--rvl .ptn__name { flex: 0 0 auto; max-width: 46%; }
 .ptn__row--rvl .ptn__rec { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
 .ptn__row--rvl .pill { flex: 0 0 auto; white-space: nowrap; }
+
+/* ============================================================
+ * 신고 · 차단 (bm-v1.55.0) — 구글 Play UGC 심사 요건
+ *   · 커뮤니티 글·답글의 ⋯ → 그 자리에서 신고·차단(차단은 인라인 확인)
+ *   · 1:1 대화방 상단 ⋯ → 신고·차단 시트
+ *   · MY › 차단한 사람에서 해제
+ * ============================================================ */
+
+/* ⋯ 버튼 — 내 글 삭제(휴지통)와 같은 자리·같은 크기 */
+.post__more,
+.replies__more {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; margin-left: -4px;
+  border-radius: 9px; color: var(--muted);
+  transition: background 120ms, color 120ms, transform 90ms;
+  touch-action: manipulation;
+}
+.post__more .ico, .replies__more .ico { width: 17px; height: 17px; }
+.post__more:hover, .post__more[aria-expanded="true"],
+.replies__more:hover, .replies__more[aria-expanded="true"] {
+  background: var(--card-2); color: var(--text);
+}
+.post__more:active, .replies__more:active { transform: scale(0.92); }
+.replies__more { width: 26px; height: 26px; margin-left: auto; }
+.replies__more .ico { width: 15px; height: 15px; }
+
+/* 신고 · 차단 줄 — 누르면 그 글 안에서 열립니다 */
+.safetybar {
+  display: flex; gap: 8px; align-items: center;
+  margin-top: 10px; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--card-2);
+  animation: viewIn 130ms ease-out;
+}
+.safetybar[hidden] { display: none; }
+.safetybar--mini { margin-top: 7px; padding: 5px 7px; }
+.safetybar--confirm {
+  display: grid; gap: 0;
+  border-color: color-mix(in srgb, var(--bad) 30%, transparent);
+  background: color-mix(in srgb, var(--bad) 7%, transparent);
+}
+.safetybar--confirm[hidden] { display: none; }
+.safetybar__t { font-size: 12px; font-weight: 700; color: var(--text-2); line-height: 1.45; }
+.safetybar--confirm .btn--sm { min-height: 36px; }
+.safetybtn {
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 34px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--text-2);
+  font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px;
+  touch-action: manipulation;
+}
+.safetybtn .ico { width: 14px; height: 14px; }
+.safetybtn:active { transform: scale(0.96); }
+.safetybtn:hover { color: var(--text); }
+.safetybtn--danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 28%, transparent); }
+.safetybar--mini .safetybtn { min-height: 28px; padding: 0 10px; font-size: 11.5px; }
+
+/* 대화방 상단 ⋯ */
+.dmhead__more { flex: 0 0 auto; margin-left: 2px; }
+.dmhead__more .ico { width: 18px; height: 18px; }
+
+/* 신고·차단 시트 */
+.safety { display: flex; flex-direction: column; gap: 12px; }
+.safety__lead {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -0.2px;
+}
+.safety__lead b { font-weight: 900; }
+.safety__lead .ico { width: 18px; height: 18px; color: var(--muted); flex: 0 0 auto; }
+.safety__quote {
+  font-size: 12.5px; color: var(--muted); line-height: 1.5;
+  padding: 8px 10px; border-radius: var(--r-sm); background: var(--card-2);
+  word-break: break-word;
+}
+.safety__q { font-size: 12px; font-weight: 800; color: var(--text-2); }
+.safety__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.safety__chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 38px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--text-2);
+  font-size: 13px; font-weight: 800; letter-spacing: -0.2px;
+  touch-action: manipulation;
+}
+.safety__chip.is-on {
+  border-color: color-mix(in srgb, var(--bad) 45%, var(--line));
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+  color: var(--bad);
+}
+.safety__chipic { width: 13px; height: 13px; }
+.safety__note { display: grid; gap: 6px; font-size: 12px; font-weight: 800; color: var(--text-2); }
+.safety__note small { font-weight: 700; color: var(--muted); margin-left: 4px; }
+.safety__note input { min-height: 44px; font-size: 13.5px; }
+.safety__hint {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 11.5px; color: var(--muted); line-height: 1.5;
+}
+.safety__hint .ico { width: 14px; height: 14px; flex: 0 0 auto; margin-top: 1px; }
+.safety__list { display: grid; gap: 6px; padding-left: 2px; }
+.safety__list li {
+  position: relative; padding-left: 14px;
+  font-size: 12.5px; color: var(--text-2); line-height: 1.5;
+}
+.safety__list li::before { content: '·'; position: absolute; left: 4px; color: var(--muted); font-weight: 900; }
+.safety__acts { display: grid; gap: 8px; }
+.safetyact {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--card); color: var(--text);
+  font-size: 14px; font-weight: 800; letter-spacing: -0.2px;
+  touch-action: manipulation;
+}
+.safetyact .ico { width: 20px; height: 20px; color: var(--muted); flex: 0 0 auto; }
+.safetyact span { display: flex; flex-direction: column; gap: 2px; }
+.safetyact small { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.safetyact:active { transform: scale(0.99); }
+.safetyact--danger { color: var(--bad); }
+.safetyact--danger .ico { color: var(--bad); }
+
+/* MY — 자동 저장 안내 · 고급(시트·백업) 접기 · 차단한 사람 목록 */
+.hint--auto { font-size: 12px; color: var(--text-2); line-height: 1.6; }
+.hint--auto .ico {
+  width: 14px; height: 14px; margin-right: 4px;
+  display: inline-block; vertical-align: -2px; color: var(--accent);
+}
+.adv--dev { margin-top: 10px; }
+.adv--dev summary { font-size: 12px; }
+.blocklist { display: grid; gap: 8px; margin-top: 4px; }
+.blocklist li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  background: var(--card-2);
+}
+.blocklist__mid { flex: 1; min-width: 0; }
+.blocklist__mid strong { display: block; font-size: 13.5px; letter-spacing: -0.2px; }
+.blocklist__mid small { font-size: 11px; color: var(--muted); }
+.blocklist .btn { flex: 0 0 auto; min-height: 34px; }
+
+/* 세부 기록 접기 (bm-v1.55.0) — 메모·영상은 기본 닫힘, 값이 있으면 열림 */
+.fold--detail { margin-top: 16px; }
+.fold--detail .fold__body .field:last-child { margin-top: 12px; }
+.fold--detail .fold__body .field__hint { margin-top: 5px; }

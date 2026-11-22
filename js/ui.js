@@ -47,7 +47,11 @@
     /* 게스트비 동전 — 동글게 안에 ₩ (bm-v1.40.1) */
     coin: '<circle cx="12" cy="12" r="8.2"/><path d="M9 9l1.4 6 1.6-3.4L13.6 15 15 9"/><path d="M9.8 12.2h4.4"/>',
     /* 화면 돌리기 — 점수판 가로 보기 (bm-v1.48.0) */
-    rotate: '<rect x="9" y="2.6" width="6" height="11" rx="1.6"/><path d="M3.4 15.2a9 9 0 0 0 3.4 3.6"/><path d="M3 12.6v3.4h3.4"/><path d="M20.6 8.8a9 9 0 0 0-3.4-3.6"/><path d="M21 11.4V8h-3.4"/>'
+    rotate: '<rect x="9" y="2.6" width="6" height="11" rx="1.6"/><path d="M3.4 15.2a9 9 0 0 0 3.4 3.6"/><path d="M3 12.6v3.4h3.4"/><path d="M20.6 8.8a9 9 0 0 0-3.4-3.6"/><path d="M21 11.4V8h-3.4"/>',
+    /* 신고 · 차단 (bm-v1.55.0) — 더 보기 점 3개 · 깃발 · 금지 표지 */
+    more: '<circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/>',
+    flag: '<path d="M6 21V4"/><path d="M6 4h9l-1.4 3.2L15 10.5H6z"/>',
+    block: '<circle cx="12" cy="12" r="8"/><path d="M6.6 6.6l10.8 10.8"/>'
   };
 
   function icon(name, cls) {
