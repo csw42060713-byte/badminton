@@ -951,7 +951,7 @@
     shoulder.on = shoulderPain || overhead;
     shoulder.level = shoulderPain ? 'pain' : (overhead ? 'overhead' : '');
     if (shoulderPain) {
-      shoulder.reason = '어깨를 오늘 통증 부위로 남겼어요. 주로 쓰는 어깨가 반대쪽보다 안으로 덜 돌아가거나, 뒤쪽 버티는 힘이 약하면 스매시·클리어 때 어깨가 찝히기 쉬워요. 오늘은 스매시·클리어 개수를 절반으로 줄이고 아래 세 가지를 먼저 해 보세요.';
+      shoulder.reason = PAIN_RULE.stop + ' 어깨를 오늘 통증 부위로 남겼어요. 주로 쓰는 어깨가 반대쪽보다 안으로 덜 돌아가거나, 뒤쪽 버티는 힘이 약하면 스매시·클리어 때 어깨가 찝히기 쉬워요. 오늘은 스매시·클리어 개수를 절반으로 줄이고 아래 세 가지를 먼저 해 보세요.';
     } else if (overhead) {
       shoulder.reason = '주로 쓰는 어깨가 반대쪽보다 안으로 덜 돌아가거나, 뒤쪽 버티는 힘이 약하면 스매시·클리어 때 어깨가 찝히기 쉬워요. 머리 위로 치는 날은 코트 전후로 아래 3가지를 넣어 주면 훨씬 편해져요.';
     } else {
@@ -970,7 +970,7 @@
         ' — 길거나 센 날은 마지막 30분에 다리 부상이 몰려요. 마지막 세트부터 백핸드 쪽 런지를 절반으로 줄이고, 대각선 뒤로 빠질 때는 발바닥 전체로 착지하세요.'
       : '';
     if (lowerPain.length) {
-      lower.reason = lowerPain.join('·') + '을 오늘 통증 부위로 남겼어요. 배드민턴 다리 부상은 대부분 지친 경기 후반에 몰려요. 오늘은 백핸드 쪽 런지와 깊은 런지를 줄이고 아래 보강을 먼저 하세요.';
+      lower.reason = PAIN_RULE.stop + ' ' + lowerPain.join('·') + '을 오늘 통증 부위로 남겼어요. 배드민턴 다리 부상은 대부분 지친 경기 후반에 몰려요. 오늘은 백핸드 쪽 런지와 깊은 런지를 줄이고 아래 보강을 먼저 하세요.';
     } else if (heavy) {
       lower.reason = '배드민턴 다리 부상은 대부분 지친 경기 후반에 몰려요. 피곤할수록 무릎이 덜 굽혀지고 착지가 딱딱해지거든요. 오늘처럼 길거나 센 날은 후반으로 갈수록 런지 질이 먼저 떨어지니 개수보다 착지와 무릎 정렬을 보세요.';
     } else {
@@ -991,7 +991,7 @@
     arm.level = armPain.length ? 'pain' : (armWork && heavy ? 'load' : '');
     arm.pain = armPain.slice();
     if (armPain.length) {
-      arm.reason = armPain.join('·') + ' 통증을 오늘 일지에 남겼어요. 배드민턴은 라켓을 계속 쥐고 손목으로 마무리하는 동작이 많아 팔꿈치·손목 힘줄이 먼저 지쳐요. 오늘은 스매시·드라이브 개수를 절반으로 줄이고 그립 힘을 빼면서, 아래 네 가지를 먼저 해 보세요.';
+      arm.reason = PAIN_RULE.stop + ' ' + armPain.join('·') + ' 통증을 오늘 일지에 남겼어요. 배드민턴은 라켓을 계속 쥐고 손목으로 마무리하는 동작이 많아 팔꿈치·손목 힘줄이 먼저 지쳐요. 오늘은 스매시·드라이브 개수를 절반으로 줄이고 그립 힘을 빼면서, 아래 네 가지를 먼저 해 보세요.';
     } else if (armWork && heavy) {
       arm.reason = '오늘은 머리 위 샷이나 드라이브를 많이 치는 날이에요. 스매시를 몰아 치면 팔꿈치·손목에 부담이 쌓여요. 세트 사이에 손목을 풀고, 코트 전후로 아래 스트레칭과 천천히 내리기를 넣어 주세요.';
     } else {
@@ -1006,7 +1006,8 @@
       shoulder: shoulder,
       lower: lower,
       arm: arm,
-      heavy: heavy
+      heavy: heavy,
+      painStop: on.length ? PAIN_RULE.stop : ''
     };
   }
 
@@ -1263,6 +1264,19 @@
     keep: '지금 컨디션이면 계획한 강도로 가도 됩니다. 한 세트라도 폼이 깨지면 그 자리에서 낮추는 건 선수 본인 몫이에요.'
   };
 
+  /* ---------- 통증 중단 기준 (bm-v1.53.0) ----------
+   * 체전 1등 선수가 직접 말한 기준입니다:
+   *   "아프다는 느낌이 들면 바로 쉬고 상태를 보는 게 최고라 생각해. 조금 아프더라도."
+   * 그래서 앱은 '가벼우면 한 세트만 더'처럼 애매하게 넘기지 않고,
+   * 조금이라도 아프면 그 자리에서 멈추는 기준을 먼저 말합니다. */
+  var PAIN_RULE = {
+    label: '통증 중단 기준',
+    stop: '조금이라도 아픈 느낌이 들면 바로 코트를 멈추고 쉬면서 상태를 보는 게 제일 안전해요.',
+    short: '조금 아파도 바로 멈추고 쉬기',
+    next: '내일은 그 부위가 아침에 어떤지 먼저 보고, 괜찮을 때만 가볍게 시작하세요.',
+    source: '체전 1등 선수 현장 기준(2026-11-22) — 조금 아프더라도 바로 쉬고 상태 보기'
+  };
+
   /* paceGuide(cond, load, painList, streakDays, intensity)
    *   level: brake(오늘은 낮춰라) / caution(자세 깨지면 멈춰라) / keep(계획대로)
    * 기준: 컨디션 ≤ 2 · 주간 부하 급증(1.5배 이상) · 지난주보다 25% 이상 증가 ·
@@ -1290,12 +1304,16 @@
     var caution = !brake && ((c != null && c <= 4) || zone === 'watch' || pains.length ||
       streak >= 4 || (i != null && i >= 9));
     var level = brake ? 'brake' : caution ? 'caution' : 'keep';
+    var text = level === 'brake' ? SELF_PACE.brake : level === 'caution' ? SELF_PACE.caution : SELF_PACE.keep;
+    /* 통증이 있으면 강도 조절 문구보다 '바로 멈추는 기준'을 먼저 둡니다 */
+    if (pains.length) text = PAIN_RULE.stop + ' ' + text;
 
     return {
       level: level,
       label: SELF_PACE.label,
-      text: level === 'brake' ? SELF_PACE.brake : level === 'caution' ? SELF_PACE.caution : SELF_PACE.keep,
+      text: text,
       rule: SELF_PACE.rule,
+      painStop: pains.length ? PAIN_RULE.stop : '',
       reasons: reasons
     };
   }
@@ -2032,10 +2050,14 @@
       insights.push({
         icon: 'alert',
         label: '반복 통증: ' + repeatedPain.join(', '),
-        detail: '최근 4주에 2회 이상 나온 부위예요. 오늘은 해당 동작 개수를 줄이고 처방을 먼저 챙기세요.'
+        detail: PAIN_RULE.stop + ' 최근 4주에 2회 이상 나온 부위라 오늘은 그 동작을 빼고, 다시 아프면 그 세트에서 끝내세요.'
       });
     } else if (painToday.length) {
-      insights.push({ icon: 'alert', label: '오늘 통증: ' + painToday.join(', '), detail: '한 번으로 끝나면 괜찮아요. 내일 같은 부위면 강도를 낮추세요.' });
+      insights.push({
+        icon: 'alert',
+        label: '오늘 통증: ' + painToday.join(', '),
+        detail: PAIN_RULE.stop + ' ' + PAIN_RULE.next
+      });
     }
     if (streakDays >= 3) {
       insights.push({ icon: 'fire', label: streakDays + '일 연속 기록', detail: streakDays >= 5 ? '대단해요. 다만 5일 넘으면 하루는 완전 휴식이 실력에 더 좋습니다.' : '꾸준함이 제일 큰 무기예요.' });
@@ -2102,8 +2124,12 @@
     });
     if (!care.rehab.length) care.rehab = GENERIC_CARE.rehab.slice();
     if (!care.stretch.length) care.stretch = GENERIC_CARE.stretch.slice();
-    care.rehab = U.uniq(care.rehab).slice(0, 4);
+    care.rehab = U.uniq(care.rehab);
+    /* 통증이 있으면 처방 맨 앞에 '바로 멈추는 기준'을 둡니다(부위별 처방도 그대로 남김) */
+    if (painToday.length) care.rehab = U.uniq([PAIN_RULE.stop].concat(care.rehab)).slice(0, 5);
+    else care.rehab = care.rehab.slice(0, 4);
     care.stretch = U.uniq(care.stretch).slice(0, 4);
+    care.stop = painToday.length ? PAIN_RULE.stop : '';
 
     /* 워밍업: 훈련일에는 기본 6단계 중 앞 4개, 통증이 있으면 강도 낮춘 3개 */
     care.warmup = (painToday.length ? WARMUP.slice(0, 4) : WARMUP.slice(0, 5));
@@ -2111,7 +2137,7 @@
     if (ws.rate != null && ws.rate < 40) care.mental.push('오늘 잘된 샷 하나만 떠올려 보세요. 승률은 연습량이 쌓이면 따라옵니다.');
     if (cond != null && cond <= 4) care.mental.push('컨디션이 낮은 날은 "덜 하기"도 훈련입니다. 20분만 하고 끝내도 성공이에요.');
     if (pace.level === 'brake') care.mental.unshift(SELF_PACE.rule);
-    if (painToday.length) care.mental.push('통증은 참지 말고 그 자리에서 멈추는 게 오래 칩니다.');
+    if (painToday.length) care.mental.unshift(PAIN_RULE.stop + ' 오늘은 그 부위가 다시 아프지 않은 범위까지만 하세요.');
     if (streakDays >= 5) care.mental.push('5일 넘게 이어졌어요. 내일 하루 쉬면 다음 주 감각이 더 좋아집니다.');
     if (!care.mental.length) {
       care.mental = [
@@ -2125,7 +2151,7 @@
     /* ---------- 다음 목표 + 이번 주 루틴 ---------- */
     var focus = weakSkills[0] + ' 정확도 1개';
     if (cond != null && cond <= 4) focus = '회복 (20분 가볍게)';
-    else if (painToday.length) focus = painToday[0] + ' 관리 + 가벼운 ' + weakSkills[0];
+    else if (painToday.length) focus = painToday[0] + ' 쉬기 + 가볍게 ' + weakSkills[0];
     else if (ws.rate != null && ws.rate < 40) focus = '리시브 안정 + 실수 줄이기';
 
     var gp = gradePlan(level);
@@ -2134,12 +2160,21 @@
       { day: '2회차', focus: weakSkills[1] || '풋워크', menu: drills[1] ? drills[1].name : '육각 풋워크' },
       { day: '3회차', focus: '실전', menu: scoreMode + '점제 게임 2~3경기 + 기록 남기기' }
     ];
+    /* 통증이 있으면 '내일 루틴' 첫 줄도 몸 상태 확인부터 — 조금 아프면 바로 쉬기 */
+    if (painToday.length) {
+      week[0] = {
+        day: '다음 훈련',
+        focus: painToday[0] + ' 상태 먼저 확인',
+        menu: '아프면 바로 쉬기 · 괜찮으면 ' + (drills[0] ? drills[0].name : '기본 스트록')
+      };
+    }
     /* 급수 플랜의 볼륨이 주 4회 이상이면 네 번째 회차를 전술 연습으로 채웁니다 */
     if (gradeOf(level) && GRADE_TIER[gradeOf(level)] >= 3) {
       week.push({ day: '4회차', focus: '전술', menu: (playbook(discipline, level).discipline) + ' 3구 패턴 반복' });
     }
 
     var risk = [];
+    if (painToday.length) risk.unshift({ level: 'warn', text: PAIN_RULE.stop + ' ' + PAIN_RULE.next });
     if (painToday.length && (intensity || 0) >= 8) risk.push({ level: 'warn', text: '통증이 있는데 강도가 높아요. 오늘은 강도를 6 이하로 낮추는 걸 권장합니다.' });
     if (repeatedPain.length) risk.push({ level: 'warn', text: repeatedPain.join(', ') + ' 통증이 반복되고 있어요. 2주 이상 이어지면 정형외과 상담을 권장합니다.' });
     if (load.zone === 'spike') risk.push({ level: 'warn', text: '최근 7일 부하가 직전 4주 평균의 ' + load.ratio + '배예요. 급증한 주에는 부상 위험이 커지니 다음 주는 볼륨을 유지하세요.' });
@@ -2212,7 +2247,7 @@
     jointGuard: jointGuard, SHOULDER_RISK: SHOULDER_RISK, LOWER_RISK: LOWER_RISK,
     proBalance: proBalance, loadRhythm: loadRhythm, PRO_BAL: PRO_BAL, RHYTHM: RHYTHM,
     offcourtRoutine: offcourtRoutine, OFFCOURT: OFFCOURT,
-    paceGuide: paceGuide, SELF_PACE: SELF_PACE,
+    paceGuide: paceGuide, SELF_PACE: SELF_PACE, PAIN_RULE: PAIN_RULE,
     disciplineKey: disciplineKey, PREVENT: PREVENT, LOAD_GUIDE: LOAD_GUIDE,
     /* 논문 기준값 — 화면 문구와 같은 숫자 */
     SPLIT_STEP: SPLIT_STEP, DOUBLES_SERVE: DOUBLES_SERVE, DOUBLES_RECEIVE: DOUBLES_RECEIVE,
