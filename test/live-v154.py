@@ -147,6 +147,18 @@ with sync_playwright() as p:
         w = overflow(page)
         check('A 탭 %s 가로 넘침 없음' % tab, w[0] <= w[1] + 1, w)
 
+    # ---------- A-2. v1.53 기능 그대로 (영상 자세 비교 · 점프 예시 · 리포트 입구) ----------
+    tap("#tabbar [data-tab='log']", 650)
+    check('A v1.53 영상 자세 비교 입구', has(page, '[data-act="open-pose"]'))
+    tap('[data-act="open-pose"]', 900)
+    check('A v1.53 점프 스매시 예시 버튼', has(page, '[data-pose-demo="jump"]'))
+    tap('[data-pose-demo="jump"]', 900)
+    check('A v1.53 점프 예시 2구간', count(page, '[data-pose-seg]') == 2, count(page, '[data-pose-seg]'))
+    # 데모를 돌린 패널은 그대로 두고 페이지를 한 번 새로 열어 이어 갑니다(체험 모드는 그대로)
+    page.reload(wait_until='load')
+    page.wait_for_timeout(2200)
+    check('A v1.53 리포트 입구', has(page, '[data-act="open-report"]'))
+
     # ---------- B. 점수판 이름표 ----------
     tap("#tabbar [data-tab='log']", 700)
     tap('[data-act="open-scoreboard"]', 800)
