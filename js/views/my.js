@@ -983,11 +983,28 @@
     var shown = 'next';
     var busy = false;
 
+    /* 미리보기만 닫고, 아래에서 열려 있던 '프로필 꾸미기'로 돌아갑니다.
+     * (시트는 한 번에 하나만 그리기 때문에 닫는 순간 꾸미기 창이 사라지면
+     *  MY 첫 화면으로 튕긴 것처럼 보입니다) */
+    function back(res) {
+      UI.closeSheet();
+      if (onDone) { onDone(res || { ok: false }); return; }
+      if (ctx && ctx.refresh) ctx.refresh();
+    }
+
     function open() {
       var wrap = UI.openSheet({
         title: '미리보기 · ' + (D.decoName(d.id) || '꾸미기'),
         body: decoPreviewBody(ctx, d, draft, me, shown),
         onMount: function (node) {
+          /* 위 ×·바깥 누름도 '닫기'와 같게 — 미리보기만 닫습니다 (capture로 먼저 받기) */
+          node.addEventListener('click', function (ev) {
+            if (busy) return;
+            if (!ev.target.closest || !ev.target.closest('[data-close]')) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            back({ ok: false });
+          }, true);
           node.addEventListener('click', function (ev) {
             var seg = ev.target.closest('[data-dpv]');
             if (seg) {
@@ -1003,7 +1020,7 @@
             if (busy) return;
             var what = act.getAttribute('data-dpv-act');
 
-            if (what === 'close') { UI.closeSheet(); return; }
+            if (what === 'close') { back({ ok: false }); return; }
 
             if (what === 'unlock') {
               busy = true;
@@ -1011,8 +1028,7 @@
               buyDeco(ctx, kind, value, function (res) {
                 busy = false;
                 if (res && res.ok) {
-                  if (onDone) onDone(res);
-                  else { UI.closeSheet(); if (ctx.refresh) ctx.refresh(); }
+                  back(res);
                   return;
                 }
                 /* 취소·잠금·오류 — 시트를 그대로 두고 숫자만 다시 */
@@ -1187,7 +1203,8 @@
       '<button type="button" class="btn btn--primary btn--sm" data-act="deco-photo">' + UI.icon('camera') + '사진 올리기</button>' +
       '<button type="button" class="btn btn--ghost btn--sm" data-act="deco-clear"' + (draft.photo ? '' : ' disabled') + '>' + UI.icon('trash') + '사진 지우기</button>' +
       '</div>' +
-      '<div class="pickgrid pickgrid--frame mt8">' + frames().map(function (f) {
+      '<p class="deco__sub" data-sub="frame">프레임</p>' +
+      '<div class="pickgrid pickgrid--frame">' + frames().map(function (f) {
         var df = decoOf(state, 'frame', f.id);
         return '<button type="button" class="framepick' + (draft.frame === f.id ? ' is-on' : '') + (df.owned ? '' : ' is-locked') + '"' +
           ' data-dframe="' + U.esc(f.id) + '" aria-pressed="' + (draft.frame === f.id ? 'true' : 'false') + '"' +
@@ -1195,16 +1212,19 @@
           '<span class="framepick__dot framepick__dot--' + U.esc(f.id) + '"></span>' +
           '<span class="framepick__name">' + U.esc(f.name) + '</span>' + lockTag(df) + '</button>';
       }).join('') + '</div>' +
+      '<p class="deco__sub" data-sub="bg">배경</p>' +
       '<div class="pickgrid pickgrid--bg">' + bgs().map(function (b) {
         return '<button type="button" class="bgpick' + (draft.bg === b.id ? ' is-on' : '') + '" data-dbg="' + U.esc(b.id) + '"' +
           ' aria-pressed="' + (draft.bg === b.id ? 'true' : 'false') + '">' +
           '<span class="bgpick__dot bgpick__dot--' + U.esc(b.id) + '"></span>' +
           '<span class="bgpick__name">' + U.esc(b.name) + '</span></button>';
       }).join('') + '</div>' +
+      '<p class="deco__sub" data-sub="emoji">아이콘</p>' +
       '<div class="pickgrid pickgrid--emoji">' + AVATARS.map(function (a) {
         return '<button type="button" class="avataropt' + (draft.emoji === a ? ' is-on' : '') + '" data-demoji="' + U.esc(a) + '"' +
           ' aria-pressed="' + (draft.emoji === a ? 'true' : 'false') + '">' + U.esc(a) + '</button>';
       }).join('') + '</div>' +
+      '<p class="deco__sub" data-sub="badge">배지</p>' +
       '<div class="pickgrid pickgrid--badge">' + badges().map(function (b) {
         var db = decoOf(state, 'badge', b);
         return '<button type="button" class="badgeopt' + (draft.badge === b ? ' is-on' : '') + (db.owned ? '' : ' is-locked') + '"' +
@@ -1240,8 +1260,13 @@
       ' placeholder="어떤 플레이를 좋아하는지 한 줄로" value="' + U.esc(draft.bio) + '">' +
       '</div>' +
       '<div class="deco__savebar"><button class="btn btn--primary btn--big" data-act="deco-save">저장</button></div>' +
-      '<p class="hint">저장하면 MY 카드와 1:1 매칭 프로필에 <b>같은 모습</b>으로 보여요. ' +
-      '플레이 스타일·체육관은 새 칸을 만들지 않고 기존 프로필 JSON에 담깁니다(시트 26칸 그대로).</p>';
+      '<p class="hint">저장하면 MY 카드와 1:1 매칭 프로필에 바로 반영돼요.</p>';
+  }
+
+  /* 시트 본문을 보던 자리 — 미리보기를 닫고 돌아올 때 그 자리로 */
+  function sheetScrollOf(node) {
+    var body = node && node.querySelector ? node.querySelector('.sheet__body') : null;
+    return body ? (body.scrollTop || 0) : 0;
   }
 
   function paintDecoPreview(node, draft) {
@@ -1286,11 +1311,17 @@
     var me = state.me || {};
     var draft = opts.draft || decorateDraft(state);
     var focus = opts.focus || '';
+    /* 미리보기를 닫고 돌아올 때: 보던 스크롤 위치를 그대로 되살립니다 */
+    var backAt = Math.max(0, Number(opts.scroll) || 0);
 
     var wrap = UI.openSheet({
       title: '프로필 꾸미기',
       body: decorateBody(draft, me, state),
       onMount: function (node) {
+        if (backAt) {
+          var body = node.querySelector('.sheet__body');
+          if (body) body.scrollTop = backAt;
+        }
         if (focus) {
           setTimeout(function () {
             var sec = node.querySelector('[data-sec="' + focus + '"]');
@@ -1323,9 +1354,11 @@
             var fid = fr.getAttribute('data-dframe');
             var df = decoOf(ctx.store.state, 'frame', fid);
             if (!df.owned) {
+              /* 잠긴 프레임 → 미리보기. 닫으면 이 꾸미기 창을 보던 자리로 돌려놓습니다 */
+              var atFrame = sheetScrollOf(node);
               openDecoPreviewSheet(ctx, 'frame', fid, draft, function (res) {
                 if (res && res.ok) draft.frame = fid;
-                openDecorateSheet(ctx, { draft: draft });
+                openDecorateSheet(ctx, { draft: draft, scroll: atFrame });
               });
               return;
             }
@@ -1368,9 +1401,10 @@
             var bid = bd.getAttribute('data-dbadge');
             var db = decoOf(ctx.store.state, 'badge', bid);
             if (!db.owned) {
+              var atBadge = sheetScrollOf(node);
               openDecoPreviewSheet(ctx, 'badge', bid, draft, function (res) {
                 if (res && res.ok) draft.badge = bid;
-                openDecorateSheet(ctx, { draft: draft });
+                openDecorateSheet(ctx, { draft: draft, scroll: atBadge });
               });
               return;
             }

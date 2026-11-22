@@ -3216,6 +3216,16 @@ summary { display: list-item; }
 .decostudio__meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
 .decostudio__acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .decostudio__note { font-size: 10.5px; color: var(--muted); align-self: center; }
+/* 프레임 · 배경 · 아이콘 · 배지 — 묶음마다 짧은 소제목 (2026-11-22) */
+.deco__sub {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.2px;
+  color: var(--text-2); margin: 12px 0 6px;
+}
+.deco__sub::before {
+  content: ''; width: 3px; height: 11px; border-radius: 2px;
+  background: var(--accent); opacity: 0.75;
+}
 .deco__input {
   width: 100%; min-height: 44px; padding: 0 12px;
   border-radius: 12px; border: 1px solid var(--line-2);
