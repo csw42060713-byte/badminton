@@ -316,11 +316,44 @@ with sync_playwright() as p:
     check('F 해제하면 다시 열림',
           page.evaluate("() => { const r = BM.app.ctx.store.actions.openChat('req155','u_peer155'); return !!r.ok; }"))
 
-    # ── G. 마무리: 오류 0 ──
-    check('G 콘솔 오류 0', not errs, errs[:2])
-    check('G CSP 위반 0', not csp, csp[:2])
+    # ── G. v1.54 회귀: 점수판 파트너·라이벌 이름 → 일지 저장 → 라이벌 카드 ──
+    page.reload(wait_until='load')
+    page.wait_for_timeout(2400)
+    tap("#tabbar [data-tab='log']", 700)
+    tap('[data-act="open-scoreboard"]', 800)
+    tap('[data-sb-pick="partner"]', 400)
+    page.fill('[data-sb-name-input="partner"]', '민호')
+    page.wait_for_timeout(200)
+    tap('[data-sb-pick="rival"]', 400)
+    page.fill('[data-sb-name-input="rival"]', '지호')
+    page.wait_for_timeout(200)
+    tap('[data-sb-pick-close]', 400)
+    check('G v1.54 카드 위 파트너 이름', '내 팀 · 민호' in text_of(page, '[data-sb]'), text_of(page, '[data-sb]')[:60])
+    a = b_ = 0
+    while a < 21 or b_ < 18:
+        go_a = False if a >= 21 else (True if b_ >= 18 else (a <= b_))
+        tap('[data-sb-point="%s"]' % ('a' if go_a else 'b'), 55)
+        if go_a:
+            a += 1
+        else:
+            b_ += 1
+    page.wait_for_timeout(300)
+    tap('[data-sb-save]', 1000)
+    check('G v1.54 일지 파트너·라이벌 채움',
+          val(page, '[data-field="partner"]') == '민호' and val(page, '[data-field="rival"]') == '지호',
+          [val(page, '[data-field="partner"]'), val(page, '[data-field="rival"]')])
+    tap('[data-act="save-log"]', 1600)
+    rival_txt = text_of(page, '[data-region="rival"]')
+    check('G v1.54 라이벌 맞대결 카드 1승', '지호에게 1승' in rival_txt, rival_txt[:80].replace('\n', ' '))
+    partner_txt = text_of(page, '[data-region="partner"]')
+    check('G v1.35 파트너별 승률 카드', '민호' in partner_txt, partner_txt[:80].replace('\n', ' '))
+    check('G 저장 뒤 접기 상태 정상', has(page, '[data-fold="detail"]'))
+
+    # ── H. 마무리: 오류 0 ──
+    check('H 콘솔 오류 0', not errs, errs[:2])
+    check('H CSP 위반 0', not csp, csp[:2])
     w = overflow(page)
-    check('G 마지막 화면 가로 넘침 없음', w[0] <= w[1] + 1, w)
+    check('H 마지막 화면 가로 넘침 없음', w[0] <= w[1] + 1, w)
 
     b.close()
 
