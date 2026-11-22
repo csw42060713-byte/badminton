@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v147.test.js — bm-v1.47.0
+ * test/v147.test.js — bm-v1.48.0
  *   하트 지갑 실시간 쿨타임 · AdMob 다중 슬롯 · 꾸미기 미리보기 · 코치 소속 → 지도
  *
  *  1) 광고 슬롯 — heart_reward 외 heart_boost · report_detail 을 setUnits 로 등록·조회,
@@ -434,11 +434,11 @@
 
   test('v1.47 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.47.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.47.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261122-59', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.47.0"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 39', '앱 버전 코드');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.48.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.48.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261122-60', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.48.0"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 40', '앱 버전 코드');
   });
 
   test('v1.47 배선: 새 파일 없이 기존 파일만 바뀐다 (서비스워커·테스트 목록)', function () {

@@ -481,7 +481,10 @@
     feeChips: ['없음', '5천원', '1만원'],
     /* v1.43.0 — 바로 들어가던 '참여 문의'를 '참여 신청 → 수락'으로 바꿉니다 */
     applyLabel: '참여 신청',
-    pendingLabel: '신청 대기 중'
+    pendingLabel: '신청 대기 중',
+    /* bm-v1.48.0 — 글쓴이가 단체방을 통째로 지웁니다(글도 함께 내려감) */
+    deleteLabel: '방 삭제',
+    deleteNoLabel: '그대로 두기'
   };
 
   function normalizeTopic(v) {
@@ -535,6 +538,94 @@
   function meetText(m, sep) {
     if (!meetFilled(m)) return '';
     return [m.when, m.place, m.cap ? m.cap + '명' : '', meetFeeText(m)].filter(Boolean).join(sep || ' · ');
+  }
+
+  /* ---------- 모집 일시 고르기 (bm-v1.48.0) ----------
+   * "게스트 모집 날짜 선택할수 있게해줘 시간이랑 일일이 치기 불편해"
+   *  · 예전에는 '11/23(월) 19:00~21:00'을 손으로 쳤습니다. 이제 날짜·시간 칸과
+   *    빠른 선택 칩이 같은 글자를 만들어 meet.when 에 넣습니다.
+   *  · 저장은 지금 그대로 한 칸(글자)이라 모집 카드·지도·참여 신청·단체방이 그대로 읽습니다.
+   *    (예전에 손으로 적은 글도 parse 로 다시 칸에 채워 고칠 수 있습니다) */
+  var WHEN_QUICK_DATES = [
+    { key: 'today', label: '오늘' },
+    { key: 'tomorrow', label: '내일' },
+    { key: 'weekend', label: '이번 주말' }
+  ];
+  /* 자주 치는 시간대 — 한 번 누르면 시작·끝이 함께 채워집니다 */
+  var WHEN_QUICK_TIMES = ['19:00~21:00', '20:00~22:00', '14:00~16:00'];
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  /* 'HH:MM' 만 통과 — '9:00' 도 '09:00' 으로 맞춥니다 */
+  function whenTime(v) {
+    var m = /^(\d{1,2}):(\d{2})$/.exec(String(v == null ? '' : v).trim());
+    if (!m) return '';
+    var h = +m[1], mi = +m[2];
+    if (h > 23 || mi > 59) return '';
+    return pad2(h) + ':' + pad2(mi);
+  }
+
+  /* 날짜 칸(YYYY-MM-DD) → '11/23(월)' — 앱의 다른 날짜 표기와 같은 모양
+   * 2/31 처럼 달력에 없는 날짜는 빈 값으로 돌려줍니다(3/3 으로 굴러가지 않게) */
+  function whenDateLabel(dateStr) {
+    var key = String(dateStr == null ? '' : dateStr).trim();
+    var d = U.parseYmd(key);
+    if (!d || U.ymd(d) !== key) return '';
+    return (d.getMonth() + 1) + '/' + d.getDate() + '(' + U.WEEK[d.getDay()] + ')';
+  }
+
+  /* 날짜·시간 → 저장 포맷 한 줄 ('11/23(월) 19:00~21:00' · '11/23(월) 19:00' · '11/23(월)') */
+  function whenCompose(dateStr, start, end) {
+    var date = whenDateLabel(dateStr);
+    if (!date) return '';
+    var s = whenTime(start), e = whenTime(end);
+    if (s && e) return s === e ? date + ' ' + s : date + ' ' + s + '~' + e;
+    return s ? date + ' ' + s : date;
+  }
+
+  /* 빠른 날짜 칩 — 오늘 · 내일 · 이번 주말(주말이면 오늘, 아니면 다가오는 토요일) */
+  function whenQuickDates(now) {
+    var base = (now instanceof Date && !isNaN(now.getTime())) ? now : new Date();
+    var today = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+    var wd = today.getDay();
+    var sat = (wd === 0 || wd === 6) ? 0 : 6 - wd;
+    return WHEN_QUICK_DATES.map(function (q) {
+      var d = today;
+      if (q.key === 'tomorrow') d = U.addDays(today, 1);
+      if (q.key === 'weekend') d = U.addDays(today, sat);
+      var key = U.ymd(d);
+      return { key: q.key, label: q.label, date: key, day: whenDateLabel(key) };
+    });
+  }
+
+  /* 적힌 글자에서 날짜·시간을 다시 꺼냅니다 (예전 자유 입력도 칸에 채워 고칠 수 있게)
+   * '11/23(월) 19:00~21:00' → {date:'2026-11-23', start:'19:00', end:'21:00'} */
+  function whenParse(text, now) {
+    var out = { date: '', start: '', end: '' };
+    var s = String(text == null ? '' : text);
+    if (!s.trim()) return out;
+    var base = (now instanceof Date && !isNaN(now.getTime())) ? now : new Date();
+    var md = /(\d{1,2})\s*\/\s*(\d{1,2})/.exec(s);
+    if (md) {
+      var mo = +md[1], day = +md[2];
+      if (mo >= 1 && mo <= 12 && day >= 1 && day <= 31) {
+        var thisYear = new Date(base.getFullYear(), mo - 1, day);
+        var y = base.getFullYear();
+        /* 지난날이면 다음 해로 — 올리려는 모집은 앞날입니다(12/31 → 1/1 넘김 포함) */
+        if (thisYear.getTime() < base.getTime() - 180 * 86400000) y += 1;
+        var d = new Date(y, mo - 1, day);
+        if (d.getMonth() === mo - 1) out.date = U.ymd(d);
+      }
+    }
+    var range = /(\d{1,2}):(\d{2})\s*[~\-–]\s*(\d{1,2}):(\d{2})/.exec(s);
+    if (range) {
+      out.start = whenTime(range[1] + ':' + range[2]);
+      out.end = whenTime(range[3] + ':' + range[4]);
+    } else {
+      var one = /(\d{1,2}):(\d{2})/.exec(s);
+      if (one) out.start = whenTime(one[1] + ':' + one[2]);
+    }
+    return out;
   }
 
   /* 글의 말머리: 직접 고른 값이 먼저, 없으면 일지 공유 글(target=일지 ID)은 '일지', 나머지는 '자유' */
@@ -2935,6 +3026,12 @@
     POST_TOPICS: POST_TOPICS, MEET: MEET, LEGACY_TOPICS: LEGACY_TOPICS, normalizeTopic: normalizeTopic, topicOf: topicOf,
     normalizeMeet: normalizeMeet, meetFilled: meetFilled, meetOf: meetOf, meetText: meetText, meetFeeText: meetFeeText,
     meetCap: meetCap, meetMembers: meetMembers, meetStatus: meetStatus,
+    /* 모집 일시 고르기 (bm-v1.48.0) */
+    meetWhen: {
+      parse: whenParse, compose: whenCompose, dateLabel: whenDateLabel,
+      quickDates: whenQuickDates, quickTimes: WHEN_QUICK_TIMES, time: whenTime
+    },
+    WHEN_QUICK_TIMES: WHEN_QUICK_TIMES,
     /* v1.43.0 — 게스트 참여 신청 · 수락/거절 · 나가기 · 마감 숨김 */
     GUEST_TYPE: GUEST_TYPE, GUEST: GUEST, GUEST_NOTE_MAX: GUEST_NOTE_MAX,
     guestKind: guestKind, guestRows: guestRows, guestStates: guestStates, guestState: guestState,

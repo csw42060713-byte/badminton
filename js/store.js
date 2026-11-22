@@ -1013,6 +1013,33 @@
         return { ok: true, id: key, removed: 1 + Object.keys(related).length };
       },
 
+      /* ---------- 단체방 삭제 (bm-v1.48.0) ----------
+       * "게스트 모집 단체방 삭제기능도 만들어" — 방장(모집 글 작성자)이 방을 통째로 지웁니다.
+       *  · 모집 글과 단체방은 같은 것(방 번호 = 글 번호)이라, 글을 지우면 방도 사라집니다.
+       *    그래서 서버에는 '내 글 삭제' 한 줄만 보냅니다 — 남의 행을 지우려 하지 않아
+       *    RLS(내 행만 DELETE)와 그대로 맞습니다.
+       *  · 참여자 기기에서는 서버에서 그 글이 사라지면 같은 계산(groupPostOf)으로
+       *    그 방이 대화 목록에서 빠집니다(별도 알림 행 없이도 정리됨).
+       *  · 지운 뒤에는 대화 목록으로 돌아갑니다(방 화면에 남지 않게). */
+      deleteGroupRoom: function (postId) {
+        var me = state.me && state.me.key;
+        if (!me) return { ok: false, reason: 'no_login' };
+        var key = String(postId == null ? '' : postId);
+        var post = state.idx && state.idx.byId ? state.idx.byId[key] : null;
+        if (!post || post.type !== '소셜') return { ok: false, reason: 'not_found' };
+        if (String(post.userKey || '') !== String(me)) return { ok: false, reason: 'not_owner' };
+        var res = actions.deletePost(key);
+        if (!res || !res.ok) return res || { ok: false, reason: 'not_found' };
+        if (state.ui) {
+          state.ui.chatOpen = true;
+          state.ui.chatRoom = null;
+          state.ui.chatOther = '';
+          state.ui.chatDraft = '';
+        }
+        commit();
+        return { ok: true, roomId: key, postId: key, removed: res.removed };
+      },
+
       saveProfile: function (patch) {
         if (!tryLock('profile', 1200)) return { ok: false, reason: 'locked' };
         var me = state.me || {};

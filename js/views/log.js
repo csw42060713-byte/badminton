@@ -885,6 +885,53 @@
    * ============================================================ */
   var sbSwap = false;          /* 코트 교대 — 화면에서 두 카드의 자리만 바꿉니다(점수 기록은 그대로) */
 
+  /* ---------- 가로 보기 (bm-v1.48.0) ----------
+   * "그리고 점수판 가로로해야지" — 코트 옆에 폰을 눕혀 두고 쓰는 화면입니다.
+   *  · sbOrient: ''(기기 방향을 따라감) · 'land'(가로 보기) · 'port'(세로 보기)
+   *  · 기기를 돌리면 @media (orientation: landscape) 와 함께 자동으로 가로 배치가 됩니다.
+   *  · 화면 회전 잠금을 켜 둔 기기도 쓸 수 있게, 세로 화면에서 '가로 보기'를 누르면
+   *    screen.orientation.lock('landscape')을 한 번 시도하고, 안 되면 CSS 90도 회전(.is-qrot)으로
+   *    화면을 꽉 채웁니다. */
+  var sbOrient = '';
+
+  function sbViewportLand() {
+    try {
+      if (typeof window !== 'undefined' && window.matchMedia) return window.matchMedia('(orientation: landscape)').matches;
+    } catch (e) { /* 무시 */ }
+    return false;
+  }
+
+  function sbIsLand() {
+    if (sbOrient === 'land') return true;
+    if (sbOrient === 'port') return false;
+    return sbViewportLand();
+  }
+
+  /* 전체화면 틀(.sbfull)에 지금 방향을 표시합니다 — 세로 화면의 강제 가로는 90도 회전 */
+  function sbApplyOrient(node) {
+    if (!node) return false;
+    var land = sbIsLand();
+    node.classList.toggle('is-land', land);
+    node.classList.toggle('is-port', !land);
+    node.classList.toggle('is-qrot', land && !sbViewportLand());
+    return land;
+  }
+
+  /* 브라우저가 허용하면 회전을 고정합니다 — 막히면 CSS 회전이 맡습니다(실패해도 그냥 진행) */
+  function sbLockOrient(land) {
+    try {
+      var so = (typeof screen !== 'undefined') ? screen.orientation : null;
+      if (!so || typeof so.lock !== 'function') return false;
+      if (land) {
+        var p = so.lock('landscape');
+        if (p && p.catch) p.catch(function () { /* 미지원·거부 — CSS 회전으로 */ });
+      } else if (typeof so.unlock === 'function') {
+        so.unlock();
+      }
+      return true;
+    } catch (e) { return false; }
+  }
+
   function sbCard(st, side) {
     var who = sbTeam(st, side);
     var mine = side === 'a';
@@ -913,14 +960,19 @@
       return '<li class="sb__set"><span class="sb__setn">' + (i + 1) + '세트</span> <b>' + g.a + ':' + g.b + '</b>' +
         ' <i class="sb__res sb__res--' + (win === '승' ? 'w' : win === '패' ? 'l' : 'd') + '">' + win + '</i></li>';
     }).join('');
-    var cards = swap
-      ? sbCard(st, 'a') + sbCard(st, 'b')
-      : sbCard(st, 'b') + sbCard(st, 'a');
-    return '<div class="sb sb--full" data-sb>' +
+    var land = typeof opts.land === 'boolean' ? opts.land : sbIsLand();
+    /* 세로: 상대(위) → 내 팀(아래) / 가로: 내 팀(왼쪽) → 상대(오른쪽). 코트 교대는 그 자리를 바꿉니다 */
+    var order = land ? (swap ? ['b', 'a'] : ['a', 'b']) : (swap ? ['a', 'b'] : ['b', 'a']);
+    var cards = sbCard(st, order[0]) + sbCard(st, order[1]);
+    var rotLabel = land ? '세로 보기' : '가로 보기';
+    return '<div class="sb sb--full' + (land ? ' is-land' : '') + '" data-sb data-sb-view="' + (land ? 'land' : 'port') + '">' +
       '<header class="sbfull__hdr">' +
         '<button type="button" class="iconbtn sbfull__x" data-sb-close aria-label="점수판 닫기">' + UI.icon('close') + '</button>' +
         '<div class="sbfull__t"><b>코트 점수판</b>' +
           '<span>' + setNo + '세트 · ' + U.esc(st.type) + ' ' + st.mode + '점제</span></div>' +
+        '<button type="button" class="sbfull__rot" data-sb-rotate aria-pressed="' + (land ? 'true' : 'false') + '"' +
+          ' aria-label="' + U.esc(rotLabel) + '" title="' + U.esc(rotLabel) + '">' +
+          UI.icon('rotate') + '<span>' + U.esc(rotLabel) + '</span></button>' +
         '<span class="sbfull__set" aria-label="세트 스코어 ' + U.esc(ss.text) + '">' + U.esc(ss.text) + '</span>' +
       '</header>' +
       '<div class="sb__modes">' + sbSeg('mode', [21, 25], st.mode, '점제') + sbSeg('type', ['복식', '단식'], st.type, '') + '</div>' +
@@ -983,10 +1035,21 @@
       var n = node;
       node = null;
       window.removeEventListener('popstate', sbOnPop);
+      window.removeEventListener('resize', sbOnResize);
+      window.removeEventListener('orientationchange', sbOnResize);
+      if (sbOrient === 'land') sbLockOrient(false);
+      sbOrient = '';
       n.classList.remove('is-on');
       document.body.classList.remove('no-scroll');
       setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, 200);
       UI.overlay.close();
+    }
+
+    /* 기기를 돌리면(또는 창 크기가 바뀌면) 배치와 버튼 글자를 바로 맞춥니다 */
+    function sbOnResize() {
+      if (!node) return;
+      sbApplyOrient(node);
+      repaint();
     }
 
     function sbOnPop() {
@@ -996,6 +1059,10 @@
       node = null;
       UI.overlay.reset();
       window.removeEventListener('popstate', sbOnPop);
+      window.removeEventListener('resize', sbOnResize);
+      window.removeEventListener('orientationchange', sbOnResize);
+      if (sbOrient === 'land') sbLockOrient(false);
+      sbOrient = '';
       n.classList.remove('is-on');
       document.body.classList.remove('no-scroll');
       setTimeout(function () { if (n.parentNode) n.parentNode.removeChild(n); }, 200);
@@ -1010,8 +1077,11 @@
     node.innerHTML = scoreboardHtml(sbState, { swap: sbSwap });
     document.body.appendChild(node);
     document.body.classList.add('no-scroll');
+    sbApplyOrient(node);                       /* 가로로 든 채면 바로 가로 배치로 */
     UI.overlay.open();
     window.addEventListener('popstate', sbOnPop);
+    window.addEventListener('resize', sbOnResize);
+    window.addEventListener('orientationchange', sbOnResize);
     requestAnimationFrame(function () { if (node) node.classList.add('is-on'); });
 
     node.addEventListener('click', function (ev) {
@@ -1066,6 +1136,17 @@
         ev.preventDefault();
         sbSwap = !sbSwap;
         UI.haptic(6);
+        repaint();
+        return;
+      }
+      /* 가로 보기 ↔ 세로 보기 — 회전 잠금을 켜 둔 기기도 CSS 로 가로를 만듭니다 */
+      if (ev.target.closest('[data-sb-rotate]')) {
+        ev.preventDefault();
+        var toLand = !sbIsLand();
+        sbOrient = toLand ? 'land' : 'port';
+        sbApplyOrient(node);
+        sbLockOrient(toLand);
+        UI.haptic(8);
         repaint();
         return;
       }
