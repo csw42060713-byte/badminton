@@ -6447,3 +6447,108 @@ body {
 .fold--detail { margin-top: 16px; }
 .fold--detail .fold__body .field:last-child { margin-top: 12px; }
 .fold--detail .fold__body .field__hint { margin-top: 5px; }
+
+/* ============================================================
+ * bm-v1.56.0 — 일지 컨디션 5단계 · 시작 화면 앱 분위기 3종
+ * ============================================================ */
+
+/* 컨디션 5단계 — 세로 5줄 카드(엄지로 한 번에) */
+.field--cond { margin-top: 14px; }
+.condbands { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.condband {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 50px; padding: 7px 10px;
+  border-radius: 14px;
+  border: 1.5px solid var(--line);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  color: var(--text);
+  font: inherit; text-align: left;
+  transition: border-color 120ms, background 120ms, transform 90ms;
+}
+.condband:active { transform: scale(0.99); }
+.condband__range {
+  flex: none; width: 38px; padding: 3px 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--muted);
+  font-size: 11px; font-weight: 800; letter-spacing: -0.2px;
+  font-variant-numeric: tabular-nums; text-align: center;
+}
+.condband__txt { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.condband__txt b { font-size: 13px; font-weight: 800; letter-spacing: -0.3px; }
+.condband__txt small {
+  font-size: 10.5px; font-weight: 600; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.condband__mark {
+  flex: none; width: 19px; height: 19px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: transparent; color: var(--accent-ink);
+  opacity: 0; transition: opacity 120ms, background 120ms;
+}
+.condband__mark .ico { width: 12px; height: 12px; }
+.condband.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
+.condband.is-on .condband__range { color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, transparent); }
+.condband.is-on .condband__mark { opacity: 1; background: var(--accent); }
+.field--intensity { margin-top: 14px; }
+
+/* 시작 화면 앱 분위기 3종 — 누르면 화면 전체가 바로 미리 보기 */
+.onbthemes { display: flex; flex-direction: column; gap: 6px; }
+.onbtheme {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 52px; padding: 7px 10px;
+  border-radius: 14px;
+  border: 1.5px solid var(--line);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  color: var(--text);
+  font: inherit; text-align: left;
+  transition: border-color 120ms, background 120ms, transform 90ms;
+}
+.onbtheme:active { transform: scale(0.99); }
+.onbtheme__mini {
+  flex: none; width: 44px; height: 34px;
+  display: flex; flex-direction: column; justify-content: center; gap: 4px;
+  padding: 5px 6px;
+  border-radius: 9px; border: 1px solid var(--line);
+  overflow: hidden;
+}
+.onbtheme__mini i { display: block; height: 5px; border-radius: 3px; }
+.onbtheme__mini i:first-child {
+  width: 100%; background: var(--mini-bar, rgba(255, 255, 255, 0.2));
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+.onbtheme__mini i:last-child { width: 54%; background: var(--mini-accent, #c6f24e); }
+.onbtheme__mini.swatch--th_night { background: #0d1412; --mini-bar: rgba(255, 255, 255, 0.22); --mini-accent: #c6f24e; }
+.onbtheme__mini.swatch--th_def { background: #eef2ee; --mini-bar: #ffffff; --mini-accent: #0b7a4b; }
+.onbtheme__mini.swatch--th_sakura { background: #fff1f6; --mini-bar: #ffffff; --mini-accent: #d92f7e; }
+.onbtheme__txt { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.onbtheme__txt b {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 13px; font-weight: 800; letter-spacing: -0.3px;
+}
+.onbtheme__txt small {
+  font-size: 10.5px; font-weight: 600; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.onbtheme__rec {
+  font-style: normal; font-size: 9.5px; font-weight: 800; letter-spacing: -0.1px;
+  padding: 1.5px 5px; border-radius: 6px;
+  color: var(--accent); background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+}
+.onbtheme__rec[hidden] { display: none; }
+.onbtheme__price {
+  flex: none; font-size: 10px; font-weight: 800; color: var(--muted);
+  padding: 2.5px 7px; border-radius: 999px;
+  border: 1px solid var(--line);
+}
+.onbtheme__mark {
+  flex: none; width: 19px; height: 19px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: transparent; color: var(--accent-ink);
+  opacity: 0; transition: opacity 120ms, background 120ms;
+}
+.onbtheme__mark .ico { width: 12px; height: 12px; }
+.onbtheme.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
+.onbtheme.is-on .onbtheme__mark { opacity: 1; background: var(--accent); }
+.onb__tip { margin: 1px 0 0; font-size: 11px; line-height: 1.5; color: var(--muted); }

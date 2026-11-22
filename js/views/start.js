@@ -16,8 +16,11 @@
     error: '',
     busy: false,
     draft: { email: '', password: '', nick: '' },
-    onb: { nick: '', level: '', discipline: '', gender: '', region: '', club: '', role: '' }
+    onb: { nick: '', level: '', discipline: '', gender: '', region: '', club: '', role: '', theme: '' }
   };
+
+  /* 지금 실제로 적용된 테마 — 미리보기에서 선택을 풀면 이 테마로 돌아갑니다 */
+  var appliedTheme = '';
 
   function googleMark() {
     return '<svg class="gmark" viewBox="0 0 48 48" aria-hidden="true">' +
@@ -108,6 +111,35 @@
     }).join('') + '</div>';
   }
 
+  /* 앱 분위기(테마) 3종 — 누르면 이 화면이 바로 그 테마로 바뀌어 미리 보입니다.
+   * 저장은 MY › 테마와 같은 곳(me.theme.theme)이라 시작하기를 누르면 전체 화면에 그대로 적용됩니다.
+   * 성별이 '여성'일 때만 사쿠라에 '추천' 배지를 빛깔만 은은하게 올리고(강제 적용 없음),
+   * 남녀 모두 원하는 테마를 자유롭게 고릅니다. */
+  function themeNote(id) {
+    if (!id) return '지금 화면 그대로 시작해요 · MY › 테마에서 언제든 바꿀 수 있어요';
+    var def = D.themeById(id) || {};
+    var price = D.themePrice(id);
+    if (price > 0) return (def.name || '이 테마') + '는 하트 ' + price + '개로 여는 테마예요 · 시작하면 바로 적용돼요';
+    return '누르면 이 화면이 바로 그 테마로 바뀌어요 · MY에서 언제든 바꿀 수 있어요';
+  }
+
+  function themePicks(selected, gender) {
+    return '<div class="onbthemes" data-pick-group="theme">' + D.onbThemes().map(function (t) {
+      var on = t.id === selected;
+      var rec = D.onbThemeRecommended(t.id, gender);
+      return '<button type="button" class="onbtheme' + (on ? ' is-on' : '') + '"' +
+        ' data-pick="theme" data-val="' + U.esc(t.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        '<span class="onbtheme__mini swatch--' + U.esc(t.id) + '" aria-hidden="true"><i></i><i></i></span>' +
+        '<span class="onbtheme__txt"><b>' + U.esc(t.name) +
+        '<i class="onbtheme__rec" data-onb-rec="' + U.esc(t.id) + '"' + (rec ? '' : ' hidden') + '>추천</i></b>' +
+        '<small>' + U.esc(t.note) + '</small></span>' +
+        (t.price > 0 ? '<span class="onbtheme__price">하트 ' + t.price + '</span>' : '') +
+        '<span class="onbtheme__mark" aria-hidden="true">' + UI.icon('check') + '</span>' +
+        '</button>';
+    }).join('') + '</div>' +
+      '<p class="onb__tip" data-onb-theme-note>' + U.esc(themeNote(selected)) + '</p>';
+  }
+
   function onboardingHtml(session) {
     var o = ui.onb;
     var hello = (o.nick || (session && session.name) || '').trim();
@@ -139,6 +171,11 @@
       '<span class="onb__label">성별 <i class="onb__opt">선택 · 매칭 검색에 쓰여요</i></span>' +
       pickChips('gender', D.VOCAB.genders, o.gender || '비공개') +
       '</div>' +
+      /* v1.56 — 성별 바로 아래에서 앱 분위기를 고릅니다(고르면 화면 전체가 바로 바뀜) */
+      '<div class="onb__block" data-onb-theme>' +
+      '<span class="onb__label">앱 분위기 <i class="onb__opt">눌러서 미리 보기 · 지금도 바꿀 수 있어요</i></span>' +
+      themePicks(o.theme, o.gender) +
+      '</div>' +
       '<div class="onb__block">' +
       '<span class="onb__label">지역 <i class="onb__opt">선택</i></span>' +
       pickChips('region', D.VOCAB.regions, o.region) +
@@ -166,7 +203,7 @@
     ui.error = '';
     ui.busy = false;
     ui.draft = { email: '', password: '', nick: '' };
-    ui.onb = { nick: '', level: '', discipline: '', gender: '', region: '', club: '', role: '' };
+    ui.onb = { nick: '', level: '', discipline: '', gender: '', region: '', club: '', role: '', theme: '' };
   }
 
   function paint(host) {
@@ -407,6 +444,10 @@
         } else {
           ui.onb[group] = '';
         }
+        /* 테마 — 고르는 즉시 이 화면 전체가 그 테마로 바뀌어 미리 보입니다(저장은 시작할 때) */
+        if (group === 'theme') previewTheme(ui.onb.theme);
+        /* 성별 — '여성'일 때만 사쿠라에 은은한 '추천' 배지 (강제 적용하지 않음) */
+        if (group === 'gender') refreshRec(host);
         ui.error = '';
         UI.haptic(6);
       }
@@ -434,6 +475,24 @@
     }
   }
 
+  /* 테마 미리 보기 — html[data-theme]만 바꿔 보여 주고, 아직 아무것도 저장하지 않습니다 */
+  function previewTheme(id) {
+    if (typeof document === 'undefined') return;
+    var t = id || appliedTheme || 'th_def';
+    document.documentElement.setAttribute('data-theme', t);
+    var note = document.querySelector('[data-onb-theme-note]');
+    if (note) note.textContent = themeNote(id);
+  }
+
+  /* 성별을 바꿀 때마다 '추천' 배지만 다시 계산합니다(입력하던 화면은 그대로) */
+  function refreshRec(host) {
+    if (!host || !host.querySelectorAll) return;
+    Array.prototype.forEach.call(host.querySelectorAll('[data-onb-rec]'), function (badge) {
+      var id = badge.getAttribute('data-onb-rec');
+      badge.hidden = !D.onbThemeRecommended(id, ui.onb.gender);
+    });
+  }
+
   function clearError(host) {
     ui.error = '';
     var err = host.querySelector('.start__error');
@@ -458,7 +517,8 @@
         nick: nick, level: o.level, discipline: o.discipline,
         gender: o.gender || '비공개',
         region: o.region || '', club: String(o.club || '').trim(),
-        role: D.normalizeRole(o.role)
+        role: D.normalizeRole(o.role),
+        theme: o.theme || ''
       });
     }
   }
@@ -467,6 +527,12 @@
   function mountOnboarding(host, ctx) {
     ctx = ctx || {};
     var session = BM.auth.session();
+    /* 지금 적용된 테마를 기억해 두고, 그 테마가 3종 안에 있으면 미리 골라 둡니다 */
+    appliedTheme = ctx.theme ||
+      (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme')) || 'th_def';
+    if (!ui.onb.theme && D.ONB_THEMES.some(function (t) { return t.id === appliedTheme; })) {
+      ui.onb.theme = appliedTheme;
+    }
     if (!ui.onb.nick && session && session.name) ui.onb.nick = session.name;
     if (!ui.onb.nick && session && session.email) ui.onb.nick = String(session.email).split('@')[0];
     ui.screen = 'onboarding';
