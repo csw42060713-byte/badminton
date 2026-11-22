@@ -190,8 +190,9 @@
   function partnerChips(state, d) { return duelChips(state, d, 'partner'); }
   function rivalChips(state, d) { return duelChips(state, d, 'rival'); }
 
-  /* 저장하거나 이름을 적는 동안 칩 줄만 새로 고칩니다 (폼을 다시 그리지 않아 커서가 안 끊깁니다).
+  /* 저장하거나 이름을 적는 동안 칩 줄과 전적 한 줄만 새로 그립니다 (폼을 다시 그리지 않아 커서가 안 끊깁니다).
    *  · 방금 저장한 라이벌·파트너가 바로 '자주 만난 상대' 칩으로 나와 다음 경기에 1탭.
+   *  · 전적 한 줄도 저장하면서 늘어난 경기 수로 바로 바뀝니다(v1.54).
    *  · 칩이 하나도 없으면 줄을 지우고, 처음 생기면 전적 줄 아래에 끼워 넣습니다. */
   function paintDuelChips(root, state) {
     if (!root || !root.querySelector) return;
@@ -207,6 +208,14 @@
         var anchor = root.querySelector(rival ? '[data-rvl-now]' : '[data-ptn-now]') ||
           root.querySelector(rival ? '[data-rival-field]' : '[data-partner-field]');
         if (anchor) anchor.insertAdjacentHTML('afterend', html);
+      }
+      /* 이름 칸 아래 전적 한 줄 — 저장하면 늘어난 전적으로 바로 */
+      var now = root.querySelector(rival ? '[data-rvl-now]' : '[data-ptn-now]');
+      if (now) {
+        var txt = rival ? rivalNowText(state, d.rival) : partnerNowText(state, d.partner);
+        now.hidden = !txt;
+        var span = now.querySelector('span');
+        if (span) span.textContent = txt;
       }
     });
   }
