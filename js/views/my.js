@@ -676,7 +676,7 @@
 
         /* bm-v1.62.0 — 프로필 바로 아래 인스타 공유 입구.
          *  예전엔 아래 '인스타 공유 카드' 아코디언을 펼쳐야 보였습니다.
-         *  이제 MY 첫 화면에서 1탭으로 시트가 열립니다(아코디언은 중복이라 걺아냈습니다). */
+         *  이제 MY 첫 화면에서 1탭으로 시트가 열립니다(아코디언은 중복이라 걷어냈습니다). */
         '<button type="button" class="share-entry" data-act="share-card" data-sc-mode="today"' +
         ' data-share-entry="my-top" aria-label="인스타 공유 카드 만들기">' +
         '<span class="share-entry__ico" aria-hidden="true">📸</span>' +
