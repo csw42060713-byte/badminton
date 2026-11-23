@@ -13,6 +13,7 @@
 
 import os
 import time
+import urllib.request
 
 from PIL import Image
 from playwright.sync_api import sync_playwright
@@ -109,13 +110,21 @@ with sync_playwright() as p:
         page.wait_for_timeout(3000)
 
     # ── A-0. 배포 파일 ──
-    stamp = '?l=' + str(int(time.time()))
-    sw = page.request.get(BASE + 'sw.js' + stamp).text()
-    appjs = page.request.get(BASE + 'app.js' + stamp).text()
-    index = page.request.get(BASE + 'index.html' + stamp).text()
-    twa = page.request.get(BASE + 'twa-manifest.json' + stamp).text()
-    css = page.request.get(BASE + 'styles.css' + stamp).text()
-    scjs = page.request.get(BASE + 'js/sharecard.js' + stamp).text()
+    stamp = '?l=' + str(int(time.time() * 1000))
+
+    def fetch(name):
+        # 브라우저 캐시를 거치지 않고 배포본 파일을 그대로 읽습니다
+        req = urllib.request.Request(BASE + name + stamp, headers={'Cache-Control': 'no-cache'})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return r.read().decode('utf-8')
+
+    sw = fetch('sw.js')
+    appjs = fetch('app.js')
+    index = fetch('index.html')
+    twa = fetch('twa-manifest.json')
+    css = fetch('styles.css')
+    scjs = fetch('js/sharecard.js')
+    check('A-0 배포본 읽기', 'bm-v1.63.0' in sw, sw[:60])
     check('A-0 sw.js bm-v1.63.0', "var VERSION = 'bm-v1.63.0'" in sw)
     check('A-0 app.js v1.63.0', "version: 'v1.63.0'" in appjs)
     check('A-0 index styles.css?v=20261124-1', 'styles.css?v=20261124-1' in index)
