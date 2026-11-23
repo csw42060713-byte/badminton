@@ -673,7 +673,7 @@
    * 3) 시작화면으로 돌아갑니다.
    * 서버 삭제가 실패하면 이 기기 데이터도 지우지 않습니다(반쪽 탈퇴 방지).
    */
-  var ACCOUNT_LOCAL_KEYS = ['bm_queue_v1', 'bm_cache_v1', 'bm_mode_v1', 'bm_dedupe_v1', 'bm_seen_v1'];
+  var ACCOUNT_LOCAL_KEYS = ['bm_queue_v1', 'bm_queue_dead_v1', 'bm_cache_v1', 'bm_mode_v1', 'bm_dedupe_v1', 'bm_seen_v1'];
 
   function wipeAccountLocal(sess) {
     if (!sess) return;
