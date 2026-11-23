@@ -334,13 +334,13 @@
 
   test('v1.40.1 버전: sw.js · app.js · twa-manifest.json이 1.41.1으로 맞는다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.59.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.59.0'", 'app.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.60.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.60.0'", 'app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.59.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.59.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 53, 'TWA 버전 코드는 그대로');
-    includes(readRoot('index.html'), 'styles.css?v=20261123-3', '스타일 캐시 키');
+    eq(twa.appVersionName, '1.60.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.60.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 54, 'TWA 버전 코드는 그대로');
+    includes(readRoot('index.html'), 'styles.css?v=20261123-4', '스타일 캐시 키');
   });
 
   test('v1.41.1 문서: README·아이디어 노트에 이번 사이클이 남는다', function () {

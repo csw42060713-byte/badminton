@@ -369,11 +369,12 @@
       (state && state.prefs && state.prefs.push === true ? ' · 푸시 켬' : '');
   }
 
-  /* ---------- 인스타 공유 카드 (bm-v1.57.0) ----------
+  /* ---------- 인스타 공유 카드 (bm-v1.57.0 → v1.60.0) ----------
    * MY에서도 오운완·대회 인증 카드를 바로 만듭니다(일지 저장 직후·최근 기록 상세에도 입구). */
   function sharePanel(state) {
     var n = ((state.data && state.data.records) || []).length;
-    return '<p class="sheet__text">운동 기록이나 대회 사진을 4:5 인스타 카드로 만들어 스토리에 올려요. ' +
+    return '<p class="sheet__text">운동 기록이나 대회 사진을 인스타 카드로 만들어 스토리에 올려요. ' +
+      '매거진 · 필름 · 투명 스티커 중에서 고르고 피드 4:5 · 스토리 9:16으로 저장해요. ' +
       '사진은 폰 안에서만 합쳐지고 서버로 보내지 않아요.</p>' +
       '<div class="row gap8 mt8">' +
       '<button type="button" class="btn btn--primary grow" data-act="share-card" data-sc-mode="today">' +

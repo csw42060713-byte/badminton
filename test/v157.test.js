@@ -147,7 +147,7 @@
     eq(sc.W, 1080, '가로 1080');
     eq(sc.H, 1350, '세로 1350 (4:5)');
     eq(sc.MODES.map(function (m) { return m.id; }).join(','), 'today,comp', '오늘 운동 · 대회 인증');
-    eq(sc.STYLES.map(function (s) { return s.id; }).join(','), 'court,photo,sticker', '코트 · 사진 · 스티커');
+    /* bm-v1.60.0 — 세 가지 '출력'은 디자인 3종(매거진·필름·스티커)으로 대체됐습니다 */
     eq(sc.RESULTS.join(','), '우승,준우승,3위,출전', '성적 4종');
   });
 
@@ -179,7 +179,7 @@
   test('v1.57 공유카드: 아래 한 줄은 체육관 · 파트너/라이벌 · 날짜', function () {
     var sc = SC();
     var sub = sc.todaySub(rec({ date: '2026-11-23' }), { gym: '나래울체육관' });
-    includes(sub, '📍 나래울체육관', '체육관');
+    includes(sub, '나래울체육관', '체육관');
     includes(sub, '민호와 함께', '파트너');
     includes(sub, 'vs 지호', '라이벌');
     includes(sub, '11/23 (월)', '날짜');
@@ -210,7 +210,7 @@
     var sc = SC();
     eq(sc.filename('today', '2026-11-23'), 'badminton-share-20261123-today.png', '오늘 카드 이름');
     eq(sc.filename('comp', '2026-11-23'), 'badminton-share-20261123-contest.png', '대회 카드 이름');
-    var sum = sc.summaryOf({ title: '오늘 운동', bigs: [{ value: '90', unit: '분' }], sub: '📍 나래울 · 11/23 (일)' });
+    var sum = sc.summaryOf({ title: '오늘 운동', big: { value: '90', unit: '분' }, meta: '나래울 · 11/23 (일)' });
     includes(sum, '오늘 운동', '제목');
     includes(sum, '90분', '숫자');
     includes(sum, '나래울', '아래 줄');
@@ -220,20 +220,24 @@
    * 3. 인스타 공유 카드 — 시트·진입점·그리기
    * ========================================================= */
 
-  test('v1.57 공유카드: 시트에 두 모드·세 출력·사진 고르기·미리보기가 있다', function () {
+  test('v1.57 공유카드: 시트에 두 모드·사진 고르기·미리보기가 있다', function () {
     if (!hasNode) return;
     var state = stateOf([rec(), rec({ id: 'r_prev', date: '2026-11-22', minutes: 60 })]);
     var sc = SC();
     sc._setState({
-      mode: 'today', style: 'court', recordId: 'r_v157', photo: null,
+      mode: 'today', design: 'magazine', ratio: 'feed', shade: 'original', recordId: 'r_v157', photo: null,
       gym: '나래울체육관', partner: '민호', rival: '지호',
       contest: '', event: '', result: '우승', compPartner: '', date: U.ymd()
     });
     var html = sc._sheetBody(ctxOf(state));
     includes(html, 'data-sc-mode="today"', '오늘 운동 탭');
     includes(html, 'data-sc-mode="comp"', '대회 인증 탭');
-    ['court', 'photo', 'sticker'].forEach(function (id) {
-      includes(html, 'data-sc-style="' + id + '"', '출력 ' + id);
+    /* bm-v1.60.0 — 디자인 3종(매거진·필름·스티커) */
+    ['magazine', 'film', 'sticker'].forEach(function (id) {
+      includes(html, 'data-sc-design="' + id + '"', '디자인 ' + id);
+    });
+    ['feed', 'story'].forEach(function (id) {
+      includes(html, 'data-sc-ratio="' + id + '"', '비율 ' + id);
     });
     includes(html, 'type="file" accept="image/*"', '모바일 갤러리·카메라');
     includes(html, 'width="1080" height="1350"', '캔버스 4:5');
@@ -244,7 +248,7 @@
 
     /* 대회 모드로 바꾸면 대회 입력칸·성적 칩이 나온다 */
     sc._setState({
-      mode: 'comp', style: 'court', recordId: '', photo: null, gym: '', partner: '', rival: '',
+      mode: 'comp', design: 'magazine', ratio: 'feed', shade: 'original', recordId: '', photo: null, gym: '', partner: '', rival: '',
       contest: '○○시 오픈 대회', event: 'B조 복식', result: '준우승', compPartner: '민호', date: U.ymd()
     });
     var comp = sc._sheetBody(ctxOf(state));
@@ -281,7 +285,7 @@
     includes(src, 'URL.createObjectURL', '공유가 없으면 다운로드');
     includes(src, 'createLinearGradient', '사진 위 그라디언트');
     includes(src, 'clearRect', '투명 스티커(배경 투명)');
-    includes(src, 'icons/icon-192.png', '앱 로고 워터마크');
+    includes(src, 'BADMINTON', '브랜드 한 줄 (bm-v1.60.0 — 로고 그림 대신 얇은 워드마크)');
     excludes(src, 'fetch(', '서버 전송 없음');
     excludes(src, 'XMLHttpRequest', '서버 전송 없음');
     excludes(src, 'new FormData', '업로드 없음');
@@ -547,23 +551,23 @@
     includes(run, 'test/v157.test.js', '이 테스트 파일');
   });
 
-  test('v1.57 버전: sw · app · index · TWA가 함께 bm-v1.59.0', function () {
+  test('v1.57 버전: sw · app · index · TWA가 함께 bm-v1.60.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.59.0'", 'sw.js');
-    includes(app, "version: 'v1.59.0'", 'app.js');
-    includes(index, 'styles.css?v=20261123-3', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.59.0', 'TWA 이름');
-    eq(twa.appVersion, '1.59.0', 'TWA 버전');
-    eq(twa.appVersionCode, 53, 'TWA 코드');
-    includes(sw, 'bm-v1.59.0', 'sw 변경 이력');
+    includes(sw, "var VERSION = 'bm-v1.60.0'", 'sw.js');
+    includes(app, "version: 'v1.60.0'", 'app.js');
+    includes(index, 'styles.css?v=20261123-4', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.60.0', 'TWA 이름');
+    eq(twa.appVersion, '1.60.0', 'TWA 버전');
+    eq(twa.appVersionCode, 54, 'TWA 코드');
+    includes(sw, 'bm-v1.60.0', 'sw 변경 이력');
   });
 
   test('v1.57 스타일: 공유 카드·푸시 상태 스타일이 있다', function () {
     if (!hasNode) return;
     var css = readRoot('styles.css');
-    ['.sc__modes', '.sc__styles', '.sc__style.is-on', '.sc__preview', '.sc__canvas', '.sc__summary',
+    ['.sc__modes', '.sc__designs', '.sc__design.is-on', '.sc__ratios', '.sc__shadebox', '.sc__preview', '.sc__canvas', '.sc__summary',
       '.pushstatus', '.pushstatus--denied', '.pushstatus--ready'].forEach(function (sel) {
       includes(css, sel, '스타일 ' + sel);
     });

@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v158.test.js — bm-v1.59.0
+ * test/v158.test.js — bm-v1.60.0
  *   🎨 인스타 카드 색·디자인 다양화 + 동기화 큐 막힘 해결
  *
  *  사용자가 요청한 두 가지를 그대로 검증합니다.
@@ -100,7 +100,7 @@
       fillRect: function (x, y, w, h) { log.rects.push({ x: x, y: y, w: w, h: h, fill: g.fillStyle }); log.ops.push('fillRect'); },
       strokeRect: function () { log.strokes++; log.ops.push('strokeRect'); },
       beginPath: function () { log.ops.push('beginPath'); },
-      moveTo: function () {}, lineTo: function () {}, arcTo: function () {}, closePath: function () {},
+      moveTo: function () {}, lineTo: function () {}, arcTo: function () {}, arc: function () {}, closePath: function () {},
       fill: function () { log.styles.push(g.fillStyle); log.ops.push('fill'); },
       stroke: function () { log.styles.push(g.strokeStyle); log.strokes++; log.ops.push('stroke'); },
       clip: function () { log.ops.push('clip'); },
@@ -131,7 +131,7 @@
    * 1. 색상 5종 · 디자인 3종 모델
    * ========================================================= */
 
-  test('v1.58 색상: 팔레트 5종이 약속한 이름 그대로이고 기본은 나이트다', function () {
+  test('v1.60 색상: 팔레트 5종이 그대로이고 기본은 나이트다', function () {
     var sc = SC();
     eq(sc.PALETTES.length, 5, '팔레트 5종');
     var ids = sc.PALETTES.map(function (p) { return p.id; }).join(',');
@@ -142,9 +142,9 @@
       ok(/^#[0-9a-f]{6}$/i.test(p.accent), p.id + ' 강조색');
       ok(/^#[0-9a-f]{6}$/i.test(p.text), p.id + ' 글자색');
       eq(p.bg.length, 3, p.id + ' 바탕 3단');
-      eq(p.shade.length, 3, p.id + ' 사진 어둡게 색');
+      /* bm-v1.60.0 — 사진을 어둡게 하는 색은 scrim(RGB) 하나로 */
+      eq(p.scrim.length, 3, p.id + ' 사진 스크림 색');
     });
-    /* v1.57 기본(딥 그린 + 네온 라임)이 그대로 기본값 */
     var night = sc.paletteById('night');
     eq(night.accent, '#c6f24e', '나이트 강조색 = v1.57 라임');
     eq(sc.paletteById(undefined).id, 'night', '모르는 값은 나이트');
@@ -152,150 +152,156 @@
     eq(sc.paletteById('gold').name, '챔피언 골드', '골드');
   });
 
-  test('v1.58 디자인: 레이아웃 3종이 약속한 이름 그대로이고 기본은 미니멀이다', function () {
+  /* bm-v1.60.0 — v1.58의 미니멀·포스터·코트 라인을 매거진·필름·스티커로 다시 그렸습니다.
+   *   (사진이 주인공 · 박스·테두리 없음 · 인스타 비율 2종 · 사진 밝기 3단계) */
+  test('v1.60 디자인: 매거진·필름·스티커 3종과 비율 2종 · 밝기 3단계다', function () {
     var sc = SC();
-    eq(sc.LAYOUTS.length, 3, '레이아웃 3종');
-    eq(sc.LAYOUTS.map(function (l) { return l.id; }).join(','), 'minimal,poster,courtline', '아이디');
-    eq(sc.LAYOUTS.map(function (l) { return l.name; }).join(','), '미니멀,포스터,코트 라인', '이름');
-    eq(sc.layoutById(undefined).id, 'minimal', '모르는 값은 미니멀');
-    eq(sc.layoutById('courtline').name, '코트 라인', '코트 라인');
+    eq(sc.DESIGNS.length, 3, '디자인 3종');
+    eq(sc.DESIGNS.map(function (l) { return l.id; }).join(','), 'magazine,film,sticker', '아이디');
+    eq(sc.DESIGNS.map(function (l) { return l.name; }).join(','), '매거진,필름,스티커', '이름');
+    eq(sc.designById(undefined).id, 'magazine', '모르는 값은 매거진');
+    eq(sc.designById('film').name, '필름', '필름');
+
+    eq(sc.RATIOS.map(function (r) { return r.id; }).join(','), 'feed,story', '비율 2종');
+    eq(sc.RATIOS.map(function (r) { return r.name; }).join(','), '피드 4:5,스토리 9:16', '비율 이름');
+    var feed = sc.dimsOf('feed'), story = sc.dimsOf('story');
+    eq(feed.w + 'x' + feed.h, '1080x1350', '피드 4:5');
+    eq(story.w + 'x' + story.h, '1080x1920', '스토리 9:16');
+    eq(feed.safe, 0, '피드는 안전 여백 없음');
+    eq(story.safe, 220, '스토리는 위·아래 220px');
+    eq(sc.dimsOf().h, 1350, '모르는 비율은 피드');
+
+    eq(sc.SHADES.map(function (s) { return s.id; }).join(','), 'original,soft,deep', '사진 밝기 3단계');
+    eq(sc.SHADES.map(function (s) { return s.name; }).join(','), '원본,살짝 어둡게,감성 어둡게', '밝기 이름');
+    eq(sc.shadeById('original').dim, 0, '원본은 그대로');
+    ok(sc.shadeById('soft').dim < sc.shadeById('deep').dim, '감성 어둡게가 더 어둡다');
   });
 
-  test('v1.58 모델: 고른 색·디자인이 카드 문구와 요약에 함께 남는다', function () {
+  test('v1.60 모델: 고른 색·디자인·비율이 시트와 요약에 함께 남는다', function () {
     if (!hasNode) return;
     var state = stateOf([rec()]);
-    SC()._setState(uiState({ palette: 'court', layout: 'poster' }));
+    SC()._setState(uiState({ palette: 'court', design: 'film', ratio: 'story' }));
     var html = SC()._sheetBody(ctxOf(state));
     includes(html, 'sc__pal--court is-on', '색 칩 선택 표시');
-    includes(html, 'sc__layout is-on', '디자인 칩 선택 표시');
+    includes(html, 'sc__design--film is-on', '디자인 칩 선택 표시');
+    includes(html, 'sc__ratio--story is-on', '비율 칩 선택 표시');
     eq((html.match(/data-sc-pal="/g) || []).length, 5, '색상 칩 5개');
-    eq((html.match(/data-sc-layout="/g) || []).length, 3, '디자인 칩 3개');
-    includes(html, '카드 색상', '색상 제목');
-    includes(html, '카드 디자인', '디자인 제목');
+    eq((html.match(/data-sc-design="/g) || []).length, 3, '디자인 칩 3개');
+    eq((html.match(/data-sc-ratio="/g) || []).length, 2, '비율 칩 2개');
+    eq((html.match(/data-sc-shade="/g) || []).length, 3, '사진 밝기 3단계');
+    includes(html, '카드 색', '색 제목');
+    includes(html, '디자인', '디자인 제목');
+    includes(html, '비율', '비율 제목');
     includes(html, '챔피언 골드', '골드 칩');
-    includes(html, '코트 라인', '코트 라인 칩');
+    includes(html, '매거진', '매거진 칩');
+    includes(html, '스티커', '스티커 칩');
     includes(html, 'aria-pressed="true"', '선택 표시(접근성)');
+    includes(html, 'width="1080" height="1920"', '스토리 캔버스');
 
-    var sum = SC().summaryOf({ mode: 'today', title: '오늘 운동', bigs: [{ value: '90', unit: '분' }], sub: '📍 나래울', palette: 'court', layout: 'poster' });
+    var sum = SC().summaryOf({ mode: 'today', title: '오늘 운동', big: { value: '90', unit: '분' }, meta: '나래울',
+      palette: 'court', design: 'film', ratio: 'story' });
     includes(sum, '코트 블루', '요약에 색 이름');
-    includes(sum, '포스터', '요약에 디자인 이름');
-    /* v1.57 방식(색·디자인 없음)은 예전 문구 그대로 */
-    eq(SC().summaryOf({ title: '오늘 운동', bigs: [{ value: '90', unit: '분' }], sub: '📍 나래울' }),
-      '오늘 운동 / 90분 / 📍 나래울', '예전 요약 그대로');
+    includes(sum, '필름', '요약에 디자인 이름');
+    includes(sum, '스토리 9:16', '요약에 비율 이름');
   });
 
   /* =========================================================
-   * 2. 그리기 — 색 5 × 디자인 3 (오늘 운동 · 대회 인증)
+   * 2. 그리기 — 디자인 3 × 비율 2 × 모드 2
    * ========================================================= */
 
-  test('v1.58 그리기: 색 5종 × 디자인 3종 카드가 모두 그려지고 고른 색이 쓰인다', function () {
+  function cardSpec(patch) {
+    var s = {
+      mode: 'today', design: 'magazine', ratio: 'feed', shade: 'original', palette: 'night', photo: null,
+      top: '11/23 (일) · 나래울체육관', kicker: '운동 시간',
+      big: { value: '90', unit: '분', label: '운동 시간' },
+      bigLine: '90분 · 2승 1패',
+      stats: [{ label: '경기', value: '2승 1패' }, { label: '연속 기록', value: '5일' }],
+      meta: '민호와 함께 · vs 지호', metaLine: '나래울체육관', label: '오운완 · 2승 1패 · 11/23 (일)',
+      date: '11/23 (일)'
+    };
+    Object.keys(patch || {}).forEach(function (k) { s[k] = patch[k]; });
+    return s;
+  }
+
+  test('v1.60 그리기: 디자인 3종 × 비율 2종 × 모드 2가 모두 그려지고 고른 색이 쓰인다', function () {
     var sc = SC();
     var checked = 0;
-    sc.PALETTES.forEach(function (p) {
-      sc.LAYOUTS.forEach(function (l) {
+    ['magazine', 'film', 'sticker'].forEach(function (d) {
+      ['feed', 'story'].forEach(function (r) {
         var m = mockCanvas();
-        var spec = {
-          mode: 'today', style: 'court', palette: p.id, layout: l.id, photo: null,
-          headline: '오운완', title: '오늘 운동', date: '11/23 (일)',
-          bigs: [{ value: '90', unit: '분', label: '운동 시간' },
-            { value: '2승 1패', unit: '', label: '경기' },
-            { value: '5', unit: '일', label: '연속 기록', flame: true }],
-          sub: '📍 나래울체육관  ·  11/23 (일)'
-        };
-        var out = sc.draw(m.canvas, spec);
-        ok(out === m.canvas, p.id + '/' + l.id + ' 캔버스 반환');
-        eq(m.canvas.width, 1080, '가로');
-        eq(m.canvas.height, 1350, '세로');
+        var out = sc.draw(m.canvas, cardSpec({ design: d, ratio: r, palette: 'court' }));
+        ok(out === m.canvas, d + '/' + r + ' 캔버스 반환');
+        eq(m.canvas.width, 1080, d + '/' + r + ' 가로');
+        eq(m.canvas.height, r === 'story' ? 1920 : 1350, d + '/' + r + ' 세로');
         eq(m.log.ops[0], 'clearRect', '투명하게 비우고 시작');
-        ok(m.log.texts.join('|').indexOf('90') >= 0, p.id + '/' + l.id + ' 운동 시간');
-        ok(usesColor(m.log, p.accent), p.id + '/' + l.id + ' 고른 색 강조(' + p.accent + ')');
-        /* 포스터는 위 배너(높이 320 가로 전체) + 아래 바, 미니멀은 배너가 없다 */
-        var band = m.log.rects.some(function (r) { return r.w === 1080 && r.h === 320; });
-        if (l.id === 'poster') ok(band, p.id + ' 포스터 배너·아래 바');
-        if (l.id === 'minimal') ok(!band, p.id + ' 미니멀은 배너 없음');
+        ok(m.log.texts.join('|').indexOf('90') >= 0, d + '/' + r + ' 운동 시간');
+        ok(usesColor(m.log, sc.paletteById('court').accent), d + '/' + r + ' 고른 색 포인트');
         checked++;
 
-        /* 대회 인증도 같은 조합으로 */
         var c = mockCanvas();
-        var cspec = {
-          mode: 'comp', style: 'court', palette: p.id, layout: l.id, photo: null,
-          comp: sc.compModel({ contest: '○○시 오픈 배드민턴 대회', event: 'B조 복식', result: '준우승', partner: '민호', date: '2026-11-22' }),
-          date: '11/22 (일)'
-        };
-        cspec.sub = sc.compSub(cspec.comp);
-        sc.draw(c.canvas, cspec);
-        ok(c.log.texts.indexOf('준우승') >= 0, p.id + '/' + l.id + ' 성적 배지');
-        ok(usesColor(c.log, p.accent), p.id + '/' + l.id + ' 대회 카드 색');
+        sc.draw(c.canvas, cardSpec({
+          design: d, ratio: r, palette: 'court', mode: 'comp', top: '11/22 (일)',
+          kicker: '○○시 오픈 배드민턴 대회', big: { value: '준우승', unit: '' },
+          bigLine: '준우승 · B조 복식', stats: [{ label: '종목', value: 'B조 복식' }, { label: '파트너', value: '민호' }],
+          meta: '', metaLine: '○○시 오픈 배드민턴 대회', label: '○○시 오픈 배드민턴 대회 · B조 복식'
+        }));
+        ok(c.log.texts.join('|').indexOf('준우승') >= 0, d + '/' + r + ' 성적');
+        ok(usesColor(c.log, sc.paletteById('court').accent), d + '/' + r + ' 대회 카드 색');
         checked++;
       });
     });
-    eq(checked, 30, '색 5 × 디자인 3 × 모드 2');
+    eq(checked, 12, '디자인 3 × 비율 2 × 모드 2');
   });
 
-  test('v1.58 그리기: 코트 라인은 배경 선을 더 그리고, 색마다 선 색이 다르다', function () {
+  test('v1.60 그리기: 매거진·필름은 박스·테두리 없이 그리고, 스티커는 배경을 칠하지 않는다', function () {
     var sc = SC();
-    var minimal = mockCanvas(), courtline = mockCanvas();
-    var base = { mode: 'today', style: 'court', palette: 'court', photo: null, headline: '오운완', date: '11/23 (일)',
-      bigs: [{ value: '90', unit: '분', label: '운동 시간' }], sub: '📍 나래울' };
-    sc.draw(minimal.canvas, base);
-    sc.draw(courtline.canvas, { mode: 'today', style: 'court', palette: 'court', layout: 'courtline', photo: null,
-      headline: '오운완', date: '11/23 (일)',
-      bigs: [{ value: '90', unit: '분', label: '운동 시간' }], sub: '📍 나래울' });
-    ok(courtline.log.strokes > minimal.log.strokes, '코트 라인 선이 더 많다');
-    ok(courtline.log.strokes >= 10, '코트 외곽·서비스 라인·네트 결');
-    ok(usesColor(courtline.log, sc.paletteById('court').court), '선 색이 팔레트를 따른다');
+    var mag = mockCanvas();
+    sc.draw(mag.canvas, cardSpec({ design: 'magazine', palette: 'night' }));
+    excludes(readRoot('js/sharecard.js'), 'strokeRect', '네모 테두리(strokeRect) 없음');
+    var whiteBox = mag.log.rects.some(function (r) { return String(r.fill).indexOf('rgba(255,255,255') === 0; });
+    ok(!whiteBox, '매거진에 반투명 흰 박스 없음');
+
+    var film = mockCanvas();
+    sc.draw(film.canvas, cardSpec({ design: 'film', palette: 'night' }));
+    ok(film.log.rects.some(function (r) { return r.w === 1080 && r.h === 1350; }), '필름은 종이 바탕 한 장');
+    var box = film.log.rects.some(function (r) { return String(r.fill).indexOf('rgba(255,255,255') === 0; });
+    ok(!box, '필름에 반투명 박스 없음');
+
+    var st = mockCanvas();
+    sc.draw(st.canvas, cardSpec({ design: 'sticker', palette: 'night' }));
+    eq(st.log.ops[0], 'clearRect', '스티커는 투명하게 시작');
+    eq(st.log.rects.length, 0, '스티커는 배경 사각형을 칠하지 않는다');
+    ok(st.log.texts.join('|').indexOf('90') >= 0, '숫자는 그대로');
   });
 
-  test('v1.58 그리기: 내 사진 위에서도 고른 색 글씨·배지가 쓰인다', function () {
+  test('v1.60 그리기: 사진 밝기를 어둡게 할수록 사진 위에 덮는 색이 진해진다', function () {
     var sc = SC();
-    sc.PALETTES.forEach(function (p) {
+    var photo = { width: 1200, height: 1600 };
+    var dims = ['original', 'soft', 'deep'].map(function (id) {
       var m = mockCanvas();
-      var photo = { width: 1200, height: 1600 };
-      sc.draw(m.canvas, {
-        mode: 'today', style: 'photo', palette: p.id, layout: 'minimal', photo: photo,
-        headline: '오운완', date: '11/23 (일)',
-        bigs: [{ value: '90', unit: '분', label: '운동 시간' }], sub: '📍 나래울'
-      });
-      ok(m.log.ops.indexOf('drawImage') >= 0, p.id + ' 사진을 그린다');
-      ok(m.log.stops.indexOf('rgba(' + p.shade.join(',') + ',0.94)') >= 0, p.id + ' 사진 아래를 팔레트 색으로 어둡게');
-      ok(m.log.texts.join('|').indexOf('90') >= 0, p.id + ' 숫자');
-      ok(usesColor(m.log, p.accent), p.id + ' 강조 단위(분) 색');
+      sc.draw(m.canvas, cardSpec({ design: 'magazine', shade: id, photo: photo, palette: 'night' }));
+      ok(m.log.ops.indexOf('drawImage') >= 0, id + ' 사진을 그린다');
+      var cover = m.log.rects.filter(function (r) { return r.w === 1080 && r.h === 1350 && String(r.fill).indexOf('rgba(') === 0; });
+      return cover.length ? String(cover[0].fill) : '';
     });
+    eq(dims[0], '', '원본은 사진을 덮지 않는다');
+    ok(dims[1].indexOf('0.26') > 0, '살짝 어둡게 0.26');
+    ok(dims[2].indexOf('0.46') > 0, '감성 어둡게 0.46');
+
+    /* 필름·스티커에서도 단계가 쓰인다 (스티커는 사진을 쓰지 않음) */
+    var film = mockCanvas();
+    sc.draw(film.canvas, cardSpec({ design: 'film', shade: 'deep', photo: photo }));
+    ok(film.log.ops.indexOf('drawImage') >= 0, '필름도 사진을 그린다');
   });
 
-  test('v1.58 그리기: 투명 스티커도 고른 색 판·테두리를 쓴다', function () {
-    var sc = SC();
-    ['night', 'court', 'sunset', 'sakura', 'gold'].forEach(function (id) {
-      var p = sc.paletteById(id);
-      var m = mockCanvas();
-      sc.draw(m.canvas, { mode: 'comp', style: 'sticker', palette: id, layout: 'minimal', photo: null,
-        comp: sc.compModel({ contest: '○○시 오픈', event: 'B조 복식', result: '우승', partner: '민호' }), date: '11/22 (일)' });
-      ok(m.log.styles.indexOf(p.plate) >= 0, id + ' 판 바탕');
-      ok(m.log.styles.indexOf(p.plateLine) >= 0, id + ' 판 테두리');
-      ok(m.log.texts.indexOf('우승') >= 0, id + ' 성적');
-
-      var line = mockCanvas();
-      sc.draw(line.canvas, { mode: 'today', style: 'sticker', palette: id, layout: 'courtline', photo: null,
-        headline: '오운완', bigs: [{ value: '90', unit: '분', label: '운동 시간' }], sub: '📍 나래울', date: '11/23 (일)' });
-      ok(line.log.ops.indexOf('clip') >= 0, id + ' 코트 라인은 판 안쪽만');
-      ok(line.log.strokes >= 3, id + ' 판 안에 코트 선');
-
-      var poster = mockCanvas();
-      sc.draw(poster.canvas, { mode: 'today', style: 'sticker', palette: id, layout: 'poster', photo: null,
-        headline: '오운완', bigs: [{ value: '90', unit: '분', label: '운동 시간' }], sub: '', date: '11/23 (일)' });
-      ok(poster.log.ops.indexOf('scale') >= 0, id + ' 포스터 스티커는 줄여 그린다');
-      ok(poster.log.ops.indexOf('clip') >= 0, id + ' 카드 모양으로 자른다');
-      ok(usesColor(poster.log, p.accent), id + ' 포스터 스티커 색');
-    });
-  });
-
-  test('v1.58 그리기: 모르는 색·디자인이 와도 기본 카드로 안전하게 그린다', function () {
+  test('v1.60 그리기: 모르는 색·디자인·비율이 와도 기본 카드로 안전하게 그린다', function () {
     var sc = SC();
     var m = mockCanvas();
-    sc.draw(m.canvas, { mode: 'today', style: 'court', palette: '없는색', layout: '없는디자인', photo: null,
-      bigs: [{ value: '90', unit: '분', label: '운동 시간' }], sub: '' });
+    sc.draw(m.canvas, { mode: 'today', palette: '없는색', design: '없는디자인', ratio: '없는비율',
+      big: { value: '90', unit: '분' }, stats: [], top: '', meta: '', kicker: '' });
     ok(usesColor(m.log, '#c6f24e'), '나이트 라임');
     ok(m.log.texts.join('|').indexOf('90') >= 0, '숫자 그대로');
+    eq(m.canvas.height, 1350, '기본은 피드 4:5');
     eq(sc.draw(null, {}), null, '캔버스가 없으면 null');
     eq(sc.draw({}, {}), null, 'getContext가 없으면 null');
   });
@@ -534,7 +540,8 @@
     if (!hasNode) return;
     var css = readRoot('styles.css');
     ['.sc__pals', '.sc__pal', '.sc__pal.is-on', '.sc__pal--night i', '.sc__pal--court i',
-      '.sc__pal--sunset i', '.sc__pal--sakura i', '.sc__pal--gold i', '.sc__layouts', '.sc__layout.is-on',
+      '.sc__pal--sunset i', '.sc__pal--sakura i', '.sc__pal--gold i', '.sc__designs', '.sc__design.is-on',
+      '.sc__ratios', '.sc__ratio--story i', '.sc__shadebox',
       '.syncbox', '.syncbox__row', '.syncbox__err', '.syncbox__alert'].forEach(function (sel) {
       includes(css, sel, '스타일 ' + sel);
     });
@@ -556,10 +563,11 @@
     eq((tabs.match(/id: '/g) || []).length, 5, '탭 5개');
     eq(D.CONDITION_BANDS.length, 5, 'v1.56 컨디션 5단계 유지');
     eq(SC().MODES.length, 2, '공유 카드 두 모드 유지');
-    eq(SC().STYLES.length, 3, '공유 카드 세 출력 유지');
+    eq(SC().DESIGNS.length, 3, '공유 카드 디자인 3종 유지');
+    eq(SC().RATIOS.length, 2, '비율 2종');
     eq(SC().RESULTS.length, 4, '성적 4종 유지');
     includes(readRoot('js/views/log.js'), 'data-act="share-log"', '커뮤니티 공유 유지');
-    includes(readRoot('js/sharecard.js'), 'icons/icon-192.png', '로고 워터마크 유지');
+    includes(readRoot('js/sharecard.js'), 'BADMINTON', '브랜드 워드마크 유지');
     includes(readRoot('js/sharecard.js'), 'navigator.canShare', '공유 시트 유지');
     var html = BM.views.my.render(stateOf([rec()]));
     includes(html, '인스타 공유 카드', 'MY 공유 카드 입구');
@@ -589,17 +597,17 @@
     excludes(SC()._sheetBody(ctxOf(stateOf([rec()]))), '김원호', '시트 예시');
   });
 
-  test('v1.58 버전: sw · app · index · TWA가 함께 bm-v1.59.0', function () {
+  test('v1.58 버전: sw · app · index · TWA가 함께 bm-v1.60.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.59.0'", 'sw.js');
-    includes(app, "version: 'v1.59.0'", 'app.js');
-    includes(index, 'styles.css?v=20261123-3', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.59.0', 'TWA 이름');
-    eq(twa.appVersion, '1.59.0', 'TWA 버전');
-    eq(twa.appVersionCode, 53, 'TWA 코드');
-    includes(sw, 'bm-v1.59.0', 'sw 변경 이력');
+    includes(sw, "var VERSION = 'bm-v1.60.0'", 'sw.js');
+    includes(app, "version: 'v1.60.0'", 'app.js');
+    includes(index, 'styles.css?v=20261123-4', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.60.0', 'TWA 이름');
+    eq(twa.appVersion, '1.60.0', 'TWA 버전');
+    eq(twa.appVersionCode, 54, 'TWA 코드');
+    includes(sw, 'bm-v1.60.0', 'sw 변경 이력');
     includes(sw, '인스타 카드 색·디자인', 'sw 변경 이력 내용');
     var run = readRoot('test/run.js');
     includes(run, 'test/v158.test.js', '테스트 목록');
