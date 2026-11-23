@@ -2446,5 +2446,5 @@ bubblewrap build            # → app-release-bundle.aab
 - **칩 문구는 기록 유무와 무관하게 고정** — 저장 후 일부만 다시 그릴 때 옛 문구가 남지 않게.
 - 파일: `js/views/log.js` · `js/views/my.js` · `styles.css`(`.hero__share` · `.share-entry`) · `test/v162.test.js`(11개) · `test/local-v162.py` · `test/live-v162.py`.
 - 버전: `sw.js` `bm-v1.62.0` · `app.js` `v1.62.0` · `twa-manifest.json` `1.62.0`(`appVersionCode` **56**) · `styles.css?v=20261123-6`.
-- 검증: `node test/run.js` **1324/1324** · 로컬 390×844 `test/local-v162.py` **44/44** · 라이브 `test/live-v162.py`(앱 오류 0 · CSP 위반 0 · 가로 넘침 0) — 캡처 `downloads/v162_*.png`(로컬) · `downloads/v162l_*.png`(라이브).
+- 검증: `node test/run.js` **1324/1324** · 로컬 390×844 `test/local-v162.py` **44/44** · 라이브 `test/live-v162.py` **39/39**(앱 오류 0 · CSP 위반 0 · 가로 넘침 0). 실제로 두 입구를 1탭해 시트가 열리고 `downloads/v162l_card_from_log_chip.png`(1080×1350)가 나오는 것까지 확인 — 캡처 `downloads/v162_0*.png`(로컬) · `downloads/v162l_0*.png`(라이브).
 - 보안/DB: CSP·`U.esc` 그대로, 실존 선수 이름 없음, 새 DB 컬럼·스키마 변경 없음.
