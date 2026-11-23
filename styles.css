@@ -6559,85 +6559,37 @@ body {
 .onbtheme.is-on .onbtheme__mark { opacity: 1; background: var(--accent); }
 .onb__tip { margin: 1px 0 0; font-size: 11px; line-height: 1.5; color: var(--muted); }
 
-/* ---------- 인스타 공유 카드 (bm-v1.60.0 → v1.61.0) ----------
- * 카드를 폰 폭에 맞춰 보여 주고, 디자인 3종(매거진·필름·스티커)과 비율 2종
- * (피드 4:5 · 스토리 9:16), 사진 밝기 3단계를 한 줄 칩으로 고릅니다.
- * 투명 스티커는 체크무늬 바탕 위에 보여 투명함이 한눈에 보입니다. */
-.sc__modes { margin-bottom: 12px; }
+/* ---------- 인스타 공유 카드 (bm-v1.63.0 — 3초 완성 시트) ----------
+ * 순서: 두 모드 탭 → 한 줄 안내 → 카드 미리보기 → 📷 사진 넣기(+ 기본 배경 4종)
+ *       → 디자인 3종 · 비율 2종 · 사진 밝기 → 접기(문구 · 색 · 내용) → 저장(아래 고정)
+ * 미리보기 높이를 묶어(max-height) 시트를 열자마자 사진 버튼까지 한 화면에 들어오고,
+ * 자주 안 고르는 옵션은 <details>로 접어 평소 화면을 깔끔하게 둡니다. */
+.sc__modes { margin-bottom: 10px; padding: 4px; border-radius: 14px; gap: 3px; }
+.sc__modes .seg__btn { min-height: 36px; font-size: 13px; letter-spacing: -0.2px; }
 .sc__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .sc__grid .flabel { margin-bottom: 8px; }
 .seg--three { display: grid; grid-template-columns: repeat(3, 1fr); }
 
-/* 디자인 3종 — 작은 미리보기 그림 + 이름 */
-.sc__designs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.sc__design {
-  display: flex; flex-direction: column; gap: 1px; align-items: flex-start;
-  padding: 7px 7px 8px; border-radius: 14px; border: 1px solid var(--line);
-  background: var(--card-2); color: var(--text); text-align: left;
-  transition: border-color 120ms, background 120ms;
+/* 한 줄 안내 — 1 사진 고르고 → 2 저장 */
+.sc__guide {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  margin: 0 0 11px; font-size: 12px; font-weight: 700;
+  color: var(--text-2); letter-spacing: -0.3px;
 }
-.sc__design b { font-size: 12px; font-weight: 800; letter-spacing: -0.3px; margin-top: 5px; }
-.sc__design span { font-size: 9.5px; font-weight: 600; color: var(--muted); line-height: 1.25; }
-.sc__design.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
-.sc__design.is-on b { color: var(--accent); }
-.sc__design i {
-  position: relative; display: block; width: 100%; height: 40px;
-  border-radius: 8px; overflow: hidden;
+.sc__guide span { display: inline-flex; align-items: center; gap: 5px; }
+.sc__guide em {
+  font-style: normal; display: inline-grid; place-items: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 9.5px; font-weight: 900; letter-spacing: 0;
 }
-.sc__design--magazine i { background: linear-gradient(165deg, #224a3b, #0a1512 78%); }
-.sc__design--magazine i::after {
-  content: ''; position: absolute; left: 7px; right: 30%; bottom: 8px; height: 2px;
-  background: rgba(255,255,255,0.7); box-shadow: 0 -7px 0 -0.5px rgba(255,255,255,0.4);
-}
-.sc__design--film i { background: linear-gradient(165deg, #faf8f3, #e9e3d7); }
-.sc__design--film i::after {
-  content: ''; position: absolute; left: 6px; right: 6px; top: 5px; bottom: 12px;
-  border-radius: 2px; background: linear-gradient(165deg, #cdbc9e, #8e8071);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.18);
-}
-.sc__design--sticker i { background: repeating-conic-gradient(rgba(255,255,255,0.10) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px, #0e1512; }
-.sc__design--sticker i::after {
-  content: '65'; position: absolute; left: 7px; bottom: 5px;
-  font-size: 20px; font-weight: 900; color: #fff; line-height: 1;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
-}
+.sc__guide i { font-style: normal; color: var(--muted); opacity: 0.6; font-size: 11px; }
 
-/* 비율 2종 — 작은 프레임 그림 */
-.sc__ratios .seg__btn { display: flex; align-items: center; justify-content: center; gap: 7px; }
-.sc__ratio i { display: block; border: 1.5px solid currentColor; border-radius: 2px; opacity: 0.8; }
-.sc__ratio--feed i { width: 10px; height: 13px; }
-.sc__ratio--story i { width: 8px; height: 15px; }
-
-/* 색상 5종 — 390 폭 시트에서 한 줄 */
-.sc__pals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-.sc__pal {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 7px 1px 6px; border-radius: 12px; border: 1px solid var(--line);
-  background: var(--card-2); color: var(--text-2);
-  transition: border-color 120ms, background 120ms;
-}
-.sc__pal i {
-  display: block; width: 20px; height: 20px; border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.28), 0 0 0 1px rgba(0,0,0,0.18);
-}
-.sc__pal b {
-  font-size: 9.5px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.15;
-  text-align: center; word-break: keep-all;
-}
-.sc__pal.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
-.sc__pal.is-on b { color: var(--accent); }
-.sc__pal--night i { background: linear-gradient(140deg, #0d1a15 55%, #c6f24e 55%); }
-.sc__pal--court i { background: linear-gradient(140deg, #0b2a45 55%, #7ad6ff 55%); }
-.sc__pal--sunset i { background: linear-gradient(140deg, #3a1119 55%, #ff7a59 55%); }
-.sc__pal--sakura i { background: linear-gradient(140deg, #39122c 55%, #ff8fc7 55%); }
-.sc__pal--gold i { background: linear-gradient(140deg, #19150a 55%, #e8c26a 55%); }
-.sc__photo { margin: 10px 0 0; }
-.sc__photobtn { width: 100%; }
-.sc__shadebox { margin-top: 10px; }
-.sc__shadebox .seg__btn { font-size: 12px; letter-spacing: -0.3px; }
+/* 미리보기 — 시트에서 가장 먼저 보이는 카드 */
 .sc__preview {
-  margin: 12px 0 8px; padding: 10px; border-radius: 18px; overflow: hidden;
-  border: 1px solid var(--line); box-shadow: var(--shadow-soft);
+  margin: 0; padding: 9px; border-radius: 20px; overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   background-color: #0b1210;
 }
 /* 투명 스티커만 체크무늬 바탕 위에 — 불투명 카드는 그냥 어두운 판 위에 */
@@ -6648,11 +6600,225 @@ body {
   background-size: 22px 22px;
   background-position: 0 0, 11px 11px;
 }
-.sc__canvas { display: block; max-width: 100%; max-height: 58vh; width: auto; height: auto; margin: 0 auto; border-radius: 8px; }
-.sc__summary {
-  margin: 0 0 10px; font-size: 11.5px; line-height: 1.5; color: var(--muted);
-  word-break: keep-all;
+.sc__canvas {
+  display: block; max-width: 100%; max-height: 58vh; width: auto; height: auto;
+  margin: 0 auto; border-radius: 11px;
 }
+/* 첫 화면 약속 — 미리보기가 사진 버튼을 밀어내지 않게 높이를 묶습니다 */
+.sc__preview .sc__canvas { max-height: max(230px, 37dvh); }
+.sc__summary {
+  margin: 7px 2px 0; font-size: 10.5px; line-height: 1.4; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* 사진 넣기 — 첫인상에서 제일 눈에 띄는 버튼 */
+.sc__photo { margin: 12px 0 0; }
+.sc__photo[hidden] { display: none; }
+.sc__shotrow { display: flex; align-items: stretch; gap: 8px; }
+.sc__shot {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 11px;
+  min-height: 58px; padding: 9px 14px; border-radius: 16px; cursor: pointer;
+  border: 1px solid var(--accent-line);
+  background: linear-gradient(180deg, var(--accent-soft), color-mix(in srgb, var(--accent) 5%, transparent));
+  color: var(--text);
+  transition: transform 90ms, background 140ms, border-color 140ms;
+  touch-action: manipulation;
+}
+.sc__shot:active { transform: scale(0.985); }
+.sc__shot.is-on { border-color: var(--line-2); background: var(--card-2); }
+.sc__shotic {
+  flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px;
+  background: var(--accent); color: var(--accent-ink);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 26%, transparent);
+}
+.sc__shotic .ico { width: 20px; height: 20px; }
+.sc__shot.is-on .sc__shotic {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  color: var(--accent); box-shadow: none;
+}
+.sc__shotxt { display: flex; flex-direction: column; gap: 1px; min-width: 0; text-align: left; }
+.sc__shotxt b { font-size: 14.5px; font-weight: 800; letter-spacing: -0.35px; line-height: 1.2; }
+.sc__shotxt small { font-size: 10.5px; font-weight: 600; color: var(--muted); letter-spacing: -0.1px; }
+.sc__shotxt small[hidden] { display: none; }
+.sc__shotdel {
+  flex: none; width: 74px;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  border-radius: 16px; border: 1px solid var(--line);
+  background: var(--card-2); color: var(--muted);
+  font-size: 10.5px; font-weight: 700; letter-spacing: -0.2px;
+  transition: transform 90ms, border-color 140ms, color 140ms;
+}
+.sc__shotdel span { white-space: nowrap; }
+.sc__shotdel .ico { width: 16px; height: 16px; }
+.sc__shotdel:active { transform: scale(0.96); border-color: var(--line-2); color: var(--text-2); }
+.sc__shotdel[hidden] { display: none; }
+
+/* 기본 배경 4종 — 썸네일은 카드와 같은 그림 함수로 그린 캔버스 */
+.sc__bgrow { display: flex; align-items: baseline; gap: 6px; margin: 13px 2px 7px; }
+.sc__bglabel { font-size: 11.5px; font-weight: 800; color: var(--text-2); letter-spacing: -0.25px; }
+.sc__bghint { font-style: normal; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: -0.15px; }
+.sc__bgs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.sc__bg {
+  display: flex; flex-direction: column; align-items: stretch; gap: 5px;
+  padding: 4px 4px 6px; border-radius: 13px; border: 1px solid var(--line);
+  background: var(--card-2); color: var(--text-2);
+  transition: border-color 140ms, background 140ms, transform 90ms;
+  touch-action: manipulation;
+}
+.sc__bg:active { transform: scale(0.97); }
+.sc__bgthumb { display: block; width: 100%; height: auto; border-radius: 10px; }
+.sc__bg b {
+  font-size: 9.5px; font-weight: 800; letter-spacing: -0.35px;
+  line-height: 1.2; text-align: center; word-break: keep-all;
+}
+.sc__bg.is-on {
+  border-color: var(--accent-line); background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent-line);
+}
+.sc__bg.is-on b { color: var(--accent); }
+.sc__photohint { margin: 9px 2px 0; }
+
+/* 디자인 3종 — 작은 미리보기 그림 + 이름 */
+.sc__designs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.sc__design {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 6px 6px 8px; border-radius: 16px; border: 1px solid var(--line);
+  background: var(--card-2); color: var(--text); text-align: left;
+  transition: border-color 140ms, background 140ms, transform 90ms, box-shadow 140ms;
+  touch-action: manipulation;
+}
+.sc__design:active { transform: scale(0.975); }
+.sc__design b { font-size: 12px; font-weight: 800; letter-spacing: -0.35px; margin-top: 6px; }
+.sc__design span {
+  font-size: 9.5px; font-weight: 600; color: var(--muted);
+  line-height: 1.3; letter-spacing: -0.15px;
+}
+.sc__design.is-on {
+  border-color: var(--accent-line); background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent-line);
+}
+.sc__design.is-on b { color: var(--accent); }
+.sc__design.is-on i { box-shadow: 0 0 0 1.5px var(--accent-line); }
+.sc__design i {
+  position: relative; display: block; width: 100%; height: 46px;
+  border-radius: 11px; overflow: hidden;
+}
+.sc__design--magazine i { background: linear-gradient(165deg, #224a3b, #0a1512 78%); }
+.sc__design--magazine i::after {
+  content: ''; position: absolute; left: 7px; right: 30%; bottom: 9px; height: 2px;
+  background: rgba(255,255,255,0.72); box-shadow: 0 -7px 0 -0.5px rgba(255,255,255,0.38);
+}
+.sc__design--film i { background: linear-gradient(165deg, #faf8f3, #e9e3d7); }
+.sc__design--film i::after {
+  content: ''; position: absolute; left: 6px; right: 6px; top: 5px; bottom: 13px;
+  border-radius: 2px; background: linear-gradient(165deg, #cdbc9e, #8e8071);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+}
+.sc__design--sticker i { background: repeating-conic-gradient(rgba(255,255,255,0.10) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px, #0e1512; }
+.sc__design--sticker i::after {
+  content: '65'; position: absolute; left: 7px; bottom: 5px;
+  font-size: 20px; font-weight: 900; color: #fff; line-height: 1;
+  text-shadow: 0 1px 5px rgba(0,0,0,0.65);
+}
+
+/* 비율 2종 — 작은 프레임 그림 + 이름 */
+.sc__ratios { margin-top: 0; padding: 4px; border-radius: 14px; gap: 3px; }
+.sc__ratios .seg__btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 38px; font-size: 12.5px;
+}
+.sc__ratio b { font-weight: 800; letter-spacing: -0.25px; }
+.sc__ratio i { display: block; border: 1.5px solid currentColor; border-radius: 2px; opacity: 0.75; }
+.sc__ratio--feed i { width: 10px; height: 13px; }
+.sc__ratio--story i { width: 8px; height: 15px; }
+.sc__ratiohint { margin-top: 8px; }
+
+/* 사진 밝기 3단계 */
+.sc__shadebox { margin-top: 14px; }
+.sc__shadebox .field__label { margin-bottom: 8px; }
+.sc__shades { margin-top: 0; padding: 4px; border-radius: 14px; gap: 3px; }
+.sc__shadebox .seg__btn { min-height: 36px; font-size: 12px; letter-spacing: -0.3px; }
+
+/* 색상 5종 — 390 폭 시트에서 한 줄 */
+.sc__pals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.sc__pal {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 8px 1px 7px; border-radius: 13px; border: 1px solid var(--line);
+  background: var(--card-2); color: var(--text-2);
+  transition: border-color 140ms, background 140ms, transform 90ms;
+  touch-action: manipulation;
+}
+.sc__pal:active { transform: scale(0.96); }
+.sc__pal i {
+  display: block; width: 21px; height: 21px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.28), 0 0 0 1px rgba(0,0,0,0.18);
+}
+.sc__pal b {
+  font-size: 9.5px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.15;
+  text-align: center; word-break: keep-all;
+}
+.sc__pal.is-on {
+  border-color: var(--accent-line); background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent-line);
+}
+.sc__pal.is-on b { color: var(--accent); }
+.sc__pal--night i { background: linear-gradient(140deg, #0d1a15 55%, #c6f24e 55%); }
+.sc__pal--court i { background: linear-gradient(140deg, #0b2a45 55%, #7ad6ff 55%); }
+.sc__pal--sunset i { background: linear-gradient(140deg, #3a1119 55%, #ff7a59 55%); }
+.sc__pal--sakura i { background: linear-gradient(140deg, #39122c 55%, #ff8fc7 55%); }
+.sc__pal--gold i { background: linear-gradient(140deg, #19150a 55%, #e8c26a 55%); }
+
+/* 접기 — 문구 · 색 · 내용 바꾸기 (기본 닫힘) */
+.sc__more {
+  margin: 16px 0 0; border-radius: 16px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card-2) 72%, transparent);
+  overflow: hidden;
+}
+.sc__moresum {
+  display: flex; align-items: center; gap: 9px;
+  padding: 13px 14px; cursor: pointer; list-style: none;
+  font-size: 12.5px; font-weight: 800; color: var(--text-2); letter-spacing: -0.25px;
+  transition: background 140ms;
+}
+.sc__moresum::-webkit-details-marker { display: none; }
+.sc__moresum::marker { content: ''; }
+.sc__moresum:active { background: color-mix(in srgb, var(--text) 4%, transparent); }
+.sc__moresum .ico { flex: none; width: 16px; height: 16px; color: var(--accent); }
+.sc__moresum span { flex: 1; }
+.sc__chev {
+  flex: none; width: 7px; height: 7px; margin-right: 3px;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg) translate(-1px, -1px);
+  transition: transform 180ms ease;
+}
+.sc__more[open] .sc__chev { transform: rotate(-135deg) translate(-1px, -1px); }
+.sc__morebody { padding: 2px 14px 14px; border-top: 1px solid var(--line); }
+.sc__morebody .field { margin-top: 14px; }
+
+/* 대회 정보 — 대회 인증 탭에서 접지 않고 바로 입력 */
+.sc__compbox {
+  margin-top: 14px; padding: 4px 13px 14px; border-radius: 16px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card-2) 72%, transparent);
+}
+.sc__compbox > .field__label { padding-top: 10px; }
+.sc__compbox .field { margin-top: 12px; }
+
+/* 저장 — 시트 아래에 붙어 있어 스크롤을 되돌리지 않아도 됩니다.
+ * 위쪽은 투명 → 바탕색 그라데이션으로, 지나가는 내용이 잘린 느낌 없이 스며들게. */
+.sc__savebar {
+  position: sticky; bottom: -16px; z-index: 4;
+  margin: 14px -18px -16px; padding: 10px 18px 14px;
+  background: var(--bg-2);
+}
+.sc__savebar::before {
+  content: ''; position: absolute; left: 0; right: 0; top: -30px; height: 30px;
+  background: linear-gradient(180deg, transparent, var(--bg-2));
+  pointer-events: none;
+}
+.sc__savebar .btn { width: 100%; }
+.sc__notice { margin: 0 0 10px; }
 
 /* 실시간 푸시 알림 상태 (bm-v1.57.0) */
 .pushstatus {
@@ -6672,10 +6838,8 @@ body {
   background: color-mix(in srgb, var(--text) 4%, transparent); color: var(--text);
   font-size: 14px;
 }
-.sc__notice { margin: 0 0 4px; }
 
-/* 카드 문구 — 1탭 프리셋 5종 + 직접 입력 (bm-v1.61.0)
- * 칩은 한 줄에 3개씩 접히고, 바로 아래 입력칸에 고른 문구가 들어갑니다. */
+/* 카드 문구 — 1탭 프리셋 5종 + 직접 입력 */
 .sc__phrase { margin-top: 12px; }
 .sc__phrases { gap: 5px; }
 .sc__phrases .chip { min-height: 33px; padding: 0 11px; font-size: 12.2px; }

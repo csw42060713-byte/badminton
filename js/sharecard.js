@@ -1,12 +1,17 @@
 /* ============================================================
- * sharecard.js — 인스타 공유 카드 (오늘 운동 · 대회 인증) (bm-v1.61.0)
+ * sharecard.js — 인스타 공유 카드 (오늘 운동 · 대회 인증) (bm-v1.63.0)
  *
  *  · 사진은 폰 안에서만 합성되고 서버로 보내지 않습니다
  *    (파일 선택 → 캔버스 → 저장·공유). 업로드 없음.
  *  · 인스타 비율 2종 — 피드 4:5(1080×1350) · 스토리 9:16(1080×1920).
  *    스토리는 위·아래 220px를 비워 프로필·답장창에 글씨가 가리지 않습니다.
+ *  · 시트는 '3초 완성' 순서 (bm-v1.63.0) — 탭 → 한 줄 안내 → 미리보기 →
+ *    📷 사진 넣기(+ 기본 배경 4종) → 디자인·비율·사진 밝기 → 접기(문구 · 색 · 내용) → 저장.
+ *    저장 버튼은 시트 아래에 붙어 있어 스크롤을 되돌리지 않아도 됩니다.
+ *  · 기본 감성 배경 4종 (사진 없이 1탭) — 코트 야경 · 셔틀콕 라이트 · 노을 코트 ·
+ *    민턴 그라데이션. 모두 캔버스로 그립니다(외부 이미지·저작권 없음).
  *  · 디자인 3종 (사람이 찍어 올린 카드처럼)
- *      매거진 — 사진 풀블리드. 좌상단 얇은 날짜·장소, 하단 30% 소프트 그라데이션 위에
+ *      매거진 — 사진 풀블리드. 좌상단 얇은 날짜·장소, 하단에 부드럽게 스며드는 스크림 위에
  *               아주 큰 숫자 + 얇은 가로선 1개 + 작은 스탯. 박스·테두리 없음.
  *      필름   — 따뜻한 오프화이트(#F7F5F0) 여백 프레임 안에 사진, 아래 여백에
  *               모노스페이스 날짜·체육관·스탯 한 줄과 작은 셔틀콕 스탬프.
@@ -112,9 +117,41 @@
   /* 필름(종이) 카드의 잉크 — 색 3개 이하: 종이 · 잉크 · 포인트 */
   var PAPER = { bg0: '#FAF8F3', bg1: '#F7F5F0', bg2: '#EFEAE0', ink: '#1D1B18', ink2: '#6E685D', ink3: 'rgba(29,27,24,0.42)' };
 
+  /* ---------- 기본 감성 배경 4종 (bm-v1.63.0) ----------
+   * 사진을 고르지 않아도 1탭으로 감성 카드를 만드는 캔버스 아트입니다.
+   * 외부 이미지·서버 없이 그 자리에서 1080×1350 / 1080×1920 으로 다시 그립니다.
+   *   courtnight   코트 야경 — 깊은 에메랄드 코트 · 체육관 스포트라이트 · 원근 코트 라인
+   *   shuttlelight 셔틀콕 라이트 — 따뜻한 다크 스튜디오 · 빛 번짐 보케 · 큰 셔틀콕 실루엣
+   *   sunsetcourt  노을 코트 — 노을 그라데이션 · 네트 실루엣 · 코트 라인
+   *   mintmesh     민턴 그라데이션 — 딥 네이비 · 민트 글로우 메쉬
+   * 내 갤러리 사진을 고르면 사진이 우선하고(배경은 비워짐), 스티커는 투명이 우선입니다. */
+  var BGS = [
+    { id: 'courtnight',
+      name: '코트 야경', note: '에메랄드 코트 · 조명' },
+    { id: 'shuttlelight',
+      name: '셔틀콕 라이트', note: '따뜻한 스튜디오 · 보케' },
+    { id: 'sunsetcourt',
+      name: '노을 코트', note: '노을 · 네트 실루엣' },
+    { id: 'mintmesh',
+      name: '민턴 그라데이션', note: '딥 네이비 · 민트 글로우' }
+  ];
+
   function paletteById(id) {
     for (var i = 0; i < PALETTES.length; i++) if (PALETTES[i].id === id) return PALETTES[i];
     return PALETTES[0];
+  }
+
+  function bgById(id) {
+    for (var i = 0; i < BGS.length; i++) if (BGS[i].id === id) return BGS[i];
+    return { id: '', name: '', note: '' };
+  }
+
+  /* 카드에 실제로 깔릴 기본 배경 — 스티커(투명)에는 절대 깔지 않습니다 */
+  function bgOf(spec) {
+    if (!spec) return null;
+    if (designById(spec.design).id === 'sticker') return null;
+    var b = bgById(spec.bg);
+    return b.id ? b : null;
   }
 
   function designById(id) {
@@ -301,6 +338,19 @@
     return (weight || 800) + ' ' + Math.round(size) + 'px ' + (family || FONT);
   }
 
+  /* 자간(letter-spacing) — 지원하는 브라우저에서만 살짝 풀거나 조입니다.
+   * 지원하지 않는 곳에서는 조용히 무시되어 예전과 같이 그려집니다. */
+  function tracking(g, px) {
+    try { g.letterSpacing = (px || 0) + 'px'; } catch (e) { /* 무시 */ }
+  }
+
+  /* 글씨 테두리 — 스티커가 어떤 사진 위에서도 또렷하도록. 캔버스가 지원하지 않는 곳
+   * (테스트용 가짜 컨텍스트 등)에서는 조용히 건너뜀니다. */
+  function outlineText(g, text, x, y) {
+    if (typeof g.strokeText !== 'function') return;
+    try { g.strokeText(text, x, y); } catch (e) { /* 무시 */ }
+  }
+
   function roundRect(g, x, y, w, h, r) {
     var rr = Math.min(r, w / 2, h / 2);
     g.beginPath();
@@ -425,7 +475,7 @@
   function paintRule(g, x, y, w, color, accent) {
     g.save();
     g.strokeStyle = color;
-    g.lineWidth = 2;
+    g.lineWidth = 1.6;
     g.beginPath();
     g.moveTo(x, y);
     g.lineTo(x + w, y);
@@ -433,11 +483,372 @@
     if (accent) {
       g.strokeStyle = accent;
       g.lineWidth = 3;
+      g.lineCap = 'round';
       g.beginPath();
       g.moveTo(x, y);
-      g.lineTo(x + 84, y);
+      g.lineTo(x + 76, y);
       g.stroke();
     }
+    g.restore();
+  }
+
+  /* ============================================================
+   * 기본 감성 배경 4종 — 사진 없이도 바로 쓰는 캔버스 아트 (bm-v1.63.0)
+   * 모두 box(절대 좌표 사각형) 안에 그립니다. 배경은 항상 사진보다 먼저,
+   * 글씨는 그 위에 올라갑니다.
+   * ============================================================ */
+
+  function fillRadial(g, box, cx, cy, r0, r1, stops) {
+    var rad = g.createRadialGradient(cx, cy, r0, cx, cy, r1);
+    stops.forEach(function (s) { rad.addColorStop(s[0], s[1]); });
+    g.fillStyle = rad;
+    g.fillRect(box.x, box.y, box.w, box.h);
+  }
+
+  /* 큰 셔틀콕 실루엣 — 얇은 깃선으로 정교하게 (배경 아트용) */
+  function paintShuttleArt(g, cx, cy, s, color, lw) {
+    g.save();
+    g.strokeStyle = color;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.lineWidth = lw || Math.max(1.6, s * 0.013);
+    var topY = cy - s * 0.46, botY = cy + s * 0.20;
+    var topW = s * 0.295, botW = s * 0.085;
+    /* 깃 스커트 외곽 */
+    g.beginPath();
+    g.moveTo(cx - botW, botY);
+    g.lineTo(cx - topW, topY);
+    g.lineTo(cx + topW, topY);
+    g.lineTo(cx + botW, botY);
+    g.stroke();
+    /* 깃 끝(위) 가로선 · 묶음 띠 2줄 */
+    g.beginPath();
+    g.moveTo(cx - topW, topY);
+    g.lineTo(cx + topW, topY);
+    g.stroke();
+    [0.18, 0.56].forEach(function (t) {
+      var by = topY + (botY - topY) * t;
+      var bw = topW + (botW - topW) * t;
+      g.beginPath();
+      g.moveTo(cx - bw, by);
+      g.lineTo(cx + bw, by);
+      g.stroke();
+    });
+    /* 안쪽 깃선 5줄 — 부채살처럼 */
+    [-0.72, -0.36, 0, 0.36, 0.72].forEach(function (k) {
+      g.beginPath();
+      g.moveTo(cx + botW * k * 0.9, botY - s * 0.005);
+      g.lineTo(cx + topW * k * 0.96, topY + s * 0.005);
+      g.stroke();
+    });
+    /* 코르크 — 깃 밑에 붙은 둥근 머리 */
+    g.beginPath();
+    if (typeof g.ellipse === 'function') {
+      g.ellipse(cx, cy + s * 0.285, s * 0.098, s * 0.075, 0, 0, Math.PI * 2);
+    } else {
+      g.arc(cx, cy + s * 0.285, s * 0.09, 0, Math.PI * 2);
+    }
+    g.stroke();
+    g.restore();
+  }
+
+  /* 1) 코트 야경 — 깊은 에메랄드 · 체육관 조명 · 원근 코트 라인
+   *    카드 아래 3분의 1은 글씨 자리라 코트는 화면 위쪽 2/3에 앉힙니다. */
+  function paintBgCourtNight(g, box) {
+    var x = box.x, y = box.y, w = box.w, h = box.h;
+    var base = g.createLinearGradient(x, y, x + w * 0.24, y + h);
+    base.addColorStop(0, '#0a2a20');
+    base.addColorStop(0.34, '#061a13');
+    base.addColorStop(1, '#020907');
+    g.fillStyle = base;
+    g.fillRect(x, y, w, h);
+
+    /* 천장 등 — 위에서 떨어지는 세 줄기 빛 (부드러운 원뿔) */
+    [0.24, 0.5, 0.76].forEach(function (t, i) {
+      fillRadial(g, box, x + w * t, y + h * 0.02, w * 0.01, w * (i === 1 ? 0.46 : 0.34),
+        [[0, 'rgba(214,255,176,0.20)'], [0.42, 'rgba(180,240,120,0.05)'], [1, 'rgba(0,0,0,0)']]);
+    });
+
+    /* 코트 — 멀리(위) 좁게, 가까이(아래)는 화면 밖으로 벌어지게 */
+    var farY = y + h * 0.40, nearY = y + h * 0.80;
+    var farL = x + w * 0.285, farR = x + w * 0.715;
+    var nearL = x - w * 0.12, nearR = x + w * 1.12;
+    function at(t) {
+      return { y: farY + (nearY - farY) * t, l: farL + (nearL - farL) * t, r: farR + (nearR - farR) * t };
+    }
+    /* 바닥 — 코트가 시작되는 곳부터 짙은 초록 */
+    var floor = g.createLinearGradient(x, farY, x, y + h);
+    floor.addColorStop(0, 'rgba(24,88,66,0.55)');
+    floor.addColorStop(0.5, 'rgba(10,44,33,0.72)');
+    floor.addColorStop(1, 'rgba(3,14,10,0.9)');
+    g.fillStyle = floor;
+    g.fillRect(x, farY, w, h - (farY - y));
+
+    g.save();
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    /* 코트 외곽 — 아래로 갈수록 옅게(글씨 자리를 방해하지 않게) */
+    var edge = g.createLinearGradient(x, farY, x, nearY);
+    edge.addColorStop(0, 'rgba(226,255,232,0.30)');
+    edge.addColorStop(0.5, 'rgba(226,255,232,0.16)');
+    edge.addColorStop(1, 'rgba(226,255,232,0.08)');
+    g.strokeStyle = edge;
+    g.lineWidth = Math.max(2, w * 0.0032);
+    g.beginPath();
+    g.moveTo(farL, farY); g.lineTo(farR, farY);
+    g.moveTo(farL, farY); g.lineTo(nearL, nearY);
+    g.moveTo(farR, farY); g.lineTo(nearR, nearY);
+    g.stroke();
+    /* 서비스 라인 2줄 */
+    [0.30, 0.66].forEach(function (t) {
+      var a = at(t);
+      g.strokeStyle = 'rgba(226,255,232,' + (0.16 - t * 0.09).toFixed(3) + ')';
+      g.beginPath();
+      g.moveTo(a.l, a.y);
+      g.lineTo(a.r, a.y);
+      g.stroke();
+    });
+    /* 센터 라인 */
+    var mid = at(0.66);
+    g.strokeStyle = 'rgba(226,255,232,0.09)';
+    g.beginPath();
+    g.moveTo((farL + farR) / 2, farY);
+    g.lineTo((mid.l + mid.r) / 2, mid.y);
+    g.stroke();
+    /* 네트 — 빛을 머금은 한 줄 + 옅은 망 */
+    var netL = farL - w * 0.06, netR = farR + w * 0.06;
+    g.strokeStyle = 'rgba(12,20,16,0.55)';
+    g.lineWidth = Math.max(1, w * 0.0016);
+    var i;
+    for (i = 1; i < 14; i++) {
+      var gx = netL + (netR - netL) * (i / 14);
+      g.beginPath();
+      g.moveTo(gx, farY - h * 0.06);
+      g.lineTo(gx, farY + h * 0.01);
+      g.stroke();
+    }
+    for (i = 1; i < 4; i++) {
+      var gy = farY - h * 0.06 + (h * 0.07) * (i / 4);
+      g.beginPath();
+      g.moveTo(netL, gy);
+      g.lineTo(netR, gy);
+      g.stroke();
+    }
+    g.strokeStyle = 'rgba(240,255,246,0.52)';
+    g.lineWidth = Math.max(3, w * 0.0055);
+    g.shadowColor = 'rgba(198,242,78,0.5)';
+    g.shadowBlur = w * 0.035;
+    g.beginPath();
+    g.moveTo(netL, farY - h * 0.06);
+    g.lineTo(netR, farY - h * 0.06);
+    g.stroke();
+    g.restore();
+
+    /* 네트 아래 바닥에 번지는 빛 */
+    fillRadial(g, box, x + w * 0.5, y + h * 0.52, w * 0.01, w * 0.52,
+      [[0, 'rgba(198,242,78,0.10)'], [1, 'rgba(0,0,0,0)']]);
+
+    /* 비네트 */
+    fillRadial(g, box, x + w * 0.5, y + h * 0.42, Math.min(w, h) * 0.16, Math.max(w, h) * 0.8,
+      [[0, 'rgba(0,0,0,0)'], [0.62, 'rgba(0,0,0,0.12)'], [1, 'rgba(0,0,0,0.58)']]);
+  }
+
+  /* 2) 셔틀콕 라이트 — 따뜻한 다크 스튜디오 · 보케 · 큰 셔틀콕 실루엣 */
+  function paintBgShuttleLight(g, box) {
+    var x = box.x, y = box.y, w = box.w, h = box.h;
+    var base = g.createLinearGradient(x, y, x + w * 0.55, y + h);
+    base.addColorStop(0, '#2d1c11');
+    base.addColorStop(0.42, '#180e08');
+    base.addColorStop(1, '#060403');
+    g.fillStyle = base;
+    g.fillRect(x, y, w, h);
+
+    fillRadial(g, box, x + w * 0.26, y + h * 0.16, w * 0.02, w * 0.9,
+      [[0, 'rgba(255,196,120,0.22)'], [0.45, 'rgba(255,150,80,0.07)'], [1, 'rgba(0,0,0,0)']]);
+
+    /* 빛 번짐 보케 — 자리·크기가 고정이라 늘 같은 그림 */
+    var bokeh = [
+      [0.13, 0.13, 0.075, 0.22], [0.31, 0.07, 0.042, 0.15], [0.22, 0.33, 0.032, 0.11],
+      [0.83, 0.17, 0.058, 0.17], [0.93, 0.34, 0.082, 0.09], [0.68, 0.06, 0.028, 0.12],
+      [0.09, 0.50, 0.048, 0.09], [0.89, 0.60, 0.038, 0.07], [0.45, 0.04, 0.024, 0.13],
+      [0.72, 0.44, 0.020, 0.08], [0.16, 0.68, 0.026, 0.06]
+    ];
+    bokeh.forEach(function (b) {
+      fillRadial(g, box, x + w * b[0], y + h * b[1], 0, w * b[2],
+        [[0, 'rgba(255,222,170,' + b[3] + ')'], [0.55, 'rgba(255,196,130,' + (b[3] * 0.35).toFixed(3) + ')'], [1, 'rgba(0,0,0,0)']]);
+    });
+
+    /* 비스듬히 내려오는 빛줄기 */
+    var beam = g.createLinearGradient(x + w * 0.08, y, x + w * 0.92, y + h * 0.8);
+    beam.addColorStop(0, 'rgba(255,226,180,0)');
+    beam.addColorStop(0.44, 'rgba(255,226,180,0.10)');
+    beam.addColorStop(0.62, 'rgba(255,226,180,0.04)');
+    beam.addColorStop(1, 'rgba(255,226,180,0)');
+    g.fillStyle = beam;
+    g.fillRect(x, y, w, h);
+
+    /* 큰 셔틀콕 실루엣 — 조명에 비친 한 개 (글씨 자리 위쪽에) */
+    var s = Math.min(w, h) * 0.46;
+    var cx = x + w * 0.52, cy = y + h * 0.33;
+    fillRadial(g, box, cx, cy, w * 0.02, w * 0.4,
+      [[0, 'rgba(255,196,128,0.14)'], [1, 'rgba(0,0,0,0)']]);
+    g.save();
+    g.shadowColor = 'rgba(255,214,150,0.40)';
+    g.shadowBlur = w * 0.045;
+    paintShuttleArt(g, cx, cy, s, 'rgba(255,246,230,0.34)', Math.max(2.4, s * 0.012));
+    g.restore();
+    paintShuttleArt(g, cx, cy, s, 'rgba(255,252,244,0.26)', Math.max(1.6, s * 0.008));
+
+    /* 비네트 */
+    fillRadial(g, box, x + w * 0.5, y + h * 0.42, Math.min(w, h) * 0.2, Math.max(w, h) * 0.8,
+      [[0, 'rgba(0,0,0,0)'], [0.6, 'rgba(0,0,0,0.12)'], [1, 'rgba(0,0,0,0.62)']]);
+  }
+
+  /* 3) 노을 코트 — 노을 그라데이션 · 해 · 네트 실루엣 (지평선은 글씨 위로) */
+  function paintBgSunsetCourt(g, box) {
+    var x = box.x, y = box.y, w = box.w, h = box.h;
+    var horizon = y + h * 0.585;
+    var sky = g.createLinearGradient(x, y, x, horizon);
+    sky.addColorStop(0, '#160e2b');
+    sky.addColorStop(0.30, '#3a1844');
+    sky.addColorStop(0.58, '#8b2f47');
+    sky.addColorStop(0.82, '#d4603f');
+    sky.addColorStop(1, '#f6ab63');
+    g.fillStyle = sky;
+    g.fillRect(x, y, w, horizon - y);
+
+    /* 해 — 지평선 바로 위, 네트 뒤 */
+    fillRadial(g, box, x + w * 0.5, y + h * 0.555, w * 0.01, w * 0.46,
+      [[0, 'rgba(255,240,206,0.60)'], [0.24, 'rgba(255,190,124,0.22)'], [1, 'rgba(0,0,0,0)']]);
+    g.save();
+    g.fillStyle = 'rgba(255,246,218,0.94)';
+    g.beginPath();
+    g.arc(x + w * 0.5, y + h * 0.556, w * 0.05, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+
+    /* 땅 */
+    var ground = g.createLinearGradient(x, horizon, x, y + h);
+    ground.addColorStop(0, '#2a1526');
+    ground.addColorStop(0.30, '#140b18');
+    ground.addColorStop(1, '#06040a');
+    g.fillStyle = ground;
+    g.fillRect(x, horizon, w, h - (horizon - y));
+
+    /* 지평선 빛 번짐 */
+    var haze = g.createLinearGradient(x, y + h * 0.52, x, y + h * 0.68);
+    haze.addColorStop(0, 'rgba(255,170,110,0)');
+    haze.addColorStop(0.45, 'rgba(255,170,110,0.28)');
+    haze.addColorStop(1, 'rgba(255,170,110,0)');
+    g.fillStyle = haze;
+    g.fillRect(x, y + h * 0.52, w, h * 0.16);
+
+    /* 네트 실루엣 — 지평선에 걸쳐 */
+    var netTop = y + h * 0.475, netBot = y + h * 0.585;
+    g.save();
+    g.lineCap = 'round';
+    g.strokeStyle = 'rgba(9,5,12,0.9)';
+    g.lineWidth = Math.max(3, w * 0.005);
+    g.beginPath();
+    g.moveTo(x + w * 0.03, netTop);
+    g.lineTo(x + w * 0.97, netTop);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(x + w * 0.055, netTop);
+    g.lineTo(x + w * 0.055, netBot);
+    g.moveTo(x + w * 0.945, netTop);
+    g.lineTo(x + w * 0.945, netBot);
+    g.stroke();
+    g.lineWidth = Math.max(1, w * 0.0016);
+    g.strokeStyle = 'rgba(10,6,13,0.34)';
+    var i, j;
+    for (i = 1; i < 26; i++) {
+      var gx = x + w * (0.055 + (0.89 * i / 26));
+      g.beginPath();
+      g.moveTo(gx, netTop);
+      g.lineTo(gx, netBot);
+      g.stroke();
+    }
+    for (j = 1; j < 5; j++) {
+      var gy = netTop + (netBot - netTop) * (j / 5);
+      g.beginPath();
+      g.moveTo(x + w * 0.055, gy);
+      g.lineTo(x + w * 0.945, gy);
+      g.stroke();
+    }
+    g.restore();
+
+    /* 땅 위 코트 라인 — 지평선의 한 점으로 모이는 V + 가까운 라인 */
+    g.save();
+    g.lineCap = 'round';
+    var nearLine = y + h * 0.93;
+    var nearL = x + w * 0.00, nearR = x + w * 1.00;
+    var vpX = x + w * 0.5, vpY = horizon;
+    var fade = g.createLinearGradient(x, vpY, x, nearLine);
+    fade.addColorStop(0, 'rgba(255,206,160,0.05)');
+    fade.addColorStop(0.6, 'rgba(255,206,160,0.20)');
+    fade.addColorStop(1, 'rgba(255,206,160,0.30)');
+    g.strokeStyle = fade;
+    g.lineWidth = Math.max(2, w * 0.003);
+    g.beginPath();
+    g.moveTo(vpX, vpY); g.lineTo(nearL, nearLine);
+    g.moveTo(vpX, vpY); g.lineTo(nearR, nearLine);
+    g.moveTo(nearL, nearLine); g.lineTo(nearR, nearLine);
+    g.stroke();
+    g.restore();
+  }
+
+  /* 4) 민턴 그라데이션 — 딥 네이비 · 민트 글로우 메쉬 */
+  function paintBgMintMesh(g, box) {
+    var x = box.x, y = box.y, w = box.w, h = box.h;
+    var base = g.createLinearGradient(x, y, x + w * 0.4, y + h);
+    base.addColorStop(0, '#06202a');
+    base.addColorStop(0.45, '#04141f');
+    base.addColorStop(1, '#030a12');
+    g.fillStyle = base;
+    g.fillRect(x, y, w, h);
+
+    fillRadial(g, box, x + w * 0.14, y + h * 0.10, w * 0.01, w * 0.86,
+      [[0, 'rgba(86,255,206,0.46)'], [0.42, 'rgba(60,215,180,0.16)'], [1, 'rgba(0,0,0,0)']]);
+    fillRadial(g, box, x + w * 0.96, y + h * 0.24, w * 0.01, w * 0.72,
+      [[0, 'rgba(70,152,255,0.34)'], [0.5, 'rgba(50,110,220,0.10)'], [1, 'rgba(0,0,0,0)']]);
+    fillRadial(g, box, x + w * 0.22, y + h * 1.02, w * 0.01, w * 0.84,
+      [[0, 'rgba(126,255,220,0.26)'], [1, 'rgba(0,0,0,0)']]);
+    fillRadial(g, box, x + w * 0.84, y + h * 0.82, w * 0.01, w * 0.6,
+      [[0, 'rgba(12,30,64,0.62)'], [1, 'rgba(0,0,0,0)']]);
+    fillRadial(g, box, x + w * 0.52, y + h * 0.44, w * 0.01, w * 0.42,
+      [[0, 'rgba(180,255,238,0.10)'], [1, 'rgba(0,0,0,0)']]);
+
+    /* 아주 옅은 사선 빛 */
+    var streak = g.createLinearGradient(x, y + h, x + w, y);
+    streak.addColorStop(0, 'rgba(255,255,255,0)');
+    streak.addColorStop(0.5, 'rgba(200,255,240,0.05)');
+    streak.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = streak;
+    g.fillRect(x, y, w, h);
+
+    /* 아래쪽은 글씨 자리라 조금 더 차분하게 */
+    var deep = g.createLinearGradient(x, y + h * 0.55, x, y + h);
+    deep.addColorStop(0, 'rgba(2,10,16,0)');
+    deep.addColorStop(1, 'rgba(2,10,16,0.45)');
+    g.fillStyle = deep;
+    g.fillRect(x, y + h * 0.55, w, h * 0.45);
+
+    fillRadial(g, box, x + w * 0.5, y + h * 0.5, Math.min(w, h) * 0.24, Math.max(w, h) * 0.84,
+      [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.30)']]);
+  }
+
+  /* 배경 id → 그림 (box 안에만) */
+  function paintBg(g, id, box) {
+    if (!box || !box.w || !box.h) return;
+    g.save();
+    g.beginPath();
+    g.rect(box.x, box.y, box.w, box.h);
+    g.clip();
+    if (id === 'courtnight') paintBgCourtNight(g, box);
+    else if (id === 'shuttlelight') paintBgShuttleLight(g, box);
+    else if (id === 'sunsetcourt') paintBgSunsetCourt(g, box);
+    else paintBgMintMesh(g, box);
     g.restore();
   }
 
@@ -446,13 +857,22 @@
    * ============================================================ */
   function paintMagazine(g, spec, p, F) {
     var W = F.W, H = F.H, pad = F.pad, photo = photoOf(spec);
+    /* 사진이 없으면 고른 기본 배경 아트를 깔고, 그것도 없으면 색 메쉬 */
+    var art = photo ? null : bgOf(spec);
+    var img = !!photo || !!art;
 
     if (photo) {
       try { drawCover(g, photo, 0, 0, W, H); }
-      catch (e) { paintMesh(g, p, F); photo = null; }
+      catch (e) { photo = null; paintMesh(g, p, F); }
+      if (photo) art = null;
+      else art = bgOf(spec);
+      if (!photo && art) { g.save(); g.beginPath(); g.rect(0, 0, W, H); g.clip(); paintBg(g, art.id, { x: 0, y: 0, w: W, h: H }); g.restore(); }
+    } else if (art) {
+      paintBg(g, art.id, { x: 0, y: 0, w: W, h: H });
     } else {
       paintMesh(g, p, F);
     }
+    img = !!photo || (!photo && !!art);
 
     /* 사진 밝기 — 고른 단계만큼만 (원본은 그대로) */
     var dim = photo ? shadeDim(spec) : 0;
@@ -461,89 +881,101 @@
       g.fillRect(0, 0, W, H);
     }
 
-    /* 아래 40%부터 스며드는 스크림 — 사진은 그대로 보이고 글씨만 또렷하게 */
-    var start = Math.round(H * 0.55);
-    var scrim = g.createLinearGradient(0, start, 0, H);
-    scrim.addColorStop(0, rgba(p.scrim, 0));
-    scrim.addColorStop(0.30, rgba(p.scrim, 0.34));
-    scrim.addColorStop(0.62, rgba(p.scrim, 0.66));
-    scrim.addColorStop(0.82, rgba(p.scrim, 0.86));
-    scrim.addColorStop(1, rgba(p.scrim, 0.95));
-    g.fillStyle = scrim;
-    g.fillRect(0, start, W, H - start);
-    /* 맨 위 한 줄도 읽히게 아주 옅은 그라데이션 */
-    if (photo) {
-      var topFade = g.createLinearGradient(0, 0, 0, Math.round(H * 0.16));
-      topFade.addColorStop(0, rgba(p.scrim, 0.34));
+    /* 아래에서 스며드는 스크림 — 위쪽 사진은 답답하지 않게, 아래 글씨만 또렷하게.
+     * 네 구간으로 나눠 곡선을 부드럽게(급격한 경계가 보이지 않게) 깔았습니다. */
+    if (img) {
+      var start = Math.round(H * 0.50);
+      var scrim = g.createLinearGradient(0, start, 0, H);
+      scrim.addColorStop(0, rgba(p.scrim, 0));
+      scrim.addColorStop(0.22, rgba(p.scrim, 0.06));
+      scrim.addColorStop(0.44, rgba(p.scrim, 0.26));
+      scrim.addColorStop(0.64, rgba(p.scrim, 0.55));
+      scrim.addColorStop(0.82, rgba(p.scrim, 0.80));
+      scrim.addColorStop(1, rgba(p.scrim, 0.95));
+      g.fillStyle = scrim;
+      g.fillRect(0, start, W, H - start);
+      /* 맨 위 한 줄도 읽히게 아주 옅은 그라데이션 */
+      var topFade = g.createLinearGradient(0, 0, 0, Math.round(H * 0.17));
+      topFade.addColorStop(0, rgba(p.scrim, 0.30));
       topFade.addColorStop(1, rgba(p.scrim, 0));
       g.fillStyle = topFade;
-      g.fillRect(0, 0, W, Math.round(H * 0.16));
+      g.fillRect(0, 0, W, Math.round(H * 0.17));
     }
 
-    var ink = photo ? '#ffffff' : p.text;
-    var soft = photo ? 'rgba(255,255,255,0.86)' : p.muted;
-    var lineColor = photo ? 'rgba(255,255,255,0.34)' : p.hair;
-    var shadow = photo ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0)';
-    var shadowBlur = photo ? 14 : 0;
+    var ink = img ? '#ffffff' : p.text;
+    var soft = img ? 'rgba(255,255,255,0.84)' : p.muted;
+    var lineColor = img ? 'rgba(255,255,255,0.32)' : p.hair;
+    var shadow = img ? 'rgba(0,0,0,0.42)' : 'rgba(0,0,0,0)';
+    var shadowBlur = img ? 16 : 0;
 
-    /* 좌상단 — 얇은 모노스페이스 날짜 · 장소 한 줄 */
-    var topY = F.safeTop + 78;
+    /* 좌상단 — 얇은 모노스페이스 날짜 · 장소 한 줄 (살짝 풀어 쓴 자간) */
+    var topY = F.safeTop + 84;
     g.textAlign = 'left';
     if (spec.top) {
-      var t = fitText(g, spec.top, W - pad * 2 - 220, 25, 500, MONO, 18);
+      tracking(g, 1.2);
+      var t = fitText(g, spec.top, W - pad * 2 - 240, 24, 500, MONO, 18);
       g.fillStyle = soft;
+      g.globalAlpha = 0.9;
       g.font = font(t.size, 500, MONO);
       g.shadowColor = shadow;
       g.shadowBlur = shadowBlur;
       g.fillText(t.text, pad, topY);
       g.shadowBlur = 0;
+      g.globalAlpha = 1;
+      tracking(g, 0);
     }
     g.textAlign = 'right';
     g.fillStyle = soft;
-    g.globalAlpha = 0.7;
-    g.font = font(20, 600, FONT);
+    g.globalAlpha = 0.62;
+    tracking(g, 3);
+    g.font = font(19, 600, FONT);
     g.shadowColor = shadow;
     g.shadowBlur = shadowBlur;
     g.fillText('BADMINTON', W - pad, topY);
     g.shadowBlur = 0;
     g.globalAlpha = 1;
+    tracking(g, 0);
     g.textAlign = 'left';
 
     var maxW = W - pad * 2;
     var stats = spec.stats || [];
-    var metaY = F.bottom - 54;
-    var ruleY = metaY - (spec.meta ? 56 : 34);
+    var metaY = F.bottom - 52;
+    var ruleY = metaY - (spec.meta ? 58 : 36);
 
     /* 큰 숫자 (단위는 포인트 색으로 작게) */
     var bitext = String((spec.big && spec.big.value) || '');
     var unit = String((spec.big && spec.big.unit) || '');
-    var unitSize = 52;
-    var unitW = unit ? (function () { g.font = font(unitSize, 600, FONT); return g.measureText(unit).width + 20; })() : 0;
+    var unitSize = 50;
+    var unitW = unit ? (function () { g.font = font(unitSize, 600, FONT); return g.measureText(unit).width + 22; })() : 0;
     var fitted = fitText(g, bitext, maxW - unitW, 198, 900, FONT, 58);
     var bigSize = fitted.size;
     var hasStats = stats.length > 0;
-    var valBase = ruleY - 74;
-    var bigBase = (hasStats ? valBase - 96 : ruleY - 84);
+    var valBase = ruleY - 76;
+    var bigBase = (hasStats ? valBase - 98 : ruleY - 86);
 
     /* 큰 숫자 위 제목 — 고른 문구(민턴일기 · 직접 쓴 문구)가 숫자 바로 위에 옵니다.
      * 대회 카드는 대회명이 주인공이라 문구를 그 위에 작게 얹습니다. */
-    var kickerY = bigBase - Math.round(bigSize * 0.74) - 40;
-    if (kickerY < F.safeTop + 150) kickerY = F.safeTop + 150;
+    var kickerY = bigBase - Math.round(bigSize * 0.74) - 42;
+    if (kickerY < F.safeTop + 158) kickerY = F.safeTop + 158;
 
     if (spec.mode === 'comp') {
       if (spec.phrase) {
-        var pt = fitText(g, spec.phrase, maxW, 26, 600, FONT, 15);
+        tracking(g, 0.6);
+        var pt = fitText(g, spec.phrase, maxW, 25, 600, FONT, 15);
         g.textAlign = 'left';
         g.fillStyle = soft;
+        g.globalAlpha = 0.92;
         g.font = font(pt.size, 600, FONT);
         g.shadowColor = shadow;
         g.shadowBlur = shadowBlur;
-        g.fillText(pt.text, pad, kickerY - 56);
+        g.fillText(pt.text, pad, kickerY - 58);
         g.shadowBlur = 0;
+        g.globalAlpha = 1;
+        tracking(g, 0);
       }
       if (spec.kicker) {
         g.textAlign = 'left';
-        var kt = fitText(g, spec.kicker, maxW, 46, 700, FONT, 20);
+        var kt = fitText(g, spec.kicker, maxW, 44, 700, FONT, 20);
         g.fillStyle = ink;
         g.font = font(kt.size, 700, FONT);
         g.shadowColor = shadow;
@@ -552,29 +984,35 @@
         g.shadowBlur = 0;
       }
     } else if (spec.phrase) {
-      var tt = fitText(g, spec.phrase, maxW, 34, 700, FONT, 18);
+      tracking(g, -0.6);
+      var tt = fitText(g, spec.phrase, maxW, 33, 700, FONT, 18);
       g.textAlign = 'left';
       g.fillStyle = ink;
+      g.globalAlpha = 0.95;
       g.font = font(tt.size, 700, FONT);
       g.shadowColor = shadow;
       g.shadowBlur = shadowBlur;
       g.fillText(tt.text, pad, kickerY);
       g.shadowBlur = 0;
+      g.globalAlpha = 1;
+      tracking(g, 0);
     }
 
-    /* 큰 숫자 */
+    /* 큰 숫자 — 화면에서 가장 큰 목소리. 자간만 살짝 조여 단단하게 */
     g.textAlign = 'left';
     g.fillStyle = ink;
+    tracking(g, -2);
     g.font = font(bigSize, 900, FONT);
-    g.shadowColor = 'rgba(0,0,0,0.35)';
-    g.shadowBlur = photo ? 24 : 0;
+    g.shadowColor = 'rgba(0,0,0,0.32)';
+    g.shadowBlur = img ? 26 : 0;
     g.fillText(fitted.text, pad, bigBase);
     var valueW = g.measureText(fitted.text).width;
     g.shadowBlur = 0;
+    tracking(g, 0);
     if (unit) {
       g.font = font(unitSize, 600, FONT);
       g.fillStyle = p.accent;
-      g.fillText(unit, pad + valueW + 18, bigBase - Math.round(bigSize * 0.06));
+      g.fillText(unit, pad + valueW + 20, bigBase - Math.round(bigSize * 0.08));
     }
 
     /* 얇은 가로선 1개 */
@@ -585,7 +1023,8 @@
       var colW = (maxW - 36 * (stats.length - 1)) / stats.length;
       stats.forEach(function (st, i) {
         var x = pad + colW * i + 36 * i;
-        var v = fitText(g, String(st.value), colW, 56, 800, FONT, 26);
+        tracking(g, -1);
+        var v = fitText(g, String(st.value), colW, 54, 800, FONT, 26);
         g.fillStyle = ink;
         g.font = font(v.size, 800, FONT);
         g.textAlign = 'left';
@@ -593,25 +1032,33 @@
         g.shadowBlur = shadowBlur;
         g.fillText(v.text, x, valBase);
         g.shadowBlur = 0;
+        tracking(g, 1.2);
         g.fillStyle = soft;
-        g.font = font(23, 600, FONT);
+        g.globalAlpha = 0.8;
+        g.font = font(21, 600, FONT);
         g.shadowColor = shadow;
         g.shadowBlur = shadowBlur;
-        g.fillText(String(st.label || ''), x, valBase + 48);
+        g.fillText(String(st.label || ''), x, valBase + 46);
         g.shadowBlur = 0;
+        g.globalAlpha = 1;
+        tracking(g, 0);
       });
     }
 
     /* 맨 아래 얇은 한 줄 — 파트너/라이벌 */
     if (spec.meta) {
-      var m = fitText(g, spec.meta, maxW, 27, 500, FONT, 18);
+      tracking(g, 0.3);
+      var m = fitText(g, spec.meta, maxW, 26, 500, FONT, 18);
       g.fillStyle = soft;
+      g.globalAlpha = 0.76;
       g.font = font(m.size, 500, FONT);
       g.textAlign = 'left';
       g.shadowColor = shadow;
       g.shadowBlur = shadowBlur;
       g.fillText(m.text, pad, metaY);
       g.shadowBlur = 0;
+      g.globalAlpha = 1;
+      tracking(g, 0);
     }
   }
 
@@ -621,7 +1068,7 @@
   function filmBox(F) {
     var x = 64, w = F.W - 128;
     /* 스토리에서는 위 안전 여백 아래에 제목 한 줄 자리를 더 둡니다 */
-    var y = F.story ? F.safeTop + 56 : 60;
+    var y = F.story ? F.safeTop + 68 : 74;
     var bottom = F.story ? F.bottom - 236 : F.H - 268;
     return { x: x, y: y, w: w, h: bottom - y };
   }
@@ -632,6 +1079,13 @@
     paper.addColorStop(0.5, PAPER.bg1);
     paper.addColorStop(1, PAPER.bg2);
     g.fillStyle = paper;
+    g.fillRect(0, 0, F.W, F.H);
+    /* 종이 가장자리에 아주 옅게 스며드는 그늘 — 인화지 느낌 */
+    var edge = g.createRadialGradient(F.W * 0.5, F.H * 0.46, Math.min(F.W, F.H) * 0.30,
+      F.W * 0.5, F.H * 0.46, Math.max(F.W, F.H) * 0.78);
+    edge.addColorStop(0, 'rgba(120,104,76,0)');
+    edge.addColorStop(1, 'rgba(120,104,76,0.10)');
+    g.fillStyle = edge;
     g.fillRect(0, 0, F.W, F.H);
   }
 
@@ -702,25 +1156,32 @@
     var W = F.W, H = F.H;
     paintFilmPaper(g, F);
     var box = filmBox(F), photo = photoOf(spec);
+    var art = photo ? null : bgOf(spec);
 
-    if (photo) {
+    if (photo || art) {
       /* 얇은 그림자 — 종이 위에 사진 한 장 */
       g.save();
-      g.shadowColor = 'rgba(28,24,18,0.26)';
-      g.shadowBlur = 34;
+      g.shadowColor = 'rgba(28,24,18,0.24)';
+      g.shadowBlur = 36;
       g.shadowOffsetX = 0;
-      g.shadowOffsetY = 12;
+      g.shadowOffsetY = 14;
       roundRect(g, box.x, box.y, box.w, box.h, 3);
-      g.fillStyle = '#dcd4c6';
+      g.fillStyle = '#ded6c8';
       g.fill();
       g.restore();
 
       g.save();
       roundRect(g, box.x, box.y, box.w, box.h, 3);
       g.clip();
-      try { drawCover(g, photo, box.x, box.y, box.w, box.h); }
-      catch (e) { paintFilmPlaceholder(g, box, p); }
-      var dim = shadeDim(spec);
+      if (photo) {
+        try { drawCover(g, photo, box.x, box.y, box.w, box.h); }
+        catch (e) { photo = null; paintFilmPlaceholder(g, box, p); }
+      }
+      if (!photo) {
+        if (art) paintBg(g, art.id, box);
+        else paintFilmPlaceholder(g, box, p);
+      }
+      var dim = photo ? shadeDim(spec) : 0;
       if (dim > 0) {
         g.fillStyle = rgba([24, 19, 11], dim * 0.9);
         g.fillRect(box.x, box.y, box.w, box.h);
@@ -736,57 +1197,69 @@
     g.lineWidth = 2;
     roundRect(g, box.x, box.y, box.w, box.h, 3);
     g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.42)';
+    g.lineWidth = 1;
+    roundRect(g, box.x + 2, box.y + 2, box.w - 4, box.h - 4, 2);
+    g.stroke();
     g.restore();
 
-    var tx = box.x + 6, tw = box.w - 12;
-    var l1 = box.y + box.h + 78;
-    var l2 = l1 + 66;
-    var l3 = l2 + 50;
+    var tx = box.x + 4, tw = box.w - 8;
+    var l1 = box.y + box.h + 72;
+    var l2 = l1 + 68;
+    var l3 = l2 + 48;
 
     /* 제목 — 사진 위 종이 여백에 고른 문구 (사진은 가리지 않음) */
     if (spec.phrase) {
-      var pt = fitText(g, spec.phrase, tw, 30, 700, FONT, 16);
+      var pt = fitText(g, spec.phrase, tw - 60, 29, 700, FONT, 16);
       g.textAlign = 'left';
       g.fillStyle = PAPER.ink;
       g.font = font(pt.size, 700, FONT);
-      g.fillText(pt.text, tx, box.y - 22);
+      g.fillText(pt.text, tx, box.y - 26);
     }
 
     /* 1줄 — 모노스페이스 날짜 · 체육관 */
     g.textAlign = 'left';
     if (spec.top) {
-      var t = fitText(g, spec.top, tw - 120, 25, 500, MONO, 17);
+      tracking(g, 0.8);
+      var t = fitText(g, spec.top, tw - 150, 24, 500, MONO, 17);
       g.fillStyle = PAPER.ink2;
       g.font = font(t.size, 500, MONO);
       g.fillText(t.text, tx, l1);
+      tracking(g, 0);
     }
-    paintRule(g, tx, l1 + 22, tw - 156, 'rgba(29,27,24,0.16)', p.accent);
+    paintRule(g, tx, l1 + 24, tw - 160, 'rgba(29,27,24,0.14)', p.accent);
 
     /* 2줄 — 핵심 스탯 한 줄 (굵게) */
     var line2 = spec.bigLine || '';
     if (line2) {
-      var b = fitText(g, line2, tw - 150, 46, 800, FONT, 26);
+      tracking(g, -0.8);
+      var b = fitText(g, line2, tw - 156, 44, 800, FONT, 26);
       g.fillStyle = PAPER.ink;
       g.font = font(b.size, 800, FONT);
       g.fillText(b.text, tx, l2);
+      tracking(g, 0);
     }
 
     /* 3줄 — 얇은 한 줄 (파트너·종목·대회명) */
     if (spec.metaLine) {
-      var m = fitText(g, spec.metaLine, tw - 150, 28, 500, FONT, 17);
+      tracking(g, 0.2);
+      var m = fitText(g, spec.metaLine, tw - 156, 27, 500, FONT, 17);
       g.fillStyle = PAPER.ink2;
       g.font = font(m.size, 500, FONT);
       g.fillText(m.text, tx, l3);
+      tracking(g, 0);
     }
 
-    /* 오른쪽 아래 작은 셔틀콕 스탬프 */
-    paintShuttle(g, W - 118, box.y + box.h + 58, 54, p.accent);
+    /* 오른쪽 아래 작은 셔틀콕 스탬프 — 2줄과 같은 높이에 정렬 */
+    paintShuttle(g, W - 104, l2 - 16, 46, p.accent);
 
     /* 브랜드 — 아주 작게 */
     g.textAlign = 'right';
     g.fillStyle = PAPER.ink3;
-    g.font = font(18, 700, FONT);
-    g.fillText('BADMINTON', W - 66, F.story ? F.bottom - 6 : H - 40);
+    tracking(g, 2.4);
+    g.font = font(17, 700, FONT);
+    g.fillText('BADMINTON', W - 64, F.story ? F.bottom - 8 : H - 38);
+    tracking(g, 0);
     g.textAlign = 'left';
   }
 
@@ -806,46 +1279,59 @@
     var fitted = fitText(g, bitext, maxW - unitW, F.story ? 190 : 176, 900, FONT, 54);
     var bigSize = fitted.size;
 
-    /* 큰 숫자 — 그림자만 은은하게 (배경 박스 없음) */
+    /* 큰 숫자 — 어떤 사진 위에 얹어도 또렷하게: 얇은 어두운 테두리 + 은은한 그림자 */
     g.textAlign = 'left';
+    g.lineJoin = 'round';
+    g.strokeStyle = 'rgba(0,0,0,0.26)';
+    g.lineWidth = Math.max(3, bigSize * 0.022);
+    outlineText(g, fitted.text, pad, bigBase);
     g.fillStyle = '#ffffff';
     g.font = font(bigSize, 900, FONT);
-    g.shadowColor = 'rgba(0,0,0,0.55)';
-    g.shadowBlur = 28;
+    g.shadowColor = 'rgba(0,0,0,0.5)';
+    g.shadowBlur = 26;
     g.fillText(fitted.text, pad, bigBase);
     var valueW = g.measureText(fitted.text).width;
     g.shadowBlur = 0;
     if (unit) {
       g.font = font(unitSize, 500, FONT);
+      g.strokeStyle = 'rgba(0,0,0,0.22)';
+      g.lineWidth = 3;
+      outlineText(g, unit, pad + valueW + 14, bigBase - Math.round(bigSize * 0.05));
       g.fillStyle = p.accent;
-      g.shadowColor = 'rgba(0,0,0,0.45)';
-      g.shadowBlur = 20;
+      g.shadowColor = 'rgba(0,0,0,0.42)';
+      g.shadowBlur = 18;
       g.fillText(unit, pad + valueW + 14, bigBase - Math.round(bigSize * 0.05));
       g.shadowBlur = 0;
     }
 
     /* 얇은 한 줄 */
     if (spec.label) {
-      var l = fitText(g, spec.label, maxW - 70, 30, 500, FONT, 18);
-      g.fillStyle = 'rgba(255,255,255,0.9)';
+      var l = fitText(g, spec.label, maxW - 70, 29, 500, FONT, 18);
       g.font = font(l.size, 500, FONT);
+      g.strokeStyle = 'rgba(0,0,0,0.22)';
+      g.lineWidth = 3;
+      outlineText(g, l.text, pad, labelY);
+      g.fillStyle = 'rgba(255,255,255,0.92)';
       g.shadowColor = 'rgba(0,0,0,0.5)';
-      g.shadowBlur = 22;
+      g.shadowBlur = 20;
       g.fillText(l.text, pad, labelY);
       g.shadowBlur = 0;
     }
 
     /* 작은 셔틀콕 라인 아이콘 + 제목 — 숫자 위 왼쪽 */
-    var stampY = bigBase - Math.round(bigSize * 0.74) - 64;
-    paintShuttle(g, pad + 24, stampY, 44, p.accent);
+    var stampY = bigBase - Math.round(bigSize * 0.74) - 62;
+    paintShuttle(g, pad + 22, stampY, 42, p.accent);
     if (spec.phrase) {
-      var pt = fitText(g, spec.phrase, maxW - 80, 30, 700, FONT, 15);
+      var pt = fitText(g, spec.phrase, maxW - 80, 29, 700, FONT, 15);
       g.textAlign = 'left';
-      g.fillStyle = '#ffffff';
       g.font = font(pt.size, 700, FONT);
+      g.strokeStyle = 'rgba(0,0,0,0.24)';
+      g.lineWidth = 3;
+      outlineText(g, pt.text, pad + 62, stampY + 10);
+      g.fillStyle = '#ffffff';
       g.shadowColor = 'rgba(0,0,0,0.5)';
-      g.shadowBlur = 22;
-      g.fillText(pt.text, pad + 64, stampY + 10);
+      g.shadowBlur = 20;
+      g.fillText(pt.text, pad + 62, stampY + 10);
       g.shadowBlur = 0;
     }
   }
@@ -928,6 +1414,7 @@
       ratio: ratioById(prefs.ratio).id,
       shade: shadeById(prefs.shade).id,
       palette: paletteById(prefs.palette).id,
+      bg: bgById(prefs.bg).id,
       phrase: phraseText(prefs.phrase) || DEFAULT_PHRASE,
       phraseComp: phraseText(prefs.phraseComp) || DEFAULT_PHRASE,
       recordId: rec ? rec.id : '',
@@ -961,6 +1448,7 @@
       ratio: ratioById(ui.ratio).id,
       shade: shadeById(ui.shade).id,
       palette: paletteById(ui.palette).id,
+      bg: ui.bg || '',
       photo: ui.photo || null
     };
 
@@ -1061,18 +1549,49 @@
       '</div>';
   }
 
+  /* 기본 배경 칩 1개 — 썸네일은 같은 그림 함수로 그립니다(paintBgThumbs) */
+  function bgChip(b) {
+    var on = ui.bg === b.id && !ui.photo && ui.design !== 'sticker';
+    return '<button type="button" class="sc__bg' + (on ? ' is-on' : '') + '" data-sc-bg="' + b.id + '" ' +
+      'aria-pressed="' + (on ? 'true' : 'false') + '" title="' + U.esc(b.note) + '">' +
+      '<canvas class="sc__bgthumb" width="84" height="105" data-sc-bgthumb="' + b.id + '" aria-hidden="true"></canvas>' +
+      '<b>' + U.esc(b.name) + '</b></button>';
+  }
+
+  function hintOf(design, ratio) {
+    if (design === 'sticker') return '투명 PNG라 내 사진·스토리 위에 그대로 붙일 수 있어요.';
+    if (ratio === 'story') return '스토리는 위·아래 220px를 비워 프로필·답장창에 가리지 않아요.';
+    return '피드 4:5예요. 스토리에 올리려면 비율을 스토리로 바꿔 주세요.';
+  }
+
+  /* 시트 — 초보자 기준 3초 완성 흐름 (bm-v1.63.0)
+   *   탭 → 한 줄 안내 → 미리보기 → 📷 사진 넣기 (+ 기본 배경 4종) → 대회 입력(대회 탭)
+   *   → 디자인 · 비율 · 사진 밝기 → 접기(문구 · 색 · 내용) → 저장
+   * 가장 중요한 미리보기와 사진 버튼을 맨 위에 두고, 자주 안 고르는 옵션은 접었습니다. */
   function sheetBody(ctx) {
     var state = ctx && ctx.store ? ctx.store.state : {};
     var records = ((state.data && state.data.records) || []).slice(0, 5);
     var rec = recordById(ctx, ui.recordId);
     var dims = dimsOf(ui.ratio);
+    var sticker = ui.design === 'sticker';
+
     var modeTabs = '<div class="seg seg--wide sc__modes" role="tablist">' + MODES.map(function (m) {
       return '<button type="button" class="seg__btn' + (ui.mode === m.id ? ' is-on' : '') + '" data-sc-mode="' + m.id + '" role="tab" ' +
         'aria-selected="' + (ui.mode === m.id ? 'true' : 'false') + '">' + U.esc(m.name) + '</button>';
     }).join('') + '</div>';
 
+    /* 한 줄 안내 — 3초 안에 무엇을 할지 */
+    var guide = '<p class="sc__guide">' +
+      '<span><em>1</em>사진 고르고</span><i aria-hidden="true">→</i>' +
+      '<span><em>2</em>저장 누르면 끝!</span></p>';
+
+    /* 미리보기 — 시트를 열면 가장 먼저 카드가 보입니다 */
+    var preview = '<div class="sc__preview' + (sticker ? ' is-sticker' : '') + '">' +
+      '<canvas class="sc__canvas" width="' + dims.w + '" height="' + dims.h + '" aria-label="공유 카드 미리보기"></canvas></div>' +
+      '<p class="sc__summary" data-sc-summary></p>';
+
     var picker = '';
-    if (records.length > 1 && ui.mode === 'today') {
+    if (records.length > 1) {
       picker = '<label class="flabel"><span>어느 일지로 만들까요</span><select data-sc-field="recordId">' +
         records.map(function (r) {
           return '<option value="' + U.esc(r.id) + '"' + (String(r.id) === String(ui.recordId) ? ' selected' : '') + '>' +
@@ -1081,6 +1600,7 @@
         }).join('') + '</select></label>';
     }
 
+    /* 오늘 운동 — 세부 입력은 접기 안으로 */
     var todayFields = picker +
       '<div class="sc__grid">' +
       field('체육관', 'gym', ui.gym, { max: 20, placeholder: '예: ○○체육관' }) +
@@ -1088,7 +1608,9 @@
       '</div>' +
       field('상대(라이벌)', 'rival', ui.rival, { max: 12, placeholder: '비워도 돼요' });
 
-    var compFields =
+    /* 대회 인증 — 대회명·종목·성적·파트너는 접지 않고 바로 입력 */
+    var compFields = '<div class="sc__compbox">' +
+      '<div class="field__label"><span>대회 정보</span><small>카드에 그대로 들어가요</small></div>' +
       field('대회명', 'contest', ui.contest, { max: 24, placeholder: '예: ○○시 오픈 배드민턴 대회' }) +
       field('급수 · 종목', 'event', ui.event, { max: 20, placeholder: '예: B조 복식' }) +
       '<div class="field"><div class="field__label"><span>성적</span></div>' +
@@ -1096,7 +1618,8 @@
         return '<button type="button" class="chip' + (ui.result === r ? ' is-on' : '') + '" data-sc-result="' + r + '" ' +
           'aria-pressed="' + (ui.result === r ? 'true' : 'false') + '">' + r + '</button>';
       }).join('') + '</div></div>' +
-      field('파트너', 'compPartner', ui.compPartner, { max: 12, placeholder: '비워도 돼요' });
+      field('파트너', 'compPartner', ui.compPartner, { max: 12, placeholder: '비워도 돼요' }) +
+      '</div>';
 
     var emptyToday = ui.mode === 'today' && !rec;
     var emptyNote = emptyToday
@@ -1104,11 +1627,20 @@
       : '';
 
     /* 사진 — 스티커(투명)에는 필요 없어 숨깁니다 */
-    var photoBox = '<div class="field sc__photo"' + (ui.design === 'sticker' ? ' hidden' : '') + '>' +
-      '<label class="btn btn--ghost btn--big sc__photobtn">' + BM.ui.icon('camera') +
-      '<span>' + (ui.photo ? '사진 바꾸기' : '사진 고르기') + '</span>' +
-      '<input type="file" accept="image/*" data-sc-photo hidden></label>' +
-      '<p class="hint">사진은 폰 안에서만 합쳐져요 · 서버로 보내지 않아요</p></div>';
+    var photoBox = '<div class="field sc__photo"' + (sticker ? ' hidden' : '') + '>' +
+      '<div class="sc__shotrow">' +
+        '<label class="sc__shot' + (ui.photo ? ' is-on' : '') + '">' +
+          '<span class="sc__shotic">' + BM.ui.icon('camera') + '</span>' +
+          '<span class="sc__shotxt"><b>' + (ui.photo ? '사진 바꾸기' : '사진 넣기') + '</b>' +
+            '<small data-sc-photosub' + (ui.photo ? ' hidden' : '') + '>갤러리 · 카메라</small></span>' +
+          '<input type="file" accept="image/*" data-sc-photo hidden>' +
+        '</label>' +
+        '<button type="button" class="sc__shotdel" data-sc-photoclear' + (ui.photo ? '' : ' hidden') + '>' +
+          BM.ui.icon('trash') + '<span>사진 빼기</span></button>' +
+      '</div>' +
+      '<div class="sc__bgrow"><span class="sc__bglabel">기본 배경</span><i class="sc__bghint">사진 없이도 감성 있게</i></div>' +
+      '<div class="sc__bgs" role="group" aria-label="기본 배경 4종">' + BGS.map(bgChip).join('') + '</div>' +
+      '<p class="hint sc__photohint">사진은 폰 안에서만 합쳐져요 · 서버로 보내지 않아요</p></div>';
 
     /* 디자인 3종 */
     var designPicks = '<div class="field"><div class="field__label"><span>디자인</span></div>' +
@@ -1119,16 +1651,17 @@
           '<i aria-hidden="true"></i><b>' + U.esc(d.name) + '</b><span>' + U.esc(d.note) + '</span></button>';
       }).join('') + '</div></div>';
 
-    /* 비율 2종 */
+    /* 비율 2종 + 그 비율에 맞는 한 줄 안내 */
     var ratioPicks = '<div class="field"><div class="field__label"><span>비율</span></div>' +
       '<div class="seg seg--wide sc__ratios" role="group" aria-label="카드 비율">' + RATIOS.map(function (r) {
         var on = ui.ratio === r.id;
         return '<button type="button" class="seg__btn sc__ratio sc__ratio--' + r.id + (on ? ' is-on' : '') + '" data-sc-ratio="' + r.id + '" ' +
           'aria-pressed="' + (on ? 'true' : 'false') + '"><i aria-hidden="true"></i><b>' + U.esc(r.name) + '</b></button>';
-      }).join('') + '</div></div>';
+      }).join('') + '</div>' +
+      '<p class="hint sc__ratiohint">' + hintOf(ui.design, ui.ratio) + '</p></div>';
 
     /* 사진 밝기 3단계 — 사진이 있을 때만 */
-    var shadePicks = '<div class="field sc__shadebox"' + (ui.photo && ui.design !== 'sticker' ? '' : ' hidden') + '>' +
+    var shadePicks = '<div class="field sc__shadebox"' + (ui.photo && !sticker ? '' : ' hidden') + '>' +
       '<div class="field__label"><span>사진 밝기</span></div>' +
       '<div class="seg seg--three sc__shades" role="group" aria-label="사진 밝기">' + SHADES.map(function (s) {
         var on = ui.shade === s.id;
@@ -1145,23 +1678,28 @@
           '<i aria-hidden="true"></i><b>' + U.esc(p.name) + '</b></button>';
       }).join('') + '</div></div>';
 
-    var saveLabel = emptyToday ? '일지를 먼저 저장해 주세요'
-      : (ui.design === 'sticker' ? '투명 PNG 저장 · 공유' : 'PNG 저장 · 공유');
+    /* 접기 — 문구 · 색 · 내용 바꾸기 (기본은 닫힘, 평소 화면은 아주 깔끔하게) */
+    var more = '<details class="sc__more">' +
+      '<summary class="sc__moresum">' + BM.ui.icon('tune') +
+        '<span>문구 · 색 · 내용 바꾸기</span>' +
+        '<i class="sc__chev" aria-hidden="true"></i></summary>' +
+      '<div class="sc__morebody">' +
+        phraseBlock(ui.mode) +
+        (ui.mode === 'today' ? todayFields : '') +
+        colorPicks +
+      '</div></details>';
 
-    return modeTabs + emptyNote +
-      (ui.mode === 'today' ? todayFields : compFields) +
-      phraseBlock(ui.mode) +
-      photoBox + designPicks + ratioPicks + shadePicks + colorPicks +
-      '<div class="sc__preview' + (ui.design === 'sticker' ? ' is-sticker' : '') + '">' +
-      '<canvas class="sc__canvas" width="' + dims.w + '" height="' + dims.h + '" aria-label="공유 카드 미리보기"></canvas></div>' +
-      '<p class="sc__summary" data-sc-summary></p>' +
-      '<button type="button" class="btn btn--primary btn--big mt8" data-sc-save' + (emptyToday ? ' disabled' : '') + '>' +
-      BM.ui.icon('send') + '<span>' + saveLabel + '</span></button>' +
-      '<p class="hint">' + (ui.design === 'sticker'
-        ? '투명 PNG라 내 사진·스토리 위에 그대로 붙일 수 있어요.'
-        : (ui.ratio === 'story'
-          ? '스토리는 위·아래 220px를 비워 프로필·답장창에 가리지 않아요.'
-          : '피드 4:5예요. 스토리에 올리려면 비율을 스토리로 바꿔 주세요.')) + '</p>';
+    var saveLabel = emptyToday ? '일지를 먼저 저장해 주세요'
+      : (sticker ? '투명 PNG 저장 · 공유' : 'PNG 저장 · 공유');
+
+    /* 저장 — 늘 화면 아래에 붙어 있어 스크롤을 되돌리지 않아도 됩니다 */
+    var saveBar = '<div class="sc__savebar">' +
+      '<button type="button" class="btn btn--primary btn--big" data-sc-save' + (emptyToday ? ' disabled' : '') + '>' +
+      BM.ui.icon('send') + '<span>' + saveLabel + '</span></button></div>';
+
+    return modeTabs + guide + emptyNote + preview + photoBox +
+      (ui.mode === 'comp' ? compFields : '') +
+      designPicks + ratioPicks + shadePicks + more + saveBar;
   }
 
   function paintPreview(wrap, ctx) {
@@ -1173,20 +1711,49 @@
     if (sum) sum.textContent = summaryOf(spec);
   }
 
-  /* 컨트롤 표시를 현재 상태에 맞춥니다(사진 칸·밝기 칸·저장 버튼 이름) */
+  /* 컨트롤 표시를 현재 상태에 맞춥니다(사진 칸·기본 배경·밝기 칸·저장 버튼 이름 등) */
   function syncControls(node) {
+    if (!node) return;
+    var sticker = ui.design === 'sticker';
     var photoBox = node.querySelector('.sc__photo');
-    if (photoBox) photoBox.hidden = ui.design === 'sticker';
+    if (photoBox) photoBox.hidden = sticker;
     var shadeBox = node.querySelector('.sc__shadebox');
-    if (shadeBox) shadeBox.hidden = !ui.photo || ui.design === 'sticker';
+    if (shadeBox) shadeBox.hidden = !ui.photo || sticker;
     var preview = node.querySelector('.sc__preview');
-    if (preview) preview.classList.toggle('is-sticker', ui.design === 'sticker');
+    if (preview) preview.classList.toggle('is-sticker', sticker);
     var saveLabel = node.querySelector('[data-sc-save] span');
     if (saveLabel) {
-      saveLabel.textContent = ui.design === 'sticker' ? '투명 PNG 저장 · 공유' : 'PNG 저장 · 공유';
+      saveLabel.textContent = sticker ? '투명 PNG 저장 · 공유' : 'PNG 저장 · 공유';
     }
-    var lbl = node.querySelector('.sc__photobtn span');
-    if (lbl) lbl.textContent = ui.photo ? '사진 바꾸기' : '사진 고르기';
+    /* 사진 버튼 — 사진이 들어갔는지에 따라 이름·보조줄·‘사진 빼기’가 바뀍니다 */
+    var shot = node.querySelector('.sc__shot');
+    if (shot) shot.classList.toggle('is-on', !!ui.photo);
+    var lbl = node.querySelector('.sc__shotxt b');
+    if (lbl) lbl.textContent = ui.photo ? '사진 바꾸기' : '사진 넣기';
+    var sub = node.querySelector('[data-sc-photosub]');
+    if (sub) sub.hidden = !!ui.photo;
+    var del = node.querySelector('[data-sc-photoclear]');
+    if (del) del.hidden = !ui.photo;
+    /* 기본 배경 4종 — 내 사진이 있으면 배경은 꺼진 상태 */
+    Array.prototype.forEach.call(node.querySelectorAll('[data-sc-bg]'), function (b) {
+      var on = !ui.photo && ui.bg === b.getAttribute('data-sc-bg');
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    var hint = node.querySelector('.sc__ratiohint');
+    if (hint) hint.textContent = hintOf(ui.design, ui.ratio);
+  }
+
+  /* 기본 배경 썸네일 — 카드와 같은 그림 함수로 작게 그려 늘 같은 결과 */
+  function paintBgThumbs(node) {
+    Array.prototype.forEach.call(node.querySelectorAll('[data-sc-bgthumb]'), function (cv) {
+      if (!cv || !cv.getContext) return;
+      var g = cv.getContext('2d');
+      if (!g) return;
+      var w = cv.width || 84, h = cv.height || 105;
+      g.clearRect(0, 0, w, h);
+      paintBg(g, cv.getAttribute('data-sc-bgthumb'), { x: 0, y: 0, w: w, h: h });
+    });
   }
 
   /* 문구 칩·글자 수 표시를 현재 상태에 맞춥니다 (입력 중에는 입력값을 건드리지 않음) */
@@ -1226,6 +1793,7 @@
       body: sheetBody(ctx),
       onMount: function (node) {
         paintPreview(node, ctx);
+        paintBgThumbs(node);
 
         function repaint() { paintPreview(node, ctx); }
 
@@ -1261,6 +1829,7 @@
             var body = node.querySelector('.sheet__body');
             if (body) body.innerHTML = sheetBody(ctx);
             paintPreview(node, ctx);
+            paintBgThumbs(node);
             return;
           }
           var dg = ev.target.closest('[data-sc-design]');
@@ -1288,7 +1857,29 @@
               b.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
             BM.ui.haptic(6);
+            syncControls(node);
             writePrefs({ ratio: ui.ratio });
+            repaint();
+            return;
+          }
+          /* 기본 감성 배경 4종 — 한 번 누르면 그 배경으로, 다시 누르면 사진 없이(색 바탕)로 */
+          var bgb = ev.target.closest('[data-sc-bg]');
+          if (bgb) {
+            ev.preventDefault();
+            var bid = bgb.getAttribute('data-sc-bg');
+            ui.bg = (!ui.photo && ui.bg === bid) ? '' : bid;
+            if (ui.bg) ui.photo = null;   /* 기본 배경을 고르면 내 사진보다 먼저 보입니다 */
+            BM.ui.haptic(6);
+            syncControls(node);
+            writePrefs({ bg: ui.bg });
+            repaint();
+            return;
+          }
+          if (ev.target.closest('[data-sc-photoclear]')) {
+            ev.preventDefault();
+            ui.photo = null;
+            BM.ui.haptic(6);
+            syncControls(node);
             repaint();
             return;
           }
@@ -1376,6 +1967,8 @@
           readPhoto(input.files[0], function (img) {
             if (!img) { BM.ui.toast('사진을 읽지 못했어요', 'error'); return; }
             ui.photo = img;
+            ui.bg = '';          /* 내 사진이 기본 배경보다 먼저 */
+            writePrefs({ bg: '' });
             syncControls(node);
             repaint();
             BM.ui.haptic(10);
@@ -1388,9 +1981,10 @@
 
   BM.sharecard = {
     W: W, H: H, MODES: MODES, RESULTS: RESULTS,
-    DESIGNS: DESIGNS, RATIOS: RATIOS, SHADES: SHADES, PALETTES: PALETTES,
+    DESIGNS: DESIGNS, RATIOS: RATIOS, SHADES: SHADES, PALETTES: PALETTES, BGS: BGS,
     PHRASES: PHRASES, PHRASE_MAX: PHRASE_MAX, DEFAULT_PHRASE: DEFAULT_PHRASE,
     designById: designById, ratioById: ratioById, shadeById: shadeById, paletteById: paletteById,
+    bgById: bgById, bgOf: bgOf, paintBg: paintBg,
     phraseById: phraseById, phraseText: phraseText, isPresetPhrase: isPresetPhrase,
     dimsOf: dimsOf,
     open: open,

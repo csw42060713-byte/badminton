@@ -32,6 +32,7 @@
     edit: '<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z"/>',
     search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-3.6-3.6"/>',
     filter: '<path d="M4 7h16M7 12h10M10 17h4"/>',
+    tune: '<path d="M4 8h9M19 8h1M4 16h1M11 16h9"/><circle cx="16" cy="8" r="2.4"/><circle cx="8" cy="16" r="2.4"/>',
     camera: '<path d="M4 9h3l1.4-2h7.2L18 9h2v10H4z"/><circle cx="12" cy="13.5" r="3.2"/>',
     palette: '<path d="M12 3a9 9 0 1 0 0 18h1.6a2 2 0 0 0 0-4h-.8a1.8 1.8 0 0 1 0-3.6H17a4 4 0 0 0 4-4c0-3.4-4-6.4-9-6.4z"/><circle cx="8" cy="10" r="1"/><circle cx="12" cy="7.6" r="1"/>',
     trash: '<path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/><path d="M11 11v6M13 11v6"/>',
