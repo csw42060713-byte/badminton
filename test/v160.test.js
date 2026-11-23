@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v160.test.js — bm-v1.60.0
+ * test/v160.test.js — bm-v1.61.0
  *   ✨ 인스타 공유 카드 감성 리디자인 (매거진 · 필름 · 스티커)
  *
  *  사용자가 요청한 그대로를 검증합니다.
@@ -142,7 +142,7 @@
       big: { value: '90', unit: '분', label: '운동 시간' },
       bigLine: '90분 · 2승 1패',
       stats: [{ label: '경기', value: '2승 1패' }, { label: '연속 기록', value: '5일' }],
-      meta: '민호와 함께 · vs 지호', metaLine: '나래울체육관', label: '오운완 · 2승 1패 · 11/23 (일)',
+      meta: '민호와 함께 · vs 지호', metaLine: '나래울체육관', phrase: '민턴일기', label: '2승 1패 · 11/23 (일)',
       date: '11/23 (일)',
       comp: null
     };
@@ -343,7 +343,7 @@
     eq(m.log.ops[0], 'clearRect', '투명하게 비우고 시작');
     eq(m.log.rects.length, 0, '배경 사각형 없음');
     includes(m.log.texts.join('|'), '90', '큰 숫자');
-    includes(m.log.texts.join('|'), '오운완', '얇은 한 줄');
+    includes(m.log.texts.join('|'), '민턴일기', '문구 한 줄');
     ok(m.log.strokes >= 4, '셔틀콕 라인 아이콘');
     ok(m.log.textColors.indexOf('#ffffff') >= 0, '사진 위에서도 읽히게 흰 글씨');
   });
@@ -415,7 +415,8 @@
     includes(spec.top, '나래울체육관', '위 줄 체육관');
     includes(spec.meta, '민호와 함께', '파트너');
     includes(spec.meta, 'vs 지호', '라이벌');
-    includes(spec.label, '오운완', '스티커 한 줄');
+    eq(spec.phrase, '민턴일기', '카드 문구 기본값');
+    includes(spec.label, '2승 1패', '스티커 한 줄');
   });
 
   test('v1.60 모델: 대회 인증 스펙 — 대회명 · 성적 · 종목 · 파트너', function () {
@@ -600,17 +601,17 @@
     excludes(SC()._sheetBody(ctxOf(stateOf([rec()]))), '김원호', '시트 예시도 가명만');
   });
 
-  test('v1.60 버전: sw · app · index · TWA가 함께 bm-v1.60.0', function () {
+  test('v1.60 버전: sw · app · index · TWA가 함께 bm-v1.61.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.60.0'", 'sw.js');
-    includes(sw, 'bm-v1.60.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.60.0'", 'app.js');
-    includes(index, 'styles.css?v=20261123-4', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.60.0', 'TWA 이름');
-    eq(twa.appVersion, '1.60.0', 'TWA 버전');
-    eq(twa.appVersionCode, 54, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.61.0'", 'sw.js');
+    includes(sw, 'bm-v1.61.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.61.0'", 'app.js');
+    includes(index, 'styles.css?v=20261123-5', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.61.0', 'TWA 이름');
+    eq(twa.appVersion, '1.61.0', 'TWA 버전');
+    eq(twa.appVersionCode, 55, 'TWA 코드');
     includes(index, 'js/sharecard.js', 'index 스크립트');
   });
 
