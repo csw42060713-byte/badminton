@@ -221,7 +221,7 @@ with sync_playwright() as p:
             continue
         with page.expect_download(timeout=20000) as dl:
             tap('[data-sc-save]', 400)
-        path = OUT + '/v161_card_%s_feed.png' % d
+        path = OUT + '/v161_card_%s_feed_custom.png' % d
         dl.value.save_as(path)
         im = Image.open(path)
         check('E %s 피드 PNG 1080×1350' % name, im.size == (1080, 1350), im.size)
