@@ -2463,6 +2463,6 @@ bubblewrap build            # → app-release-bundle.aab
 - **보존**: `디자인 3종 · 비율 2종 · 사진 밝기 3단계 · 카드 색 5종 · 문구 프리셋 5종 + 직접 쓰기(24자) · 일지 자동 채움 · 마지막 선택 기억(localStorage)` 모두 그대로. 일지가 없으면 예전처럼 안내 + 저장 버튼만 꺼지고(사진·배경은 고를 수 있음) 대회 인증은 그대로 저장됩니다. 사진은 폰 안에서만 합성되고 서버로 보내지 않습니다.
 - 파일: `js/sharecard.js`(시트 재배치 · 배경 4종 그림 · 카드 다듬기) · `js/ui.js`(`tune` 아이콘) · `styles.css`(`.sc__guide` `.sc__shot` `.sc__bgs` `.sc__more` `.sc__savebar` `.sc__compbox` 등) · `test/v163.test.js`(21개) · `test/local-v163.py` · `test/live-v163.py`.
 - 버전: `sw.js` `bm-v1.63.0` · `app.js` `v1.63.0` · `twa-manifest.json` `1.63.0`(`appVersionCode` **57**) · `styles.css?v=20261124-1`.
-- 배포: `main` `0716ed0`(기능) · `gh-pages` `8a1127e`(`test/`·`supabase/`·`ideas.md` 제외). 라이브 `https://csw42060713-byte.github.io/badminton/`.
+- 배포: `main` `4b7e5e8`(기능 `0716ed0` + 기록) · `gh-pages` `a07ae23`(기능 `8a1127e` + 기록 · `test/`·`supabase/`·`ideas.md` 제외). 라이브 `https://csw42060713-byte.github.io/badminton/`.
 - 검증: `node test/run.js` **1345/1345** · 로컬 390×844 `test/local-v163.py` **71/71** · 라이브 `test/live-v163.py` **52/52**(앱 오류 0 · CSP 위반 0 · 가로 넘침 0, 360·390 폭). 첫 화면에서 탭·안내·미리보기(`top 282–614`)·사진 버튼(`648–706`)이 스크롤 없이 한 화면이고 저장 바는 `768–844`에 고정. 배경 4종 각각 1탭 → 미리보기 재그리기 → PNG(1080×1350, 스토리 1080×1920) 확인 — 캡처 `downloads/v163_0*.png`(로컬) · `downloads/v163l_0*.png`(라이브) · 카드 원본 `downloads/v163_card_*.png` · `downloads/v163l_card_*.png`.
 - 보안/DB: CSP·`U.esc` 그대로, 실존 선수 이름 없음(`김원호`·`안세영`·`서승재` 미사용), 새 시트 칸·새 DB 컬럼 없음(서버에 아무것도 쓰지 않는 기기 저장 모드로만 점검).
