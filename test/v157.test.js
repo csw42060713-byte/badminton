@@ -547,17 +547,17 @@
     includes(run, 'test/v157.test.js', '이 테스트 파일');
   });
 
-  test('v1.57 버전: sw · app · index · TWA가 함께 bm-v1.57.0', function () {
+  test('v1.57 버전: sw · app · index · TWA가 함께 bm-v1.58.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.57.0'", 'sw.js');
-    includes(app, "version: 'v1.57.0'", 'app.js');
-    includes(index, 'styles.css?v=20261123-1', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.57.0', 'TWA 이름');
-    eq(twa.appVersion, '1.57.0', 'TWA 버전');
-    eq(twa.appVersionCode, 51, 'TWA 코드');
-    includes(sw, 'bm-v1.57.0', 'sw 변경 이력');
+    includes(sw, "var VERSION = 'bm-v1.58.0'", 'sw.js');
+    includes(app, "version: 'v1.58.0'", 'app.js');
+    includes(index, 'styles.css?v=20261123-2', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.58.0', 'TWA 이름');
+    eq(twa.appVersion, '1.58.0', 'TWA 버전');
+    eq(twa.appVersionCode, 52, 'TWA 코드');
+    includes(sw, 'bm-v1.58.0', 'sw 변경 이력');
   });
 
   test('v1.57 스타일: 공유 카드·푸시 상태 스타일이 있다', function () {

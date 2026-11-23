@@ -13,6 +13,10 @@
   var U = BM.util, D = BM.domain;
 
   var QUEUE_KEY = 'bm_queue_v1';
+  /* bm-v1.58.0 — 재시도해도 풀리지 않는 저장은 대기열 맨 앞에서 '격리'해 따로 모읍니다.
+   * 격리된 건은 지우지 않고 MY › 고급에서 '다시 보내기'로 되돌릴 수 있습니다. */
+  var DEAD_KEY = 'bm_queue_dead_v1';
+  var MAX_DEAD = 20;
   var CACHE_KEY = 'bm_cache_v1';
   var MODE_KEY = 'bm_mode_v1';
   var AD_DAILY_LIMIT = D.HEART_RULES ? D.HEART_RULES.AD_PER_DAY : 5;
@@ -177,6 +181,11 @@
        * 기기 저장(체험·게스트) 모드에서 예전 버전이 남긴 대기열을 그대로 읽으면
        * '저장 중… 35건 남음'처럼 보이거나 실패만 반복합니다. */
       queue: isRemoteMode(api && api.mode) ? (U.readJSON(QUEUE_KEY, []) || []) : [],
+      /* bm-v1.58.0 — 영구 실패로 대기열에서 빼 둔 저장(격리)과 오류 종류
+       * syncErrorKind: 'auth' | 'perm' | 'data' | 'net' | null — 화면 안내 문구를 고릅니다 */
+      syncBlocked: isRemoteMode(api && api.mode) ? (U.readJSON(DEAD_KEY, []) || []) : [],
+      syncErrorKind: null,
+      syncBlockedAt: '',
       locks: {},
       syncError: null,
       syncState: 'idle',
@@ -200,7 +209,7 @@
 
     /* 예전 버전(v1.0)을 쓰던 기기에 남은 전송 대기열 정리.
      * 기기 저장 모드에는 보낼 서버가 없으므로 대기열 자체를 지웁니다. */
-    if (!isRemoteMode(api && api.mode)) U.storage.removeItem(QUEUE_KEY);
+    if (!isRemoteMode(api && api.mode)) { U.storage.removeItem(QUEUE_KEY); U.storage.removeItem(DEAD_KEY); }
 
     function isSheets() { return !!(apiRef && apiRef.mode === 'sheets'); }
     function isRemote() { return isRemoteMode(apiRef && apiRef.mode); }
@@ -349,10 +358,69 @@
     }
 
     /* ---------- 큐 ---------- */
+
+    /* ---------- 영구 실패 판정 (bm-v1.58.0) ----------
+     * 대기열 맨 앞 1건이 권한·RLS·잘못된 행처럼 '다시 보내도 안 되는' 오류로 막히면
+     * 뒤의 정상 저장까지 전부 멈췄습니다. 그런 오류는 그 건만 격리하고 다음 건을 보냅니다. */
+    var PERMANENT_CODES = {
+      forbidden: 1, no_table: 1, bad_row: 1, conflict: 1, no_url: 1,
+      use_app_auth: 1, '42501': 1, rls: 1, '23503': 1, '23514': 1, '22P02': 1
+    };
+
+    /* 인증 만료(401 · JWT expired · 세션)인지 — 안내 문구를 '다시 로그인'으로 바꿉니다 */
+    function isAuthError(err) {
+      if (!err) return false;
+      var code = String(err.code || '').toLowerCase();
+      if (code === 'session' || code === 'session_expired' || code === 'unauthorized' || code === 'auth') return true;
+      if (err.status === 401) return true;
+      return /jwt|expired|만료/i.test(String(err.message || ''));
+    }
+
+    /* 오류 종류 — 화면(netbar·MY)이 한 줄로 원인을 보여 주는 데 씁니다 */
+    function errorKind(err) {
+      if (isAuthError(err)) return 'auth';
+      var code = String((err && err.code) || '').toLowerCase();
+      if (code === 'network' || code === 'timeout' || code === 'offline' || code === 'bad_response') return 'net';
+      if (code === 'bad_row') return 'data';
+      return 'perm';
+    }
+
+    /* 재시도로 풀리지 않는 오류인지
+     *  · ApiError retryable === false (권한·RLS·잘못된 행·이미 있는 기록·주소 없음)
+     *  · 400·401·403·404·42501 같은 요청 자체가 거절된 상태
+     *  · 6회 이상 연속 실패 (단, 네트워크·오프라인은 제외 — 연결이 돌아오면 보내야 하므로)
+     *  인증 오류는 여기서 참이 되지 않습니다(세션이 풀리면 같은 요청이 성공합니다). */
+    function isPermanentError(err, op) {
+      if (!err) return false;
+      if (isAuthError(err)) return false;
+      var code = String(err.code || '').toLowerCase();
+      if (code === 'network' || code === 'timeout' || code === 'offline' || code === 'bad_response') return false;
+      if (err.retryable === false) return true;
+      if (PERMANENT_CODES[code]) return true;
+      if (err.status === 400 || err.status === 401 || err.status === 403 || err.status === 404 || err.status === 42501) return true;
+      if ((op && (op.attempts || 0)) >= 6) return true;
+      return false;
+    }
+
+    /* 화면에 보일 한 줄 — 원인과 '이 건은 건너뛰었다'를 함께 */
+    function failText(err, kind, skipped) {
+      var tail = skipped ? ' 이 저장 1건은 건너뛰고 나머지는 그대로 보냈어요.' : '';
+      if (kind === 'auth') return '로그인 세션이 만료됐어요. MY에서 다시 로그인해 주세요.' + tail;
+      if (kind === 'data') return '저장 내용이 올바르지 않아 서버가 받지 못했어요.' + tail;
+      if (kind === 'net') return (err && err.message) || '서버에 연결하지 못했어요. 잠시 뒤 다시 시도합니다.';
+      var m = (err && err.message) || '서버가 이 저장을 받지 않았어요.';
+      return m + tail;
+    }
+
     function persistQueue() {
       /* 기기 저장 모드: 대기열을 localStorage에 남기지 않습니다 */
       if (!isRemote()) return;
       U.writeJSON(QUEUE_KEY, state.queue);
+    }
+
+    function persistDead() {
+      if (!isRemote()) return;
+      U.writeJSON(DEAD_KEY, state.syncBlocked || []);
     }
 
     function enqueue(op) {
@@ -376,7 +444,11 @@
         if (!state.queue.length) {
           flushing = false;
           state.syncState = 'idle';
-          state.syncError = null;
+          /* 건너뛴 저장이 남아 있으면 그 원인은 그대로 보여 줍니다(MY › 데이터) */
+          if (!(state.syncBlocked && state.syncBlocked.length)) {
+            state.syncError = null;
+            state.syncErrorKind = null;
+          }
           emit();
           return Promise.resolve();
         }
@@ -400,6 +472,8 @@
           op.attempts = (op.attempts || 0) + 1;
           op.lastError = err && err.message;
           state.stats.failed++;
+          var kind = errorKind(err);
+
           if (!isRemote()) {
             /* 기기 저장 모드에는 다시 보낼 서버가 없습니다.
              * 실패한 요청은 버리고 다음 요청으로 넘어갑니다(무한 재시도·대기 표시 없음). */
@@ -409,7 +483,44 @@
             emit();
             return step();
           }
-          state.syncError = (err && err.message) || '동기화에 실패했어요.';
+
+          /* bm-v1.58.0 — 영구 실패는 그 건만 격리하고 뒤의 정상 저장을 계속 보냅니다.
+           * (예전에는 맨 앞 1건이 막히면 뒤 4건까지 전부 멈췄습니다) */
+          var permanent = isPermanentError(err, op);
+          if (permanent) {
+            state.queue.shift();
+            var entry = {
+              op: op, kind: kind,
+              code: (err && err.code) || '', message: (err && err.message) || '',
+              at: U.stamp()
+            };
+            state.syncBlocked = (state.syncBlocked || []).concat([entry]);
+            if (state.syncBlocked.length > MAX_DEAD) state.syncBlocked = state.syncBlocked.slice(-MAX_DEAD);
+            state.stats.skipped = (state.stats.skipped || 0) + 1;
+            state.syncError = failText(err, kind, true);
+            state.syncErrorKind = kind;
+            state.syncBlockedAt = entry.at;
+            persistQueue();
+            persistDead();
+            state.syncState = state.queue.length ? 'syncing' : 'error';
+            emit();
+            /* 인증 만료가 아닌 영구 오류만 여기로 옵니다(인증은 아래에서 안내만 하고 멈춥니다) */
+            return step();
+          }
+
+          /* 세션 만료 — 건은 그대로 두고(다시 로그인하면 보냅니다) 원인만 남깁니다 */
+          if (kind === 'auth') {
+            state.syncError = failText(err, 'auth', false);
+            state.syncErrorKind = 'auth';
+            persistQueue();
+            flushing = false;
+            state.syncState = 'error';
+            emit();
+            return null;
+          }
+
+          state.syncError = failText(err, kind, false);
+          state.syncErrorKind = kind;
           persistQueue();
           flushing = false;
           state.syncState = 'error';
@@ -1917,10 +2028,46 @@
 
       retrySync: function () { return flush(); },
 
+      /* bm-v1.58.0 — 격리된(건너뛴) 저장을 다시 대기열 맨 앞으로 되돌려 보냅니다.
+       * 로그인을 다시 했거나 서버 권한이 고쳐진 뒤 한 번 누르면 됩니다. */
+      retryBlocked: function () {
+        var list = (state.syncBlocked || []).filter(function (d) { return d && d.op; });
+        if (!list.length) return Promise.resolve({ ok: false, reason: 'empty' });
+        state.syncBlocked = [];
+        persistDead();
+        state.queue = list.map(function (d) {
+          var op = d.op;
+          op.attempts = 0;
+          delete op.lastError;
+          return op;
+        }).concat(state.queue);
+        persistQueue();
+        state.syncError = null;
+        state.syncErrorKind = null;
+        state.syncState = 'idle';
+        emit();
+        return flush().then(function () { return { ok: true, count: list.length }; });
+      },
+
+      /* '대기 중 비우기' — 보내지 못한 저장을 기기에서 비웁니다(서버에 이미 있는 기록은 그대로). */
+      clearQueue: function () {
+        var n = (state.queue || []).length;
+        var dead = (state.syncBlocked || []).length;
+        state.queue = [];
+        state.syncBlocked = [];
+        state.syncError = null;
+        state.syncErrorKind = null;
+        state.syncState = 'idle';
+        persistQueue();
+        persistDead();
+        emit();
+        return { ok: true, cleared: n, blocked: dead };
+      },
+
       resetDemo: function () {
         if (!apiRef.resetDemo) return Promise.resolve();
         return apiRef.resetDemo().then(function () {
-          state.queue = []; persistQueue();
+          state.queue = []; state.syncBlocked = []; persistQueue(); persistDead();
           return actions.init();
         });
       },
@@ -1933,9 +2080,13 @@
         return api.deleteAccount().then(function (res) {
           if (res && res.ok === false) return res;
           state.rows = [];
-          state.queue = []; persistQueue();
+          state.queue = [];
+          state.syncBlocked = [];
+          persistQueue(); persistDead();
           state.analysis = null;
           state.syncState = 'idle';
+          state.syncError = null;
+          state.syncErrorKind = null;
           recompute();
           emit();
           return res || { ok: true, removed: 0 };
@@ -1945,6 +2096,9 @@
       /* 테스트/디버그용 */
       _state: function () { return state; },
       _flush: function () { return flush(); },
+      _queueRules: function () {
+        return { isPermanentError: isPermanentError, isAuthError: isAuthError, errorKind: errorKind, failText: failText };
+      },
       _api: function () { return apiRef; },
       _replaceApi: function (next) {
         actions.stopListening();

@@ -14,8 +14,8 @@
   "iconUrl": "https://csw42060713-byte.github.io/badminton/store-assets/icon-512.png",
   "maskableIconUrl": "https://csw42060713-byte.github.io/badminton/icons/icon-maskable-512.png",
   "splashScreenFadeOutDuration": 300,
-  "appVersionName": "1.57.0",
-  "appVersionCode": 51,
+  "appVersionName": "1.58.0",
+  "appVersionCode": 52,
   "shortcuts": [
     {
       "name": "오늘 일지 쓰기",
@@ -42,5 +42,5 @@
     "path": "./android.keystore",
     "alias": "android"
   },
-  "appVersion": "1.57.0"
+  "appVersion": "1.58.0"
 }

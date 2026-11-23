@@ -366,17 +366,35 @@
   /* ---------- 오프라인 · 동기화 안내 막대 ----------
    * 기기 저장 모드에서는 저장 자체가 기기에서 이루어지므로 아무 말도 하지 않고,
    * 시트(서버) 모드에서 보낼 것이 남았거나 연결이 끊겼을 때만 짧게 알려 줍니다.
-   * (체험·게스트 모드에 '저장 중… N건 남음'이 뜨던 문제의 원인) */
+   * (체험·게스트 모드에 '저장 중… N건 남음'이 뜨던 문제의 원인)
+   * bm-v1.58.0 — 영구 실패로 막힌 저장은 원인을 한 줄로 보여 주고, 인증 만료는
+   * '로그인 세션이 만료됐어요'로 바로 알 수 있게 했습니다. */
   function netBarText(state) {
     var needsNet = state.mode === 'sheets' || state.mode === 'supabase';
     if (!needsNet) return null;
     var queued = (state.queue && state.queue.length) || 0;
+    var skipped = (state.syncBlocked && state.syncBlocked.length) || 0;
     var offline = (typeof navigator !== 'undefined' && navigator.onLine === false);
     if (offline) {
       return { kind: 'off', text: '오프라인 상태예요 · 기록은 기기에 저장되고, 연결되면 자동으로 보내요.', retry: queued > 0 };
     }
     if (state.syncState === 'error' && queued) {
-      return { kind: 'warn', text: '보내지 못한 저장 ' + queued + '건이 있어요. 잠시 뒤 자동으로 다시 시도합니다.', retry: true };
+      if (state.syncErrorKind === 'auth') {
+        return { kind: 'warn', text: '로그인 세션이 만료됐어요. MY에서 다시 로그인해 주세요.', retry: true };
+      }
+      var why = state.syncError ? String(state.syncError) : '';
+      return {
+        kind: 'warn',
+        text: '저장 ' + queued + '건을 보내지 못했어요. ' + (why || '잠시 뒤 자동으로 다시 시도합니다.'),
+        retry: true
+      };
+    }
+    if (!queued && skipped && state.syncState !== 'syncing') {
+      return {
+        kind: 'warn',
+        text: '저장 ' + skipped + '건은 서버가 받지 못해 건너뛰었어요 · MY › 데이터에서 확인',
+        retry: true, blocked: true
+      };
     }
     if (state.syncState === 'syncing' && queued) {
       return { kind: 'busy', text: '저장 중… ' + queued + '건 남음', retry: false };
@@ -397,12 +415,13 @@
       }
       return;
     }
-    var sig = info.kind + '|' + info.text + '|' + (info.retry ? 1 : 0);
+    var sig = info.kind + '|' + info.text + '|' + (info.retry ? 1 : 0) + '|' + (info.blocked ? 1 : 0);
     if (bar.dataset.sig === sig) return;
     bar.dataset.sig = sig;
     bar.className = 'netbar netbar--' + info.kind;
     bar.innerHTML = '<span class="netbar__t">' + U.esc(info.text) + '</span>' +
-      (info.retry ? '<button type="button" class="netbar__btn" data-net-retry>다시 시도</button>' : '');
+      (info.retry ? '<button type="button" class="netbar__btn" data-net-retry' +
+        (info.blocked ? ' data-net-dead="1"' : '') + '>다시 시도</button>' : '');
     bar.hidden = false;
     if (document.body) document.body.classList.add('has-netbar');
   }
@@ -411,8 +430,14 @@
     var bar = el('netbar');
     if (bar) {
       bar.addEventListener('click', function (ev) {
-        if (!ev.target.closest('[data-net-retry]') || !store) return;
+        var btn = ev.target.closest('[data-net-retry]');
+        if (!btn || !store) return;
         UI.haptic(6);
+        if (btn.getAttribute('data-net-dead') === '1' && store.actions.retryBlocked) {
+          UI.toast('건너뛴 저장을 다시 보내는 중이에요');
+          store.actions.retryBlocked();
+          return;
+        }
         UI.toast('다시 보내는 중이에요');
         store.actions.retrySync();
       });
@@ -1067,7 +1092,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, version: 'v1.57.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.58.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

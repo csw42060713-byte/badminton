@@ -6570,6 +6570,42 @@ body {
 .sc__style span { font-size: 10px; font-weight: 600; color: var(--muted); }
 .sc__style.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
 .sc__style.is-on b { color: var(--accent); }
+
+/* 색상 5종 · 디자인 3종 칩 (bm-v1.58.0)
+ * 390 폭 시트에서 색 5개는 한 줄, 디자인 3개는 한 줄로 넘침 없이 들어갑니다. */
+.sc__pals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.sc__pal {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 7px 1px 6px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--card-2); color: var(--text-2);
+  transition: border-color 120ms, background 120ms;
+}
+.sc__pal i {
+  display: block; width: 20px; height: 20px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.28), 0 0 0 1px rgba(0,0,0,0.18);
+}
+.sc__pal b {
+  font-size: 9.5px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.15;
+  text-align: center; word-break: keep-all;
+}
+.sc__pal.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
+.sc__pal.is-on b { color: var(--accent); }
+.sc__pal--night i { background: linear-gradient(140deg, #0b1713 55%, #c6f24e 55%); }
+.sc__pal--court i { background: linear-gradient(140deg, #0a2842 55%, #7ad6ff 55%); }
+.sc__pal--sunset i { background: linear-gradient(140deg, #38101a 55%, #ff7a59 55%); }
+.sc__pal--sakura i { background: linear-gradient(140deg, #37122a 55%, #ff8fc7 55%); }
+.sc__pal--gold i { background: linear-gradient(140deg, #14110a 55%, #e8c26a 55%); }
+.sc__layouts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sc__layout {
+  display: flex; flex-direction: column; gap: 1px; align-items: flex-start;
+  padding: 9px 9px; border-radius: 14px; border: 1px solid var(--line);
+  background: var(--card-2); color: var(--text); text-align: left;
+  transition: border-color 120ms, background 120ms;
+}
+.sc__layout b { font-size: 12px; font-weight: 800; letter-spacing: -0.3px; }
+.sc__layout span { font-size: 10px; font-weight: 600; color: var(--muted); }
+.sc__layout.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
+.sc__layout.is-on b { color: var(--accent); }
 .sc__photo { margin: 8px 0 0; }
 .sc__photobtn { width: 100%; }
 .sc__preview {
@@ -6607,3 +6643,31 @@ body {
   font-size: 14px;
 }
 .sc__notice { margin: 0 0 4px; }
+
+/* 동기화 대기열 · 마지막 오류 (bm-v1.58.0)
+ * MY › 데이터에 대기열 건수와 원인을 한 블록으로. 숫자는 오른쪽, 원인은 아래 한 줄. */
+.syncbox {
+  margin-top: 12px; padding: 12px 13px; border-radius: 16px;
+  border: 1px solid var(--line); background: var(--card-2);
+  font-size: 12.5px; color: var(--text-2);
+}
+.syncbox__head { margin: 0 0 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.2px; color: var(--accent); }
+.syncbox__row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 3px 0; }
+.syncbox__row b { font-weight: 800; color: var(--text); }
+.syncbox__row b.warn { color: var(--warn); }
+.syncbox__err {
+  margin: 7px 0 0; padding: 8px 10px; border-radius: 10px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--line);
+  font-size: 11.5px; line-height: 1.55; word-break: keep-all;
+}
+.syncbox__err b { display: block; margin-bottom: 2px; color: var(--warn); }
+.syncbox__err.is-auth b { color: var(--bad, #ff6b6b); }
+.syncbox .sync { margin-top: 8px; }
+.syncbox__alert {
+  margin: 8px 0 0; padding: 10px 12px; border-radius: 14px;
+  border: 1px solid rgba(242,193,78,0.4); background: rgba(242,193,78,0.1);
+  font-size: 11.5px; line-height: 1.55; color: var(--text-2); word-break: keep-all;
+}
+.syncbox__alert b { color: var(--warn); }
+.syncbox__why, .syncbox__hint { display: block; margin-top: 4px; color: var(--muted); }
+.syncbox__hint b { color: var(--text-2); }
