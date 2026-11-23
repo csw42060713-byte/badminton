@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v154.test.js — bm-v1.61.0
+ * test/v154.test.js — bm-v1.62.0
  *   🏆 점수판 파트너 · 라이벌 전적 자동 누적
  *
  *  사용자가 고른 기능 그대로 검증합니다.
@@ -501,16 +501,16 @@
     eq(D.COLS.filter(function (c) { return c === 'rival' || c === '라이벌'; }).length, 0, '새 칸 없음');
   });
 
-  test('v1.54 버전: sw·app·TWA·styles.css가 bm-v1.61.0으로 맞는다', function () {
+  test('v1.54 버전: sw·app·TWA·styles.css가 bm-v1.62.0으로 맞는다', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js');
-    includes(sw, "var VERSION = 'bm-v1.61.0'", '서비스워커 버전');
-    includes(sw, 'bm-v1.61.0', '변경 이력');
-    includes(readRoot('app.js'), "version: 'v1.61.0'", '앱 버전');
+    includes(sw, "var VERSION = 'bm-v1.62.0'", '서비스워커 버전');
+    includes(sw, 'bm-v1.62.0', '변경 이력');
+    includes(readRoot('app.js'), "version: 'v1.62.0'", '앱 버전');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.61.0', 'TWA 이름');
-    eq(twa.appVersion, '1.61.0', 'TWA 버전');
-    eq(twa.appVersionCode, 55, '업로드 번호 +1');
+    eq(twa.appVersionName, '1.62.0', 'TWA 이름');
+    eq(twa.appVersion, '1.62.0', 'TWA 버전');
+    eq(twa.appVersionCode, 56, '업로드 번호 +1');
     var html = readRoot('index.html');
     ok(/styles\.css\?v=20261123-\d+/.test(html), '스타일 캐시 키');
     includes(html, 'js/views/log.js', '일지 화면 스크립트');
