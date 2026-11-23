@@ -6559,26 +6559,56 @@ body {
 .onbtheme.is-on .onbtheme__mark { opacity: 1; background: var(--accent); }
 .onb__tip { margin: 1px 0 0; font-size: 11px; line-height: 1.5; color: var(--muted); }
 
-/* ---------- 인스타 공유 카드 (bm-v1.57.0) ----------
- * 1080×1350 카드를 폰 폭에 맞춰 보여 주고, 세 가지 출력(다크 코트·내 사진·투명 스티커)을
- * 한 줄 카드로 고릅니다. 투명 스티커는 체크무늬 바탕 위에 보여 투명함이 한눈에 보입니다. */
+/* ---------- 인스타 공유 카드 (bm-v1.60.0) ----------
+ * 카드를 폰 폭에 맞춰 보여 주고, 디자인 3종(매거진·필름·스티커)과 비율 2종
+ * (피드 4:5 · 스토리 9:16), 사진 밝기 3단계를 한 줄 칩으로 고릅니다.
+ * 투명 스티커는 체크무늬 바탕 위에 보여 투명함이 한눈에 보입니다. */
 .sc__modes { margin-bottom: 12px; }
 .sc__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .sc__grid .flabel { margin-bottom: 8px; }
-.sc__styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 12px 0 4px; }
-.sc__style {
+.seg--three { display: grid; grid-template-columns: repeat(3, 1fr); }
+
+/* 디자인 3종 — 작은 미리보기 그림 + 이름 */
+.sc__designs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sc__design {
   display: flex; flex-direction: column; gap: 1px; align-items: flex-start;
-  padding: 10px 9px; border-radius: 14px; border: 1px solid var(--line);
+  padding: 7px 7px 8px; border-radius: 14px; border: 1px solid var(--line);
   background: var(--card-2); color: var(--text); text-align: left;
   transition: border-color 120ms, background 120ms;
 }
-.sc__style b { font-size: 12px; font-weight: 800; letter-spacing: -0.3px; }
-.sc__style span { font-size: 10px; font-weight: 600; color: var(--muted); }
-.sc__style.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
-.sc__style.is-on b { color: var(--accent); }
+.sc__design b { font-size: 12px; font-weight: 800; letter-spacing: -0.3px; margin-top: 5px; }
+.sc__design span { font-size: 9.5px; font-weight: 600; color: var(--muted); line-height: 1.25; }
+.sc__design.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
+.sc__design.is-on b { color: var(--accent); }
+.sc__design i {
+  position: relative; display: block; width: 100%; height: 40px;
+  border-radius: 8px; overflow: hidden;
+}
+.sc__design--magazine i { background: linear-gradient(165deg, #224a3b, #0a1512 78%); }
+.sc__design--magazine i::after {
+  content: ''; position: absolute; left: 7px; right: 30%; bottom: 8px; height: 2px;
+  background: rgba(255,255,255,0.7); box-shadow: 0 -7px 0 -0.5px rgba(255,255,255,0.4);
+}
+.sc__design--film i { background: linear-gradient(165deg, #faf8f3, #e9e3d7); }
+.sc__design--film i::after {
+  content: ''; position: absolute; left: 6px; right: 6px; top: 5px; bottom: 12px;
+  border-radius: 2px; background: linear-gradient(165deg, #cdbc9e, #8e8071);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+}
+.sc__design--sticker i { background: repeating-conic-gradient(rgba(255,255,255,0.10) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px, #0e1512; }
+.sc__design--sticker i::after {
+  content: '65'; position: absolute; left: 7px; bottom: 5px;
+  font-size: 20px; font-weight: 900; color: #fff; line-height: 1;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
 
-/* 색상 5종 · 디자인 3종 칩 (bm-v1.58.0)
- * 390 폭 시트에서 색 5개는 한 줄, 디자인 3개는 한 줄로 넘침 없이 들어갑니다. */
+/* 비율 2종 — 작은 프레임 그림 */
+.sc__ratios .seg__btn { display: flex; align-items: center; justify-content: center; gap: 7px; }
+.sc__ratio i { display: block; border: 1.5px solid currentColor; border-radius: 2px; opacity: 0.8; }
+.sc__ratio--feed i { width: 10px; height: 13px; }
+.sc__ratio--story i { width: 8px; height: 15px; }
+
+/* 색상 5종 — 390 폭 시트에서 한 줄 */
 .sc__pals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
 .sc__pal {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -6596,35 +6626,29 @@ body {
 }
 .sc__pal.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
 .sc__pal.is-on b { color: var(--accent); }
-.sc__pal--night i { background: linear-gradient(140deg, #0b1713 55%, #c6f24e 55%); }
-.sc__pal--court i { background: linear-gradient(140deg, #0a2842 55%, #7ad6ff 55%); }
-.sc__pal--sunset i { background: linear-gradient(140deg, #38101a 55%, #ff7a59 55%); }
-.sc__pal--sakura i { background: linear-gradient(140deg, #37122a 55%, #ff8fc7 55%); }
-.sc__pal--gold i { background: linear-gradient(140deg, #14110a 55%, #e8c26a 55%); }
-.sc__layouts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.sc__layout {
-  display: flex; flex-direction: column; gap: 1px; align-items: flex-start;
-  padding: 9px 9px; border-radius: 14px; border: 1px solid var(--line);
-  background: var(--card-2); color: var(--text); text-align: left;
-  transition: border-color 120ms, background 120ms;
-}
-.sc__layout b { font-size: 12px; font-weight: 800; letter-spacing: -0.3px; }
-.sc__layout span { font-size: 10px; font-weight: 600; color: var(--muted); }
-.sc__layout.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
-.sc__layout.is-on b { color: var(--accent); }
-.sc__photo { margin: 8px 0 0; }
+.sc__pal--night i { background: linear-gradient(140deg, #0d1a15 55%, #c6f24e 55%); }
+.sc__pal--court i { background: linear-gradient(140deg, #0b2a45 55%, #7ad6ff 55%); }
+.sc__pal--sunset i { background: linear-gradient(140deg, #3a1119 55%, #ff7a59 55%); }
+.sc__pal--sakura i { background: linear-gradient(140deg, #39122c 55%, #ff8fc7 55%); }
+.sc__pal--gold i { background: linear-gradient(140deg, #19150a 55%, #e8c26a 55%); }
+.sc__photo { margin: 10px 0 0; }
 .sc__photobtn { width: 100%; }
+.sc__shadebox { margin-top: 10px; }
+.sc__shadebox .seg__btn { font-size: 12px; letter-spacing: -0.3px; }
 .sc__preview {
-  margin: 12px 0 8px; border-radius: 18px; overflow: hidden;
+  margin: 12px 0 8px; padding: 10px; border-radius: 18px; overflow: hidden;
   border: 1px solid var(--line); box-shadow: var(--shadow-soft);
   background-color: #0b1210;
+}
+/* 투명 스티커만 체크무늬 바탕 위에 — 불투명 카드는 그냥 어두운 판 위에 */
+.sc__preview.is-sticker {
   background-image:
     linear-gradient(45deg, rgba(255,255,255,0.06) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.06) 75%),
     linear-gradient(45deg, rgba(255,255,255,0.06) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.06) 75%);
   background-size: 22px 22px;
   background-position: 0 0, 11px 11px;
 }
-.sc__canvas { display: block; width: 100%; height: auto; }
+.sc__canvas { display: block; max-width: 100%; max-height: 58vh; width: auto; height: auto; margin: 0 auto; border-radius: 8px; }
 .sc__summary {
   margin: 0 0 10px; font-size: 11.5px; line-height: 1.5; color: var(--muted);
   word-break: keep-all;
