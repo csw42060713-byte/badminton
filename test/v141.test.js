@@ -352,11 +352,11 @@
   test('v1.41 버전: sw.js · app.js · twa-manifest.json이 1.41.1으로 맞는다', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.62.0'", 'sw.js');
-    includes(app, "version: 'v1.62.0'", 'app.js');
-    eq(twa.appVersionName, '1.62.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.62.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 56, '코드 38 유지');
+    includes(sw, "var VERSION = 'bm-v1.63.0'", 'sw.js');
+    includes(app, "version: 'v1.63.0'", 'app.js');
+    eq(twa.appVersionName, '1.63.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.63.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 57, '코드 38 유지');
   });
 
   test('v1.41 로드: index.html · sw.js 캐시에 js/report.js가 들어 있다', function () {
@@ -364,7 +364,7 @@
     includes(index, 'js/report.js', 'index.html');
     includes(sw, "./js/report.js", 'sw.js SHELL');
     ok(index.indexOf('js/report.js') < index.indexOf('app.js'), 'app.js보다 먼저');
-    includes(index, 'styles.css?v=20261123-6', '스타일 캐시');
+    includes(index, 'styles.css?v=20261124-1', '스타일 캐시');
     var css = readRoot('styles.css');
     includes(css, '.rptbtn', '입구 스타일');
     includes(css, '.rpt__bar', '막대 스타일');
