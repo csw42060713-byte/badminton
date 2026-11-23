@@ -20,6 +20,8 @@
  *   · 반경 5km 안의 동네 동호인: 예시(데모) 동호인 목록입니다.
  *     실제 서비스에서는 '위치를 공개한 동호인'만 보이게 됩니다.
  *     이미 앱에 프로필이 있는 사람은 주 체육관 위치로 함께 얹습니다.
+ *   · 2026-11-23: 사람마다 userKey(실제 프로필이면 계정 키 · 예시면 '')를 붙여
+ *     지도에서 바로 매칭 요청·1:1 대화로 이어갈 수 있게 했습니다.
  *   · 내 운동 상태: '운동 중'·'지금 운동 가능' 스위치와 운동 가능 시간대.
  *
  *  좌표·거리는 js/gyms.js 의 체육관 목록(pointOf·distanceKm)을 그대로 씁니다.
@@ -261,7 +263,7 @@
         lat: p.lat, lng: p.lng,
         workout: p.workout, ended: !!p.ended, freeNow: !!p.freeNow,
         avail: p.avail ? { days: p.avail.days.slice(), from: p.avail.from, to: p.avail.to } : null,
-        note: p.note || '', demo: true
+        note: p.note || '', demo: true, userKey: ''
       };
     });
     /* 실제 프로필이 있으면 그 사람의 주 체육관 좌표로 함께 얹습니다 (같은 이름은 하나만) */
@@ -280,7 +282,7 @@
         id: 'u:' + (m.userKey || m.nick), name: m.nick, level: m.level || '', gymId: v.id,
         gym: v.name, area: v.area, lat: v.lat, lng: v.lng,
         workout: '', ended: false, freeNow: false, avail: null,
-        note: m.bio || '', demo: false
+        note: m.bio || '', demo: false, userKey: m.userKey || ''
       });
     });
     return out;
@@ -294,7 +296,7 @@
       var c = {
         id: p.id, name: p.name, level: p.level, gymId: p.gymId, gym: p.gym, area: p.area,
         lat: p.lat, lng: p.lng, workout: p.workout, ended: p.ended, freeNow: p.freeNow,
-        avail: p.avail, note: p.note, demo: p.demo
+        avail: p.avail, note: p.note, demo: p.demo, userKey: p.userKey || ''
       };
       c.dist = G ? G.distanceKm(origin, p) : null;
       return c;
