@@ -341,8 +341,20 @@
   }
 
   /* 사진 위 — 위아래를 살짝 어둡게 해 밝은 사진에서도 글씨가 또렷합니다.
-   * 어둡게 하는 색은 고른 팔레트의 shade(밤·코트·버건디·로즈·골드)라 카드 색과 어긋나지 않습니다. */
-  function paintPhotoFilters(g, p) {
+   * 어둡게 하는 색은 고른 팔레트의 shade(밤·코트·버건디·로즈·골드)라 카드 색과 어긋나지 않습니다.
+   * 디자인이 '포스터'면 배너·스탯 박스가 읽히도록 사진 전체를 한 번 덮고,
+   * '코트 라인'이면 위쪽을 옅게 덮어 코트 선이 사진 위에 보이게 합니다. */
+  function paintPhotoFilters(g, p, layout) {
+    if (layout === 'poster') {
+      g.fillStyle = rgba(p.shade, 0.36);
+      g.fillRect(0, 0, W, H);
+    } else if (layout === 'courtline') {
+      var upper = g.createLinearGradient(0, 0, 0, H * 0.8);
+      upper.addColorStop(0, rgba(p.shade, 0.58));
+      upper.addColorStop(1, rgba(p.shade, 0));
+      g.fillStyle = upper;
+      g.fillRect(0, 0, W, H * 0.8);
+    }
     var bottom = g.createLinearGradient(0, H * 0.3, 0, H);
     bottom.addColorStop(0, rgba(p.shade, 0));
     bottom.addColorStop(0.5, rgba(p.shade, 0.5));
@@ -444,14 +456,20 @@
     });
   }
 
-  /* 출력별 자리 — 사진은 아래 1/3, 스티커는 판 안쪽, 코트는 가운데 */
-  function layoutOf(style, mode) {
+  /* 출력·디자인별 자리 — 사진은 아래 1/3, 스티커는 판 안쪽, 코트는 가운데
+   * 스티커 + 코트 라인은 판을 조금 더 키우고 글자를 위로 올려 아래에 코트 바닥을 그립니다. */
+  function layoutOf(style, mode, layout) {
     if (style === 'photo') {
       return mode === 'comp'
         ? { eyebrow: 790, name: 900, badge: 1090, sub: 1190, logo: H - 116 }
         : { eyebrow: 800, bigs: 1010, sub: 1160, logo: H - 116 };
     }
     if (style === 'sticker') {
+      if (layout === 'courtline') {
+        return mode === 'comp'
+          ? { eyebrow: 330, name: 445, badge: 640, sub: 790, logo: 1085 }
+          : { eyebrow: 355, bigs: 650, sub: 790, logo: 1085 };
+      }
       return mode === 'comp'
         ? { eyebrow: 400, name: 505, badge: 715, sub: 860, logo: 1000 }
         : { eyebrow: 420, bigs: 730, sub: 900, logo: 1000 };
@@ -459,6 +477,12 @@
     return mode === 'comp'
       ? { eyebrow: 380, name: 496, badge: 700, sub: 880, logo: 1236 }
       : { eyebrow: 400, bigs: 700, sub: 900, logo: 1236 };
+  }
+
+  /* 스티커 판 높이 — 코트 라인만 아래에 코트를 그릴 자리를 더 줍니다 */
+  function plateHeight(mode, layout) {
+    if (layout === 'courtline') return mode === 'comp' ? 1040 : 1000;
+    return mode === 'comp' ? 880 : 800;
   }
 
   /* 포스터 아래 바 — 색 띠 + 브랜드/날짜 */
@@ -501,7 +525,7 @@
     var layout = layoutById(spec.layout).id;
     var light = spec.style === 'photo';
     if (layout === 'poster') { drawTodayPoster(g, spec, p, light); return; }
-    var L = layoutOf(spec.style, 'today');
+    var L = layoutOf(spec.style, 'today', layout);
     g.textAlign = 'left';
     if (light) {
       g.fillStyle = 'rgba(255,255,255,0.88)';
@@ -532,7 +556,7 @@
   /* 포스터 · 오늘 운동 — 위 굵은 배너 + 가운데 스탯 박스 + 아래 색 바 */
   function drawTodayPoster(g, spec, p, light) {
     g.save();
-    g.fillStyle = light ? 'rgba(0,0,0,0.44)' : p.band;
+    g.fillStyle = light ? rgba(p.shade, 0.55) : p.band;
     g.fillRect(0, 0, W, 320);
     g.fillStyle = p.accent;
     g.fillRect(0, 312, W, 10);
@@ -549,7 +573,7 @@
 
     /* 가운데 스탯 박스 — 숫자는 박스 안에 세로 가운데로 */
     var bx = 70, by = 380, bw = W - 140, bh = 600;
-    g.fillStyle = light ? 'rgba(0,0,0,0.34)' : p.box;
+    g.fillStyle = light ? rgba(p.shade, 0.62) : p.box;
     roundRect(g, bx, by, bw, bh, 44);
     g.fill();
     g.strokeStyle = p.boxLine;
@@ -616,7 +640,7 @@
     var light = spec.style === 'photo';
     if (layout === 'poster') { drawCompPoster(g, spec, p, light); return; }
     var m = spec.comp || compModel({});
-    var L = layoutOf(spec.style, 'comp');
+    var L = layoutOf(spec.style, 'comp', layout);
     g.textAlign = 'left';
     /* 트로피 + 이름표 */
     g.font = font(66, 700);
@@ -664,7 +688,7 @@
   function drawCompPoster(g, spec, p, light) {
     var m = spec.comp || compModel({});
     g.save();
-    g.fillStyle = light ? 'rgba(0,0,0,0.46)' : p.band;
+    g.fillStyle = light ? rgba(p.shade, 0.58) : p.band;
     g.fillRect(0, 0, W, 430);
     g.fillStyle = p.accent;
     g.fillRect(0, 422, W, 10);
@@ -682,7 +706,7 @@
 
     /* 가운데 스탯 박스 — 성적 · 종목 · 파트너 */
     var bx = 70, by = 490, bw = W - 140, bh = 560;
-    g.fillStyle = light ? 'rgba(0,0,0,0.36)' : p.box;
+    g.fillStyle = light ? rgba(p.shade, 0.62) : p.box;
     roundRect(g, bx, by, bw, bh, 44);
     g.fill();
     g.strokeStyle = p.boxLine;
@@ -717,7 +741,7 @@
   /* 투명 스티커 — 글자 뒤에 반투명 판 하나만 남기고 배경은 투명.
    * 판 색·테두리도 고른 팔레트를 따르고, '코트 라인'은 판 안쪽에 선을 옅게 그립니다. */
   function paintStickerPlate(g, spec, p, layout) {
-    var h = spec.mode === 'comp' ? 880 : 800;
+    var h = plateHeight(spec.mode, layout);
     var y = (H - h) / 2;
     g.save();
     g.fillStyle = p.plate;
@@ -730,7 +754,8 @@
       g.save();
       roundRect(g, 40, y, W - 80, h, 48);
       g.clip();
-      paintCourtLines(g, p, { x: 78, y: y + 40, w: W - 156, h: h - 80 });
+      /* 판 안에서는 글자를 가리지 않게 아래쪽 '코트 바닥'만 */
+      paintCourtLines(g, p, { x: 80, y: y + h - 370, w: W - 160, h: 330 });
       g.restore();
     }
     g.restore();
@@ -769,8 +794,13 @@
     var p = paletteById(s.palette);
     var layout = layoutById(s.layout).id;
     if (s.style === 'sticker') {
-      if (layout === 'poster') drawStickerPoster(g, s, p);
-      else paintStickerPlate(g, s, p, layout);
+      if (layout === 'poster') {
+        /* 포스터 스티커는 카드 전체를 줄여 그리므로 여기서 끝냅니다(글자를 두 번 그리지 않게) */
+        drawStickerPoster(g, s, p);
+        if (typeof cb === 'function') cb(canvas);
+        return canvas;
+      }
+      paintStickerPlate(g, s, p, layout);
     } else if (s.style === 'photo' && s.photo) {
       try {
         var img = s.photo;
@@ -778,8 +808,8 @@
         var dw = img.width * scale, dh = img.height * scale;
         g.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
       } catch (e) { paintBackground(g, p, layout); }
-      if (layout === 'courtline') paintCourtLines(g, p, { x: 140, y: 140, w: W - 280, h: 300 });
-      paintPhotoFilters(g, p);
+      paintPhotoFilters(g, p, layout);
+      if (layout === 'courtline') paintCourtLines(g, p, { x: 140, y: 150, w: W - 280, h: 300 });
     } else {
       paintBackground(g, p, layout);
     }

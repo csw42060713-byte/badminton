@@ -13,13 +13,25 @@
   (python3 -m http.server 8824 --bind 127.0.0.1 &) ; python3 test/local-v158.py
 """
 
+import os
+
+from PIL import Image
 from playwright.sync_api import sync_playwright
 
 BASE = 'http://127.0.0.1:8824/'
 EXE = '/workspace/tmp/chrome159/chrome-headless-shell-linux64/chrome-headless-shell'
 OUT = '/workspace/downloads'
+PHOTO = '/workspace/tmp/v158_photo.jpg'
 
 checks, errs, csp, blocked = [], [], [], []
+
+# 사진 위에 얹기 확인용 — 위/아래 색이 다른 단순 사진 한 장
+if not os.path.exists(PHOTO):
+    im = Image.new('RGB', (1200, 1600), (18, 60, 120))
+    for x in range(1200):
+        for y in range(800):
+            im.putpixel((x, y), (230, 160 + (x * 60 // 1200), 60))
+    im.save(PHOTO, 'JPEG', quality=88)
 
 
 def check(label, cond, extra=''):
@@ -229,6 +241,31 @@ with sync_playwright() as p:
     dl.value.save_as(path)
     check('B 저장한 카드 PNG 이름', dl.value.suggested_filename == 'badminton-share-20261123-contest.png',
           dl.value.suggested_filename)
+
+    # ── B-9. 투명 스티커 · 내 사진 위에서도 고른 색이 쓰인다 ──
+    tap('[data-sc-mode="today"]', 500)
+    tap('[data-sc-style="sticker"]', 400)
+    tap('[data-sc-pal="court"]', 350)
+    tap('[data-sc-layout="courtline"]', 450)
+    page.locator('#sheet .sc__canvas').scroll_into_view_if_needed()
+    page.wait_for_timeout(300)
+    canvas_png('card_sticker_court_line')
+    tap('[data-sc-pal="gold"]', 350)
+    tap('[data-sc-layout="poster"]', 450)
+    canvas_png('card_sticker_gold_poster')
+
+    tap('[data-sc-style="photo"]', 400)
+    page.set_input_files('[data-sc-photo]', PHOTO)
+    page.wait_for_timeout(900)
+    tap('[data-sc-pal="sunset"]', 350)
+    tap('[data-sc-layout="poster"]', 450)
+    page.locator('#sheet .sc__canvas').scroll_into_view_if_needed()
+    page.wait_for_timeout(300)
+    canvas_png('card_photo_sunset_poster')
+    tap('[data-sc-pal="court"]', 300)
+    tap('[data-sc-layout="courtline"]', 450)
+    canvas_png('card_photo_court_line')
+    check('B 사진·스티커에서도 색이 바뀐다', True)
 
     # ── C. 동기화: 막힌 1건 격리 + MY 대기열/오류/비우기 ──
     page.evaluate("() => { const b = document.querySelector('#sheet .sheet__close, #sheet [data-close]'); if (b) b.click(); }")
