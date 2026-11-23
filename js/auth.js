@@ -153,6 +153,43 @@
     });
   }
 
+  /* ---------- bm-v1.59.0: Google 로그인 직후 첫 저장이 401로 건너뛰는 문제 ----------
+   * linkGoogleIdToken 이 Supabase access_token 을 받아 저장한 '직후' 대기 중인 동기화 큐를
+   * 한 번 더 보냅니다. 토큰을 받는 사이에 앱이 이미 보낸 저장은 401로 대기열에 남아 있으므로,
+   * 토큰이 늦게 도착한 경우에는 앱이 뜬 뒤 한 번 더 시도해야 첫 글이 사라지지 않습니다.
+   * 앱(store)이 아직 만들어지기 전에 토큰이 도착하면 표시만 해 두고,
+   * app.js 가 store.actions.init() 뒤에 takeSyncRetry() 로 한 번 보냅니다. */
+  var syncRetryPending = false;
+
+  /* 기기에 남은 대기열 건수 (store 가 아직 없을 때) */
+  function queuedCount() {
+    try {
+      var q = U.readJSON('bm_queue_v1', []) || [];
+      return Array.isArray(q) ? q.length : 0;
+    } catch (e) { return 0; }
+  }
+
+  /* 대기 중인 저장이 있으면 한 번 더 보냅니다(없으면 아무 것도 하지 않음). */
+  function retryPendingSync() {
+    var ctx = root.BM && root.BM.app && root.BM.app.ctx;
+    var st = ctx && ctx.store && ctx.store.state;
+    if (ctx && st && ctx.actions && typeof ctx.actions.retrySync === 'function') {
+      syncRetryPending = false;
+      if (!((st.queue && st.queue.length) || 0)) return Promise.resolve({ ok: true, count: 0 });
+      try { return Promise.resolve(ctx.actions.retrySync()); } catch (e) { return Promise.resolve({ ok: false }); }
+    }
+    /* 앱이 아직 없음 — 앱이 뜨면 app.js 가 takeSyncRetry() 로 확인합니다 */
+    syncRetryPending = queuedCount() > 0;
+    return Promise.resolve({ ok: true, pending: syncRetryPending });
+  }
+
+  /* app.js 가 store.actions.init() 뒤에 호출 — 한 번만 참을 돌려줍니다 */
+  function takeSyncRetry() {
+    var on = syncRetryPending;
+    syncRetryPending = false;
+    return on;
+  }
+
   /* Supabase 프로젝트에 구글 공급자가 켜져 있으면 구글 로그인도 같은 JWT 세션을 받습니다.
      (아직 꺼져 있으면 조용히 지나가고 예전처럼 앱 세션만 씁니다 — 로그인은 그대로 동작) */
   function linkGoogleIdToken(info) {
@@ -170,6 +207,8 @@
         saveSession(s);
         ensureAccount({ nick: s.name });
       }
+      /* 토큰이 준비됐으니 401로 멈춰 있던 저장을 이어서 보냅니다 */
+      retryPendingSync();
       return next;
     }).catch(function () { return null; });
   }
@@ -820,6 +859,8 @@
     ensureAccount: ensureAccount, changePassword: changePassword, recoverPassword: recoverPassword,
     signOutRemote: signOutRemote, clearSbAuth: clearSbAuth, sbAuthState: sbAuthState,
     bootstrapRecovery: bootstrapRecovery, signInGoogleIdToken: linkGoogleIdToken,
+    /* bm-v1.59.0 — 토큰 연결 직후 대기열 한 번 더 보내기 */
+    retryPendingSync: retryPendingSync, takeSyncRetry: takeSyncRetry,
     signOut: signOut, signOutKeepAccounts: signOutKeepAccounts,
     needsOnboarding: needsOnboarding, markOnboarded: markOnboarded, profileFor: profileFor,
     googleClientId: googleClientId, setGoogleClientId: setGoogleClientId, isGoogleClientId: isGoogleClientId,

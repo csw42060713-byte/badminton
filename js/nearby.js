@@ -267,8 +267,12 @@
     /* 실제 프로필이 있으면 그 사람의 주 체육관 좌표로 함께 얹습니다 (같은 이름은 하나만) */
     var names = {};
     out.forEach(function (p) { names[p.name] = true; });
+    var D = BM.domain;
     ((state && state.data && state.data.matchProfiles) || []).forEach(function (m) {
       if (!m || !m.nick || m.userKey === me || names[m.nick]) return;
+      /* bm-v1.59.0 — 14일 넘게 활동이 없는 사람은 동네 동호인 목록에서도 뺍니다.
+       * (친구·대화 중인 상대는 그대로 — js/domain.js keepsInTouch) */
+      if (D && D.isInactiveProfile(m) && !D.keepsInTouch(state.data.idx, me, m.userKey)) return;
       var v = m.club && G ? G.matchVenue(m.club) : null;
       if (!v) return;
       names[m.nick] = true;
