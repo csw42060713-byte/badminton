@@ -2856,9 +2856,83 @@
     return best;
   }
 
+  /* 사람별 최근 활동 시각 한 번에 (행을 한 번만 훑습니다) — 매칭 카드의 activityAt */
+  function activityTimes(idx) {
+    var out = {};
+    if (!idx) return out;
+    (idx.all || []).forEach(function (r) {
+      if (!r || !r.userKey || ACTIVITY_TYPES.indexOf(r.type) < 0) return;
+      var at = r.createdAt || '';
+      if (r.type === '매칭프로필' && r.payload && r.payload.lastActiveAt) {
+        var la = String(r.payload.lastActiveAt);
+        if (la > at) at = la;
+      }
+      if (at > (out[r.userKey] || '')) out[r.userKey] = at;
+    });
+    return out;
+  }
+
   function presenceOf(idx, userKey, nowMs) {
     if (userKey && typeof userKey === 'object') return presenceFromAt(userKey.at, nowMs);
     return presenceFromAt(lastActiveAt(idx, userKey), nowMs);
+  }
+
+  /* ---------- 2-b) 14일 미접속 계정 숨김 (bm-v1.59.0) ----------
+   * 매칭 추천·탐색 목록(매칭 탭 · 동네 동호인)에는 최근 14일 안에 활동한 사람만 보여 줍니다.
+   * 활동 시각 = 그 사람이 남긴 기록·채팅·출석·프로필 갱신·매칭프로필 lastActiveAt 중 가장 늦은 값.
+   * 그런 흔적이 하나도 없는 레거시·시드 카드는 매칭프로필 생성일(프로필 갱신일)로 대신하고,
+   * 그것도 14일을 넘으면 똑같이 숨깁니다. 계정·데이터는 지우지 않습니다 — 다시 앱을 열어
+   * touchActivity()로 활동 시각이 오늘로 바뀌면 곧바로 목록에 돌아옵니다.
+   * 본인과, 이미 친구이거나 1:1 대화방·진행 중인 매칭 신청이 있는 상대는 대화가 끊기지
+   * 않도록 그대로 둡니다 — 숨김은 새로 찾는 추천·탐색 목록에서만 일어납니다. */
+  var INACTIVE_HIDE_DAYS = 14;
+  var INACTIVE_HIDE_MS = INACTIVE_HIDE_DAYS * 24 * 60 * 60 * 1000;
+
+  /* 카드에 적힌 활동 시각 — 없으면 카드 생성일(프로필 갱신일) */
+  function activityAtOf(person) {
+    if (!person) return '';
+    var pl = person.payload || {};
+    return String(person.activityAt || person.lastActiveAt || pl.lastActiveAt ||
+      person.createdAt || person.updatedAt || '');
+  }
+
+  /* 14일을 '초과'했으면 참. 정확히 14일은 아직 보입니다(13일 23시간 = 표시). */
+  function isInactiveProfile(person, nowMs) {
+    var d = timeOf(activityAtOf(person));
+    if (!d) return false;                 /* 시각을 알 수 없는 카드는 숨기지 않습니다 */
+    var now = nowMs ? new Date(nowMs) : new Date();
+    return (now.getTime() - d.getTime()) > INACTIVE_HIDE_MS;
+  }
+
+  /* 친구 · 1:1 대화방 · 진행 중인(거절되지 않은) 매칭 신청이 있으면 목록에서 숨기지 않습니다 */
+  function keepsInTouch(idx, meKey, userKey) {
+    if (!idx || !userKey) return false;
+    if (meKey && String(userKey) === String(meKey)) return true;
+    var friends = (meKey && friendsOf(idx, meKey)) || [];
+    if (friends.some(function (f) { return f && f.key === userKey; })) return true;
+    var rooms = (meKey && chatRooms(idx, meKey)) || [];
+    if (rooms.some(function (r) { return r && r.other === userKey; })) return true;
+    var reqs = (meKey && matchRequests(idx, meKey)) || [];
+    return reqs.some(function (r) {
+      if (!r || r.status === '거절') return false;
+      return r.userKey === userKey || r.target === userKey;
+    });
+  }
+
+  /* 추천·탐색 목록에서 14일 넘게 조용한 카드를 뺍니다 (본인·대화 상대는 유지) */
+  function withoutInactive(players, idx, meKey, nowMs) {
+    return (players || []).filter(function (p) {
+      if (!p) return false;
+      if (meKey && p.userKey === meKey) return true;
+      if (!isInactiveProfile(p, nowMs)) return true;
+      return keepsInTouch(idx, meKey, p.userKey);
+    });
+  }
+
+  /* 이번 목록에서 숨긴 사람 수 — 화면 안내 문구에 씁니다 */
+  function inactiveHiddenCount(players, idx, meKey, nowMs) {
+    var list = (players || []).filter(Boolean);
+    return Math.max(0, list.length - withoutInactive(list, idx, meKey, nowMs).length);
   }
 
   /* ---------- 3) 새 메시지 · 새 요청 감지 ----------
@@ -3312,6 +3386,10 @@
     chatTime: chatTime, chatStamp: chatStamp, chatListTime: chatListTime,
     chatDayKey: chatDayKey, chatDayLabel: chatDayLabel,
     presenceFromAt: presenceFromAt, lastActiveAt: lastActiveAt, presenceOf: presenceOf,
+    INACTIVE_HIDE_DAYS: INACTIVE_HIDE_DAYS, INACTIVE_HIDE_MS: INACTIVE_HIDE_MS,
+    activityAtOf: activityAtOf, isInactiveProfile: isInactiveProfile, activityTimes: activityTimes,
+    keepsInTouch: keepsInTouch, withoutInactive: withoutInactive,
+    inactiveHiddenCount: inactiveHiddenCount,
     newIncoming: newIncoming, joinedGroupRoom: joinedGroupRoom,
     PREFS_KEY: PREFS_KEY, normalizePrefs: normalizePrefs, readPrefs: readPrefs, writePrefs: writePrefs, setPref: setPref,
     /* v1.31 */

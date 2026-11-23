@@ -860,6 +860,11 @@
 
     store.actions.init().then(function () {
       if (!store) return;
+      /* bm-v1.59.0 — 구글 로그인 때 받은 토큰이 앱보다 늦게 도착한 경우,
+       * 401로 대기열에 남은 첫 저장을 한 번 더 보냅니다(js/auth.js takeSyncRetry). */
+      if (BM.auth.takeSyncRetry && BM.auth.takeSyncRetry() && store.state.queue && store.state.queue.length) {
+        store.actions.retrySync();
+      }
       paintChrome(store.state);
       paintDm(store.state);
       /* v1.24 — 실시간 서버면 시작하자마자 구독합니다(온보딩 중에도 쌓임) */
@@ -1092,7 +1097,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.58.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.59.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -1298,6 +1298,12 @@ input[type="date"] { min-height: 34px; width: auto; padding: 4px 9px; font-size:
 .resultbar b { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; }
 .resultbar__q { color: var(--text-2); }
 .resultbar__dot { margin: 0 5px; color: var(--muted); }
+/* bm-v1.59.0 — 14일 미접속 숨김 안내 (목록 아래 한 줄) */
+.resultbar__quiet {
+  margin: 8px 0 0;
+  font-size: 11.5px; font-weight: 600; line-height: 1.45;
+  color: var(--muted);
+}
 .sortseg {
   display: inline-flex; gap: 2px; flex: none;
   padding: 2px; border-radius: 9px;

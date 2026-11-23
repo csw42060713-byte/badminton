@@ -62,6 +62,8 @@
     });
 
     var matchProfiles = [];
+    /* bm-v1.59.0 — 사람별 최근 활동 시각(행을 한 번만 훑어 만든 표) */
+    var actMap = D.activityTimes(idx);
     (idx.byType['매칭프로필'] || []).forEach(function (m) {
     if (!m.payload) return;
     if (blockedKey(m.userKey)) return;      /* v1.55 — 차단한 사람은 매칭에서도 보이지 않습니다 */
@@ -78,7 +80,10 @@
       gender: D.normalizeGender(pl.gender),
       style: D.normalizeStyle(pl.style),
       avatarPhoto: av.photo, avatarFrame: av.frame, avatarBg: av.bg, avatarBadge: av.badge,
-      createdAt: m.createdAt
+      createdAt: m.createdAt,
+      /* bm-v1.59.0 — 14일 미접속 카드를 매칭 추천·탐색에서 숨길 때 쓰는 활동 시각.
+       * 그 사람이 남긴 최신 기록·채팅·프로필 갱신·lastActiveAt, 없으면 카드 생성일. */
+      activityAt: actMap[m.userKey] || m.createdAt || ''
     });
     });
     /* 같은 사람이 여러 번 수정하면 최신만 */

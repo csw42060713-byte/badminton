@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v158.test.js — bm-v1.58.0
+ * test/v158.test.js — bm-v1.59.0
  *   🎨 인스타 카드 색·디자인 다양화 + 동기화 큐 막힘 해결
  *
  *  사용자가 요청한 두 가지를 그대로 검증합니다.
@@ -589,17 +589,17 @@
     excludes(SC()._sheetBody(ctxOf(stateOf([rec()]))), '김원호', '시트 예시');
   });
 
-  test('v1.58 버전: sw · app · index · TWA가 함께 bm-v1.58.0', function () {
+  test('v1.58 버전: sw · app · index · TWA가 함께 bm-v1.59.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.58.0'", 'sw.js');
-    includes(app, "version: 'v1.58.0'", 'app.js');
-    includes(index, 'styles.css?v=20261123-2', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.58.0', 'TWA 이름');
-    eq(twa.appVersion, '1.58.0', 'TWA 버전');
-    eq(twa.appVersionCode, 52, 'TWA 코드');
-    includes(sw, 'bm-v1.58.0', 'sw 변경 이력');
+    includes(sw, "var VERSION = 'bm-v1.59.0'", 'sw.js');
+    includes(app, "version: 'v1.59.0'", 'app.js');
+    includes(index, 'styles.css?v=20261123-3', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.59.0', 'TWA 이름');
+    eq(twa.appVersion, '1.59.0', 'TWA 버전');
+    eq(twa.appVersionCode, 53, 'TWA 코드');
+    includes(sw, 'bm-v1.59.0', 'sw 변경 이력');
     includes(sw, '인스타 카드 색·디자인', 'sw 변경 이력 내용');
     var run = readRoot('test/run.js');
     includes(run, 'test/v158.test.js', '테스트 목록');

@@ -218,9 +218,16 @@
   }
 
   /* ---------- 결과 계산 ---------- */
+  /* 조건에 맞는 카드 전부 (14일 미접속 숨김 전) */
+  function matchedPlayers(state) {
+    return D.filterPlayers(state.data.matchProfiles || [], filterOf(state), { excludeKey: meKey(state) });
+  }
+
+  /* bm-v1.59.0 — 최근 14일 안에 활동한 사람만 목록에 남깁니다.
+   * 본인·친구·대화 중인 상대는 대화가 끊기지 않게 그대로 둡니다(js/domain.js). */
   function sortedPlayers(state) {
     var mp = myProfile(state);
-    var list = D.filterPlayers(state.data.matchProfiles || [], filterOf(state), { excludeKey: meKey(state) })
+    var list = D.withoutInactive(matchedPlayers(state), state.data.idx, meKey(state))
       .map(function (p) { return { p: p, s: D.matchScore(mp, p, mp).score }; });
     if (sortOf(state) === 'recent') {
       list.sort(function (a, b) {
@@ -242,9 +249,13 @@
     var f = filterOf(state);
     var reqs = (state.data.requests || []).map(function (r) { return r.id + ':' + r.status; }).join(',');
     var rooms = (state.data.rooms || []).map(function (r) { return r.roomId + ':' + r.unread; }).join(',');
+    /* 14일 미접속으로 숨는 사람이 바뀌면 목록도 다시 그립니다 (bm-v1.59.0) */
+    var acts = (state.data.matchProfiles || []).map(function (p) {
+      return (p.userKey || '') + ':' + (p.activityAt || '');
+    }).join(',');
     return [f.level || '', f.gender || '', f.region || '', f.discipline || '', f.query || '',
       searchStarted(state) ? '1' : '0',
-      sortOf(state), (state.data.matchProfiles || []).length, reqs, rooms,
+      sortOf(state), (state.data.matchProfiles || []).length, reqs, rooms, acts,
       (state.me && state.me.nick) || '', (state.me && state.me.theme && state.me.theme.avatar) || ''].join('|');
   }
 
@@ -259,6 +270,15 @@
       UI.icon('check') + '전체 선수 보기</button></div>';
   }
 
+  /* bm-v1.59.0 — 14일 미접속으로 숨긴 사람이 있으면 목록 아래에 조용히 알려 줍니다.
+   * (숨김은 탐색 목록에서만 — 친구·대화방은 그대로) */
+  function inactiveNote(state) {
+    var hidden = D.inactiveHiddenCount(matchedPlayers(state), state.data.idx, meKey(state));
+    var days = D.INACTIVE_HIDE_DAYS;
+    return '<p class="resultbar__quiet">최근 ' + days + '일 안에 활동한 분들만 보여 드려요' +
+      (hidden ? ' · 쉬고 있는 ' + hidden + '명은 잠시 감춰 뒀어요' : '') + '</p>';
+  }
+
   function resultsHtml(state) {
     if (!searchStarted(state)) return introHtml();
     var players = visiblePlayers(state);
@@ -271,11 +291,16 @@
     });
     /* 아직 아무도 없을 때는 '조건' 문제가 아니므로 첫 행동을 알려 줍니다 */
     var nobody = !(state.data.matchProfiles || []).some(function (p) { return p.userKey !== meKey(state); });
+    /* 14일 미접속으로 모두 숨었을 때는 '조건' 문제가 아니므로 그 이유를 알려 줍니다 */
+    var hidden = D.inactiveHiddenCount(matchedPlayers(state), state.data.idx, meKey(state));
+    var allQuiet = !players.length && hidden > 0;
     var emptySub = nobody
       ? '첫 번째 선수가 되어 보세요. 내 카드를 만들면 여기에 상대가 나타나요.'
-      : (f.gender && f.gender !== '전체' && !anyGender
-        ? '아직 성별을 공개한 플레이어가 없어요. 상대가 프로필에서 성별을 공개하면 여기에 보여요.'
-        : (q ? '다른 낱말로 찾아보거나 조건을 풀어 보세요.' : '급수·지역 조건을 바꿔 보세요.'));
+      : (allQuiet
+        ? '최근 ' + D.INACTIVE_HIDE_DAYS + '일 안에 활동한 분들만 보여 드려요. 상대가 다시 활동하면 여기에 나타나요.'
+        : (f.gender && f.gender !== '전체' && !anyGender
+          ? '아직 성별을 공개한 플레이어가 없어요. 상대가 프로필에서 성별을 공개하면 여기에 보여요.'
+          : (q ? '다른 낱말로 찾아보거나 조건을 풀어 보세요.' : '급수·지역 조건을 바꿔 보세요.')));
 
     return '<div class="resultbar">' +
       '<p>' +
@@ -287,9 +312,10 @@
       '<button type="button" class="sortseg__b' + (sortOf(state) === 'score' ? ' is-on' : '') + '" data-sort="score">궁합순</button>' +
       '<button type="button" class="sortseg__b' + (sortOf(state) === 'recent' ? ' is-on' : '') + '" data-sort="recent">최근순</button>' +
       '</div></div>' +
+      (players.length ? inactiveNote(state) : '') +
       (players.length
         ? '<div class="pcards">' + players.map(function (p) { return playerCard(p, state); }).join('') + '</div>'
-        : UI.emptyState('search', nobody ? '아직 등록된 선수가 없어요' : '조건에 맞는 플레이어가 없어요', emptySub,
+        : UI.emptyState('search', nobody ? '아직 등록된 선수가 없어요' : (allQuiet ? '지금은 다들 잠시 쉬는 중이에요' : '조건에 맞는 플레이어가 없어요'), emptySub,
           nobody
             ? '<button type="button" class="btn btn--primary btn--sm mt8" data-act="edit-match">내 매칭 카드 만들기</button>'
             : '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="reset-filter">조건 초기화</button>'));
