@@ -483,6 +483,7 @@
     includes(app, 'data-net-dead', '건너뛴 저장 다시 보내기 버튼');
     includes(app, 'retryBlocked', '격리 다시 보내기 연결');
     includes(app, 'netBarText: netBarText', '테스트·디버그용 공개');
+    includes(app, "'bm_queue_dead_v1'", '계정을 바꾸면 격리 목록도 비운다');
     includes(app, 'syncErrorKind', '오류 종류를 읽는다');
   });
 
