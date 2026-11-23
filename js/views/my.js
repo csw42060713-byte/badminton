@@ -384,6 +384,61 @@
         : '<p class="hint">일지를 먼저 저장하면 운동 숫자로 바로 만들 수 있어요.</p>');
   }
 
+  /* ---------- 동기화 대기열 · 마지막 오류 (bm-v1.58.0) ----------
+   * 예전에는 '보내지 못한 저장 N건'만 떠서 왜 안 보내지는지 알 수 없었습니다.
+   * 이제 대기 중 건수 · 마지막 오류 내용 · 건너뛴(격리된) 저장 건수를 한눈에 보여 주고,
+   * '지금 보내기 / 건너뛴 저장 다시 보내기 / 대기 중 비우기'를 같은 자리에 둡니다. */
+  function syncErrorHead(kind) {
+    if (kind === 'auth') return '로그인이 필요해요';
+    if (kind === 'perm') return '서버가 받지 못했어요';
+    if (kind === 'data') return '저장 내용을 확인해 주세요';
+    if (kind === 'net') return '연결이 잠시 끊겼어요';
+    return '마지막 동기화 오류';
+  }
+
+  /* 대기열·오류가 있으면 접힌 고급 밖에서도 한 줄로 먼저 알려 줍니다 */
+  function syncAlert(state, full) {
+    var queued = (state.queue || []).length;
+    var skipped = (state.syncBlocked || []).length;
+    if (!queued && !skipped) return '';
+    var bits = [];
+    if (queued) bits.push('보내지 못한 저장 ' + queued + '건');
+    if (skipped) bits.push('건너뛴 저장 ' + skipped + '건');
+    var head = state.syncError ? syncErrorHead(state.syncErrorKind) : (queued ? '보내는 중이에요' : '건너뛴 저장이 있어요');
+    return '<div class="syncbox__alert" data-sync-alert>' +
+      bits.join(' · ') + ' · <b>' + U.esc(head) + '</b>' +
+      (state.syncError ? '<span class="syncbox__why">' + U.esc(state.syncError) + '</span>' : '') +
+      (full ? '' : '<span class="syncbox__hint">원인과 다시 보내기는 아래 <b>고급</b>에 있어요.</span>') +
+      (state.syncErrorKind === 'auth'
+        ? '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="account-login">다시 로그인하기</button>' : '') +
+      '</div>';
+  }
+
+  function syncPanel(state) {
+    var queued = (state.queue || []).length;
+    var skipped = (state.syncBlocked || []).length;
+    var err = state.syncError || '';
+    var authKind = state.syncErrorKind === 'auth';
+    return '<div class="syncbox" data-sync-box>' +
+      '<p class="syncbox__head">동기화 상태</p>' +
+      '<div class="syncbox__row"><span>대기 중인 저장</span><b data-sync-queue>' + queued + '건</b></div>' +
+      (skipped ? '<div class="syncbox__row"><span>서버가 받지 못해 건너뛴 저장</span><b class="warn" data-sync-dead>' + skipped + '건</b></div>' : '') +
+      (err ? '<p class="syncbox__err' + (authKind ? ' is-auth' : '') + '" data-sync-error>' +
+        '<b>' + U.esc(syncErrorHead(state.syncErrorKind)) + '</b> ' + U.esc(err) + '</p>' : '') +
+      '<p class="sync">마지막 동기화 ' + U.esc(state.lastSync || '—') +
+      (state.syncState === 'syncing' ? ' · 보내는 중…' : state.syncState === 'error' ? ' · <b class="warn">재시도 대기</b>' : '') + '</p>' +
+      (queued || skipped
+        ? '<div class="row gap8 mt8">' +
+          (queued ? '<button type="button" class="btn btn--ghost btn--sm grow" data-act="retry">지금 보내기</button>' : '') +
+          (skipped ? '<button type="button" class="btn btn--ghost btn--sm grow" data-act="retry-dead">건너뛴 저장 다시 보내기</button>' : '') +
+          '</div>' : '') +
+      (queued || skipped
+        ? '<button type="button" class="linkbtn" data-act="clear-queue">대기 중 비우기</button>' +
+          '<p class="hint">비우면 이 기기에 남은 보내지 못한 저장만 사라져요. 서버에 이미 저장된 기록은 그대로예요.</p>'
+        : '<p class="hint">보내지 못한 저장이 없어요. 기록은 저장되는 대로 서버에 올라갑니다.</p>') +
+      '</div>';
+  }
+
   /* 데이터 연결 — 안내 문구는 짧게, 버튼은 크게.
    * bm-v1.55.0: 기록은 이제 Supabase에 자동으로 저장됩니다. 그래서 일반 사용자 화면에서는
    * 구글 시트 연결·JSON 내보내기·Client ID를 '고급' 접기 안으로 옮겼습니다
@@ -425,17 +480,15 @@
       (cid ? '<button type="button" class="btn btn--ghost btn--sm" data-act="clear-client-id">지우기</button>' : '') +
       '</div></div></details>';
     return '<p class="hint">' + modeText + (live && signed ? ' ' + livePill : '') + '</p>' +
+      syncAlert(state, full) +
       (full
-        ? tools
+        ? tools + syncPanel(state)
         : '<p class="hint hint--auto">' + UI.icon('check') +
           '기록은 자동으로 저장돼요. 시트 연결이나 백업은 필요할 때만 아래 <b>고급</b>을 열어 주세요.</p>' +
           '<details class="adv adv--dev" data-adv="sheets">' +
           '<summary>고급 · 시트 연결 · JSON 백업</summary>' +
-          '<div class="adv__body">' + tools + '</div></details>') +
-      ((state.mode === 'local' && isGuest()) ? '<button class="linkbtn mt8" data-act="reset-demo">저장된 기록 모두 지우기</button>' : '') +
-      '<p class="sync">마지막 동기화 ' + U.esc(state.lastSync || '—') +
-      (state.syncState === 'syncing' ? ' · 보내는 중…' : state.syncState === 'error' ? ' · <b class="warn">재시도 대기</b>' : '') + '</p>' +
-      (state.queue && state.queue.length ? '<button class="linkbtn" data-act="retry">대기 중인 저장 ' + state.queue.length + '건 지금 보내기</button>' : '');
+          '<div class="adv__body">' + tools + syncPanel(state) + '</div></details>') +
+      ((state.mode === 'local' && isGuest()) ? '<button class="linkbtn mt8" data-act="reset-demo">저장된 기록 모두 지우기</button>' : '');
   }
 
   /* 시트·백업 도구를 접기 없이 보여 줄 사람 — 관리자이거나 이미 시트로 쓰는 계정 */
@@ -897,6 +950,22 @@
         if (ev.target.closest('[data-act="retry"]')) {
           ev.preventDefault();
           ctx.actions.retrySync();
+          return;
+        }
+        if (ev.target.closest('[data-act="retry-dead"]')) {
+          ev.preventDefault();
+          if (ctx.actions.retryBlocked) ctx.actions.retryBlocked();
+          UI.toast('건너뛴 저장을 다시 보내는 중이에요');
+          return;
+        }
+        if (ev.target.closest('[data-act="clear-queue"]')) {
+          ev.preventDefault();
+          UI.confirm('보내지 못한 저장을 이 기기에서 비울까요? 서버에 이미 저장된 기록은 그대로예요.', '대기 중 비우기').then(function (ok) {
+            if (!ok) return;
+            if (!ctx.actions.clearQueue) return;
+            var res = ctx.actions.clearQueue();
+            UI.toast(res && res.cleared ? '보내지 못한 저장 ' + res.cleared + '건을 비웠어요' : '대기 중인 저장이 없어요');
+          });
           return;
         }
         if (ev.target.closest('[data-act="logout"]')) {

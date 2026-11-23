@@ -549,13 +549,20 @@
 
     function enc(v) { return encodeURIComponent(String(v == null ? '' : v)); }
 
+    /* 서버 응답 → ApiError. bm-v1.58.0 — 상태 코드를 함께 남겨 저장소가
+     * '다시 보내도 안 되는 오류'인지 판단하고, 401은 '로그인 세션이 만료됐다'로 안내합니다. */
     function apiErrorOf(status, data) {
       var code = (data && (data.code || (data.error_code))) || String(status);
-      if (status === 409 || code === '23505') return new ApiError('conflict', '이미 저장된 기록이에요.', false);
-      if (status === 401 || status === 403) return new ApiError('forbidden', '서버 권한을 확인하지 못했어요.', false);
-      if (status === 404) return new ApiError('no_table', '서버 표를 찾지 못했어요.', false);
-      if (status >= 500) return new ApiError('server', '서버가 잠시 응답하지 못했어요.', true);
-      return new ApiError('request', (data && (data.message || data.msg || data.hint)) || '요청을 처리하지 못했어요.', status >= 500);
+      var err;
+      if (status === 409 || code === '23505') err = new ApiError('conflict', '이미 저장된 기록이에요.', false);
+      else if (status === 401) err = new ApiError('session', '로그인 세션이 만료됐어요. MY에서 다시 로그인해 주세요.', false);
+      else if (status === 403 || code === '42501') err = new ApiError('forbidden', '서버 권한을 확인하지 못했어요.', false);
+      else if (status === 404) err = new ApiError('no_table', '서버 표를 찾지 못했어요.', false);
+      else if (status >= 500) err = new ApiError('server', '서버가 잠시 응답하지 못했어요.', true);
+      else err = new ApiError('request', (data && (data.message || data.msg || data.hint)) || '요청을 처리하지 못했어요.', status >= 500);
+      err.status = status;
+      if (data && data.code) err.pgCode = String(data.code);
+      return err;
     }
 
     function rest(method, path, o) {

@@ -1,5 +1,5 @@
 /* ============================================================
- * sharecard.js — 오운완 · 대회 인증 인스타 공유 카드 (bm-v1.57.0)
+ * sharecard.js — 오운완 · 대회 인증 인스타 공유 카드 (bm-v1.58.0)
  *
  *  · 1080×1350 (4:5) 캔버스 한 장으로 만듭니다. 사진은 폰 안에서만 합성되고
  *    서버로 보내지 않습니다(업로드 없음 · 파일 선택 → 캔버스 → 저장/공유).
@@ -10,8 +10,13 @@
  *      court  — 사진 없이 바로 예쁜 다크 코트 카드(기본)
  *      photo  — 내 사진 위에 얹기(밝은 사진에서도 읽히게 아래 그라디언트·그림자)
  *      sticker— 배경 투명 PNG (인스타 스토리에 스티커처럼)
+ *  · bm-v1.58.0 — 색상 팔레트 5종 × 디자인(레이아웃) 3종
+ *      색: 나이트(기본) · 코트 블루 · 선셋 · 사쿠라 · 챔피언 골드
+ *      디자인: 미니멀(큰 숫자) · 포스터(위 배너 + 가운데 스탯 박스 + 아래 바) ·
+ *              코트 라인(배경에 코트 선·네트를 은은하게)
+ *      내 사진·투명 스티커에서도 고른 색의 강조 글씨·배지·판 테두리가 그대로 쓰입니다.
  *  · 문구·숫자 계산은 순수 함수(model*)로 두고, 그리기는 DOM 캔버스에서만 합니다
- *    (node 테스트에서는 model/filename/문구만 확인합니다).
+ *    (node 테스트에서는 model/문구 + 가짜 2D 컨텍스트로 그리기 호출을 확인합니다).
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -20,8 +25,6 @@
   function dom() { return BM.domain; }
 
   var W = 1080, H = 1350;
-  var ACCENT = '#c6f24e';
-  var MINT = '#43dfa0';
   var FONT = '"Pretendard","Noto Sans KR","Noto Sans CJK KR","Apple SD Gothic Neo",Roboto,"Malgun Gothic",system-ui,sans-serif';
 
   var MODES = [
@@ -35,7 +38,79 @@
     { id: 'sticker', name: '투명 스티커', note: '스토리에 붙이기' }
   ];
 
+  /* ---------- 색상 팔레트 5종 (bm-v1.58.0) ----------
+   * night 은 v1.57 이전의 '딥 그린 + 네온 라임'을 그대로 옮긴 기본값입니다.
+   * accent — 강조 글씨·배지·아래 바 / accent2 — 보조 포인트 / onAccent — 강조 바탕 위 글씨
+   * bg     — 카드 바탕 그라데이션 3단계 / glow — 오른쪽 위 은은한 빛
+   * shade  — 사진 위에 얹을 때 아래를 어둡게 하는 색(RGB)
+   * plate  — 투명 스티커 판 바탕 / plateLine — 판 테두리
+   * court  — '코트 라인' 배경에 그리는 선 색 */
+  var PALETTES = [
+    { id: 'night', name: '나이트', note: '딥 그린 · 네온 라임',
+      bg: ['#0b1713', '#07100d', '#040a08'],
+      glow: 'rgba(198,242,78,0.14)', glow2: 'rgba(67,223,160,0.05)',
+      accent: '#c6f24e', accent2: '#43dfa0', onAccent: '#0a1410',
+      text: '#f4f8f5', muted: 'rgba(160,178,168,0.95)', soft: 'rgba(255,255,255,0.88)',
+      hair: 'rgba(255,255,255,0.08)', box: 'rgba(255,255,255,0.05)', boxLine: 'rgba(255,255,255,0.14)',
+      shade: [2, 6, 4], plate: 'rgba(6,12,9,0.78)', plateLine: 'rgba(198,242,78,0.45)',
+      band: 'rgba(198,242,78,0.16)', court: 'rgba(198,242,78,0.15)' },
+    { id: 'court', name: '코트 블루', note: '코트 블루 · 스카이',
+      bg: ['#0a2842', '#06182c', '#030d18'],
+      glow: 'rgba(122,214,255,0.18)', glow2: 'rgba(255,255,255,0.05)',
+      accent: '#7ad6ff', accent2: '#ffffff', onAccent: '#04182b',
+      text: '#f5fbff', muted: 'rgba(186,214,232,0.95)', soft: 'rgba(255,255,255,0.9)',
+      hair: 'rgba(255,255,255,0.10)', box: 'rgba(255,255,255,0.06)', boxLine: 'rgba(255,255,255,0.18)',
+      shade: [2, 10, 20], plate: 'rgba(4,18,32,0.78)', plateLine: 'rgba(122,214,255,0.5)',
+      band: 'rgba(122,214,255,0.18)', court: 'rgba(255,255,255,0.20)' },
+    { id: 'sunset', name: '선셋', note: '버건디 · 웜 코랄',
+      bg: ['#38101a', '#1e080d', '#0b0204'],
+      glow: 'rgba(255,122,89,0.20)', glow2: 'rgba(255,170,80,0.06)',
+      accent: '#ff7a59', accent2: '#ffb27a', onAccent: '#2a0806',
+      text: '#fff6f2', muted: 'rgba(232,196,184,0.95)', soft: 'rgba(255,255,255,0.9)',
+      hair: 'rgba(255,255,255,0.10)', box: 'rgba(255,255,255,0.06)', boxLine: 'rgba(255,255,255,0.17)',
+      shade: [14, 4, 6], plate: 'rgba(30,8,12,0.78)', plateLine: 'rgba(255,122,89,0.5)',
+      band: 'rgba(255,122,89,0.18)', court: 'rgba(255,178,122,0.18)' },
+    { id: 'sakura', name: '사쿠라', note: '로즈 · 마젠타',
+      bg: ['#37122a', '#200b18', '#0f040b'],
+      glow: 'rgba(255,143,199,0.20)', glow2: 'rgba(255,255,255,0.06)',
+      accent: '#ff8fc7', accent2: '#ffffff', onAccent: '#2a0a18',
+      text: '#fff5fa', muted: 'rgba(236,200,220,0.95)', soft: 'rgba(255,255,255,0.9)',
+      hair: 'rgba(255,255,255,0.10)', box: 'rgba(255,255,255,0.07)', boxLine: 'rgba(255,255,255,0.18)',
+      shade: [16, 4, 10], plate: 'rgba(32,8,20,0.78)', plateLine: 'rgba(255,143,199,0.5)',
+      band: 'rgba(255,143,199,0.18)', court: 'rgba(255,255,255,0.22)' },
+    { id: 'gold', name: '챔피언 골드', note: '딥 블랙 · 메탈릭 골드',
+      bg: ['#17130a', '#0b0906', '#040403'],
+      glow: 'rgba(232,194,106,0.22)', glow2: 'rgba(255,236,180,0.06)',
+      accent: '#e8c26a', accent2: '#fff3cf', onAccent: '#17130a',
+      text: '#fff9ec', muted: 'rgba(226,208,170,0.95)', soft: 'rgba(255,255,255,0.9)',
+      hair: 'rgba(255,255,255,0.09)', box: 'rgba(255,255,255,0.05)', boxLine: 'rgba(232,194,106,0.32)',
+      shade: [6, 5, 3], plate: 'rgba(12,10,6,0.80)', plateLine: 'rgba(232,194,106,0.55)',
+      band: 'rgba(232,194,106,0.16)', court: 'rgba(232,194,106,0.18)' }
+  ];
+
+  /* ---------- 디자인(레이아웃) 3종 (bm-v1.58.0) ---------- */
+  var LAYOUTS = [
+    { id: 'minimal', name: '미니멀', note: '큰 숫자 강조' },
+    { id: 'poster', name: '포스터', note: '배너 · 스탯 박스' },
+    { id: 'courtline', name: '코트 라인', note: '코트 선 그래픽' }
+  ];
+
   var RESULTS = ['우승', '준우승', '3위', '출전'];
+
+  function paletteById(id) {
+    for (var i = 0; i < PALETTES.length; i++) if (PALETTES[i].id === id) return PALETTES[i];
+    return PALETTES[0];
+  }
+
+  function layoutById(id) {
+    for (var i = 0; i < LAYOUTS.length; i++) if (LAYOUTS[i].id === id) return LAYOUTS[i];
+    return LAYOUTS[0];
+  }
+
+  function rgba(rgb, a) {
+    var c = rgb || [0, 0, 0];
+    return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
+  }
 
   /* ---------- 순수 모델 ---------- */
 
@@ -127,14 +202,20 @@
     return 'badminton-share-' + key + '-' + (mode === 'comp' ? 'contest' : 'today') + '.png';
   }
 
-  /* 화면에 보여 줄 카드 요약(테스트·접근성 문구) */
+  /* 화면에 보여 줄 카드 요약(테스트·접근성 문구) — 고른 색·디자인 이름도 함께 */
   function summaryOf(spec) {
     var s = spec || {};
+    var text;
     if (s.mode === 'comp' && s.comp) {
-      return ['대회 인증', s.comp.contest, s.comp.result, compSub(s.comp)].filter(Boolean).join(' / ');
+      text = ['대회 인증', s.comp.contest, s.comp.result, compSub(s.comp)].filter(Boolean).join(' / ');
+    } else {
+      var bigs = (s.bigs || []).map(function (b) { return b.value + (b.unit || ''); }).join(' · ');
+      text = [s.title, bigs, s.sub].filter(Boolean).join(' / ');
     }
-    var bigs = (s.bigs || []).map(function (b) { return b.value + (b.unit || ''); }).join(' · ');
-    return [s.title, bigs, s.sub].filter(Boolean).join(' / ');
+    var extra = [];
+    if (s.palette) extra.push(paletteById(s.palette).name);
+    if (s.layout) extra.push(layoutById(s.layout).name);
+    return text + (extra.length ? ' / ' + extra.join(' · ') : '');
   }
 
   /* ---------- 캔버스 그리기 ---------- */
@@ -188,29 +269,32 @@
     return lines.length ? lines : [''];
   }
 
-  /* 다크 코트 배경 — 아래쪽에 아주 옅은 코트 선만. 글자를 가리지 않습니다. */
-  function paintCourt(g) {
+  /* 카드 배경 — 고른 색의 3단 그라데이션 + 오른쪽 위 은은한 빛.
+   * 디자인이 '코트 라인'이면 아래에 코트 선을, '포스터'면 아래 바가 구분선 노릇을 합니다. */
+  function paintBackground(g, p, layout) {
     var base = g.createLinearGradient(0, 0, W * 0.35, H);
-    base.addColorStop(0, '#0b1713');
-    base.addColorStop(0.5, '#07100d');
-    base.addColorStop(1, '#040a08');
+    base.addColorStop(0, p.bg[0]);
+    base.addColorStop(0.5, p.bg[1]);
+    base.addColorStop(1, p.bg[2]);
     g.fillStyle = base;
     g.fillRect(0, 0, W, H);
     var glow = g.createRadialGradient(W * 0.8, H * 0.08, 10, W * 0.8, H * 0.08, W * 0.95);
-    glow.addColorStop(0, 'rgba(198,242,78,0.14)');
-    glow.addColorStop(0.4, 'rgba(67,223,160,0.05)');
+    glow.addColorStop(0, p.glow);
+    glow.addColorStop(0.4, p.glow2);
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = glow;
     g.fillRect(0, 0, W, H);
-    /* 아래 빈자리는 얇은 구분선 하나로만 — 표처럼 보이지 않게 */
+    if (layout === 'courtline') { paintCourtLines(g, p, { x: 130, y: 980, w: W - 260, h: 330 }); return; }
+    if (layout === 'poster') return;
+    /* 미니멀 — 아래 빈자리는 얇은 구분선 하나로만 (표처럼 보이지 않게) */
     g.save();
-    g.strokeStyle = 'rgba(255,255,255,0.08)';
+    g.strokeStyle = p.hair;
     g.lineWidth = 2;
     g.beginPath();
     g.moveTo(80, 1150);
     g.lineTo(W - 80, 1150);
     g.stroke();
-    g.strokeStyle = 'rgba(198,242,78,0.6)';
+    g.strokeStyle = p.accent;
     g.lineWidth = 6;
     g.beginPath();
     g.moveTo(80, 1150);
@@ -219,17 +303,55 @@
     g.restore();
   }
 
-  /* 사진 위 — 위아래를 살짝 어둡게 해 밝은 사진에서도 글씨가 또렷합니다 */
-  function paintPhotoFilters(g) {
+  /* 코트 라인 — 카드 아래쪽에 배드민턴 코트 한 면을 낮게 깔아 둡니다.
+   * 외곽 · 네트 · 숏/롱 서비스 라인 · 센터 라인만, 글자를 가리지 않을 만큼 옅게. */
+  function paintCourtLines(g, p, box) {
+    var x0 = box.x, y0 = box.y, w = box.w, h = box.h;
+    var x1 = x0 + w, y1 = y0 + h;
+    var mx = x0 + w / 2, my = y0 + h / 2;
+    var short = w * 0.148;      /* 숏 서비스 라인 (네트에서 1.98m) */
+    var long = h * 0.124;       /* 롱 서비스 라인 (뒤에서 0.76m) */
+    g.save();
+    g.strokeStyle = p.court;
+    g.lineWidth = 3;
+    g.strokeRect(x0, y0, w, h);
+    g.lineWidth = 2;
+    g.beginPath();
+    /* 네트 */
+    g.moveTo(mx, y0 - 6); g.lineTo(mx, y1 + 6);
+    /* 숏 서비스 라인 · 롱 서비스 라인 */
+    g.moveTo(mx - short, y0); g.lineTo(mx - short, y1);
+    g.moveTo(mx + short, y0); g.lineTo(mx + short, y1);
+    g.moveTo(x0, y0 + long); g.lineTo(x1, y0 + long);
+    g.moveTo(x0, y1 - long); g.lineTo(x1, y1 - long);
+    /* 센터 라인 */
+    g.moveTo(x0, my); g.lineTo(mx - short, my);
+    g.moveTo(mx + short, my); g.lineTo(x1, my);
+    g.stroke();
+    /* 네트 결 — 네트 선을 따라 가로로 짧은 줄 */
+    g.lineWidth = 1;
+    for (var i = 0; i <= 8; i++) {
+      var y = y0 + i * (h / 8);
+      g.beginPath();
+      g.moveTo(mx - 18, y);
+      g.lineTo(mx + 18, y);
+      g.stroke();
+    }
+    g.restore();
+  }
+
+  /* 사진 위 — 위아래를 살짝 어둡게 해 밝은 사진에서도 글씨가 또렷합니다.
+   * 어둡게 하는 색은 고른 팔레트의 shade(밤·코트·버건디·로즈·골드)라 카드 색과 어긋나지 않습니다. */
+  function paintPhotoFilters(g, p) {
     var bottom = g.createLinearGradient(0, H * 0.3, 0, H);
-    bottom.addColorStop(0, 'rgba(2,6,4,0)');
-    bottom.addColorStop(0.5, 'rgba(2,6,4,0.5)');
-    bottom.addColorStop(1, 'rgba(2,6,4,0.94)');
+    bottom.addColorStop(0, rgba(p.shade, 0));
+    bottom.addColorStop(0.5, rgba(p.shade, 0.5));
+    bottom.addColorStop(1, rgba(p.shade, 0.94));
     g.fillStyle = bottom;
     g.fillRect(0, 0, W, H);
     var top = g.createLinearGradient(0, 0, 0, H * 0.22);
-    top.addColorStop(0, 'rgba(2,6,4,0.5)');
-    top.addColorStop(1, 'rgba(2,6,4,0)');
+    top.addColorStop(0, rgba(p.shade, 0.5));
+    top.addColorStop(1, rgba(p.shade, 0));
     g.fillStyle = top;
     g.fillRect(0, 0, W, H * 0.22);
   }
@@ -266,28 +388,33 @@
     img.src = 'icons/icon-192.png';
   }
 
-  /* 카드 위·아래 머리줄 — 브랜드와 날짜는 작게만 */
-  function drawHeader(g, spec, light) {
+  /* 카드 위 머리줄 — 브랜드와 날짜는 작게만 (포스터는 위 배너가 대신합니다) */
+  function drawHeader(g, spec, light, p, layout) {
+    if (layout === 'poster') return;
     g.textAlign = 'left';
-    g.fillStyle = light ? 'rgba(255,255,255,0.72)' : 'rgba(198,242,78,0.72)';
+    g.fillStyle = light ? 'rgba(255,255,255,0.72)' : p.accent;
+    g.globalAlpha = light ? 1 : 0.78;
     g.font = font(24, 800);
     g.fillText('BADMINTON', 80, 122);
+    g.globalAlpha = 1;
     if (spec.date) {
       g.textAlign = 'right';
-      g.fillStyle = light ? 'rgba(255,255,255,0.6)' : 'rgba(160,178,168,0.72)';
+      g.fillStyle = light ? 'rgba(255,255,255,0.6)' : p.muted;
+      g.globalAlpha = light ? 1 : 0.7;
       g.font = font(24, 700);
       g.fillText(spec.date, W - 80, 122);
+      g.globalAlpha = 1;
     }
     g.textAlign = 'left';
   }
 
   /* today 카드 — 큰 숫자 2~3개 (라벨은 숫자 아래 작게) */
-  function drawBigs(g, bigs, y, light) {
+  function drawBigs(g, bigs, y, light, p) {
     var list = bigs || [];
     if (!list.length) {
       /* 기록이 없을 때 — 깨진 숫자 대신 한 줄 안내 */
       g.textAlign = 'left';
-      g.fillStyle = light ? 'rgba(255,255,255,0.8)' : 'rgba(180,196,188,0.9)';
+      g.fillStyle = light ? 'rgba(255,255,255,0.8)' : p.muted;
       g.font = font(42, 800);
       g.fillText('오늘 기록을 먼저 남겨 주세요', 80, y - 30);
       return;
@@ -300,17 +427,18 @@
       var size = fit(g, String(b.value), colW - 26, base, 900);
       var vW = g.measureText(String(b.value)).width;
       g.textAlign = 'left';
-      g.fillStyle = light ? '#ffffff' : '#f4f8f5';
+      g.fillStyle = light ? '#ffffff' : p.text;
       g.shadowColor = 'rgba(0,0,0,0.5)';
       g.shadowBlur = light ? 22 : 0;
       g.fillText(String(b.value), cx, y);
       g.shadowBlur = 0;
       if (b.unit) {
         g.font = font(size * 0.3, 800);
-        g.fillStyle = light ? 'rgba(255,255,255,0.85)' : ACCENT;
+        /* 내 사진 위에서도 고른 색의 강조가 보이게 (그림자로 읽히게) */
+        g.fillStyle = p.accent;
         g.fillText(b.unit, cx + vW + 12, y - 4);
       }
-      g.fillStyle = light ? 'rgba(255,255,255,0.75)' : 'rgba(160,178,168,0.95)';
+      g.fillStyle = light ? 'rgba(255,255,255,0.75)' : p.muted;
       g.font = font(28, 700);
       g.fillText((b.flame ? '🔥 ' : '') + String(b.label || ''), cx, y + 52);
     });
@@ -333,8 +461,46 @@
       : { eyebrow: 400, bigs: 700, sub: 900, logo: 1236 };
   }
 
+  /* 포스터 아래 바 — 색 띠 + 브랜드/날짜 */
+  function drawBottomBar(g, p, date, light) {
+    g.save();
+    g.fillStyle = light ? 'rgba(0,0,0,0.58)' : p.accent;
+    g.fillRect(0, H - 160, W, 160);
+    if (light) {
+      g.fillStyle = p.accent;
+      g.fillRect(0, H - 168, W, 8);
+    }
+    g.textAlign = 'left';
+    g.fillStyle = light ? p.text : p.onAccent;
+    g.font = font(32, 900);
+    g.fillText('BADMINTON', 80, H - 62);
+    if (date) {
+      g.textAlign = 'right';
+      g.globalAlpha = 0.72;
+      g.font = font(26, 700);
+      g.fillText(date, W - 80, H - 62);
+      g.globalAlpha = 1;
+    }
+    g.textAlign = 'left';
+    g.restore();
+  }
+
+  /* '📍 체육관 · 민호와 함께 · vs 지호 · 11/23 (월)' 에서 날짜만 빼기
+   * (포스터는 아래 바에 날짜가 있어 두 번 나오지 않게) */
+  function withoutDate(sub, date) {
+    var src = String(sub || '');
+    if (!date || !src) return src;
+    var at = src.lastIndexOf(date);
+    if (at < 0) return src;
+    return src.slice(0, at).replace(/\s*·\s*$/, '').replace(/\s+$/, '');
+  }
+
+  /* 미니멀 · 코트 라인 — 지금까지의 today 카드 (큰 숫자 2~3개) */
   function drawToday(g, spec) {
+    var p = paletteById(spec.palette);
+    var layout = layoutById(spec.layout).id;
     var light = spec.style === 'photo';
+    if (layout === 'poster') { drawTodayPoster(g, spec, p, light); return; }
     var L = layoutOf(spec.style, 'today');
     g.textAlign = 'left';
     if (light) {
@@ -342,16 +508,16 @@
       g.font = font(32, 800);
       g.fillText('오늘 운동 · 오운완', 80, L.eyebrow);
     } else {
-      g.fillStyle = ACCENT;
+      g.fillStyle = p.accent;
       g.font = font(28, 800);
       g.fillText('오늘 운동', 80, L.eyebrow);
-      g.fillStyle = 'rgba(242,246,243,0.96)';
+      g.fillStyle = p.text;
       g.font = font(78, 900);
       g.fillText(spec.headline || '오운완', 80, L.eyebrow + 100);
     }
-    drawBigs(g, spec.bigs, L.bigs, light);
+    drawBigs(g, spec.bigs, L.bigs, light, p);
     if (spec.sub) {
-      g.fillStyle = light ? 'rgba(255,255,255,0.9)' : 'rgba(180,196,188,0.95)';
+      g.fillStyle = light ? 'rgba(255,255,255,0.9)' : p.muted;
       var s = fit(g, spec.sub, W - 160, 32, 700);
       g.font = font(s, 700);
       g.textAlign = 'left';
@@ -363,24 +529,108 @@
     paintLogo(g, 80, L.logo, 54, light);
   }
 
+  /* 포스터 · 오늘 운동 — 위 굵은 배너 + 가운데 스탯 박스 + 아래 색 바 */
+  function drawTodayPoster(g, spec, p, light) {
+    g.save();
+    g.fillStyle = light ? 'rgba(0,0,0,0.44)' : p.band;
+    g.fillRect(0, 0, W, 320);
+    g.fillStyle = p.accent;
+    g.fillRect(0, 312, W, 10);
+    g.textAlign = 'left';
+    g.fillStyle = p.accent;
+    g.font = font(30, 900);
+    g.fillText('오늘 운동 · 오운완', 80, 120);
+    g.fillStyle = p.text;
+    g.font = font(96, 900);
+    g.shadowColor = 'rgba(0,0,0,0.45)';
+    g.shadowBlur = light ? 18 : 0;
+    g.fillText(spec.headline || '오운완', 80, 250);
+    g.shadowBlur = 0;
+
+    /* 가운데 스탯 박스 — 숫자는 박스 안에 세로 가운데로 */
+    var bx = 70, by = 380, bw = W - 140, bh = 600;
+    g.fillStyle = light ? 'rgba(0,0,0,0.34)' : p.box;
+    roundRect(g, bx, by, bw, bh, 44);
+    g.fill();
+    g.strokeStyle = p.boxLine;
+    g.lineWidth = 3;
+    g.stroke();
+
+    var list = spec.bigs || [];
+    if (!list.length) {
+      g.fillStyle = p.text;
+      g.font = font(42, 800);
+      g.textAlign = 'center';
+      g.fillText('오늘 기록을 먼저 남겨 주세요', W / 2, by + bh / 2);
+      g.textAlign = 'left';
+    } else {
+      var rowH = Math.min(190, (bh - 80) / list.length);
+      var top = by + (bh - rowH * list.length) / 2;
+      list.forEach(function (b, i) {
+        var cy = top + rowH * i + rowH * 0.62;
+        var size = fit(g, String(b.value), bw - 220, 104, 900);
+        var vW = g.measureText(String(b.value)).width;
+        g.textAlign = 'left';
+        g.fillStyle = p.text;
+        g.font = font(size, 900);
+        g.fillText(String(b.value), 120, cy);
+        if (b.unit) {
+          g.font = font(size * 0.34, 800);
+          g.fillStyle = p.accent;
+          g.fillText(b.unit, 120 + vW + 14, cy - 6);
+        }
+        g.fillStyle = p.muted;
+        g.font = font(28, 700);
+        g.fillText((b.flame ? '🔥 ' : '') + String(b.label || ''), 120, cy + 50);
+        if (i < list.length - 1) {
+          g.strokeStyle = p.hair;
+          g.lineWidth = 2;
+          g.beginPath();
+          g.moveTo(120, cy + 92);
+          g.lineTo(bx + bw - 50, cy + 92);
+          g.stroke();
+        }
+      });
+    }
+
+    /* 박스 아래 한 줄 — 체육관 · 파트너/라이벌 (날짜는 아래 바에) */
+    var sub = withoutDate(spec.sub, spec.date);
+    if (sub) {
+      var ss = fit(g, sub, W - 200, 30, 700);
+      g.font = font(ss, 700);
+      g.fillStyle = light ? 'rgba(255,255,255,0.9)' : p.muted;
+      g.textAlign = 'center';
+      g.shadowColor = 'rgba(0,0,0,0.4)';
+      g.shadowBlur = light ? 14 : 0;
+      g.fillText(sub, W / 2, by + bh + 70);
+      g.shadowBlur = 0;
+      g.textAlign = 'left';
+    }
+    drawBottomBar(g, p, spec.date, light);
+    g.restore();
+  }
+
   function drawComp(g, spec) {
+    var p = paletteById(spec.palette);
+    var layout = layoutById(spec.layout).id;
     var light = spec.style === 'photo';
+    if (layout === 'poster') { drawCompPoster(g, spec, p, light); return; }
     var m = spec.comp || compModel({});
     var L = layoutOf(spec.style, 'comp');
     g.textAlign = 'left';
     /* 트로피 + 이름표 */
     g.font = font(66, 700);
-    g.fillStyle = ACCENT;
+    g.fillStyle = p.accent;
     g.shadowColor = 'rgba(0,0,0,0.35)';
     g.shadowBlur = light ? 16 : 0;
     g.fillText('🏆', 80, L.eyebrow);
     g.shadowBlur = 0;
-    g.fillStyle = light ? 'rgba(255,255,255,0.88)' : 'rgba(198,242,78,0.92)';
+    g.fillStyle = light ? 'rgba(255,255,255,0.88)' : p.accent;
     g.font = font(30, 800);
     g.fillText('대회 인증', 172, L.eyebrow - 10);
     /* 대회명 — 최대 2줄 */
     var lines = wrap(g, m.contest, W - 160, 86, 900, 2);
-    g.fillStyle = light ? '#ffffff' : '#f4f8f5';
+    g.fillStyle = light ? '#ffffff' : p.text;
     g.font = font(86, 900);
     g.shadowColor = 'rgba(0,0,0,0.5)';
     g.shadowBlur = light ? 22 : 0;
@@ -391,15 +641,15 @@
     g.font = font(38, 900);
     var bw = g.measureText(badge).width + 54;
     var by = L.badge + (lines.length - 1) * 96;
-    g.fillStyle = badge === '출전' ? 'rgba(255,255,255,0.16)' : ACCENT;
+    g.fillStyle = badge === '출전' ? (light ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.16)') : p.accent;
     roundRect(g, 80, by - 54, bw, 72, 18);
     g.fill();
-    g.fillStyle = badge === '출전' ? 'rgba(255,255,255,0.92)' : '#0a1410';
+    g.fillStyle = badge === '출전' ? 'rgba(255,255,255,0.92)' : p.onAccent;
     g.fillText(badge, 80 + 27, by - 6);
     /* 급수/종목 · 파트너 · 날짜 */
     var sub = compSub(m);
     if (sub) {
-      g.fillStyle = light ? 'rgba(255,255,255,0.9)' : 'rgba(180,196,188,0.95)';
+      g.fillStyle = light ? 'rgba(255,255,255,0.9)' : p.muted;
       var s = fit(g, sub, W - 160, 32, 700);
       g.font = font(s, 700);
       g.shadowColor = 'rgba(0,0,0,0.45)';
@@ -410,16 +660,100 @@
     paintLogo(g, 80, L.logo, 54, light);
   }
 
-  /* 투명 스티커 — 글자 뒤에 반투명 판 하나만 남기고 배경은 투명 */
-  function paintStickerPlate(g, spec) {
+  /* 포스터 · 대회 인증 — 위 배너에 대회명, 가운데 박스에 큰 성적 배지와 종목, 아래 색 바 */
+  function drawCompPoster(g, spec, p, light) {
+    var m = spec.comp || compModel({});
+    g.save();
+    g.fillStyle = light ? 'rgba(0,0,0,0.46)' : p.band;
+    g.fillRect(0, 0, W, 430);
+    g.fillStyle = p.accent;
+    g.fillRect(0, 422, W, 10);
+    g.textAlign = 'left';
+    g.fillStyle = p.accent;
+    g.font = font(30, 900);
+    g.fillText('🏆 대회 인증', 80, 118);
+    var lines = wrap(g, m.contest, W - 160, 78, 900, 2);
+    g.fillStyle = p.text;
+    g.font = font(78, 900);
+    g.shadowColor = 'rgba(0,0,0,0.45)';
+    g.shadowBlur = light ? 18 : 0;
+    lines.forEach(function (ln, i) { g.fillText(ln, 80, 232 + i * 88); });
+    g.shadowBlur = 0;
+
+    /* 가운데 스탯 박스 — 성적 · 종목 · 파트너 */
+    var bx = 70, by = 490, bw = W - 140, bh = 560;
+    g.fillStyle = light ? 'rgba(0,0,0,0.36)' : p.box;
+    roundRect(g, bx, by, bw, bh, 44);
+    g.fill();
+    g.strokeStyle = p.boxLine;
+    g.lineWidth = 3;
+    g.stroke();
+
+    var badge = m.result;
+    var size = fit(g, badge, bw - 200, 170, 900);
+    g.textAlign = 'center';
+    g.font = font(size, 900);
+    g.fillStyle = badge === '출전' ? p.text : p.accent;
+    g.shadowColor = 'rgba(0,0,0,0.4)';
+    g.shadowBlur = light ? 16 : 0;
+    g.fillText(badge, W / 2, by + 270);
+    g.shadowBlur = 0;
+    if (m.event) {
+      var es = fit(g, m.event, bw - 160, 46, 800);
+      g.font = font(es, 800);
+      g.fillStyle = p.text;
+      g.fillText(m.event, W / 2, by + 372);
+    }
+    if (m.partner) {
+      g.font = font(30, 700);
+      g.fillStyle = p.muted;
+      g.fillText('파트너 ' + m.partner, W / 2, by + 432);
+    }
+    g.textAlign = 'left';
+    drawBottomBar(g, p, spec.date, light);
+    g.restore();
+  }
+
+  /* 투명 스티커 — 글자 뒤에 반투명 판 하나만 남기고 배경은 투명.
+   * 판 색·테두리도 고른 팔레트를 따르고, '코트 라인'은 판 안쪽에 선을 옅게 그립니다. */
+  function paintStickerPlate(g, spec, p, layout) {
     var h = spec.mode === 'comp' ? 880 : 800;
     var y = (H - h) / 2;
     g.save();
-    g.fillStyle = 'rgba(6,12,9,0.76)';
+    g.fillStyle = p.plate;
     roundRect(g, 40, y, W - 80, h, 48);
     g.fill();
-    g.strokeStyle = 'rgba(198,242,78,0.45)';
+    g.strokeStyle = p.plateLine;
     g.lineWidth = 4;
+    g.stroke();
+    if (layout === 'courtline') {
+      g.save();
+      roundRect(g, 40, y, W - 80, h, 48);
+      g.clip();
+      paintCourtLines(g, p, { x: 78, y: y + 40, w: W - 156, h: h - 80 });
+      g.restore();
+    }
+    g.restore();
+  }
+
+  /* 투명 스티커 + 포스터 — 카드 모양 그대로 잘라 낸 '포스터 스티커' */
+  function drawStickerPoster(g, spec, p) {
+    var s = 0.78;
+    var dw = W * s, dh = H * s;
+    var dx = (W - dw) / 2, dy = (H - dh) / 2;
+    g.save();
+    roundRect(g, dx, dy, dw, dh, 44);
+    g.clip();
+    g.translate(dx, dy);
+    g.scale(s, s);
+    paintBackground(g, p, 'poster');
+    if (spec.mode === 'comp') drawCompPoster(g, spec, p, false);
+    else drawTodayPoster(g, spec, p, false);
+    g.restore();
+    g.save();
+    g.strokeStyle = p.plateLine;
+    g.lineWidth = 5;
+    roundRect(g, dx, dy, dw, dh, 44);
     g.stroke();
     g.restore();
   }
@@ -432,20 +766,24 @@
     canvas.height = H;
     g.clearRect(0, 0, W, H);
     var s = spec || {};
+    var p = paletteById(s.palette);
+    var layout = layoutById(s.layout).id;
     if (s.style === 'sticker') {
-      paintStickerPlate(g, s);
+      if (layout === 'poster') drawStickerPoster(g, s, p);
+      else paintStickerPlate(g, s, p, layout);
     } else if (s.style === 'photo' && s.photo) {
       try {
         var img = s.photo;
         var scale = Math.max(W / img.width, H / img.height);
         var dw = img.width * scale, dh = img.height * scale;
         g.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
-      } catch (e) { paintCourt(g); }
-      paintPhotoFilters(g);
+      } catch (e) { paintBackground(g, p, layout); }
+      if (layout === 'courtline') paintCourtLines(g, p, { x: 140, y: 140, w: W - 280, h: 300 });
+      paintPhotoFilters(g, p);
     } else {
-      paintCourt(g);
+      paintBackground(g, p, layout);
     }
-    if (s.style !== 'sticker') drawHeader(g, s, s.style === 'photo');
+    if (s.style !== 'sticker') drawHeader(g, s, s.style === 'photo', p, layout);
     if (s.mode === 'comp') drawComp(g, s);
     else drawToday(g, s);
     if (typeof cb === 'function') cb(canvas);
@@ -495,7 +833,7 @@
   }
 
   /* ---------- 화면(시트) ---------- */
-  var ui = null;   /* { mode, style, recordId, photo, gym, partner, rival, contest, event, result, partner2, date } */
+  var ui = null;   /* { mode, style, palette, layout, recordId, photo, gym, partner, rival, contest, event, result, compPartner, date } */
 
   function initialState(ctx, opts) {
     opts = opts || {};
@@ -508,6 +846,8 @@
     return {
       mode: opts.mode === 'comp' ? 'comp' : 'today',
       style: 'court',
+      palette: 'night',
+      layout: 'minimal',
       recordId: rec ? rec.id : '',
       photo: null,
       gym: me.club || mp.club || '',
@@ -532,13 +872,15 @@
     var state = ctx && ctx.store ? ctx.store.state : {};
     var rec = recordById(ctx, ui.recordId);
     var stats = (state.data && state.data.stats) || {};
+    var look = { palette: ui.palette || 'night', layout: ui.layout || 'minimal' };
     if (ui.mode === 'comp') {
       var m = compModel({ contest: ui.contest, event: ui.event, result: ui.result, partner: ui.compPartner, date: ui.date });
-      return { mode: 'comp', style: ui.style, comp: m, sub: compSub(m), photo: ui.photo, title: '대회 인증', date: m.date };
+      return { mode: 'comp', style: ui.style, palette: look.palette, layout: look.layout,
+        comp: m, sub: compSub(m), photo: ui.photo, title: '대회 인증', date: m.date };
     }
     var an = (state.analysis && state.analysis.recordId && rec && String(state.analysis.recordId) === String(rec.id)) ? state.analysis : null;
     return {
-      mode: 'today', style: ui.style, photo: ui.photo, title: '오늘 운동',
+      mode: 'today', style: ui.style, palette: look.palette, layout: look.layout, photo: ui.photo, title: '오늘 운동',
       headline: '오운완',
       bigs: todayBigs(rec, { streak: stats.streak, aiScore: an ? an.score : (rec && rec.score) }),
       sub: todaySub(rec, { gym: ui.gym, partner: ui.partner, rival: ui.rival }),
@@ -599,6 +941,24 @@
         '<b>' + U.esc(s.name) + '</b><span>' + U.esc(s.note) + '</span></button>';
     }).join('') + '</div>';
 
+    /* 색상 5종 — 작은 동그라미 견본 + 이름. 390 화면에서 다섯 개가 한 줄에 들어갑니다. */
+    var colorPicks = '<div class="field"><div class="field__label"><span>카드 색상</span></div>' +
+      '<div class="sc__pals" role="group" aria-label="카드 색상">' + PALETTES.map(function (p) {
+        var on = ui.palette === p.id;
+        return '<button type="button" class="sc__pal sc__pal--' + p.id + (on ? ' is-on' : '') + '" data-sc-pal="' + p.id + '" ' +
+          'aria-pressed="' + (on ? 'true' : 'false') + '" title="' + U.esc(p.note) + '">' +
+          '<i aria-hidden="true"></i><b>' + U.esc(p.name) + '</b></button>';
+      }).join('') + '</div></div>';
+
+    /* 디자인 3종 */
+    var layoutPicks = '<div class="field"><div class="field__label"><span>카드 디자인</span></div>' +
+      '<div class="sc__layouts">' + LAYOUTS.map(function (l) {
+        var on = ui.layout === l.id;
+        return '<button type="button" class="sc__layout' + (on ? ' is-on' : '') + '" data-sc-layout="' + l.id + '" ' +
+          'aria-pressed="' + (on ? 'true' : 'false') + '">' +
+          '<b>' + U.esc(l.name) + '</b><span>' + U.esc(l.note) + '</span></button>';
+      }).join('') + '</div></div>';
+
     var photoBox = '<div class="sc__photo"' + (ui.style === 'photo' ? '' : ' hidden') + '>' +
       '<label class="btn btn--ghost btn--big sc__photobtn">' + BM.ui.icon('camera') +
       '<span>' + (ui.photo ? '사진 바꾸기' : '사진 고르기') + '</span>' +
@@ -607,7 +967,7 @@
 
     return modeTabs + emptyNote +
       (ui.mode === 'today' ? todayFields : compFields) +
-      stylePicks + photoBox +
+      stylePicks + colorPicks + layoutPicks + photoBox +
       '<div class="sc__preview"><canvas class="sc__canvas" width="' + W + '" height="' + H + '" aria-label="공유 카드 미리보기"></canvas></div>' +
       '<p class="sc__summary" data-sc-summary></p>' +
       '<button type="button" class="btn btn--primary btn--big mt8" data-sc-save' + (emptyToday ? ' disabled' : '') + '>' +
@@ -678,6 +1038,34 @@
             if (pb) pb.hidden = ui.style !== 'photo';
             var saveLabel = node.querySelector('[data-sc-save] span');
             if (saveLabel) saveLabel.textContent = ui.style === 'sticker' ? '투명 PNG 저장 · 공유' : 'PNG 저장 · 공유';
+            BM.ui.haptic(6);
+            repaint();
+            return;
+          }
+          /* 색상 칩 (bm-v1.58.0) */
+          var pal = ev.target.closest('[data-sc-pal]');
+          if (pal) {
+            ev.preventDefault();
+            ui.palette = pal.getAttribute('data-sc-pal');
+            Array.prototype.forEach.call(node.querySelectorAll('[data-sc-pal]'), function (b) {
+              var on = b.getAttribute('data-sc-pal') === ui.palette;
+              b.classList.toggle('is-on', on);
+              b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+            BM.ui.haptic(6);
+            repaint();
+            return;
+          }
+          /* 디자인 칩 (bm-v1.58.0) */
+          var lay = ev.target.closest('[data-sc-layout]');
+          if (lay) {
+            ev.preventDefault();
+            ui.layout = lay.getAttribute('data-sc-layout');
+            Array.prototype.forEach.call(node.querySelectorAll('[data-sc-layout]'), function (b) {
+              var on = b.getAttribute('data-sc-layout') === ui.layout;
+              b.classList.toggle('is-on', on);
+              b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
             BM.ui.haptic(6);
             repaint();
             return;
@@ -753,6 +1141,8 @@
 
   BM.sharecard = {
     W: W, H: H, MODES: MODES, STYLES: STYLES, RESULTS: RESULTS,
+    PALETTES: PALETTES, LAYOUTS: LAYOUTS,
+    paletteById: paletteById, layoutById: layoutById,
     open: open,
     draw: draw,
     saveOrShare: saveOrShare,
