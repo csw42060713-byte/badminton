@@ -369,8 +369,10 @@
       (state && state.prefs && state.prefs.push === true ? ' · 푸시 켬' : '');
   }
 
-  /* ---------- 인스타 공유 카드 (bm-v1.57.0 → v1.61.0) ----------
-   * MY에서도 오늘 운동·대회 인증 카드를 바로 만듭니다(일지 저장 직후·최근 기록 상세에도 입구). */
+  /* ---------- 인스타 공유 카드 (bm-v1.57.0 → v1.61.0 → v1.62.0) ----------
+   * v1.62.0에서 MY 입구는 프로필 바로 아래 배너(share-entry, 1탭으로 시트)로 옮겼습니다.
+   * 이 패널은 오늘 운동·대회 인증 두 모드 버튼의 문구·배선을 그대로 남겨 둔 조각입니다
+   * (기존 테스트·재사용). */
   function sharePanel(state) {
     var n = ((state.data && state.data.records) || []).length;
     return '<p class="sheet__text">운동 기록이나 대회 사진을 인스타 카드로 만들어 스토리에 올려요. ' +
@@ -672,6 +674,18 @@
         '<div class="stat"><strong>' + (s.winRate == null ? '—' : s.winRate + '%') + '</strong><span>승률</span></div>' +
         '</div>' + streakBadge(state) + '</section>' +
 
+        /* bm-v1.62.0 — 프로필 바로 아래 인스타 공유 입구.
+         *  예전엔 아래 '인스타 공유 카드' 아코디언을 펼쳐야 보였습니다.
+         *  이제 MY 첫 화면에서 1탭으로 시트가 열립니다(아코디언은 중복이라 걺아냈습니다). */
+        '<button type="button" class="share-entry" data-act="share-card" data-sc-mode="today"' +
+        ' data-share-entry="my-top" aria-label="인스타 공유 카드 만들기">' +
+        '<span class="share-entry__ico" aria-hidden="true">📸</span>' +
+        '<span class="share-entry__txt">' +
+        '<span class="share-entry__t">인스타 공유 카드 만들기</span>' +
+        '<span class="share-entry__s">민턴일기 · 대회 인증 · 사진 얹기</span>' +
+        '<span class="share-entry__h">매거진 · 필름 · 스티커 디자인</span>' +
+        '</span>' + UI.icon('arrow', 'share-entry__car') + '</button>' +
+
         /* v1.41 — 통계 카드 아래 주간·월간 상세 리포트 입구 */
         (BM.report ? BM.report.entryHtml() : '') +
 
@@ -686,7 +700,8 @@
         group('alarm', 'bell', '알림 · 편지지', alarmSummary(state), alarmPanel(state)) +
 
         group('theme', 'palette', '테마', themeName(theme), themeSwatches(state)) +
-        group('share', 'camera', '인스타 공유 카드', '민턴일기 · 대회 인증', sharePanel(state)) +
+        /* bm-v1.62.0 — '인스타 공유 카드' 아코디언은 프로필 아래 배너로 옮겼습니다.
+         *  (예전 group('share', …) 는 같은 시트를 두 번 열어 중복이었습니다.) */
         /* v1.55 — 일반 사용자에게는 데이터 연결 대신 '자동 저장'이라는 말로 짧게 */
         group('data', 'chart', dataToolsOpen(state) ? '데이터 연결' : '데이터 · 자동 저장',
           dataToolsOpen(state) ? '시트 연결 · 내보내기' : '자동 저장 · 고급', dataPanel(state)) +

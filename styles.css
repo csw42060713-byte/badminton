@@ -6718,3 +6718,51 @@ body {
 .syncbox__alert b { color: var(--warn); }
 .syncbox__why, .syncbox__hint { display: block; margin-top: 4px; color: var(--muted); }
 .syncbox__hint b { color: var(--text-2); }
+
+/* ============================================================
+ * bm-v1.62.0 — 인스타 공유 입구를 첫 화면으로
+ *  · 일지 & AI 히어로 카드 안 칩(.hero__share) — 스크롤 없이 1탭
+ *  · MY 프로필 바로 아래 배너(.share-entry) — 아코디언 없이 1탭
+ * 두 입구 모두 data-act="share-card" 로 같은 시트를 엽니다.
+ * 카드 사이 여백은 .view 의 gap 이 맡으므로 margin 은 0 입니다.
+ * ============================================================ */
+.hero__share {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin: 0; padding: 9px 12px; min-height: 44px;
+  border-radius: 13px; border: 1px solid var(--accent-line);
+  background: var(--accent-soft); color: var(--text);
+  font: inherit; text-align: left; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hero__share + .courttools { margin-top: 10px; }
+.hero__share:active { transform: scale(0.99); }
+.hero__share-ico { flex: none; font-size: 15px; line-height: 1; }
+.hero__share-t { flex: none; font-size: 13px; font-weight: 900; letter-spacing: -0.3px; }
+.hero__share-s {
+  flex: 1; min-width: 0; text-align: right;
+  font-size: 11px; font-weight: 700; color: var(--text-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hero__share-car { flex: none; width: 14px; height: 14px; color: var(--accent); }
+
+.share-entry {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  margin: 0; padding: 13px 14px; min-height: 68px;
+  border-radius: 16px; border: 1px solid var(--accent-line);
+  background: linear-gradient(135deg, var(--accent-soft) 0%, var(--card) 78%);
+  color: var(--text); text-align: left; font: inherit; cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  -webkit-tap-highlight-color: transparent;
+}
+.share-entry:active { transform: scale(0.985); }
+.share-entry__ico {
+  flex: none; display: grid; place-items: center;
+  width: 40px; height: 40px; border-radius: 13px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  font-size: 20px; line-height: 1;
+}
+.share-entry__txt { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.share-entry__t { font-size: 14px; font-weight: 900; letter-spacing: -0.35px; }
+.share-entry__s { font-size: 11.5px; font-weight: 700; color: var(--text-2); letter-spacing: -0.15px; }
+.share-entry__h { font-size: 10.5px; font-weight: 600; color: var(--muted); }
+.share-entry__car { flex: none; width: 16px; height: 16px; color: var(--accent); }

@@ -687,6 +687,20 @@
       (sum.count ? sum.count + '경기 ' + sum.wins + '승 ' + sum.losses + '패' : '')].filter(Boolean).join(' · ');
   }
 
+  /* ---------- 인스타 공유 입구 (bm-v1.62.0) ----------
+   * 첫 화면 히어로 칩(data-share-entry="log-hero")은 **가장 최근 일지**로 카드를 열고,
+   * 저장 직후 스트립(v1.57)은 예전처럼 **방금 저장한 일지**로 엽니다.
+   * 일지 기록은 store.derive에서 최신순으로 정렬되어 records[0]이 최신입니다. */
+  function latestRecord(state) {
+    var recs = (state && state.data && state.data.records) || [];
+    return recs.length ? recs[0] : null;
+  }
+
+  function shareRecordOf(state, entry) {
+    if (entry === 'log-hero') return latestRecord(state);
+    return (state && state.ui && state.ui.lastSavedLog) || null;
+  }
+
   /* ============================================================
    * 초보자 4주 루틴 체크리스트
    *  - 라켓을 처음 잡는 사람이 일지 화면 첫머리에서 바로 찾도록 히어로 카드 아래에 둡니다.
@@ -1529,6 +1543,15 @@
         '<div><span>이번 달</span><strong>' + (stats.minutesMonth || 0) + '<i>분</i></strong></div>' +
         '<div><span>평균 컨디션</span><strong>' + (stats.avgCond == null ? '—' : stats.avgCond) + '</strong></div>' +
         '</div>' +
+        /* bm-v1.62.0 — 인스타 공유 입구를 첫 화면에.
+         *  예전에는 저장 직후 스트립이나 최근 기록 상세를 열어야만 보였습니다.
+         *  요약 카드 안(스크롤 없이 보이는 자리)에서 1탭으로 시트가 열립니다. */
+        '<button type="button" class="hero__share" data-act="share-card" data-sc-mode="today"' +
+        ' data-share-entry="log-hero" aria-label="인스타 공유 카드 만들기">' +
+        '<span class="hero__share-ico" aria-hidden="true">📸</span>' +
+        '<span class="hero__share-t">인스타 공유</span>' +
+        '<span class="hero__share-s">오늘 운동 · 대회 인증</span>' +
+        UI.icon('arrow', 'hero__share-car') + '</button>' +
         /* 코트에서 바로 쓰는 도구 — 점수판·영상 자세 비교를 한 줄에 (bm-v1.50.0) */
         '<div class="courttools">' +
         '<button type="button" class="courttool" data-act="open-scoreboard">' +
@@ -2008,12 +2031,16 @@
           });
           return;
         }
-        /* 저장 직후 공유 스트립 (분석 카드 안 · 폼 밖) */
+        /* 인스타 공유 · 커뮤니티 공유 (첫 화면 칩 · 저장 직후 스트립 · 기록 상세) */
         if (ev.target.closest('[data-act="share-card"]')) {
           ev.preventDefault();
           if (!BM.sharecard) { UI.toast('공유 카드를 준비하고 있어요', 'error'); return; }
           UI.haptic(6);
-          BM.sharecard.open(ctx, { mode: 'today', record: ctx.store.state.ui.lastSavedLog || null });
+          var scBtn = ev.target.closest('[data-act="share-card"]');
+          BM.sharecard.open(ctx, {
+            mode: scBtn.getAttribute('data-sc-mode') || 'today',
+            record: shareRecordOf(ctx.store.state, scBtn.getAttribute('data-share-entry'))
+          });
           return;
         }
         if (ev.target.closest('[data-act="share-log"]')) {
@@ -2277,6 +2304,8 @@
   }
 
   view.recordDetail = recordDetail;
+  view.latestRecord = latestRecord;             /* v1.62: 첫 화면 칩이 여는 최신 일지 */
+  view.shareRecordOf = shareRecordOf;           /* v1.62: 입구별로 열 일지 고르기 */
   view.analysisCard = analysisCard;
   view.challengeBlock = challengeBlock;
   view.challengeHidden = challengeHidden;
