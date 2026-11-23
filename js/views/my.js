@@ -369,11 +369,12 @@
       (state && state.prefs && state.prefs.push === true ? ' · 푸시 켬' : '');
   }
 
-  /* ---------- 인스타 공유 카드 (bm-v1.57.0 → v1.60.0) ----------
-   * MY에서도 오운완·대회 인증 카드를 바로 만듭니다(일지 저장 직후·최근 기록 상세에도 입구). */
+  /* ---------- 인스타 공유 카드 (bm-v1.57.0 → v1.61.0) ----------
+   * MY에서도 오늘 운동·대회 인증 카드를 바로 만듭니다(일지 저장 직후·최근 기록 상세에도 입구). */
   function sharePanel(state) {
     var n = ((state.data && state.data.records) || []).length;
     return '<p class="sheet__text">운동 기록이나 대회 사진을 인스타 카드로 만들어 스토리에 올려요. ' +
+      '카드 문구는 민턴일기 · 민턴기록 같은 프리셋에서 고르거나 직접 쓸 수 있어요. ' +
       '매거진 · 필름 · 투명 스티커 중에서 고르고 피드 4:5 · 스토리 9:16으로 저장해요. ' +
       '사진은 폰 안에서만 합쳐지고 서버로 보내지 않아요.</p>' +
       '<div class="row gap8 mt8">' +
@@ -685,7 +686,7 @@
         group('alarm', 'bell', '알림 · 편지지', alarmSummary(state), alarmPanel(state)) +
 
         group('theme', 'palette', '테마', themeName(theme), themeSwatches(state)) +
-        group('share', 'camera', '인스타 공유 카드', '오운완 · 대회 인증', sharePanel(state)) +
+        group('share', 'camera', '인스타 공유 카드', '민턴일기 · 대회 인증', sharePanel(state)) +
         /* v1.55 — 일반 사용자에게는 데이터 연결 대신 '자동 저장'이라는 말로 짧게 */
         group('data', 'chart', dataToolsOpen(state) ? '데이터 연결' : '데이터 · 자동 저장',
           dataToolsOpen(state) ? '시트 연결 · 내보내기' : '자동 저장 · 고급', dataPanel(state)) +

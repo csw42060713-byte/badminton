@@ -6559,7 +6559,7 @@ body {
 .onbtheme.is-on .onbtheme__mark { opacity: 1; background: var(--accent); }
 .onb__tip { margin: 1px 0 0; font-size: 11px; line-height: 1.5; color: var(--muted); }
 
-/* ---------- 인스타 공유 카드 (bm-v1.60.0) ----------
+/* ---------- 인스타 공유 카드 (bm-v1.60.0 → v1.61.0) ----------
  * 카드를 폰 폭에 맞춰 보여 주고, 디자인 3종(매거진·필름·스티커)과 비율 2종
  * (피드 4:5 · 스토리 9:16), 사진 밝기 3단계를 한 줄 칩으로 고릅니다.
  * 투명 스티커는 체크무늬 바탕 위에 보여 투명함이 한눈에 보입니다. */
@@ -6673,6 +6673,23 @@ body {
   font-size: 14px;
 }
 .sc__notice { margin: 0 0 4px; }
+
+/* 카드 문구 — 1탭 프리셋 5종 + 직접 입력 (bm-v1.61.0)
+ * 칩은 한 줄에 3개씩 접히고, 바로 아래 입력칸에 고른 문구가 들어갑니다. */
+.sc__phrase { margin-top: 12px; }
+.sc__phrases { gap: 5px; }
+.sc__phrases .chip { min-height: 33px; padding: 0 11px; font-size: 12.2px; }
+.sc__phraseinput {
+  width: 100%; margin-top: 8px; min-height: 46px; padding: 10px 13px;
+  border-radius: var(--r-sm); border: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--text) 4%, transparent); color: var(--text);
+  font-size: 14px; font-weight: 600; letter-spacing: -0.2px;
+}
+.sc__phraseinput::placeholder { color: var(--muted); font-weight: 500; }
+.sc__phraseinput:focus {
+  outline: none; border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
 
 /* 동기화 대기열 · 마지막 오류 (bm-v1.58.0)
  * MY › 데이터에 대기열 건수와 원인을 한 블록으로. 숫자는 오른쪽, 원인은 아래 한 줄. */

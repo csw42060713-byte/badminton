@@ -1,5 +1,5 @@
 /* ============================================================
- * sharecard.js — 오운완 · 대회 인증 인스타 공유 카드 (bm-v1.60.0)
+ * sharecard.js — 인스타 공유 카드 (오늘 운동 · 대회 인증) (bm-v1.61.0)
  *
  *  · 사진은 폰 안에서만 합성되고 서버로 보내지 않습니다
  *    (파일 선택 → 캔버스 → 저장·공유). 업로드 없음.
@@ -13,6 +13,10 @@
  *      스티커 — 배경 투명 PNG. 얇은 글씨 + 큰 숫자 + 셔틀콕 라인 아이콘만.
  *  · 색은 5종(나이트·코트 블루·선셋·사쿠라·챔피언 골드)에서 포인트 1색만 씁니다.
  *  · 사진 밝기 3단계(원본·살짝 어둡게·감성 어둡게)로 밝은 체육관 사진에서도 글씨가 살아납니다.
+ *  · 문구는 프리셋 5종(민턴일기 · 오늘도, 배드민턴 · 민턴기록 · 민턴성장기 · COURT TIME)에서
+ *    한 번에 고르거나 '직접 쓰기'로 24자까지 씁니다. 고른 문구는 매거진 · 필름 · 스티커
+ *    세 디자인 모두에 제목 줄로 들어가고, 마지막에 고른 디자인·비율·색·문구는
+ *    이 기기(localStorage)에 가볍게 기억해 다음에 또 고르지 않아도 됩니다.
  *  · 문구·숫자 계산은 순수 함수(model*)로 두고, 그리기는 DOM 캔버스에서만 합니다
  *    (node 테스트에서는 문구 + 가짜 2D 컨텍스트로 그리기 호출을 확인합니다).
  * ============================================================ */
@@ -28,11 +32,24 @@
   var MONO = '"SF Mono","JetBrains Mono","Roboto Mono",ui-monospace,SFMono-Regular,Menlo,"Noto Sans Mono","Nanum Gothic Coding",monospace';
 
   var MODES = [
-    { id: 'today', name: '오늘 운동', note: '오운완 · 운동 기록' },
+    { id: 'today', name: '오늘 운동', note: '민턴일기 · 운동 기록' },
     { id: 'comp', name: '대회 인증', note: '메달 · 상장 사진 위에' }
   ];
 
   var RESULTS = ['우승', '준우승', '3위', '출전'];
+
+  /* ---------- 카드 문구 프리셋 (bm-v1.61.0) ----------
+   * 실제 배드민턴 동호인·선수 인스타 게시물에서 가장 많이 쓰는 짧은 문구만 골랐습니다.
+   * '직접 쓰기'는 입력칸에 포커스만 옮기고, 타이핑한 문구가 그대로 카드에 들어갑니다. */
+  var PHRASES = [
+    { id: 'mintern', text: '민턴일기', note: '매일 쓰는 기록' },
+    { id: 'today', text: '오늘도, 배드민턴', note: '오늘 하루도' },
+    { id: 'record', text: '민턴기록', note: '숫자로 남기기' },
+    { id: 'growth', text: '민턴성장기', note: '느는 중' },
+    { id: 'court', text: 'COURT TIME', note: '코트 위에서' }
+  ];
+  var PHRASE_MAX = 24;
+  var DEFAULT_PHRASE = PHRASES[0].text;
 
   /* ---------- 비율 2종 (인스타) ---------- */
   var RATIOS = [
@@ -118,6 +135,49 @@
   function dimsOf(ratio) {
     var r = ratioById(ratio);
     return { w: r.w, h: r.h, safe: r.safe };
+  }
+
+  /* ---------- 문구 다듬기 ----------
+   * 카드에는 한 줄로만 그리므로 줄바꿈·제어문자는 공백으로 바꾸고, 앞뒤 공백을 지우고
+   * 24자에서 자릅니다. HTML은 시트에서 U.esc로, 캔버스는 fillText라 그대로 안전합니다. */
+  function phraseText(text) {
+    if (typeof text !== 'string') return '';
+    var s = text.replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (s.length > PHRASE_MAX) s = s.slice(0, PHRASE_MAX).trim();
+    return s;
+  }
+
+  function phraseById(id) {
+    for (var i = 0; i < PHRASES.length; i++) if (PHRASES[i].id === id) return PHRASES[i];
+    return null;
+  }
+
+  function isPresetPhrase(text) {
+    var s = phraseText(text);
+    for (var i = 0; i < PHRASES.length; i++) if (PHRASES[i].text === s) return true;
+    return false;
+  }
+
+  /* ---------- 마지막에 고른 값 기억 (이 기기에만 · bm-v1.61.0) ----------
+   * localStorage가 없는 곳(테스트·사생활 보호 모드)에서는 조용히 아무것도 하지 않습니다. */
+  var PREF_KEY = 'bm_share_prefs_v1';
+  function readPrefs() {
+    try {
+      if (typeof localStorage === 'undefined' || !localStorage) return {};
+      var raw = localStorage.getItem(PREF_KEY);
+      if (!raw) return {};
+      var v = JSON.parse(raw);
+      return (v && typeof v === 'object') ? v : {};
+    } catch (e) { return {}; }
+  }
+  function writePrefs(patch) {
+    try {
+      if (typeof localStorage === 'undefined' || !localStorage) return false;
+      var cur = readPrefs();
+      Object.keys(patch || {}).forEach(function (k) { cur[k] = patch[k]; });
+      localStorage.setItem(PREF_KEY, JSON.stringify(cur));
+      return true;
+    } catch (e) { return false; }
   }
 
   function rgba(rgb, a) {
@@ -220,11 +280,11 @@
     var s = spec || {};
     var text;
     if (s.mode === 'comp' && s.comp) {
-      text = ['대회 인증', s.comp.contest, s.comp.result, compSub(s.comp)].filter(Boolean).join(' / ');
+      text = [s.phrase || '대회 인증', s.comp.contest, s.comp.result, compSub(s.comp)].filter(Boolean).join(' / ');
     } else {
       var big = s.big ? (s.big.value + (s.big.unit || '')) : '';
       var stats = (s.stats || []).map(function (b) { return b.value + (b.unit || ''); }).join(' · ');
-      text = [s.title, big, stats, s.meta].filter(Boolean).join(' / ');
+      text = [s.phrase, s.title, big, stats, s.meta].filter(Boolean).join(' / ');
     }
     var extra = [designById(s.design).name, ratioById(s.ratio).name];
     if (s.photo) extra.push(shadeById(s.shade).name);
@@ -465,18 +525,40 @@
     var valBase = ruleY - 74;
     var bigBase = (hasStats ? valBase - 96 : ruleY - 84);
 
-    /* 큰 숫자 위 얇은 이름표 — 오늘은 '운동 시간', 대회는 대회명 */
+    /* 큰 숫자 위 제목 — 고른 문구(민턴일기 · 직접 쓴 문구)가 숫자 바로 위에 옵니다.
+     * 대회 카드는 대회명이 주인공이라 문구를 그 위에 작게 얹습니다. */
     var kickerY = bigBase - Math.round(bigSize * 0.74) - 40;
     if (kickerY < F.safeTop + 150) kickerY = F.safeTop + 150;
-    if (spec.kicker) {
+
+    if (spec.mode === 'comp') {
+      if (spec.phrase) {
+        var pt = fitText(g, spec.phrase, maxW, 26, 600, FONT, 15);
+        g.textAlign = 'left';
+        g.fillStyle = soft;
+        g.font = font(pt.size, 600, FONT);
+        g.shadowColor = shadow;
+        g.shadowBlur = shadowBlur;
+        g.fillText(pt.text, pad, kickerY - 56);
+        g.shadowBlur = 0;
+      }
+      if (spec.kicker) {
+        g.textAlign = 'left';
+        var kt = fitText(g, spec.kicker, maxW, 46, 700, FONT, 20);
+        g.fillStyle = ink;
+        g.font = font(kt.size, 700, FONT);
+        g.shadowColor = shadow;
+        g.shadowBlur = shadowBlur;
+        g.fillText(kt.text, pad, kickerY);
+        g.shadowBlur = 0;
+      }
+    } else if (spec.phrase) {
+      var tt = fitText(g, spec.phrase, maxW, 34, 700, FONT, 18);
       g.textAlign = 'left';
-      var ksize = spec.mode === 'comp' ? 46 : 28;
-      var kt = fitText(g, spec.kicker, maxW, ksize, spec.mode === 'comp' ? 700 : 600, FONT, 20);
-      g.fillStyle = spec.mode === 'comp' ? ink : soft;
-      g.font = font(kt.size, spec.mode === 'comp' ? 700 : 600, FONT);
+      g.fillStyle = ink;
+      g.font = font(tt.size, 700, FONT);
       g.shadowColor = shadow;
       g.shadowBlur = shadowBlur;
-      g.fillText(kt.text, pad, kickerY);
+      g.fillText(tt.text, pad, kickerY);
       g.shadowBlur = 0;
     }
 
@@ -538,7 +620,8 @@
    * ============================================================ */
   function filmBox(F) {
     var x = 64, w = F.W - 128;
-    var y = F.story ? F.safeTop + 16 : 60;
+    /* 스토리에서는 위 안전 여백 아래에 제목 한 줄 자리를 더 둡니다 */
+    var y = F.story ? F.safeTop + 56 : 60;
     var bottom = F.story ? F.bottom - 236 : F.H - 268;
     return { x: x, y: y, w: w, h: bottom - y };
   }
@@ -660,6 +743,15 @@
     var l2 = l1 + 66;
     var l3 = l2 + 50;
 
+    /* 제목 — 사진 위 종이 여백에 고른 문구 (사진은 가리지 않음) */
+    if (spec.phrase) {
+      var pt = fitText(g, spec.phrase, tw, 30, 700, FONT, 16);
+      g.textAlign = 'left';
+      g.fillStyle = PAPER.ink;
+      g.font = font(pt.size, 700, FONT);
+      g.fillText(pt.text, tx, box.y - 22);
+    }
+
     /* 1줄 — 모노스페이스 날짜 · 체육관 */
     g.textAlign = 'left';
     if (spec.top) {
@@ -743,9 +835,19 @@
       g.shadowBlur = 0;
     }
 
-    /* 작은 셔틀콕 라인 아이콘 — 숫자 위 왼쪽 */
+    /* 작은 셔틀콕 라인 아이콘 + 제목 — 숫자 위 왼쪽 */
     var stampY = bigBase - Math.round(bigSize * 0.74) - 64;
     paintShuttle(g, pad + 24, stampY, 44, p.accent);
+    if (spec.phrase) {
+      var pt = fitText(g, spec.phrase, maxW - 80, 30, 700, FONT, 15);
+      g.textAlign = 'left';
+      g.fillStyle = '#ffffff';
+      g.font = font(pt.size, 700, FONT);
+      g.shadowColor = 'rgba(0,0,0,0.5)';
+      g.shadowBlur = 22;
+      g.fillText(pt.text, pad + 64, stampY + 10);
+      g.shadowBlur = 0;
+    }
   }
 
   /* spec → 캔버스 (캔버스가 없으면 null) */
@@ -819,12 +921,15 @@
     var me = state.me || {};
     var mp = ((state.data && state.data.matchProfiles) || []).filter(function (m) { return m.userKey === me.key; })[0] || {};
     var meta = rec && dom().logMeta ? dom().logMeta(rec) : {};
+    var prefs = readPrefs();
     return {
       mode: opts.mode === 'comp' ? 'comp' : 'today',
-      design: 'magazine',
-      ratio: 'feed',
-      shade: 'original',
-      palette: 'night',
+      design: designById(prefs.design).id,
+      ratio: ratioById(prefs.ratio).id,
+      shade: shadeById(prefs.shade).id,
+      palette: paletteById(prefs.palette).id,
+      phrase: phraseText(prefs.phrase) || DEFAULT_PHRASE,
+      phraseComp: phraseText(prefs.phraseComp) || DEFAULT_PHRASE,
       recordId: rec ? rec.id : '',
       photo: null,
       gym: me.club || mp.club || '',
@@ -866,6 +971,7 @@
       if (m.partner) cstats.push({ label: '파트너', value: m.partner });
       return mix(base, {
         mode: 'comp', title: '대회 인증',
+        phrase: phraseText(ui.phraseComp) || DEFAULT_PHRASE,
         top: m.date,
         kicker: m.contest,
         big: { value: m.result, unit: '', label: '성적' },
@@ -895,17 +1001,19 @@
     var rest = bigs.slice(1).map(function (b) {
       return { label: b.label, value: b.value + (b.unit || '') };
     });
-    var labelBits = ['오운완'];
+    var labelBits = [];
     if (bigs[1]) labelBits.push(bigs[1].value + (bigs[1].unit || ''));
     if (day) labelBits.push(day);
+    var phrase = phraseText(ui.phrase) || DEFAULT_PHRASE;
 
     return mix(base, {
       mode: 'today', title: '오늘 운동',
+      phrase: phrase,
       top: topBits.join(' · '),
-      kicker: primary ? primary.label : '오운완',
+      kicker: primary ? primary.label : '',
       big: primary ? { value: String(primary.value), unit: primary.unit || '', label: primary.label }
-        : { value: '오운완', unit: '', label: '오늘 운동' },
-      bigLine: primary ? (primary.value + (primary.unit ? primary.unit : '') + (bigs[1] ? ' · ' + bigs[1].value + (bigs[1].unit || '') : '')) : '오운완',
+        : { value: '', unit: '', label: '' },
+      bigLine: primary ? (primary.value + (primary.unit ? primary.unit : '') + (bigs[1] ? ' · ' + bigs[1].value + (bigs[1].unit || '') : '')) : '',
       stats: rest,
       meta: people.join(' · '),
       metaLine: people.length ? people.join(' · ') : '',
@@ -929,6 +1037,28 @@
       '<input type="text" data-sc-field="' + name + '" maxlength="' + (opts.max || 24) + '" ' +
       'placeholder="' + U.esc(opts.placeholder || '') + '" value="' + U.esc(value || '') + '"' +
       (opts.inputmode ? ' inputmode="' + opts.inputmode + '"' : '') + '></label>';
+  }
+
+  /* 카드 문구 — 1탭 프리셋 5종 + '직접 쓰기'(입력칸으로) — bm-v1.61.0 */
+  function phraseBlock(mode) {
+    var comp = mode === 'comp';
+    var cur = phraseText(comp ? ui.phraseComp : ui.phrase) || DEFAULT_PHRASE;
+    var chips = PHRASES.map(function (p) {
+      var on = p.text === cur;
+      return '<button type="button" class="chip sc__phrasechip' + (on ? ' is-on' : '') + '" data-sc-phrase="' + p.id + '" ' +
+        'aria-pressed="' + (on ? 'true' : 'false') + '">' + U.esc(p.text) + '</button>';
+    }).join('');
+    var customOn = !isPresetPhrase(cur);
+    chips += '<button type="button" class="chip sc__phrasechip' + (customOn ? ' is-on' : '') + '" data-sc-phrase="custom" ' +
+      'aria-pressed="' + (customOn ? 'true' : 'false') + '">직접 쓰기</button>';
+    return '<div class="field sc__phrase">' +
+      '<div class="field__label"><span>' + (comp ? '카드 제목' : '카드 문구') + '</span>' +
+      '<small data-sc-phrase-count>' + cur.length + '/' + PHRASE_MAX + '</small></div>' +
+      '<div class="chips chips--wrap sc__phrases" role="group" aria-label="카드 문구">' + chips + '</div>' +
+      '<input type="text" class="sc__phraseinput" data-sc-field="' + (comp ? 'phraseComp' : 'phrase') + '" ' +
+      'maxlength="' + PHRASE_MAX + '" placeholder="카드에 넣을 문구 (24자까지)" ' +
+      'aria-label="카드 문구 직접 입력" value="' + U.esc(cur) + '">' +
+      '</div>';
   }
 
   function sheetBody(ctx) {
@@ -1020,6 +1150,7 @@
 
     return modeTabs + emptyNote +
       (ui.mode === 'today' ? todayFields : compFields) +
+      phraseBlock(ui.mode) +
       photoBox + designPicks + ratioPicks + shadePicks + colorPicks +
       '<div class="sc__preview' + (ui.design === 'sticker' ? ' is-sticker' : '') + '">' +
       '<canvas class="sc__canvas" width="' + dims.w + '" height="' + dims.h + '" aria-label="공유 카드 미리보기"></canvas></div>' +
@@ -1058,6 +1189,20 @@
     if (lbl) lbl.textContent = ui.photo ? '사진 바꾸기' : '사진 고르기';
   }
 
+  /* 문구 칩·글자 수 표시를 현재 상태에 맞춥니다 (입력 중에는 입력값을 건드리지 않음) */
+  function syncPhraseChips(node) {
+    var cur = phraseText(ui.mode === 'comp' ? ui.phraseComp : ui.phrase) || DEFAULT_PHRASE;
+    Array.prototype.forEach.call(node.querySelectorAll('[data-sc-phrase]'), function (b) {
+      var id = b.getAttribute('data-sc-phrase');
+      var p = phraseById(id);
+      var on = id === 'custom' ? !isPresetPhrase(cur) : !!(p && p.text === cur);
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    var cnt = node.querySelector('[data-sc-phrase-count]');
+    if (cnt) cnt.textContent = cur.length + '/' + PHRASE_MAX;
+  }
+
   /* 사진 파일을 폰 안에서만 읽어 캔버스에 (업로드 없음) */
   function readPhoto(file, done) {
     if (!file || typeof FileReader === 'undefined') return;
@@ -1085,6 +1230,27 @@
         function repaint() { paintPreview(node, ctx); }
 
         node.addEventListener('click', function (ev) {
+          var ph = ev.target.closest('[data-sc-phrase]');
+          if (ph) {
+            ev.preventDefault();
+            var pid = ph.getAttribute('data-sc-phrase');
+            var key = ui.mode === 'comp' ? 'phraseComp' : 'phrase';
+            var input = node.querySelector('.sc__phraseinput');
+            var preset = phraseById(pid);
+            if (preset) {
+              ui[key] = preset.text;
+              if (input) input.value = preset.text;
+              writePrefs(key === 'phraseComp' ? { phraseComp: ui.phraseComp } : { phrase: ui.phrase });
+            } else if (input) {
+              /* 직접 쓰기 — 입력칸으로 커서를 옮기고 바로 고쳐 쓸 수 있게 합니다 */
+              input.focus();
+              try { input.setSelectionRange(0, input.value.length); } catch (e) { /* 무시 */ }
+            }
+            BM.ui.haptic(6);
+            syncPhraseChips(node);
+            repaint();
+            return;
+          }
           var mode = ev.target.closest('[data-sc-mode]');
           if (mode) {
             ev.preventDefault();
@@ -1108,6 +1274,7 @@
             });
             BM.ui.haptic(6);
             syncControls(node);
+            writePrefs({ design: ui.design });
             repaint();
             return;
           }
@@ -1121,6 +1288,7 @@
               b.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
             BM.ui.haptic(6);
+            writePrefs({ ratio: ui.ratio });
             repaint();
             return;
           }
@@ -1134,6 +1302,7 @@
               b.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
             BM.ui.haptic(6);
+            writePrefs({ shade: ui.shade });
             repaint();
             return;
           }
@@ -1147,6 +1316,7 @@
               b.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
             BM.ui.haptic(6);
+            writePrefs({ palette: ui.palette });
             repaint();
             return;
           }
@@ -1192,6 +1362,10 @@
             var rec = recordById(ctx, f.value);
             if (rec) { ui.recordId = f.value; }
           }
+          if (name === 'phrase' || name === 'phraseComp') {
+            syncPhraseChips(node);
+            writePrefs(name === 'phraseComp' ? { phraseComp: phraseText(f.value) } : { phrase: phraseText(f.value) });
+          }
           repaint();
         });
 
@@ -1215,7 +1389,9 @@
   BM.sharecard = {
     W: W, H: H, MODES: MODES, RESULTS: RESULTS,
     DESIGNS: DESIGNS, RATIOS: RATIOS, SHADES: SHADES, PALETTES: PALETTES,
+    PHRASES: PHRASES, PHRASE_MAX: PHRASE_MAX, DEFAULT_PHRASE: DEFAULT_PHRASE,
     designById: designById, ratioById: ratioById, shadeById: shadeById, paletteById: paletteById,
+    phraseById: phraseById, phraseText: phraseText, isPresetPhrase: isPresetPhrase,
     dimsOf: dimsOf,
     open: open,
     draw: draw,
@@ -1232,6 +1408,9 @@
     _specOf: specOf,
     _sheetBody: sheetBody,
     _setState: function (o) { ui = o; },
-    _state: function () { return ui; }
+    _state: function () { return ui; },
+    _writePrefs: writePrefs,
+    _readPrefs: readPrefs,
+    _initialState: initialState
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
