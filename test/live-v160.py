@@ -187,7 +187,7 @@ with sync_playwright() as p:
         "() => { const c = document.querySelector('.sc__canvas'); return c.getBoundingClientRect().width; }") <= 380,
         page.evaluate("() => document.querySelector('.sc__canvas').getBoundingClientRect().height"))
     check('B 편집 전에는 빈 카드 배경(메쉬 그라데이션)', canvas_luma(page) > 5)
-    shot('L01_시트_편집전')
+    shot('01_시트_편집전')
 
     # ── B-2. 사진 없이 만든 에디토리얼 배경 ──
     with page.expect_download(timeout=20000) as dl:
@@ -198,7 +198,7 @@ with sync_playwright() as p:
     tap('[data-sc-design="film"]', 600)
     page.locator('#sheet .sc__preview').scroll_into_view_if_needed()
     page.wait_for_timeout(300)
-    shot('L00_사진없음_필름')
+    shot('00_사진없음_필름')
     with page.expect_download(timeout=20000) as dl:
         tap('[data-sc-save]', 400)
     p0b = OUT + '/v160l_card_nophoto_film.png'
@@ -217,7 +217,7 @@ with sync_playwright() as p:
     # ── D. 매거진 피드 ──
     page.locator('#sheet .sc__preview').scroll_into_view_if_needed()
     page.wait_for_timeout(400)
-    shot('L02_매거진_피드')
+    shot('02_매거진_피드')
     before = canvas_luma(page)
     with page.expect_download(timeout=20000) as dl:
         tap('[data-sc-save]', 400)
@@ -236,7 +236,7 @@ with sync_playwright() as p:
     check('E 밝기: 원본 > 살짝 어둡게 > 감성 어둡게', before > soft > deep, (before, soft, deep))
     page.locator('#sheet .sc__preview').scroll_into_view_if_needed()
     page.wait_for_timeout(300)
-    shot('L03_매거진_피드_감성어둡게')
+    shot('03_매거진_피드_감성어둡게')
     tap('[data-sc-shade="original"]', 400)
 
     # ── F. 매거진 스토리 9:16 ──
@@ -246,7 +246,7 @@ with sync_playwright() as p:
         page.evaluate("() => { const c = document.querySelector('.sc__canvas'); return [c.width, c.height]; }"))
     page.locator('#sheet .sc__preview').scroll_into_view_if_needed()
     page.wait_for_timeout(400)
-    shot('L04_매거진_스토리')
+    shot('04_매거진_스토리')
     with page.expect_download(timeout=20000) as dl:
         tap('[data-sc-save]', 400)
     p2 = OUT + '/v160l_card_magazine_story.png'
@@ -261,7 +261,7 @@ with sync_playwright() as p:
     tap('[data-sc-ratio="feed"]', 600)
     page.locator('#sheet .sc__preview').scroll_into_view_if_needed()
     page.wait_for_timeout(400)
-    shot('L05_필름_피드')
+    shot('05_필름_피드')
     check('G 필름은 종이 바탕(밝음)', Image.open(p1) is not None)
     with page.expect_download(timeout=20000) as dl:
         tap('[data-sc-save]', 400)
@@ -275,7 +275,7 @@ with sync_playwright() as p:
     tap('[data-sc-ratio="story"]', 700)
     page.locator('#sheet .sc__preview').scroll_into_view_if_needed()
     page.wait_for_timeout(400)
-    shot('L06_필름_스토리')
+    shot('06_필름_스토리')
 
     # ── I. 스티커 (투명) ──
     tap('[data-sc-design="sticker"]', 700)
@@ -283,7 +283,7 @@ with sync_playwright() as p:
     check('I 스티커 저장 문구', '투명 PNG' in text_of(page, '[data-sc-save]'))
     page.locator('#sheet .sc__preview').scroll_into_view_if_needed()
     page.wait_for_timeout(400)
-    shot('L07_스티커_스토리')
+    shot('07_스티커_스토리')
     with page.expect_download(timeout=20000) as dl:
         tap('[data-sc-save]', 400)
     p4 = OUT + '/v160l_card_sticker_story.png'
@@ -297,7 +297,7 @@ with sync_playwright() as p:
     tap('[data-sc-ratio="feed"]', 600)
     page.locator('#sheet .sc__preview').scroll_into_view_if_needed()
     page.wait_for_timeout(300)
-    shot('L08_스티커_피드')
+    shot('08_스티커_피드')
 
     # ── J. 대회 인증 ──
     tap('[data-sc-mode="comp"]', 800)
@@ -312,7 +312,7 @@ with sync_playwright() as p:
     page.wait_for_timeout(1400)
     page.locator('#sheet .sc__preview').scroll_into_view_if_needed()
     page.wait_for_timeout(400)
-    shot('L09_대회_매거진_피드')
+    shot('09_대회_매거진_피드')
     with page.expect_download(timeout=20000) as dl:
         tap('[data-sc-save]', 400)
     p5 = OUT + '/v160l_card_contest_magazine.png'
@@ -322,17 +322,17 @@ with sync_playwright() as p:
     tap('[data-sc-design="film"]', 700)
     page.locator('#sheet .sc__preview').scroll_into_view_if_needed()
     page.wait_for_timeout(400)
-    shot('L10_대회_필름_피드')
+    shot('10_대회_필름_피드')
     tap('[data-sc-design="sticker"]', 700)
     page.locator('#sheet .sc__preview').scroll_into_view_if_needed()
     page.wait_for_timeout(400)
-    shot('L11_대회_스티커_피드')
+    shot('11_대회_스티커_피드')
 
     # ── K. 시트 전체 모습 + 콘솔/넘침 ──
     tap('[data-sc-design="magazine"]', 500)
     page.evaluate("() => { const b = document.querySelector('#sheet .sheet__body'); if (b) b.scrollTop = 0; }")
     page.wait_for_timeout(300)
-    shot('L12_시트_처음')
+    shot('12_시트_처음')
     w = overflow(page)
     check('K 시트 가로 넘침 없음', w[0] <= w[1] + 1, w)
     check('K 앱 오류 0건', len(errs) == 0, errs[:3])
