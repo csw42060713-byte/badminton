@@ -2512,6 +2512,7 @@ bubblewrap build            # → app-release-bundle.aab
 - 파일: `js/sharecard.js`(`TEXT_POS` · `photoViewOf`/`coverBox`/`movePhotoBy` · `filmCaption` · `zoomBox`) · `styles.css`(`.sc__textpos` `.sc__zoom` `.sc__zoomrow` `.sc__preview.is-drag`) · `test/v166.test.js`(27개) · `test/local-v166.py` · `test/live-v166.py` · `test/capture-v166.py`.
 - 버전: `sw.js` `bm-v1.66.0` · `app.js` `v1.66.0` · `twa-manifest.json` `1.66.0`(`appVersionCode` **60**) · `styles.css?v=20261124-4`. 60개 테스트 파일의 버전 단언도 함께 올렸습니다.
 - 검증: `node test/run.js` **1412/1412** · 로컬 390×844 `test/local-v166.py` **55/55** · 라이브 `test/live-v166.py` **28/28**(앱 오류 0 · CSP 위반 0 · 가로 넘침 0, 360·390 폭 · 라이트 테마). 사진(1200×900 두 색)을 넣고 1.2× 확대 → 끌기(`photoX −0.56`) → 미리보기 픽셀 변화 → 저장 PNG 좌우 색 분리 → `원래대로` `[0,0,1]`, 글씨 위치 `위 411 < 가운데 716 < 아래 1066`(캔버스 y), 스토리 1080×1920 저장까지 확인 — 캡처 `downloads/v166_01~08_*.png`(로컬) · `downloads/v166_card_*.png`(카드 원본 13장) · `downloads/v166_live_*.png`(라이브).
+- 배포: `main` `d496003` · `gh-pages` `5d0f3b5`(`test/`·`supabase/`·`ideas.md` 제외, main과 공유 파일 동일). 라이브 `https://csw42060713-byte.github.io/badminton/`에서 `sw.js` `bm-v1.67.0` · `js/sharecard.js`(PHOTO_FILTERS·COURT LOG) 내려받기 확인.
 - 보안/DB: CSP·`U.esc` 그대로, 사진은 여전히 폰 안에서만 합성(`FileReader`·`drawImage`, `fetch`/XHR 없음), 실존 선수 이름 없음, 새 시트 칸·새 DB 컬럼 없음.
 
 ---
