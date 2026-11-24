@@ -599,6 +599,51 @@
       '</div></details>';
   }
 
+  /* 실전 감각연습 + 오후 보강 웨이트 (bm-v1.68.0)
+   *   오전 코트 3블록(몸풀기 5분 → 2대1 30분 → 뒷코트 10분) · 오후 웨이트 3묶음(코어·허리 → 하체 → 상체·팔)
+   *   선수 용어는 쉬운 설명을 뒤에 붙여, 동호인·초보자도 한 눈에 알아보게 합니다. */
+  function senseFold(an) {
+    var s = an && an.sense;
+    if (!s || !s.court || !s.court.blocks || !s.court.blocks.length) return '';
+    var blocks = s.court.blocks.map(function (b) {
+      var parts = (b.parts && b.parts.length)
+        ? '<br>' + b.parts.map(function (p) { return '<b>' + U.esc(p.name) + '</b> — ' + U.esc(p.how); }).join('<br>')
+        : '';
+      var point = b.point ? '<br><span class="planbox__v">' + U.esc(b.point) + '</span>' : '';
+      return '<li><b>' + U.esc(b.name) + '</b>' +
+        (b.min > 0 ? ' (' + U.esc(b.sides || (b.min + '분')) + ')' : '') +
+        ' — ' + U.esc(b.how) + parts + point + '</li>';
+    }).join('');
+    var groups = (s.weight && s.weight.groups ? s.weight.groups : []).map(function (g) {
+      return '<p class="planbox__v mt8"><b>' + U.esc(g.name) + '</b></p>' +
+        '<ul class="bullets">' + g.items.map(function (it) {
+          return '<li><b>' + U.esc(it.name) + '</b>' +
+            (it.load ? ' · ' + U.esc(it.load) : '') +
+            (it.sets ? ' · ' + U.esc(it.sets) : '') +
+            ' — ' + U.esc(it.how) + '</li>';
+        }).join('') + '</ul>';
+    }).join('');
+    return '<details class="fold fold--ai" data-fold="sense">' +
+      '<summary class="fold__sum"><span>' + U.esc(s.title) + ' <small>오전 코트 · 오후 웨이트</small></span>' +
+      '<i class="fold__val">2가지</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' +
+      '<p class="planbox__v">' + U.esc(s.note) + '</p>' +
+      '<div class="planbox mt8"><p class="planbox__t">' + U.esc(s.court.title) + ' · ' + U.esc(s.court.total) + '</p>' +
+      '<p class="planbox__v">' + U.esc(s.court.order) + '</p>' +
+      '<ul class="bullets">' + blocks + '</ul></div>' +
+      (groups
+        ? '<div class="planbox mt8"><p class="planbox__t">' + U.esc(s.weight.title) + ' · ' + U.esc(s.weight.total) + '</p>' +
+          '<p class="planbox__v">' + U.esc(s.weight.order) + '</p>' + groups + '</div>'
+        : '') +
+      (s.weight && s.weight.loadGuide ? '<p class="planbox__v">무게 안내 · ' + U.esc(s.weight.loadGuide) + '</p>' : '') +
+      (s.weight && s.weight.stop ? '<p class="planbox__v">안전 · ' + U.esc(s.weight.stop) + '</p>' : '') +
+      (s.focus ? '<p class="planbox__v">' + U.esc(s.focus.text) + '</p>' : '') +
+      '<p class="planbox__v">' + U.esc(s.levelNote) + '</p>' +
+      '<p class="planbox__v">' + U.esc(s.disciplineNote) + '</p>' +
+      '<p class="planbox__v">근거 · ' + U.esc(s.source) + '</p>' +
+      '</div></details>';
+  }
+
   function analysisCard(an, state) {
     if (!an) return '';
     var drills = (an.drills && an.drills.drills) || [];
@@ -629,6 +674,7 @@
       guardFold(an) +
       balanceFold(an) +
       offcourtFold(an) +
+      senseFold(an) +
       '<details class="fold fold--ai" data-fold="week">' +
       '<summary class="fold__sum"><span>이번 주 루틴 <small>다음 훈련 · 실전</small></span>' +
       '<i class="fold__val">' + an.week.length + '회차</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +

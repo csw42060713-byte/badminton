@@ -1277,6 +1277,150 @@
     source: '체전 1등 선수 현장 기준(2026-11-22) — 조금 아프더라도 바로 쉬고 상태 보기'
   };
 
+  /* ---------- 실전 감각연습 + 오후 보강 웨이트 (bm-v1.68.0) ----------
+   * 체전 1등 선수 현장에서 하던 하루를 그대로 옮겼습니다(사용자 제보·승인 2026-11-24).
+   *   오전 코트: 몸풀기(양쪽 약 5분) → 2대1 감각연습 30분 → 뒷코트 감각연습 10분 = 약 45~50분
+   *   오후 웨이트: 코어·허리 → 하체 → 상체·팔
+   * 코트에서 쓰는 줄임말(2대1·뒷사각·백익스텐션…)은 처음 보는 사람도 알아듣게
+   * 쉬운 말과 짧은 설명을 함께 적습니다. 실명은 쓰지 않고 '체전 1등 선수 현장 기준'으로만 부릅니다. */
+  var SENSE = {
+    title: '실전 감각연습 + 오후 보강 웨이트',
+    note: '코트에서 손끝 감각을 깨운 뒤, 오후에는 몸을 받쳐 주는 보강을 하는 하루예요. 적힌 순서대로 하면 됩니다.',
+    source: '체전 1등 선수 현장 훈련 기록(2026-11-24) · 스포츠의학 부상 예방 원칙',
+    court: {
+      title: '오전 · 코트 실전 감각연습',
+      total: '약 45~50분',
+      order: '몸풀기 5분 → 2대1 감각연습 30분 → 뒷코트 감각연습 10분',
+      blocks: [
+        {
+          name: '몸풀기 — 손끝 감각 깨우기', min: 5, sides: '양쪽 약 5분',
+          how: '네트 앞(헤어핀)부터 뒤쪽(드롭·스매시)까지 거리감을 깨우는 몸풀기예요. 드롭과 헤어핀을 번갈아 친 뒤, 마지막에는 드롭 · 헤어핀 · 스매시를 끊지 않고 이어서 쳐 보세요.',
+          point: '힘으로 치는 단계가 아니라, 라켓에 공이 맞는 느낌(손끝 감각)과 발 디딤(스텝)을 먼저 깨우는 단계예요.'
+        },
+        {
+          name: '2대1 감각연습 (두 명이 한 사람에게)', min: 30,
+          how: '두 명이서 한 사람에게 공을 몰아줘 빠른 템포를 익히는 연습이에요. 공을 받는 사람은 빠른 공 속에서도 라켓면(공이 맞는 면)과 타점(공을 맞는 높이)을 매번 되새깁니다.',
+          parts: [
+            { name: '숏드라이브 10분', how: '네트 앞에서 짧게 주고받기. 손목을 많이 쓰지 않고 라켓면만 세워 방향을 바꿔요.' },
+            { name: '드라이브 10분', how: '한 걸음 뒤에서 빠르게 주고받기. 공이 떨어지기 전에 맞히는 감각을 익혀요.' },
+            { name: '드롭 10분', how: '뒤에서 네트 앞으로 살짝 떨어뜨리기. 세게 치지 않아도 상대가 잡기 어렵게 떨어지는 감각이에요.' }
+          ],
+          point: '세 가지 모두 목표는 하나예요. 빠른 템포에서도 라켓면과 타점이 흔들리지 않기. 중간에 자세가 무너지면 10초 쉬고 다시 시작하세요.'
+        },
+        {
+          name: '뒷코트(뒷사각) 감각연습', min: 10,
+          how: '코트 뒤쪽 양 모서리(왼쪽·오른쪽 뒷사각)까지 이동해 안정적으로 공을 넘기는 연습이에요. 파트너가 두 모서리를 번갈아 보내면, 돌아 나가 클리어나 드롭으로 넘기고 다시 가운데로 돌아옵니다.',
+          point: '발이 먼저 도착하고 라켓이 따라가야 해요. 뒤로 갈 때 상체를 젖히지 말고 옆으로 돌아 들어가는 게 핵심입니다.'
+        }
+      ]
+    },
+    weight: {
+      title: '오후 · 보강 웨이트',
+      total: '약 50분',
+      order: '코어 · 허리 → 하체 → 상체 · 팔',
+      groups: [
+        {
+          name: '코어 · 허리 (몸통을 잡아 주는 힘)',
+          items: [
+            { name: '중량 크런치', load: '10kg', sets: '30개 × 5세트',
+              how: '배에 10kg 원판(또는 덤벨)을 얹고 윗몸을 올려요. 목으로 당기지 말고 배에 힘을 주고 천천히 올라갑니다.' },
+            { name: '백 익스텐션 3방향', load: '', sets: '1번에 10개',
+              how: '엎드려서 허리·등을 들어 올리기(가운데·왼쪽·오른쪽 3방향을 1개로 묶어 10개). 스매시·하이클리어 뒤 허리를 받쳐 줍니다.' }
+          ]
+        },
+        {
+          name: '하체 (코트를 뛰는 다리)',
+          items: [
+            { name: '스쿼트', load: '선수 기준 80kg', sets: '10개 × 3세트',
+              how: '무릎과 발끝 방향을 맞추고 앉았다 일어나요. 선수 기준은 80kg이지만 동호인·초보자는 맨몸이나 가벼운 무게부터 시작하세요.' },
+            { name: '종아리 레이즈(카프 레이즈)', load: '', sets: '10개 × 3세트',
+              how: '발끝으로 뒤꿈치를 들어 올렸다 천천히 내려요. 코트에서 앞뒤로 뛸 때 종아리가 버텨 줍니다.' }
+          ]
+        },
+        {
+          name: '상체 · 팔 (스매시를 버티는 힘)',
+          items: [
+            { name: '턱걸이', load: '', sets: '10개 × 3세트',
+              how: '철봉에 매달려 가슴을 끌어올려요. 반동 없이 천천히. 힘들면 발을 살짝 대고 도와도 됩니다.' },
+            { name: '덤벨컬', load: '10kg', sets: '10개씩',
+              how: '팔꿈치를 몸에 붙이고 덤벨을 들어 올려요. 양팔 10개씩.' },
+            { name: '어깨 보강', load: '', sets: '10개씩',
+              how: '가벼운 덤벨로 옆으로 들어 올리기(사이드 레이즈) 10개씩. 스매시를 반복해도 어깨가 버티게 만듭니다.' },
+            { name: '삼두 보강', load: '', sets: '10개씩',
+              how: '팔꿈치를 고정하고 팔 뒤쪽 힘으로 펴기 10개씩. 스매시 마무리 힘을 만드는 동작이에요.' }
+          ]
+        }
+      ],
+      loadGuide: '선수 기준 중량은 스쿼트 80kg · 중량 크런치 10kg · 덤벨 10kg이에요. 동호인·초보자는 맨몸이나 가벼운 무게부터 내 몸에 맞춰 조절하세요. 5세트·3세트도 2~3세트로 줄여도 충분합니다.',
+      stop: PAIN_RULE.stop + ' 무게를 줄여도 아프면 그 종목은 오늘 쉬고, 내일 아침 상태를 보고 다시 시작하세요.'
+    }
+  };
+
+  /* 감각연습과 약점을 잇는 한 줄 — 고른 약점이 있으면 그 블록을 한 번 더 하도록 안내합니다. */
+  function senseFocus(weakList) {
+    var list = weakList || [];
+    var has = function (s) { return list.indexOf(s) >= 0; };
+    if (has('드라이브')) return { skill: '드라이브', text: '드라이브가 약점이라면 2대1 드라이브 10분을 한 번 더 도세요. 빠른 공 속에서 라켓면을 세우는 감각이 먼저 붙습니다.' };
+    if (has('드롭')) return { skill: '드롭', text: '드롭이 약점이라면 2대1 드롭 10분을 한 번 더. 네트 앞에 살짝 떨어뜨리는 감각은 반복 횟수가 만들어 줍니다.' };
+    if (has('헤어핀')) return { skill: '헤어핀', text: '헤어핀이 약점이라면 몸풀기에서 헤어핀을 20개 더. 네트에 붙는 발과 손목을 함께 봐 주세요.' };
+    if (has('풋워크')) return { skill: '풋워크', text: '풋워크가 약점이라면 뒷코트 감각연습을 5분 더. 뒤쪽 모서리까지 돌아 나오는 발이 먼저예요.' };
+    if (has('스매시')) return { skill: '스매시', text: '스매시가 약점이라면 몸풀기 마지막 연결에서 타점(점프한 최고점에서 맞히기)을 한 번 더 확인하세요.' };
+    return null;
+  }
+
+  /* senseRoutine(discipline, level, weakList)
+   *   → 오전 코트 감각연습 3블록 + 오후 보강 웨이트 3묶음 (+ 급수별 조절 안내)
+   * 같은 입력이면 같은 결과(순수 함수) — 카드가 다시 그려져도 흔들리지 않게 매번 새 객체로 돌려줍니다. */
+  function senseRoutine(discipline, level, weakList) {
+    var key = disciplineKey(discipline);
+    function copyItem(it) {
+      return { name: it.name, load: it.load, sets: it.sets, how: it.how };
+    }
+    var tier = GRADE_TIER[gradeOf(level)];
+    var levelNote;
+    if (tier != null && tier <= 1) {
+      levelNote = '처음이면 2대1은 10분씩 20분으로 줄이고, 웨이트는 맨몸·2세트부터 해도 충분해요. 지금은 무게보다 감각을 익히는 게 먼저예요.';
+    } else if (tier != null && tier >= 5) {
+      levelNote = '선수부·자강은 위 볼륨 그대로 해도 됩니다. 대신 세트 사이 쉬는 시간을 지켜 자세가 깨지지 않게 하세요.';
+    } else {
+      levelNote = '동호인은 2대1을 10분씩 20~30분, 웨이트는 가벼운 무게로 2~3세트면 충분해요. 숫자보다 자세가 먼저입니다.';
+    }
+    var disciplineNote = key === '단식'
+      ? '단식은 뒤쪽으로 밀리는 공이 많아 뒷코트 감각연습 10분을 빼지 마세요.'
+      : key === '혼합복식'
+        ? '혼합복식은 전위에서 끝내는 공이 많아 몸풀기 헤어핀과 2대1 드롭을 특히 신경 쓰세요.'
+        : '복식은 짧고 빠른 랠리가 많아 2대1 숏드라이브·드라이브 10분이 특히 중요해요.';
+    return {
+      title: SENSE.title,
+      note: SENSE.note,
+      discipline: key,
+      disciplineNote: disciplineNote,
+      levelNote: levelNote,
+      court: {
+        title: SENSE.court.title, total: SENSE.court.total, order: SENSE.court.order,
+        blocks: SENSE.court.blocks.map(function (b) {
+          var out = {
+            name: b.name, min: b.min, how: b.how, point: b.point,
+            parts: (b.parts || []).map(function (p) { return { name: p.name, how: p.how }; })
+          };
+          if (b.sides) out.sides = b.sides;
+          return out;
+        })
+      },
+      weight: {
+        title: SENSE.weight.title, total: SENSE.weight.total, order: SENSE.weight.order,
+        groups: SENSE.weight.groups.map(function (g) {
+          return { name: g.name, items: g.items.map(copyItem) };
+        }),
+        loadGuide: SENSE.weight.loadGuide,
+        stop: SENSE.weight.stop
+      },
+      focus: senseFocus(weakList),
+      summary: '감각연습 3블록(45~50분) · 보강 웨이트 3묶음',
+      source: SENSE.source
+    };
+  }
+
   /* paceGuide(cond, load, painList, streakDays, intensity)
    *   level: brake(오늘은 낮춰라) / caution(자세 깨지면 멈춰라) / keep(계획대로)
    * 기준: 컨디션 ≤ 2 · 주간 부하 급증(1.5배 이상) · 지난주보다 25% 이상 증가 ·
@@ -2208,6 +2352,7 @@
       rhythm: rhythm,
       loadGuide: loadGuide,
       offcourt: offcourtRoutine(discipline),
+      sense: senseRoutine(discipline, level, weakSkills),
       pace: pace,
       week: week,
       risk: risk,
@@ -2247,6 +2392,7 @@
     jointGuard: jointGuard, SHOULDER_RISK: SHOULDER_RISK, LOWER_RISK: LOWER_RISK,
     proBalance: proBalance, loadRhythm: loadRhythm, PRO_BAL: PRO_BAL, RHYTHM: RHYTHM,
     offcourtRoutine: offcourtRoutine, OFFCOURT: OFFCOURT,
+    senseRoutine: senseRoutine, SENSE: SENSE, senseFocus: senseFocus,
     paceGuide: paceGuide, SELF_PACE: SELF_PACE, PAIN_RULE: PAIN_RULE,
     disciplineKey: disciplineKey, PREVENT: PREVENT, LOAD_GUIDE: LOAD_GUIDE,
     /* 논문 기준값 — 화면 문구와 같은 숫자 */
