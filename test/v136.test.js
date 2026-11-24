@@ -239,42 +239,46 @@
    * 2. 7일 연속 출석 보너스 (HEART_RULES.STREAK_7_BONUS)
    * ========================================================= */
 
-  test('v1.36 연속 보너스: 규칙값 2개 · 7일마다', function () {
-    eq(D.HEART_RULES.STREAK_7_BONUS, 2, '보너스 2');
-    eq(D.streakBonusLeft(0), 7, '시작은 7일');
-    eq(D.streakBonusLeft(2), 5, '2일째 → 5일 남음');
+  test('v1.36 연속 보너스: 규칙값 2개 · 7일마다 (bm-v1.64: 3·7·14일)', function () {
+    eq(D.HEART_RULES.STREAK_7_BONUS, 2, '7일 보너스 2');
+    /* bm-v1.64.0 — 3일 +1 · 7일 +2 · 14일 +3, 그 뒤 14일마다 +3 */
+    eq(D.streakBonusLeft(0), 3, '시작은 3일');
+    eq(D.streakBonusLeft(2), 1, '2일째 → 1일');
+    eq(D.streakBonusLeft(3), 4, '3일째(받은 날) → 다음은 7일까지 4일');
     eq(D.streakBonusLeft(6), 1, '6일째 → 1일');
-    eq(D.streakBonusLeft(7), 7, '7일째(받은 날) → 다음은 7일 뒤');
+    eq(D.streakBonusLeft(7), 7, '7일째(받은 날) → 다음은 14일까지 7일');
     eq(D.streakBonusLeft(9), 5, '9일째 → 5일');
+    eq(D.streakBonusLeft(14), 14, '14일째 → 다음은 28일까지 14일');
   });
 
-  test('v1.36 연속 보너스: 7일을 채우면 원장에 +2가 한 줄 는다', function () {
+  test('v1.36 연속 보너스: 7일을 채우면 원장에 보너스가 한 줄 더 는다', function () {
     var six = D.heartStatus(idxOf(streakRows(6)), ME, U.parseYmd(NOW).getTime());
     var seven = D.heartStatus(idxOf(streakRows(7)), ME, U.parseYmd(NOW).getTime());
-    eq(six.balance, D.HEART_RULES.BASE + 6, '6일은 보너스 없음');
-    eq(seven.balance, D.HEART_RULES.BASE + 7 + 2, '7일째 +2');
+    eq(six.balance, D.HEART_RULES.BASE + 6 + 1, '6일은 3일 보너스 +1까지');
+    eq(seven.balance, D.HEART_RULES.BASE + 7 + 3, '7일째는 3일 +1 · 7일 +2');
     var bonus = seven.history.filter(function (h) { return h.kind === 'streak'; });
-    eq(bonus.length, 1, '보너스 한 줄');
-    eq(bonus[0].delta, 2, '+2');
+    eq(bonus.length, 2, '보너스 두 줄(3일·7일)');
+    eq(bonus[0].delta, 2, '최근 줄은 7일 +2');
+    eq(bonus[1].delta, 1, '그 앞은 3일 +1');
     eq(bonus[0].label, '7일 연속 출석 보너스', '이름');
-    eq(seven.streakBonus.amount, 2, 'status.amount');
-    eq(seven.streakBonus.days, 7, '주기');
+    eq(seven.streakBonus.amount, 3, 'status.amount — 다음 14일 보너스');
+    eq(seven.streakBonus.days, 14, '다음 구간은 14일');
     eq(seven.streakBonus.left, 7, '받은 날은 다음이 7일 뒤');
     eq(seven.checkinStreak, 7, '연속 7일');
   });
 
-  test('v1.36 연속 보너스: 14일은 두 번, 끊기면 다시 1부터', function () {
+  test('v1.36 연속 보너스: 14일은 세 번, 끊기면 다시 1부터', function () {
     var fourteen = D.heartStatus(idxOf(streakRows(14)), ME, U.parseYmd(NOW).getTime());
-    eq(fourteen.balance, D.HEART_RULES.BASE + 14 + 4, '14일은 +2 두 번');
-    eq(fourteen.history.filter(function (h) { return h.kind === 'streak'; }).length, 2, '보너스 두 줄');
+    eq(fourteen.balance, D.HEART_RULES.BASE + 14 + 6, '14일은 +1 +2 +3');
+    eq(fourteen.history.filter(function (h) { return h.kind === 'streak'; }).length, 3, '보너스 세 줄');
 
-    /* 10일 전에 끊긴 7일 연속 (그 뒤 3일 쉼) → 보너스는 한 번뿐 */
+    /* 10일 전에 끊긴 7일 연속 (그 뒤 3일 쉼) → 보너스는 그 7일에 두 번만 */
     var broken = [];
     for (var i = 0; i < 7; i++) broken.push(checkinRow(dayAgo(13 + i)));
     for (var j = 0; j < 3; j++) broken.push(checkinRow(dayAgo(j)));
     var st = D.heartStatus(idxOf(broken), ME, U.parseYmd(NOW).getTime());
-    eq(st.history.filter(function (h) { return h.kind === 'streak'; }).length, 1, '끊긴 연속은 한 번만');
-    eq(st.balance, D.HEART_RULES.BASE + 10 + 2, '잔액도 한 번만 +2');
+    eq(st.history.filter(function (h) { return h.kind === 'streak'; }).length, 3, '끊긴 7일(+1·+2)과 3일(+1)');
+    eq(st.balance, D.HEART_RULES.BASE + 10 + 4, '잔액도 그만큼만');
     eq(st.checkinStreak, 3, '지금 연속은 3일');
   });
 
@@ -283,9 +287,9 @@
     rows.push(checkinRow(dayAgo(0), 1));   /* 오늘 */
     rows.push(checkinRow(dayAgo(0), 1));   /* 같은 날 두 번째 행 */
     var st = D.heartStatus(idxOf(rows), ME, U.parseYmd(NOW).getTime());
-    eq(st.history.filter(function (h) { return h.kind === 'streak'; }).length, 1, '보너스 한 번');
+    eq(st.history.filter(function (h) { return h.kind === 'streak'; }).length, 2, '3일·7일 보너스 각 한 번');
     eq(st.checkinStreak, 7, '같은 날 두 번은 7일 중 하루');
-    eq(st.balance, D.HEART_RULES.BASE + 8 + 2, '보너스 한 번만');
+    eq(st.balance, D.HEART_RULES.BASE + 8 + 3, '보너스는 하루 한 번만');
   });
 
   test('v1.36 연속 보너스: 7일째 출석은 하트 3개(1+2)를 준다', function () {
@@ -307,13 +311,24 @@
     });
   });
 
-  test('v1.36 연속 보너스: 7일이 아닌 날은 예전처럼 1개', function () {
+  test('v1.36 연속 보너스: 보너스가 없는 날은 예전처럼 1개', function () {
+    return storeWith(streakRows(0, 1)).then(function (store) {
+      var r = store.actions.checkIn();
+      ok(r.ok, '출석');
+      eq(r.gained, 1, '첫날은 보너스 없음');
+      eq(r.bonus, 0, 'bonus 0');
+      eq(r.streak, 1, '1일째');
+    });
+  });
+
+  test('v1.36 연속 보너스: 3일째는 하트 2개(1+1)를 준다 (bm-v1.64)', function () {
     return storeWith(streakRows(2, 1)).then(function (store) {
       var r = store.actions.checkIn();
       ok(r.ok, '출석');
-      eq(r.gained, 1, '보너스 없음');
-      eq(r.bonus, 0, 'bonus 0');
+      eq(r.bonus, 1, '3일 보너스 1');
+      eq(r.gained, 2, '1 + 1');
       eq(r.streak, 3, '3일째');
+      eq(r.milestone, 3, '3일 구간');
     });
   });
 
@@ -474,13 +489,13 @@
 
   test('v1.36 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.63.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.63.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261124-1', '스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.64.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.64.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261124-2', '스타일 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.63.0', 'TWA 이름');
+    eq(twa.appVersionName, '1.64.0', 'TWA 이름');
     eq(twa.app, undefined, '군더더기 없음');
-    eq(twa.appVersionCode, 57, 'TWA 코드');
+    eq(twa.appVersionCode, 58, 'TWA 코드');
   });
 
   test('v1.36 캐시: 새 파일 없이 기존 목록 그대로', function () {

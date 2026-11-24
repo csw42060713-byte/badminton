@@ -124,11 +124,12 @@
     coachApps: coachApps,
     feedback: feedback,
     memos: U.sortBy(idx.byType['달력메모'] || [], function (m) { return m.date || ''; }, true),
-    hearts: me ? D.heartStatus(idx, me) : {
+    hearts: me ? D.heartStatus(idx, me, 0, meInfo && meInfo.theme) : {
       balance: 0, earned: 0, spent: 0, base: 0, history: [],
       adReward: 0, adLimit: 0, adUsedToday: 0, adRemaining: 0, adCooldownSec: 0, nextAdInSec: 0,
       canWatchAd: false, checkedInToday: false, canCheckIn: false, checkinReward: 0,
-      streakBonus: { amount: D.HEART_RULES.STREAK_7_BONUS, days: 7, left: 7 },
+      streakBonus: { amount: 1, days: 3, left: 3 },
+      boost: { id: D.BOOST_ID, price: D.DECO_PRICES[D.BOOST_ID] || 0, owned: false, equipped: false, bonus: 0, checkinReward: D.HEART_RULES.CHECKIN, adReward: D.HEART_RULES.AD_REWARD },
       matchCost: D.HEART_RULES.MATCH_COST, giftCost: D.HEART_RULES.GIFT_COST,
       todayEarned: 0, todaySpent: 0
     },
@@ -981,6 +982,37 @@
         return { ok: true, purchased: true, price: price, id: id, balance: (state.data.hearts || {}).balance || 0 };
       },
 
+      /* 하트 부스트 켜기/끄기 (bm-v1.64.0)
+       *  · 처음 사는 것은 buyDeco('boost','heart') — 소유 기록은 '꾸미기구매' 행입니다.
+       *  · 켜고 끄는 상태는 프로필 꾸미기 JSON의 boost(1/0)에 남깁니다(새 칸 없음).
+       *  · 켜져 있으면 출석·광고 적립이 +1 (heartStatus · checkIn · watchAd 가 같은 값을 봅니다). */
+      setHeartBoost: function (on) {
+        var me = state.me || {};
+        if (!me.key) return { ok: false, reason: 'no_login' };
+        if (!tryLock('heartBoost', 1200)) return { ok: false, reason: 'locked' };
+        var streak = D.checkinStreak(state.idx, me.key);
+        var owned = D.ownsDeco(state.idx, me.key, D.BOOST_ID, streak);
+        if (on && !owned) return { ok: false, reason: 'not_owned', price: D.decoPrice(D.BOOST_ID) };
+        var cur = D.avatarOf({ theme: me.theme });
+        var theme = {
+          theme: (me.theme && me.theme.theme) || 'th_night',
+          avatar: cur.emoji, avatarPhoto: cur.photo,
+          avatarFrame: cur.frame, avatarBg: cur.bg, avatarBadge: cur.badge,
+          style: D.normalizeStyle(me.style || (me.theme && me.theme.style)),
+          role: D.roleOf(me)
+        };
+        if (!theme.role) delete theme.role;
+        if (on) theme.boost = 1;
+        pushRow({
+          type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
+          nick: me.nick, level: me.level, discipline: me.discipline, userKey: me.key,
+          bio: me.bio, theme: theme
+        });
+        state.me.theme = theme;
+        commit();
+        return { ok: true, equipped: !!on, bonus: on ? D.BOOST_BONUS : 0, owned: owned };
+      },
+
       dismissShare: function () {
         if (!state.ui.lastSavedLog) return { ok: false };
         state.ui.lastSavedLog = null;
@@ -1282,6 +1314,8 @@
           role: merged.role
         };
         if (!theme.role) delete theme.role;
+        /* 꾸미기를 저장해도 켜 둔 하트 부스트(boost)는 그대로 남습니다 (bm-v1.64.0) */
+        if (me.theme && me.theme.boost) theme.boost = 1;
         var entity = {
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
           nick: merged.nick, level: merged.level, discipline: merged.discipline,
@@ -1668,27 +1702,39 @@
         return { ok: true };
       },
 
-      /* 출석 체크: 하루 1회 +1 · 7일 연속을 채운 날은 보너스 +2 (bm-v1.36.0)
+      /* 출석 체크: 하루 1회 +1 · 연속 3·7·14일(그 뒤 14일마다) 보너스 +1/+2/+3 (bm-v1.64.0)
        *  · 보너스는 출석 행에 얹지 않고 원장(js/domain.js heartLedger)이 날짜 연속에서
        *    매번 다시 셉니다 — 앱을 다시 열거나 다른 기기에서도 같은 잔액이 되게(멱등).
-       *    행에는 보너스를 받은 날이라는 메모만 남깁니다. */
+       *    행에는 보너스를 받은 날이라는 메모만 남깁니다(중복 방지 키).
+       *  · 하트 부스트를 켜 두었으면 적립이 +1 — 보너스와 함께면 하루 최대 +2가 더 붙습니다.
+       *    (적립 값을 행 likes 에 적어 두므로 원장·서버가 같은 숫자를 셉니다) */
       checkIn: function () {
         if (!tryLock('checkin', 1500)) return { ok: false, reason: 'locked' };
         var status = state.data.hearts || {};
         if (status.checkedInToday) return { ok: false, reason: 'done' };
         var me = state.me && state.me.key;
         var streak = (me ? D.checkinStreak(state.idx, me) : 0) + 1;
-        var bonus = (streak % 7 === 0) ? Math.max(0, D.HEART_RULES.STREAK_7_BONUS || 0) : 0;
+        var milestone = D.streakBonusFor(streak);
+        var bonus = milestone ? Math.max(0, Number(milestone.amount) || 0) : 0;
+        var boost = me ? D.heartBoost(state.idx, me, state.me && state.me.theme) : { bonus: 0 };
+        var base = D.HEART_RULES.CHECKIN;
+        var gained = base + (boost.bonus || 0);
+        var notes = [];
+        if (bonus) notes.push(milestone.days + '일 연속 출석 보너스 +' + bonus);
+        if (boost.bonus) notes.push('부스트 +' + boost.bonus);
+        var claimKey = bonus ? D.streakClaimKey(U.ymd()) : '';
+        if (claimKey) notes.push(claimKey);
         var entity = meEntity({
           type: '출석하트', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
-          likes: D.HEART_RULES.CHECKIN,
-          text: bonus ? '7일 연속 출석 보너스 +' + bonus : ''
+          likes: gained,
+          text: notes.join(' · ')
         });
         pushRow(entity);
         commit();
         return {
-          ok: true, gained: D.HEART_RULES.CHECKIN + bonus, base: D.HEART_RULES.CHECKIN,
-          bonus: bonus, streak: streak, balance: state.data.hearts.balance
+          ok: true, gained: gained + bonus, base: base, boost: boost.bonus || 0,
+          bonus: bonus, streak: streak, milestone: milestone ? milestone.days : 0,
+          balance: state.data.hearts.balance
         };
       },
 
@@ -1715,16 +1761,18 @@
         if (status.nextAdInSec > 0) {
           return { ok: false, reason: 'cooldown', retryAfter: status.nextAdInSec };
         }
+        var boost = me ? D.heartBoost(state.idx, me, state.me && state.me.theme) : { bonus: 0 };
+        var gained = D.HEART_RULES.AD_REWARD + (boost.bonus || 0);
         var entity = meEntity({
           type: '광고하트', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
-          likes: D.HEART_RULES.AD_REWARD, target: opts.adUnit || '',
+          likes: gained, target: opts.adUnit || '',
           text: txId ? D.adTxNote(txId) : ''
         });
         pushRow(entity);
         commit();
         var after = state.data.hearts || {};
         return {
-          ok: true, gained: D.HEART_RULES.AD_REWARD, txId: txId,
+          ok: true, gained: gained, base: D.HEART_RULES.AD_REWARD, boost: boost.bonus || 0, txId: txId,
           remaining: after.adRemaining, balance: after.balance,
           nextAdInSec: D.HEART_RULES.AD_COOLDOWN_SEC
         };
@@ -1783,6 +1831,8 @@
           role: D.roleOf(me)
         };
         if (!theme.role) delete theme.role;
+        /* 테마를 바꿔도 켜 둔 하트 부스트는 그대로 (bm-v1.64.0) */
+        if (me.theme && me.theme.boost) theme.boost = 1;
         pushRow({
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
           nick: me.nick, level: me.level, discipline: me.discipline, userKey: me.key,

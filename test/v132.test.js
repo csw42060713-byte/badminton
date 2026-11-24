@@ -468,14 +468,14 @@
 
   test('v1.32 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.63.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.63.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261124-1', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.64.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.64.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261124-2', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.37.2', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.63.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.63.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 57, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.64.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.64.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 58, 'TWA 버전 코드');
   });
 
   test('v1.32 문서: 아이디어 노트에 이번 사이클과 다음 후보가 남는다', function () {

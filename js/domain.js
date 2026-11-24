@@ -307,7 +307,11 @@
    * frame:gold · badge:star 처럼 남깁니다(테마는 예전처럼 th_court 같은 테마 ID). */
   var DECO_PRICES = {
     'frame:court': 0, 'frame:royal': 1, 'frame:sakura': 1, 'frame:gold': 2, 'frame:neon': 2,
-    'badge:racket': 0, 'badge:butterfly': 0, 'badge:fire': 1, 'badge:star': 1, 'badge:medal': 2, 'badge:crown': 2
+    'badge:racket': 0, 'badge:butterfly': 0, 'badge:fire': 1, 'badge:star': 1, 'badge:medal': 2, 'badge:crown': 2,
+    /* bm-v1.64.0 — 하트 부스트: 한 번 열면 계속 쓰는 출석·광고 +1 (소유는 꾸미기구매 행) */
+    'boost:heart': 3,
+    /* bm-v1.64.0 — 인스타 대회 인증 카드의 챔피언 골드 프레임(하트 2개, 한 번 열면 계속) */
+    'card:champ': 2
   };
   var BADGE_IDS = { '': '', '🏸': 'racket', '🦋': 'butterfly', '🔥': 'fire', '⭐': 'star', '🥇': 'medal', '👑': 'crown' };
   var BADGE_BY_ID = { racket: '🏸', butterfly: '🦋', fire: '🔥', star: '⭐', medal: '🥇', crown: '👑' };
@@ -335,6 +339,10 @@
       var id = BADGE_IDS[String(value == null ? '' : value)];
       return id ? 'badge:' + id : '';
     }
+    /* bm-v1.64.0 — 하트 부스트(출석·광고 +1). value 는 'heart' 하나뿐입니다 */
+    if (kind === 'boost') return String(value || 'heart') === 'heart' ? 'boost:heart' : '';
+    /* bm-v1.64.0 — 대회 인증 카드 프레임(챔피언 골드). value 는 'champ' 하나뿐입니다 */
+    if (kind === 'card') return String(value || 'champ') === 'champ' ? 'card:champ' : '';
     return '';
   }
 
@@ -355,6 +363,8 @@
     var s = String(id || '');
     if (s.indexOf('frame:') === 0) return '프레임 · ' + frameName(s.slice(6));
     if (s.indexOf('badge:') === 0) return '배지 · ' + badgeLabel(s.slice(6));
+    if (s === 'boost:heart') return '하트 부스트';
+    if (s === 'card:champ') return '대회 카드 · 챔피언 프레임';
     return s;
   }
 
@@ -371,6 +381,32 @@
     if (decoPrice(target) <= 0) return true;
     if (streakUnlocked(streakDays).indexOf(target) >= 0) return true;
     return listOf(idx, '꾸미기구매', userKey).some(function (h) { return String(h.target || '') === target; });
+  }
+
+  /* ---------- 하트 부스트 (bm-v1.64.0) ----------
+   * 출석·광고로 하트를 받을 때마다 +1 더 쌓이는 꾸미기입니다.
+   *  · 소유: '꾸미기구매' 행 target='boost:heart' (한 번 열면 계속)
+   *  · 켜기/끄기: 프로필 꾸미기 JSON의 boost(1/0) — 새 칸을 만들지 않습니다
+   *  · 보너스는 적립 행(likes)에 그대로 적히므로 원장·서버가 같은 숫자를 셉니다
+   *    (나중에 부스트를 켜도 지난 출석·광고에 소급되지 않습니다). */
+  var BOOST_ID = 'boost:heart';
+  var BOOST_BONUS = 1;
+
+  function heartBoost(idx, userKey, theme) {
+    var owned = listOf(idx, '꾸미기구매', userKey).some(function (h) {
+      return String(h.target || '') === BOOST_ID;
+    });
+    var th = theme || (userKey ? (profileOf(idx, userKey).theme || {}) : {}) || {};
+    var equipped = !!(owned && th.boost);
+    return {
+      id: BOOST_ID,
+      price: decoPrice(BOOST_ID),
+      owned: owned,
+      equipped: equipped,
+      bonus: equipped ? BOOST_BONUS : 0,
+      checkinReward: HEART_RULES.CHECKIN + (equipped ? BOOST_BONUS : 0),
+      adReward: HEART_RULES.AD_REWARD + (equipped ? BOOST_BONUS : 0)
+    };
   }
 
   /* 연속 출석 일수 — 오늘(또는 어제)까지 이어진 날 수 */
@@ -438,8 +474,20 @@
     THEME_PRICES: { th_def: 0, th_night: 0, th_court: 0, th_sakura: 0 }
   };
 
-  /* 연속 출석 보너스를 주는 주기(일) — 7·14·21…일째마다 한 번 */
+  /* 연속 출석 보너스를 주는 주기(일) — 예전 7일 규칙(구버전 호환용 이름) */
   var STREAK_BONUS_DAYS = 7;
+
+  /* 연속 출석 보너스 구간 (bm-v1.64.0)
+   *  3일 +1 · 7일 +2 · 14일 +3, 그 뒤로는 14일마다 +3 (28·42…).
+   *  · 지급은 원장(heartLedger)이 출석 날짜의 연속을 매번 다시 세어 한 번만 더합니다(멱등).
+   *  · 같은 구간이 두 번 들어가지 않게 '그 보너스를 받은 날짜'를 키로 씁니다
+   *    (streakClaimKey). 하루에 보너스는 한 번뿐이라 달력 날짜가 곧 중복 방지 키입니다. */
+  var STREAK_BONUSES = [
+    { days: 3, amount: 1 },
+    { days: 7, amount: 2 },
+    { days: 14, amount: 3 }
+  ];
+  var STREAK_BONUS_REPEAT_DAYS = 14;
 
   /* bm-v1.57.0 — 테마 4종 모두 무료. 나이트·기본 코트·사쿠라·라임 코트를
    * 하트 없이 MY › 테마·시작 화면에서 바로 고릅니다. */
@@ -1715,31 +1763,32 @@
     listOf(idx, '출석하트', userKey).forEach(function (h) {
       add('checkin', '출석 체크', h.likes || R.CHECKIN, h);
     });
-    /* 7일 연속 출석 보너스 (bm-v1.36.0)
-     *  · 출석 행을 날짜 순으로 훑어 7·14·21…일째 되는 날에 보너스를 한 줄 더 남깁니다.
+    /* 연속 출석 보너스 (bm-v1.36.0 → bm-v1.64.0: 3·7·14일)
+     *  · 출석 행을 날짜 순으로 훑어 연속 일수를 세고, 3·7·14일째(그 뒤 14일마다)에 보너스를 한 줄 더 남깁니다.
      *  · 보너스 행을 따로 저장하지 않고 기록에서 매번 세므로(멱등) 앱을 다시 열거나
      *    기기를 바꿔도 잔액이 같고, 지난 연속에도 소급해 한 번만 잡힙니다.
+     *  · 중복 적립 방지 키 = 그 보너스를 받은 날짜(streakClaimKey) — 하루에 한 번만.
      *  · 서버(브리지)는 출석 행을 1개로만 세므로 행 값은 그대로 두고 원장에서만 더합니다. */
-    var streakBonus = Math.max(0, U.num(R.STREAK_7_BONUS, 0) || 0);
-    if (streakBonus > 0) {
-      var checkinByDay = {};
-      listOf(idx, '출석하트', userKey).forEach(function (h) {
-        var day = dateKeyOf(h);
-        if (!day) return;
-        var cur = checkinByDay[day];
-        if (!cur || atMsOf(h) > atMsOf(cur)) checkinByDay[day] = h;
-      });
-      var checkinDays = Object.keys(checkinByDay).sort();
-      var run = 0, prevDay = '';
-      checkinDays.forEach(function (day) {
-        var gap = prevDay ? Math.round((U.parseYmd(day) - U.parseYmd(prevDay)) / 86400000) : 0;
-        run = gap === 1 ? run + 1 : 1;
-        prevDay = day;
-        if (run % STREAK_BONUS_DAYS === 0) {
-          add('streak', run + '일 연속 출석 보너스', streakBonus, checkinByDay[day], '보너스');
-        }
-      });
-    }
+    var checkinByDay = {};
+    listOf(idx, '출석하트', userKey).forEach(function (h) {
+      var day = dateKeyOf(h);
+      if (!day) return;
+      var cur = checkinByDay[day];
+      if (!cur || atMsOf(h) > atMsOf(cur)) checkinByDay[day] = h;
+    });
+    var checkinDays = Object.keys(checkinByDay).sort();
+    var run = 0, prevDay = '', claimed = {};
+    checkinDays.forEach(function (day) {
+      var gap = prevDay ? Math.round((U.parseYmd(day) - U.parseYmd(prevDay)) / 86400000) : 0;
+      run = gap === 1 ? run + 1 : 1;
+      prevDay = day;
+      var bonus = streakBonusFor(run);
+      if (!bonus) return;
+      var claim = streakClaimKey(day);
+      if (!claim || claimed[claim]) return;          /* 같은 날 같은 보너스는 두 번 넣지 않습니다 */
+      claimed[claim] = 1;
+      add('streak', bonus.label, bonus.amount, checkinByDay[day], '보너스');
+    });
     listOf(idx, '광고하트', userKey).forEach(function (h) {
       add('ad', '광고 보고 받기', h.likes || R.AD_REWARD, h);
     });
@@ -1776,6 +1825,8 @@
       if (price <= 0) return;                 /* 무료 테마·무료 꾸미기 구매 기록은 원장에서 제외 */
       if (target.indexOf('frame:') === 0) { add('deco-frame', '프레임 해금', -price, h, frameName(target.slice(6))); return; }
       if (target.indexOf('badge:') === 0) { add('deco-badge', '배지 해금', -price, h, badgeLabel(target.slice(6))); return; }
+      if (target === BOOST_ID) { add('deco-boost', '하트 부스트 해금', -price, h, '출석·광고 +1'); return; }
+      if (target === 'card:champ') { add('deco-card', '챔피언 프레임 해금', -price, h, '대회 인증 카드'); return; }
       var theme = THEMES.filter(function (t) { return t.id === target; })[0];
       add('theme', '꾸미기 구매', -price, h, theme ? theme.name : target);
     });
@@ -1789,11 +1840,9 @@
     };
   }
 
-  /* 다음 연속 출석 보너스까지 남은 날 (오늘 이미 보너스를 받은 날이면 7) */
+  /* 다음 연속 출석 보너스까지 남은 날 (3·7·14일 → 그 뒤 14일마다) */
   function streakBonusLeft(days) {
-    var d = Math.max(0, Number(days) || 0);
-    var r = d % STREAK_BONUS_DAYS;
-    return r === 0 ? STREAK_BONUS_DAYS : STREAK_BONUS_DAYS - r;
+    return nextStreakBonus(days).left;
   }
 
   /* 광고 적립 거래 ID (bm-v1.36.0)
@@ -1827,8 +1876,50 @@
     return listOf(idx, '광고하트', userKey).some(function (h) { return adTxOf(h) === id; });
   }
 
+  /* 그 날짜에 받은 연속 보너스의 중복 방지 키 — 하루 한 번 */
+  function streakClaimKey(day) {
+    var d = String(day || '').slice(0, 10);
+    return d ? 'streak:' + d : '';
+  }
+
+  /* 이번 연속(run일째)에 줄 보너스가 있는지 — { key, days, amount, label } 또는 null */
+  function streakBonusFor(run) {
+    var d = Math.max(0, Math.round(Number(run) || 0));
+    if (!d) return null;
+    for (var i = 0; i < STREAK_BONUSES.length; i++) {
+      if (d === STREAK_BONUSES[i].days) {
+        return { key: 'streak:' + d, days: d, amount: STREAK_BONUSES[i].amount, label: d + '일 연속 출석 보너스' };
+      }
+    }
+    if (d > STREAK_BONUS_REPEAT_DAYS && d % STREAK_BONUS_REPEAT_DAYS === 0) {
+      return {
+        key: 'streak:' + d, days: d, amount: STREAK_BONUSES[STREAK_BONUSES.length - 1].amount,
+        label: d + '일 연속 출석 보너스'
+      };
+    }
+    return null;
+  }
+
+  /* 다음 연속 출석 보너스까지 — { days, left, amount, label } */
+  function nextStreakBonus(streak) {
+    var d = Math.max(0, Math.round(Number(streak) || 0));
+    for (var i = 0; i < STREAK_BONUSES.length; i++) {
+      if (d < STREAK_BONUSES[i].days) {
+        return {
+          days: STREAK_BONUSES[i].days, left: STREAK_BONUSES[i].days - d,
+          amount: STREAK_BONUSES[i].amount, label: STREAK_BONUSES[i].days + '일 연속 출석 보너스'
+        };
+      }
+    }
+    var n = (Math.floor(d / STREAK_BONUS_REPEAT_DAYS) + 1) * STREAK_BONUS_REPEAT_DAYS;
+    return {
+      days: n, left: n - d,
+      amount: STREAK_BONUSES[STREAK_BONUSES.length - 1].amount, label: n + '일 연속 출석 보너스'
+    };
+  }
+
   /* 화면용: 잔액 + 오늘 적립/광고 현황 + 출석 여부 */
-  function heartStatus(idx, userKey, nowMs) {
+  function heartStatus(idx, userKey, nowMs, theme) {
     var R = HEART_RULES;
     var ledger = heartLedger(idx, userKey);
     var now = nowMs || Date.now();
@@ -1851,6 +1942,8 @@
     });
 
     var streak = checkinStreak(idx, userKey, now);
+    var boost = heartBoost(idx, userKey, theme);
+    var nextBonus = nextStreakBonus(streak);
 
     return {
       base: ledger.base,
@@ -1859,11 +1952,11 @@
       balance: ledger.balance,
       history: ledger.history,
 
-      checkinReward: R.CHECKIN,
+      checkinReward: R.CHECKIN + boost.bonus,
       checkedInToday: checkedInToday,
       canCheckIn: !checkedInToday,
 
-      adReward: R.AD_REWARD,
+      adReward: R.AD_REWARD + boost.bonus,
       adLimit: R.AD_PER_DAY,
       adUsedToday: adToday,
       adRemaining: Math.max(0, R.AD_PER_DAY - adToday),
@@ -1880,12 +1973,13 @@
       checkinStreak: streak,
       streakNext: nextStreakMilestone(streak),
       streakUnlocks: streakUnlocked(streak),
-      /* 7일 연속 보너스 안내 — MY 하트 카드와 공용 하트 시트가 이 값을 씁니다 */
-      streakBonus: {
-        amount: Math.max(0, U.num(R.STREAK_7_BONUS, 0) || 0),
-        days: STREAK_BONUS_DAYS,
-        left: streakBonusLeft(streak)
-      },
+      /* 연속 출석 보너스 안내 (bm-v1.64.0 — 3·7·14일) —
+       * MY 하트 카드와 공용 하트 시트가 이 값을 씁니다 */
+      streakBonus: nextBonus,
+      streakBonusNext: nextBonus,
+      streakBonuses: STREAK_BONUSES.map(function (b) { return { days: b.days, amount: b.amount }; }),
+      /* 하트 부스트 상태 — MY 카드의 '부스트 적용 중(+1)' */
+      boost: boost,
 
       todayEarned: todayEarned,
       todaySpent: todaySpent
@@ -3307,6 +3401,10 @@
     decoId: decoId, decoPrice: decoPrice, decoName: decoName, ownsDeco: ownsDeco,
     frameById: frameById, frameName: frameName, badgeEmoji: badgeEmoji, badgeLabel: badgeLabel,
     streakUnlocked: streakUnlocked, checkinStreak: checkinStreak, nextStreakMilestone: nextStreakMilestone, streakBonusLeft: streakBonusLeft,
+    /* bm-v1.64.0 — 연속 출석 보너스(3·7·14일) · 하트 부스트 */
+    STREAK_BONUSES: STREAK_BONUSES, STREAK_BONUS_REPEAT_DAYS: STREAK_BONUS_REPEAT_DAYS,
+    streakBonusFor: streakBonusFor, nextStreakBonus: nextStreakBonus, streakClaimKey: streakClaimKey,
+    BOOST_ID: BOOST_ID, BOOST_BONUS: BOOST_BONUS, heartBoost: heartBoost,
     searchText: searchText, matchesQuery: matchesQuery, filterPlayers: filterPlayers, activeFilters: activeFilters,
     matchSearchActive: matchSearchActive,
     HEART_RULES: HEART_RULES,
