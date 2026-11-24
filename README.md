@@ -2467,3 +2467,20 @@ bubblewrap build            # → app-release-bundle.aab
 - 배포: `main` `4b7e5e8`(기능 `0716ed0` + 기록) · `gh-pages` `a07ae23`(기능 `8a1127e` + 기록 · `test/`·`supabase/`·`ideas.md` 제외). 라이브 `https://csw42060713-byte.github.io/badminton/`.
 - 검증: `node test/run.js` **1345/1345** · 로컬 390×844 `test/local-v163.py` **71/71** · 라이브 `test/live-v163.py` **52/52**(앱 오류 0 · CSP 위반 0 · 가로 넘침 0, 360·390 폭). 첫 화면에서 탭·안내·미리보기(`top 282–614`)·사진 버튼(`648–706`)이 스크롤 없이 한 화면이고 저장 바는 `768–844`에 고정. 배경 4종 각각 1탭 → 미리보기 재그리기 → PNG(1080×1350, 스토리 1080×1920) 확인 — 캡처 `downloads/v163_0*.png`(로컬) · `downloads/v163l_0*.png`(라이브) · 카드 원본 `downloads/v163_card_*.png` · `downloads/v163l_card_*.png`.
 - 보안/DB: CSP·`U.esc` 그대로, 실존 선수 이름 없음(`김원호`·`안세영`·`서승재` 미사용), 새 시트 칸·새 DB 컬럼 없음(서버에 아무것도 쓰지 않는 기기 저장 모드로만 점검).
+
+---
+
+## 15-66. bm-v1.64.0 ❤️ 하트 연속 출석 3·7·14일 · 하트 부스트 실보상 · AdMob 브리지 훅 · 일지 요약 즉시 갱신 (2026-11-24 오전 9시)
+
+`ideas.md` 2026-11-24 07:00 아침 구상(1순위 수익화·리텐션 → 2순위 버그 → 3순위 여력)을 그대로 구현했습니다.
+
+- **연속 출석 보너스 3일 +1 · 7일 +2 · 14일 +3(그 뒤 14일마다 +3)** — `js/domain.js`의 `STREAK_BONUSES` 표가 규칙의 유일한 자리입니다. 보너스는 예전처럼 **출석 행의 날짜 연속을 매번 다시 세는** 원장 계산(멱등)이라 앱 재실행·기기 변경에도 잔액이 같고, 지난 연속 기록에도 1회 소급됩니다. **중복 적립 방지 키 = 그 보너스를 받은 날짜**(`streakClaimKey` → `streak:2026-11-24`)라 같은 구간이 두 번 들어갈 수 없고, 출석 행 메모(`3일 연속 출석 보너스 +1 · 부스트 +1 · streak:2026-11-24`)에 근거가 남습니다. `MY › 하트 지갑`은 꾸미기 해금 줄(`3일 연속 출석 중 · 7일까지 4일 (배지 무료)`)과 하트 보너스 줄(`3일 연속 출석 중 · 4일 더 하면 보너스 하트 +2`)을 나눠 보여 주고, 공용 하트 충전 시트도 같은 문구를 씁니다.
+- **`heart_boost` 실보상** — `하트 3개`로 한 번 열면 계속 쓰는 부스트(소유는 `꾸미기구매 target=boost:heart`, 장착은 프로필 꾸미기 JSON `boost=1` — 새 칸 없음). 켜 두면 **출석·광고 적립이 실제로 +1**(하루 광고 5회·30초 간격 그대로)이고, 보너스는 적립 행 `likes`에 그대로 적혀 원장·서버가 같은 숫자를 셉니다(나중에 켜도 지난 적립에 소급 없음). `MY` 하트 카드·**꾸미기 시트**·충전 시트에 `하트 부스트 · 적용 중(+1) · 출석·광고 +1` / `끄기`가 보이고, 하트가 모자라면 공용 하트 시트 → 광고로 이어집니다.
+- **AdMob 리워드 브리지 훅(조환비 님 `.aab`·AdMob 작업용)** — `js/ads.js`의 `bridge()`가 `window.BadmintonBridge` · `AndroidBridge` · `AndroidAdMob` · `BadmintonNative`의 `showRewardedAd(adUnit)`를 찾아 실제 광고를 재생하고, 완료는 `window.BadmintonAdMob.reward(ok, adUnit, txId)` 또는 `window.BM.app.onRewardAdResult(...)`로 받아 적립합니다(같은 txId는 한 번만, 단위 등록은 `BM.ads.setUnits` / `window.BadmintonAdMob.setUnits`). 웹·PWA는 기존 3초 미리보기·쿨타임·동시 실행 잠금 그대로이고, 미리보기 보상 숫자도 부스트가 켜져 있으면 `+2`로 보입니다.
+- **일지 저장 직후 히어로 즉시 갱신** — `js/views/log.js`에 `heroBlock`·`heroSig`를 두고 `render`와 `update`가 같은 카드를 쓰며, **값이 바뀐 경우에만** `view.update`가 카드만 다시 그립니다. 저장·수정·삭제 직후 `이번 달 N분 · 승률 · 최근 2주`가 바로 바뀌고(로컬·라이브 `0분`→`80분`, `—`→`100%`), `📸 인스타 공유` 칩도 방금 저장한 일지로 열립니다.
+- **대회 인증 카드 `챔피언 골드` 프레임(하트 2개 영구 해금)** — 기본 프레임·디자인 3종·색 5종·비율 2종은 그대로 무료. `대회 인증` 탭에만 `카드 프레임` 칩 2개(`기본` / `챔피언 골드 · 하트 2`)가 붙고, 열면 캔버스로 **메탈릭 골드 이중 테두리 + 네 모서리 월계관 잎**(외부 이미지 0)을 그립니다. 소유 기록은 `꾸미기구매 target=card:champ`.
+- 파일: `js/domain.js` · `js/store.js` · `js/ads.js` · `js/views/my.js` · `js/views/log.js` · `js/sharecard.js` · `styles.css`(`.boostline`) · `test/v164.test.js`(28개) · `test/local-v164.py` · `test/live-v164.py` · `test/capture-v164.py`.
+- 버전: `sw.js` `bm-v1.64.0` · `app.js` `v1.64.0` · `twa-manifest.json` `1.64.0`(`appVersionCode` **58**) · `styles.css?v=20261124-2`.
+- 배포: `main` `86ecf53` · `gh-pages` `ae32b59`(`test/`·`supabase/`·`ideas.md` 제외). 라이브 `https://csw42060713-byte.github.io/badminton/`.
+- 검증: `node test/run.js` **1374/1374** · 로컬 390×844 `test/local-v164.py` **45/45** · 라이브 `test/live-v164.py` **29/29**(앱 오류 0 · CSP 위반 0 · 가로 넘침 0, 360·390 폭). 부스트 해금→적용→출석 `+2`→광고 `+2`→3일째 출석 `+3`(1+부스트1+보너스1) 흐름과 저장 직후 히어로 갱신·공유 칩의 80분 일지·챔피언 프레임 금빛 픽셀까지 확인 — 캡처 `downloads/v164_heart_card.png` · `downloads/v164_comp_champ_canvas.png` · `downloads/v164_comp_champ_sheet.png` · `downloads/v164_my_full.png`(로컬) · `downloads/v164_live_*.png`(라이브).
+- 보안/DB: CSP·`U.esc` 그대로, 실존 선수 이름 없음, 새 시트 칸·새 DB 컬럼 없음(서버에 쓰지 않는 기기 저장 모드로만 점검). 하트 잔액은 여전히 행을 세어 계산하며 서버는 한도·간격을 다시 검사합니다.
