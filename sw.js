@@ -281,7 +281,7 @@
  *             js/views/gyms.js·js/views/coach.js·js/views/community.js·js/views/matching.js·
  *             js/nearby.js·styles.css 가 바뀌어 캐시를 bm-v1.65.0으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.67.0';
+var VERSION = 'bm-v1.68.0';
 var SHELL = [
   './',
   './index.html',

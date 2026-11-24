@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v162.test.js — bm-v1.67.0
+ * test/v162.test.js — bm-v1.68.0
  *   📸 인스타 공유 입구를 첫 화면으로
  *
  *  사용자 피드백: "인스타 공유칸이 너무 안보이는데 있어"
@@ -10,7 +10,7 @@
  *   3) 첫 화면 칩은 **최신 일지**, 저장 직후 스트립은 **방금 저장한 일지**로 연다
  *   4) MY 중간 '인스타 공유 카드' 아코디언은 걷어낸다(같은 시트를 두 번 열던 중복)
  *   5) 보존 — 저장 직후 스트립 · 최근 기록 상세 입구 · 5개 탭 · CSP · 실명 없음
- *   6) 버전(bm-v1.67.0) · 캐시 키 · 테스트 목록
+ *   6) 버전(bm-v1.68.0) · 캐시 키 · 테스트 목록
  *
  * 실행: node test/run.js
  * ============================================================ */
@@ -248,17 +248,17 @@
    * 5. 버전 · 배선
    * ========================================================= */
 
-  test('v1.62 버전: sw · app · index · TWA가 함께 bm-v1.67.0', function () {
+  test('v1.62 버전: sw · app · index · TWA가 함께 bm-v1.68.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.67.0'", 'sw.js');
-    includes(sw, 'bm-v1.67.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.67.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-5', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.67.0', 'TWA 이름');
-    eq(twa.appVersion, '1.67.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 61, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.68.0'", 'sw.js');
+    includes(sw, 'bm-v1.68.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.68.0'", 'app.js');
+    includes(index, 'styles.css?v=20261124-6', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.68.0', 'TWA 이름');
+    eq(twa.appVersion, '1.68.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 62, 'TWA 코드');
   });
 
   test('v1.62 배선: 새 입구 스타일 · 테스트 목록 · 서비스워커 캐시', function () {

@@ -404,7 +404,7 @@
     includes(my, "if (res && res.ok)", '성공했을 때만 토스트');
     includes(my, "UI.toast('테마를 바꾸지 못했어요', 'error')", '실패 안내는 그대로');
     excludes(my, "document.documentElement.setAttribute('data-theme'", '테마 적용은 paintChrome이 맡는다');
-    excludes(my, 'theme__lock', 'bm-v1.67.0 — 테마가 모두 무료라 잠금·가격 표시 없음');
+    excludes(my, 'theme__lock', 'bm-v1.68.0 — 테마가 모두 무료라 잠금·가격 표시 없음');
     var at = my.indexOf('function pickTheme(ctx, id)');
     var seg = my.slice(at, my.indexOf('\n  }', at));
     excludes(seg, "res.reason === 'hearts'", '테마에 하트 차감 안내 없음');
