@@ -26,6 +26,7 @@ OUT = os.environ.get("V165_OUT", "/workspace/downloads")
 SHOTS = os.environ.get("V165_SHOTS", "/workspace/check-shots")
 ERRORS = []
 FAILS = []
+TOTAL = [0]
 
 
 def step(msg):
@@ -33,6 +34,7 @@ def step(msg):
 
 
 def check(name, ok, detail=""):
+    TOTAL[0] += 1
     print(("  PASS " if ok else "  FAIL ") + name + (" — " + str(detail) if detail else ""), flush=True)
     if not ok:
         FAILS.append(name + (" — " + str(detail) if detail else ""))
@@ -304,6 +306,7 @@ def main():
         httpd.shutdown()
 
     print("", flush=True)
+    print("%d개 중 %d개 통과" % (TOTAL[0], TOTAL[0] - len(FAILS)), flush=True)
     if FAILS:
         print("실패 %d건" % len(FAILS), flush=True)
         for f in FAILS:
