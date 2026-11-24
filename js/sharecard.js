@@ -24,6 +24,12 @@
  *    이 기기(localStorage)에 가볍게 기억해 다음에 또 고르지 않아도 됩니다.
  *  · 문구·숫자 계산은 순수 함수(model*)로 두고, 그리기는 DOM 캔버스에서만 합니다
  *    (node 테스트에서는 문구 + 가짜 2D 컨텍스트로 그리기 호출을 확인합니다).
+ *  · 사진 구도 (bm-v1.66.0) — 미리보기 사진을 손가락으로 끌어 위치를 옮기고
+ *    −·+·슬라이더로 1.0×~2.5× 확대합니다(원래대로 한 번에 복구). 고른 값은
+ *    화면뿐 아니라 저장 PNG(1080×1350 · 1080×1920)에 같은 비율·위치로 그려집니다.
+ *    사진을 바꾸거나 빼면 기본값(가운데 · 1.0×)으로 돌아갑니다.
+ *  · 글씨 위치 3단 (bm-v1.66.0) — 아래 · 가운데 · 위. 사진 속 인물·메달을 글씨가
+ *    가리지 않도록 스크림과 글씨 묶음을 통째로 옮깁니다(기본은 기존과 같은 '아래').
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -75,6 +81,82 @@
     { id: 'soft', name: '살짝 어둡게', note: '글씨 또렷하게', dim: 0.26 },
     { id: 'deep', name: '감성 어둡게', note: '필름 톤', dim: 0.46 }
   ];
+
+  /* ---------- 글씨 위치 3단 (bm-v1.66.0) ----------
+   * 사진 속 인물·메달을 글씨가 가리지 않게, 스크림과 글씨 묶음을 통째로 옮깁니다.
+   * 기본값은 예전과 똑같은 '아래'라서 이미 만들던 카드는 모양이 바뀌지 않습니다. */
+  var TEXT_POS = [
+    { id: 'bottom', name: '아래', note: '사진 아래쪽' },
+    { id: 'middle', name: '가운데', note: '사진 한가운데' },
+    { id: 'top', name: '위', note: '사진 위쪽' }
+  ];
+
+  function textPosById(id) {
+    for (var i = 0; i < TEXT_POS.length; i++) if (TEXT_POS[i].id === id) return TEXT_POS[i];
+    return TEXT_POS[0];
+  }
+
+  /* ---------- 사진 구도 — 위치 이동 · 확대 (bm-v1.66.0) ----------
+   * photoX · photoY 는 남은 여백 대비 −1~1 비율(0 = 가운데), photoZoom 은 1.0~2.5배입니다.
+   * 확대하면 사진이 프레임보다 커지고, 그 넘친 만큼만 끌어서 옮길 수 있습니다
+   * (인스타 편집기와 같은 감각 — 1.0배에서는 넘친 곳이 없어 끌어도 움직이지 않습니다). */
+  var ZOOM_MIN = 1;
+  var ZOOM_MAX = 2.5;
+  var ZOOM_STEP = 0.05;
+
+  function clampNum(v, lo, hi) {
+    v = Number(v);
+    if (!isFinite(v)) v = lo;
+    return v < lo ? lo : (v > hi ? hi : v);
+  }
+
+  function zoomOf(v) { return clampNum(v, ZOOM_MIN, ZOOM_MAX); }
+
+  function photoViewOf(spec) {
+    return {
+      x: clampNum(spec && spec.photoX, -1, 1),
+      y: clampNum(spec && spec.photoY, -1, 1),
+      zoom: zoomOf(spec && spec.photoZoom)
+    };
+  }
+
+  /* 확대·이동을 반영한 사진이 놓이는 자리(캔버스 px) — 그리기와 끌기가 같은 계산을 씁니다 */
+  function coverBox(img, x, y, w, h, view) {
+    var iw = (img && img.width) || w, ih = (img && img.height) || h;
+    var v = view || { x: 0, y: 0, zoom: 1 };
+    var zoom = zoomOf(v.zoom);
+    var base = Math.max(w / iw, h / ih) * zoom;
+    var dw = iw * base, dh = ih * base;
+    var maxX = Math.max(0, (dw - w) / 2), maxY = Math.max(0, (dh - h) / 2);
+    return {
+      left: x + (w - dw) / 2 + clampNum(v.x, -1, 1) * maxX,
+      top: y + (h - dh) / 2 + clampNum(v.y, -1, 1) * maxY,
+      w: dw, h: dh, maxX: maxX, maxY: maxY, zoom: zoom
+    };
+  }
+
+  /* 사진이 실제로 그려지는 틀 — 디자인마다 다릅니다(매거진은 카드 전체, 필름은 인화지 안) */
+  function photoFrameOf(spec) {
+    var F = frameOf(spec || {});
+    if (designById(spec && spec.design).id === 'film') return filmBox(F);
+    return { x: 0, y: 0, w: F.W, h: F.H };
+  }
+
+  /* 끌기 — 화면에서 움직인 px을 사진 위치 비율로 바꿉니다.
+   * 프레임보다 넘친 만큼(maxX·maxY)만 움직이고, 넘칠 곳이 없으면 그대로입니다. */
+  function movePhotoBy(canvas, spec, dxCss, dyCss) {
+    var photo = photoOf(spec);
+    if (!photo || !canvas) return null;
+    var rect = canvas.getBoundingClientRect ? canvas.getBoundingClientRect() : null;
+    var k = (rect && rect.width) ? (canvas.width / rect.width) : 1;
+    var box = photoFrameOf(spec);
+    var view = photoViewOf(spec);
+    var m = coverBox(photo, box.x, box.y, box.w, box.h, view);
+    var nx = view.x, ny = view.y;
+    if (m.maxX > 0 && dxCss) nx = clampNum(view.x + (dxCss * k) / m.maxX, -1, 1);
+    if (m.maxY > 0 && dyCss) ny = clampNum(view.y + (dyCss * k) / m.maxY, -1, 1);
+    return { x: nx, y: ny, moved: (nx !== view.x || ny !== view.y) };
+  }
 
   /* ---------- 대회 카드 프레임 (bm-v1.64.0) ----------
    * 기본은 프레임 없음(무료). 대회 인증 카드에만 '챔피언 월계관/골드 프레임'을
@@ -430,12 +512,11 @@
 
   /* ---------- 공통 그림 ---------- */
 
-  /* 사진을 카드에 꽉 차게(cover) */
-  function drawCover(g, img, x, y, w, h) {
-    var iw = img.width || w, ih = img.height || h;
-    var scale = Math.max(w / iw, h / ih);
-    var dw = iw * scale, dh = ih * scale;
-    g.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  /* 사진을 카드에 꽉 차게(cover) — view(위치·확대)가 있으면 그 구도로 그립니다 */
+  function drawCover(g, img, x, y, w, h, view) {
+    var m = coverBox(img, x, y, w, h, view || { x: 0, y: 0, zoom: 1 });
+    g.drawImage(img, m.left, m.top, m.w, m.h);
+    return m;
   }
 
   /* 사진이 없을 때 — 부드러운 메쉬 그라데이션 + 아주 옅은 셔틀콕 선화 */
@@ -893,7 +974,7 @@
     var img = !!photo || !!art;
 
     if (photo) {
-      try { drawCover(g, photo, 0, 0, W, H); }
+      try { drawCover(g, photo, 0, 0, W, H, photoViewOf(spec)); }
       catch (e) { photo = null; paintMesh(g, p, F); }
       if (photo) art = null;
       else art = bgOf(spec);
@@ -905,6 +986,49 @@
     }
     img = !!photo || (!photo && !!art);
 
+    /* ---------- 글씨 묶음 자리 먼저 계산 (bm-v1.66.0 글씨 위치 … ·
+     * 아래·가운데·위 어디든 같은 글씨 묶음을 통째로 밀어서 놓습니다.
+     * 스크림도 이 자리를 따라가야 해서, 그리기 전에 계산합니다. */
+    var maxW = W - pad * 2;
+    var stats = spec.stats || [];
+    var hasStats = stats.length > 0;
+    var pos = textPosById(spec.textPos).id;
+
+    var bitext = String((spec.big && spec.big.value) || '');
+    var unit = String((spec.big && spec.big.unit) || '');
+    var unitSize = 50;
+    var unitW = unit ? (function () { g.font = font(unitSize, 600, FONT); return g.measureText(unit).width + 22; })() : 0;
+    var fitted = fitText(g, bitext, maxW - unitW, 198, 900, FONT, 58);
+    var bigSize = fitted.size;
+
+    /* 기본(아래) 자리 — 예전과 똑같은 위치에서 시작합니다 */
+    var metaY = F.bottom - 52;
+    var ruleY = metaY - (spec.meta ? 58 : 36);
+    var valBase = ruleY - 76;
+    var bigBase = (hasStats ? valBase - 98 : ruleY - 86);
+
+    /* 큰 숫자 위 제목 — 고른 문구(민턴일기 · 직접 쓴 문구)가 숫자 바로 위에 옵니다.
+     * 대회 카드는 대회명이 주인공이라 문구를 그 위에 작게 얹습니다. */
+    var kickerY = bigBase - Math.round(bigSize * 0.74) - 42;
+    if (kickerY < F.safeTop + 158) kickerY = F.safeTop + 158;
+
+    /* 글씨 묶음의 위·아래 끝 — 이 높이를 기준으로 통째로 옮깁니다 */
+    var blockTop = kickerY - (spec.mode === 'comp'
+      ? (spec.phrase ? 96 : 40)
+      : (spec.phrase ? 44 : 18));
+    var blockBottom = hasStats ? valBase + 54 : (spec.meta ? metaY + 12 : ruleY + 22);
+    var dy = 0;
+    var headBottom = F.safeTop + 132;          /* 좌상단 날짜 줄 아래 */
+    if (pos === 'middle') {
+      dy = Math.round((F.safeTop + F.bottom) / 2 - (blockTop + blockBottom) / 2);
+    } else if (pos === 'top') {
+      dy = Math.round((headBottom + 46) - blockTop);   /* 날짜 줄 아래에서 시작 */
+    }
+    if (pos !== 'bottom' && blockTop + dy < headBottom) dy = headBottom - blockTop;  /* 머리줄과 안 겹치게 */
+    if (blockBottom + dy > F.bottom - 18) dy = (F.bottom - 18) - blockBottom;  /* 카드 밖으로 안 나가게 */
+    metaY += dy; ruleY += dy; valBase += dy; bigBase += dy; kickerY += dy;
+    blockTop += dy; blockBottom += dy;
+
     /* 사진 밝기 — 고른 단계만큼만 (원본은 그대로) */
     var dim = photo ? shadeDim(spec) : 0;
     if (dim > 0) {
@@ -912,25 +1036,48 @@
       g.fillRect(0, 0, W, H);
     }
 
-    /* 아래에서 스며드는 스크림 — 위쪽 사진은 답답하지 않게, 아래 글씨만 또렷하게.
-     * 네 구간으로 나눠 곡선을 부드럽게(급격한 경계가 보이지 않게) 깔았습니다. */
+    /* 스크림 — 글씨가 놓인 자리에만 부드럽게 스며들게 깔아 사진은 살리고 글씨는 또렷하게 */
     if (img) {
-      var start = Math.round(H * 0.50);
-      var scrim = g.createLinearGradient(0, start, 0, H);
-      scrim.addColorStop(0, rgba(p.scrim, 0));
-      scrim.addColorStop(0.22, rgba(p.scrim, 0.06));
-      scrim.addColorStop(0.44, rgba(p.scrim, 0.26));
-      scrim.addColorStop(0.64, rgba(p.scrim, 0.55));
-      scrim.addColorStop(0.82, rgba(p.scrim, 0.80));
-      scrim.addColorStop(1, rgba(p.scrim, 0.95));
-      g.fillStyle = scrim;
-      g.fillRect(0, start, W, H - start);
-      /* 맨 위 한 줄도 읽히게 아주 옅은 그라데이션 */
-      var topFade = g.createLinearGradient(0, 0, 0, Math.round(H * 0.17));
-      topFade.addColorStop(0, rgba(p.scrim, 0.30));
-      topFade.addColorStop(1, rgba(p.scrim, 0));
-      g.fillStyle = topFade;
-      g.fillRect(0, 0, W, Math.round(H * 0.17));
+      if (pos === 'middle') {
+        /* 가운데 — 글씨 자리 위아래로 아주 부드럽게 번지는 띠 (경계가 보이지 않게) */
+        var bTop = Math.max(0, blockTop - 170), bBot = Math.min(H, blockBottom + 130);
+        var band = g.createLinearGradient(0, bTop, 0, bBot);
+        band.addColorStop(0, rgba(p.scrim, 0));
+        band.addColorStop(0.30, rgba(p.scrim, 0.42));
+        band.addColorStop(0.5, rgba(p.scrim, 0.72));
+        band.addColorStop(0.70, rgba(p.scrim, 0.42));
+        band.addColorStop(1, rgba(p.scrim, 0));
+        g.fillStyle = band;
+        g.fillRect(0, bTop, W, bBot - bTop);
+      } else if (pos === 'top') {
+        /* 위 — 위에서 내려오며 사라지는 스크림(스토리 안전 여백까지 덥습니다) */
+        var tBot = Math.min(H, blockBottom + 56);
+        var topScrim = g.createLinearGradient(0, 0, 0, tBot);
+        topScrim.addColorStop(0, rgba(p.scrim, 0.90));
+        topScrim.addColorStop(0.55, rgba(p.scrim, 0.62));
+        topScrim.addColorStop(1, rgba(p.scrim, 0));
+        g.fillStyle = topScrim;
+        g.fillRect(0, 0, W, tBot);
+      } else {
+        /* 아래 — 위쪽 사진은 답답하지 않게, 아래 글씨만 또렷하게.
+         * 네 구간으로 나눠 곡선을 부드럽게(급격한 경계가 보이지 않게) 깔았습니다. */
+        var start = Math.round(H * 0.50);
+        var scrim = g.createLinearGradient(0, start, 0, H);
+        scrim.addColorStop(0, rgba(p.scrim, 0));
+        scrim.addColorStop(0.22, rgba(p.scrim, 0.06));
+        scrim.addColorStop(0.44, rgba(p.scrim, 0.26));
+        scrim.addColorStop(0.64, rgba(p.scrim, 0.55));
+        scrim.addColorStop(0.82, rgba(p.scrim, 0.80));
+        scrim.addColorStop(1, rgba(p.scrim, 0.95));
+        g.fillStyle = scrim;
+        g.fillRect(0, start, W, H - start);
+        /* 맨 위 한 줄도 읽히게 아주 옅은 그라데이션 */
+        var topFade = g.createLinearGradient(0, 0, 0, Math.round(H * 0.17));
+        topFade.addColorStop(0, rgba(p.scrim, 0.30));
+        topFade.addColorStop(1, rgba(p.scrim, 0));
+        g.fillStyle = topFade;
+        g.fillRect(0, 0, W, Math.round(H * 0.17));
+      }
     }
 
     var ink = img ? '#ffffff' : p.text;
@@ -968,27 +1115,7 @@
     tracking(g, 0);
     g.textAlign = 'left';
 
-    var maxW = W - pad * 2;
-    var stats = spec.stats || [];
-    var metaY = F.bottom - 52;
-    var ruleY = metaY - (spec.meta ? 58 : 36);
-
-    /* 큰 숫자 (단위는 포인트 색으로 작게) */
-    var bitext = String((spec.big && spec.big.value) || '');
-    var unit = String((spec.big && spec.big.unit) || '');
-    var unitSize = 50;
-    var unitW = unit ? (function () { g.font = font(unitSize, 600, FONT); return g.measureText(unit).width + 22; })() : 0;
-    var fitted = fitText(g, bitext, maxW - unitW, 198, 900, FONT, 58);
-    var bigSize = fitted.size;
-    var hasStats = stats.length > 0;
-    var valBase = ruleY - 76;
-    var bigBase = (hasStats ? valBase - 98 : ruleY - 86);
-
-    /* 큰 숫자 위 제목 — 고른 문구(민턴일기 · 직접 쓴 문구)가 숫자 바로 위에 옵니다.
-     * 대회 카드는 대회명이 주인공이라 문구를 그 위에 작게 얹습니다. */
-    var kickerY = bigBase - Math.round(bigSize * 0.74) - 42;
-    if (kickerY < F.safeTop + 158) kickerY = F.safeTop + 158;
-
+    /* 큰 숫자 · 단위 · 자리는 위에서 계산했고, 여기서는 글씨만 그립니다 */
     if (spec.mode === 'comp') {
       if (spec.phrase) {
         tracking(g, 0.6);
@@ -1188,6 +1315,8 @@
     paintFilmPaper(g, F);
     var box = filmBox(F), photo = photoOf(spec);
     var art = photo ? null : bgOf(spec);
+    var pos = textPosById(spec.textPos).id;
+    var cap = filmCaption(box, pos);
 
     if (photo || art) {
       /* 얇은 그림자 — 종이 위에 사진 한 장 */
@@ -1205,7 +1334,7 @@
       roundRect(g, box.x, box.y, box.w, box.h, 3);
       g.clip();
       if (photo) {
-        try { drawCover(g, photo, box.x, box.y, box.w, box.h); }
+        try { drawCover(g, photo, box.x, box.y, box.w, box.h, photoViewOf(spec)); }
         catch (e) { photo = null; paintFilmPlaceholder(g, box, p); }
       }
       if (!photo) {
@@ -1217,6 +1346,8 @@
         g.fillStyle = rgba([24, 19, 11], dim * 0.9);
         g.fillRect(box.x, box.y, box.w, box.h);
       }
+      /* 사진 위에 글씨를 얹는 자리(가운데·위)에서만 부드러운 스크림 */
+      if (cap.onPhoto) filmScrim(g, cap, p, cap.pos);
       g.restore();
     } else {
       paintFilmPlaceholder(g, box, p);
@@ -1234,55 +1365,8 @@
     g.stroke();
     g.restore();
 
-    var tx = box.x + 4, tw = box.w - 8;
-    var l1 = box.y + box.h + 72;
-    var l2 = l1 + 68;
-    var l3 = l2 + 48;
-
-    /* 제목 — 사진 위 종이 여백에 고른 문구 (사진은 가리지 않음) */
-    if (spec.phrase) {
-      var pt = fitText(g, spec.phrase, tw - 60, 29, 700, FONT, 16);
-      g.textAlign = 'left';
-      g.fillStyle = PAPER.ink;
-      g.font = font(pt.size, 700, FONT);
-      g.fillText(pt.text, tx, box.y - 26);
-    }
-
-    /* 1줄 — 모노스페이스 날짜 · 체육관 */
-    g.textAlign = 'left';
-    if (spec.top) {
-      tracking(g, 0.8);
-      var t = fitText(g, spec.top, tw - 150, 24, 500, MONO, 17);
-      g.fillStyle = PAPER.ink2;
-      g.font = font(t.size, 500, MONO);
-      g.fillText(t.text, tx, l1);
-      tracking(g, 0);
-    }
-    paintRule(g, tx, l1 + 24, tw - 160, 'rgba(29,27,24,0.14)', p.accent);
-
-    /* 2줄 — 핵심 스탯 한 줄 (굵게) */
-    var line2 = spec.bigLine || '';
-    if (line2) {
-      tracking(g, -0.8);
-      var b = fitText(g, line2, tw - 156, 44, 800, FONT, 26);
-      g.fillStyle = PAPER.ink;
-      g.font = font(b.size, 800, FONT);
-      g.fillText(b.text, tx, l2);
-      tracking(g, 0);
-    }
-
-    /* 3줄 — 얇은 한 줄 (파트너·종목·대회명) */
-    if (spec.metaLine) {
-      tracking(g, 0.2);
-      var m = fitText(g, spec.metaLine, tw - 156, 27, 500, FONT, 17);
-      g.fillStyle = PAPER.ink2;
-      g.font = font(m.size, 500, FONT);
-      g.fillText(m.text, tx, l3);
-      tracking(g, 0);
-    }
-
-    /* 오른쪽 아래 작은 셔틀콕 스탬프 — 2줄과 같은 높이에 정렬 */
-    paintShuttle(g, W - 104, l2 - 16, 46, p.accent);
+    /* 캡션 3줄 — '아래'는 여백에, '가운데'·'위'는 사진 위에 */
+    filmCaptionText(g, spec, p, F, box, cap);
 
     /* 브랜드 — 아주 작게 */
     g.textAlign = 'right';
@@ -1292,6 +1376,106 @@
     g.fillText('BADMINTON', W - 64, F.story ? F.bottom - 8 : H - 38);
     tracking(g, 0);
     g.textAlign = 'left';
+  }
+
+  /* 필름 캡션 3줄 — '아래'는 인화지 아래 여백, '가운데'·'위'는 사진 위에 얹습니다.
+   * 인화지(폴−로이드) 느낌을 해치지 않게 여백 줄과 글씨 크기는 그대로 씁니다. */
+  function filmCaption(box, pos) {
+    var tx = box.x + 4, tw = box.w - 8;
+    if (pos === 'middle') {
+      var mid = box.y + box.h * 0.5 + 18;
+      return {
+        onPhoto: true, pos: pos, tx: tx, tw: tw,
+        phraseY: mid - 118, l1: mid - 64, l2: mid + 8, l3: mid + 54,
+        bandTop: box.y + box.h * 0.5 - 200, bandBot: Math.min(box.y + box.h, box.y + box.h * 0.5 + 160)
+      };
+    }
+    if (pos === 'top') {
+      var l1 = box.y + 118;
+      return {
+        onPhoto: true, pos: pos, tx: tx, tw: tw,
+        phraseY: box.y + 74, l1: l1, l2: l1 + 62, l3: l1 + 106,
+        bandTop: box.y, bandBot: Math.min(box.y + box.h, box.y + 330)
+      };
+    }
+    var b1 = box.y + box.h + 72;
+    return { onPhoto: false, pos: 'bottom', tx: tx, tw: tw, phraseY: box.y - 26, l1: b1, l2: b1 + 68, l3: b1 + 116 };
+  }
+
+  /* 사진 위 캡션 스크림 — 아래는 인화지 빛을 살리려고 종이톤 대신 어두운 톤을 얇게
+   * 깔고, 가운데는 자리 위아래로 부드럽게 스며들게 깔았습니다. */
+  function filmScrim(g, cap, p, pos) {
+    var top = Math.max(0, cap.bandTop), bot = Math.max(top + 1, cap.bandBot);
+    var grad = g.createLinearGradient(0, top, 0, bot);
+    var dark = rgba([18, 15, 10], 0);
+    if (pos === 'middle') {
+      /* 가운데 — 가운데가 가장 진하고 양끝은 사라집니다 */
+      grad.addColorStop(0, dark);
+      grad.addColorStop(0.22, rgba([18, 15, 10], 0.62));
+      grad.addColorStop(0.5, rgba([18, 15, 10], 0.74));
+      grad.addColorStop(0.78, rgba([18, 15, 10], 0.62));
+      grad.addColorStop(1, dark);
+    } else {
+      grad.addColorStop(0, rgba([18, 15, 10], 0.78));
+      grad.addColorStop(0.55, rgba([18, 15, 10], 0.5));
+      grad.addColorStop(1, dark);
+    }
+    g.fillStyle = grad;
+    g.fillRect(cap.tx - 4, top, cap.tw + 8, bot - top);
+  }
+
+  /* 필름 캡션 3줄 — 사진 밖이면 종이 잉크, 사진 위면 흰 글씨 */
+  function filmCaptionText(g, spec, p, F, box, cap) {
+    var tx = cap.tx, tw = cap.tw;
+    var on = cap.onPhoto;
+    var inkMain = on ? '#ffffff' : PAPER.ink;
+    var inkSub = on ? 'rgba(255,255,255,0.88)' : PAPER.ink2;
+    var ruleColor = on ? 'rgba(255,255,255,0.36)' : 'rgba(29,27,24,0.14)';
+
+    /* 제목 — 고른 문구 */
+    if (spec.phrase) {
+      var pt = fitText(g, spec.phrase, tw - 60, 29, 700, FONT, 16);
+      g.textAlign = 'left';
+      g.fillStyle = inkMain;
+      g.font = font(pt.size, 700, FONT);
+      g.fillText(pt.text, tx, cap.phraseY);
+    }
+
+    /* 1줄 — 모노스페이스 날짜 · 체육관 */
+    g.textAlign = 'left';
+    if (spec.top) {
+      tracking(g, 0.8);
+      var t = fitText(g, spec.top, tw - 150, 24, 500, MONO, 17);
+      g.fillStyle = inkSub;
+      g.font = font(t.size, 500, MONO);
+      g.fillText(t.text, tx, cap.l1);
+      tracking(g, 0);
+    }
+    paintRule(g, tx, cap.l1 + 24, tw - 160, ruleColor, p.accent);
+
+    /* 2줄 — 핵심 스탯 한 줄 (굵게) */
+    var line2 = spec.bigLine || '';
+    if (line2) {
+      tracking(g, -0.8);
+      var b = fitText(g, line2, tw - 156, 44, 800, FONT, 26);
+      g.fillStyle = inkMain;
+      g.font = font(b.size, 800, FONT);
+      g.fillText(b.text, tx, cap.l2);
+      tracking(g, 0);
+    }
+
+    /* 3줄 — 얇은 한 줄 (파트너·종목·대회명) */
+    if (spec.metaLine) {
+      tracking(g, 0.2);
+      var m = fitText(g, spec.metaLine, tw - 156, 27, 500, FONT, 17);
+      g.fillStyle = inkSub;
+      g.font = font(m.size, 500, FONT);
+      g.fillText(m.text, tx, cap.l3);
+      tracking(g, 0);
+    }
+
+    /* 오른쪽 아래 작은 셔틀콕 스탬프 — 2줄과 같은 높이에 정렬 */
+    paintShuttle(g, F.W - 104, cap.l2 - 16, 46, p.accent);
   }
 
   /* ============================================================
@@ -1309,6 +1493,22 @@
     var unitW = unit ? (function () { g.font = font(unitSize, 500, FONT); return g.measureText(unit).width + 16; })() : 0;
     var fitted = fitText(g, bitext, maxW - unitW, F.story ? 190 : 176, 900, FONT, 54);
     var bigSize = fitted.size;
+
+    /* 글씨 위치 3단 (bm-v1.66.0) — 스티커는 투명이라 사진 위 어디든 놓을 수 있습니다.
+     * 스티커 묶음(셔틀콕 아이콘 + 제목 + 큰 숫자 + 한 줄)을 통째로 옮깁니다. */
+    var pos = textPosById(spec.textPos).id;
+    var stampY = bigBase - Math.round(bigSize * 0.74) - 62;
+    var blockTop = stampY - 30;
+    var blockBottom = labelY + 12;
+    var dy = 0;
+    if (pos === 'middle') {
+      dy = Math.round((F.safeTop + F.bottom) / 2 - (blockTop + blockBottom) / 2);
+    } else if (pos === 'top') {
+      dy = Math.round((F.safeTop + 150) - blockTop);
+    }
+    if (blockTop + dy < F.safeTop + 40) dy = (F.safeTop + 40) - blockTop;
+    if (blockBottom + dy > F.bottom - 8) dy = (F.bottom - 8) - blockBottom;
+    labelY += dy; bigBase += dy; stampY += dy;
 
     /* 큰 숫자 — 어떤 사진 위에 얹어도 또렷하게: 얇은 어두운 테두리 + 은은한 그림자 */
     g.textAlign = 'left';
@@ -1350,7 +1550,6 @@
     }
 
     /* 작은 셔틀콕 라인 아이콘 + 제목 — 숫자 위 왼쪽 */
-    var stampY = bigBase - Math.round(bigSize * 0.74) - 62;
     paintShuttle(g, pad + 22, stampY, 42, p.accent);
     if (spec.phrase) {
       var pt = fitText(g, spec.phrase, maxW - 80, 29, 700, FONT, 15);
@@ -1495,8 +1694,14 @@
       frame: frameOptionById(prefs.frame).id,
       phrase: phraseText(prefs.phrase) || DEFAULT_PHRASE,
       phraseComp: phraseText(prefs.phraseComp) || DEFAULT_PHRASE,
+      /* 글씨 위치는 마지막에 고른 값을 기억합니다 (기본 '아래' = 예전과 같음) */
+      textPos: textPosById(prefs.textPos).id,
       recordId: rec ? rec.id : '',
       photo: null,
+      /* 사진 구도는 사진을 넣을 때마다 가운데 · 1.0배에서 시작합니다 */
+      photoX: 0,
+      photoY: 0,
+      photoZoom: ZOOM_MIN,
       gym: me.club || mp.club || '',
       partner: (meta && meta.partner) || '',
       rival: (meta && meta.rival) || '',
@@ -1528,6 +1733,12 @@
       palette: paletteById(ui.palette).id,
       bg: ui.bg || '',
       photo: ui.photo || null,
+      /* 사진 구도 — 끌어서 옮긴 위치와 확대 배율 (bm-v1.66.0) */
+      photoX: ui.photoX || 0,
+      photoY: ui.photoY || 0,
+      photoZoom: zoomOf(ui.photoZoom),
+      /* 글씨 위치 — 아래 · 가운데 · 위 (bm-v1.66.0) */
+      textPos: textPosById(ui.textPos).id,
       /* 카드 프레임은 대회 인증 카드에만 (bm-v1.64.0) */
       frame: ui.mode === 'comp' ? frameOptionById(ui.frame).id : 'none'
     };
@@ -1697,6 +1908,28 @@
     BM.ui.toast('챔피언 프레임은 하트 ' + opt.price + '개로 열 수 있어요', 'error');
   }
 
+  /* 사진 구도 — 끌어서 위치 이동 + −·+·슬라이더 확대 (bm-v1.66.0)
+   * 사진이 들어갔을 때만 나오고, '원래대로'는 위치·확대를 한 번에 복구합니다. */
+  function zoomLabel(z) {
+    return zoomOf(z).toFixed(2).replace(/0$/, '') + '×';
+  }
+
+  function zoomBox() {
+    var on = !!ui.photo && ui.design !== 'sticker';
+    return '<div class="sc__zoom" data-sc-zoombox' + (on ? '' : ' hidden') + '>' +
+      '<div class="field__label"><span>사진 위치 · 확대</span>' +
+        '<small data-sc-zoomlbl>' + zoomLabel(ui.photoZoom) + '</small></div>' +
+      '<div class="sc__zoomrow">' +
+        '<button type="button" class="sc__zoombtn" data-sc-zoomout aria-label="사진 작게">−</button>' +
+        '<input type="range" class="sc__zoomslider" data-sc-zoom min="' + ZOOM_MIN + '" max="' + ZOOM_MAX + '" ' +
+          'step="' + ZOOM_STEP + '" value="' + zoomOf(ui.photoZoom) + '" aria-label="사진 확대">' +
+        '<button type="button" class="sc__zoombtn" data-sc-zoomin aria-label="사진 크게">+</button>' +
+        '<button type="button" class="sc__zoomreset" data-sc-zoomreset>원래대로</button>' +
+      '</div>' +
+      '<p class="hint sc__dragghint">미리보기 사진을 손가락으로 끌면 구도를 옮길 수 있어요</p>' +
+      '</div>';
+  }
+
   /* 시트 — 초보자 기준 3초 완성 흐름 (bm-v1.63.0)
    *   탭 → 한 줄 안내 → 미리보기 → 📷 사진 넣기 (+ 기본 배경 4종) → 대회 입력(대회 탭)
    *   → 디자인 · 비율 · 사진 밝기 → 접기(문구 · 색 · 내용) → 저장
@@ -1771,6 +2004,7 @@
         '<button type="button" class="sc__shotdel" data-sc-photoclear' + (ui.photo ? '' : ' hidden') + '>' +
           BM.ui.icon('trash') + '<span>사진 빼기</span></button>' +
       '</div>' +
+      zoomBox() +
       '<div class="sc__bgrow"><span class="sc__bglabel">기본 배경</span><i class="sc__bghint">사진 없이도 감성 있게</i></div>' +
       '<div class="sc__bgs" role="group" aria-label="기본 배경 4종">' + BGS.map(bgChip).join('') + '</div>' +
       '<p class="hint sc__photohint">사진은 폰 안에서만 합쳐져요 · 서버로 보내지 않아요</p></div>';
@@ -1792,6 +2026,16 @@
           'aria-pressed="' + (on ? 'true' : 'false') + '"><i aria-hidden="true"></i><b>' + U.esc(r.name) + '</b></button>';
       }).join('') + '</div>' +
       '<p class="hint sc__ratiohint">' + hintOf(ui.design, ui.ratio) + '</p></div>';
+
+    /* 글씨 위치 3단 (bm-v1.66.0) — 사진 속 인물·메달을 글씨가 가리지 않게 */
+    var textPosPicks = '<div class="field"><div class="field__label"><span>글씨 위치</span>' +
+      '<small>인물·메달을 가리지 않게</small></div>' +
+      '<div class="seg seg--three sc__textpos" role="group" aria-label="글씨 위치">' + TEXT_POS.map(function (t) {
+        var on = textPosById(ui.textPos).id === t.id;
+        return '<button type="button" class="seg__btn sc__textposbtn sc__textposbtn--' + t.id + (on ? ' is-on' : '') + '" ' +
+          'data-sc-textpos="' + t.id + '" aria-pressed="' + (on ? 'true' : 'false') + '" ' +
+          'title="' + U.esc(t.note) + '">' + U.esc(t.name) + '</button>';
+      }).join('') + '</div></div>';
 
     /* 사진 밝기 3단계 — 사진이 있을 때만 */
     var shadePicks = '<div class="field sc__shadebox"' + (ui.photo && !sticker ? '' : ' hidden') + '>' +
@@ -1832,7 +2076,7 @@
 
     return modeTabs + guide + emptyNote + preview + photoBox +
       (ui.mode === 'comp' ? compFields : '') +
-      designPicks + ratioPicks + shadePicks + more + saveBar;
+      designPicks + ratioPicks + textPosPicks + shadePicks + more + saveBar;
   }
 
   function paintPreview(wrap, ctx) {
@@ -1840,6 +2084,9 @@
     if (!canvas) return;
     var spec = specOf(ctx);
     draw(canvas, spec);
+    /* 사진이 있으면 미리보기를 끌어 구도를 옮길 수 있다고 보여 줍니다 */
+    var prev = canvas.parentNode;
+    if (prev && prev.classList) prev.classList.toggle('is-drag', !!photoOf(spec) && ui.design !== 'sticker');
     var sum = wrap.querySelector('[data-sc-summary]');
     if (sum) sum.textContent = summaryOf(spec);
   }
@@ -1867,6 +2114,14 @@
     if (sub) sub.hidden = !!ui.photo;
     var del = node.querySelector('[data-sc-photoclear]');
     if (del) del.hidden = !ui.photo;
+    /* 사진 위치·확대 — 사진이 들어갔을 때만 (스티커는 사진을 얹지 않아요) */
+    var zb = node.querySelector('[data-sc-zoombox]');
+    if (zb) zb.hidden = !ui.photo || sticker;
+    var zl = node.querySelector('[data-sc-zoomlbl]');
+    if (zl) zl.textContent = zoomLabel(ui.photoZoom);
+    var zs = node.querySelector('[data-sc-zoom]');
+    if (zs && String(zs.value) !== String(zoomOf(ui.photoZoom))) zs.value = zoomOf(ui.photoZoom);
+    syncTextPos(node);
     /* 기본 배경 4종 — 내 사진이 있으면 배경은 꺼진 상태 */
     Array.prototype.forEach.call(node.querySelectorAll('[data-sc-bg]'), function (b) {
       var on = !ui.photo && ui.bg === b.getAttribute('data-sc-bg');
@@ -1875,6 +2130,17 @@
     });
     var hint = node.querySelector('.sc__ratiohint');
     if (hint) hint.textContent = hintOf(ui.design, ui.ratio);
+  }
+
+  /* 글씨 위치 3단 — 고른 자리만 켜 보입니다 */
+  function syncTextPos(node) {
+    if (!node) return;
+    var cur = textPosById(ui.textPos).id;
+    Array.prototype.forEach.call(node.querySelectorAll('[data-sc-textpos]'), function (b) {
+      var on = b.getAttribute('data-sc-textpos') === cur;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
   }
 
   /* 기본 배경 썸네일 — 카드와 같은 그림 함수로 작게 그려 늘 같은 결과 */
@@ -1927,6 +2193,42 @@
       onMount: function (node) {
         paintPreview(node, ctx);
         paintBgThumbs(node);
+
+        /* 미리보기 사진 끌기 — 손가락·마우스로 구도 옮기기 (bm-v1.66.0)
+         * 시트 본문을 다시 그릴 때마다 캔버스가 새로 생기므로, 시트(node)에 걸어 둡니다. */
+        var drag = null, rafId = 0;
+        function scheduleRepaint() {
+          if (typeof requestAnimationFrame !== 'function') { paintPreview(node, ctx); return; }
+          if (rafId) return;
+          rafId = requestAnimationFrame(function () { rafId = 0; paintPreview(node, ctx); });
+        }
+        node.addEventListener('pointerdown', function (ev) {
+          var cv = ev.target && ev.target.closest ? ev.target.closest('.sc__canvas') : null;
+          if (!cv || !ui.photo || ui.design === 'sticker') return;
+          if (ev.button && ev.button !== 0) return;
+          if (ev.preventDefault) ev.preventDefault();
+          drag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, cv: cv };
+          cv.classList.add('is-grabbing');
+          try { node.setPointerCapture(ev.pointerId); } catch (e) { /* 무시 */ }
+        });
+        node.addEventListener('pointermove', function (ev) {
+          if (!drag || ev.pointerId !== drag.id) return;
+          if (ev.preventDefault) ev.preventDefault();
+          var r = movePhotoBy(drag.cv, specOf(ctx), ev.clientX - drag.x, ev.clientY - drag.y);
+          drag.x = ev.clientX; drag.y = ev.clientY;
+          if (!r) return;
+          ui.photoX = r.x; ui.photoY = r.y;
+          if (r.moved) scheduleRepaint();
+        });
+        function endDrag(ev) {
+          if (!drag || (ev && ev.pointerId !== drag.id)) return;
+          if (drag.cv) drag.cv.classList.remove('is-grabbing');
+          try { node.releasePointerCapture(drag.id); } catch (e) { /* 무시 */ }
+          drag = null;
+        }
+        node.addEventListener('pointerup', endDrag);
+        node.addEventListener('pointercancel', endDrag);
+        node.addEventListener('pointerleave', endDrag);
 
         function repaint() { paintPreview(node, ctx); }
 
@@ -2020,6 +2322,37 @@
             repaint();
             return;
           }
+          /* 글씨 위치 3단 — 아래 · 가운데 · 위 (bm-v1.66.0) */
+          var tp = ev.target.closest('[data-sc-textpos]');
+          if (tp) {
+            ev.preventDefault();
+            ui.textPos = textPosById(tp.getAttribute('data-sc-textpos')).id;
+            BM.ui.haptic(6);
+            syncTextPos(node);
+            writePrefs({ textPos: ui.textPos });
+            repaint();
+            return;
+          }
+          /* 사진 구도 — − · + · 원래대로 (bm-v1.66.0) */
+          var zi = ev.target.closest('[data-sc-zoomin]');
+          var zo = ev.target.closest('[data-sc-zoomout]');
+          if (zi || zo) {
+            ev.preventDefault();
+            var next = zoomOf(ui.photoZoom) + (zi ? ZOOM_STEP : -ZOOM_STEP);
+            ui.photoZoom = Math.round(zoomOf(next) * 100) / 100;
+            BM.ui.haptic(6);
+            syncControls(node);
+            repaint();
+            return;
+          }
+          if (ev.target.closest('[data-sc-zoomreset]')) {
+            ev.preventDefault();
+            ui.photoX = 0; ui.photoY = 0; ui.photoZoom = ZOOM_MIN;
+            BM.ui.haptic(8);
+            syncControls(node);
+            repaint();
+            return;
+          }
           /* 기본 감성 배경 4종 — 한 번 누르면 그 배경으로, 다시 누르면 사진 없이(색 바탕)로 */
           var bgb = ev.target.closest('[data-sc-bg]');
           if (bgb) {
@@ -2036,6 +2369,7 @@
           if (ev.target.closest('[data-sc-photoclear]')) {
             ev.preventDefault();
             ui.photo = null;
+            ui.photoX = 0; ui.photoY = 0; ui.photoZoom = ZOOM_MIN;   /* 구도도 기본값으로 */
             BM.ui.haptic(6);
             syncControls(node);
             repaint();
@@ -2103,6 +2437,15 @@
         });
 
         node.addEventListener('input', function (ev) {
+          /* 사진 확대 슬라이더 — 끄는 동안 바로 따라 그립니다 */
+          var zr = ev.target.closest('[data-sc-zoom]');
+          if (zr) {
+            ui.photoZoom = zoomOf(zr.value);
+            var zl = node.querySelector('[data-sc-zoomlbl]');
+            if (zl) zl.textContent = zoomLabel(ui.photoZoom);
+            repaint();
+            return;
+          }
           var f = ev.target.closest('[data-sc-field]');
           if (!f) return;
           var name = f.getAttribute('data-sc-field');
@@ -2126,6 +2469,8 @@
             if (!img) { BM.ui.toast('사진을 읽지 못했어요', 'error'); return; }
             ui.photo = img;
             ui.bg = '';          /* 내 사진이 기본 배경보다 먼저 */
+            /* 사진을 바꾸면 구도(위치·확대)는 가운데 · 1.0배로 돌아갑니다 */
+            ui.photoX = 0; ui.photoY = 0; ui.photoZoom = ZOOM_MIN;
             writePrefs({ bg: '' });
             syncControls(node);
             repaint();
@@ -2147,6 +2492,10 @@
     bgById: bgById, bgOf: bgOf, paintBg: paintBg,
     phraseById: phraseById, phraseText: phraseText, isPresetPhrase: isPresetPhrase,
     dimsOf: dimsOf,
+    TEXT_POS: TEXT_POS, textPosById: textPosById,
+    ZOOM_MIN: ZOOM_MIN, ZOOM_MAX: ZOOM_MAX, ZOOM_STEP: ZOOM_STEP,
+    zoomOf: zoomOf, zoomLabel: zoomLabel,
+    photoViewOf: photoViewOf, coverBox: coverBox, photoFrameOf: photoFrameOf, movePhotoBy: movePhotoBy,
     open: open,
     draw: draw,
     saveOrShare: saveOrShare,
