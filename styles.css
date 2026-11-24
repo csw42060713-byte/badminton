@@ -6667,8 +6667,8 @@ body {
 .onb__tip { margin: 1px 0 0; font-size: 11px; line-height: 1.5; color: var(--muted); }
 
 /* ---------- 인스타 공유 카드 (bm-v1.63.0 — 3초 완성 시트) ----------
- * 순서: 두 모드 탭 → 한 줄 안내 → 카드 미리보기 → 📷 사진 넣기(+ 기본 배경 4종)
- *       → 디자인 3종 · 비율 2종 · 사진 밝기 → 접기(문구 · 색 · 내용) → 저장(아래 고정)
+ * 순서: 두 모드 탭 → 한 줄 안내 → 카드 미리보기 → 📷 사진 넣기(+ 사진 위치·확대 · 기본 배경 4종)
+ *       → 디자인 3종 · 비율 2종 · 글씨 위치 3단 · 사진 밝기 → 접기(문구 · 색 · 내용) → 저장(아래 고정)
  * 미리보기 높이를 묶어(max-height) 시트를 열자마자 사진 버튼까지 한 화면에 들어오고,
  * 자주 안 고르는 옵션은 <details>로 접어 평소 화면을 깔끔하게 둡니다. */
 .sc__modes { margin-bottom: 10px; padding: 4px; border-radius: 14px; gap: 3px; }
@@ -6840,6 +6840,40 @@ body {
 .sc__ratio--feed i { width: 10px; height: 13px; }
 .sc__ratio--story i { width: 8px; height: 15px; }
 .sc__ratiohint { margin-top: 8px; }
+
+/* 글씨 위치 3단 — 아래 · 가운데 · 위 (bm-v1.66.0)
+ * 디자인·비율 바로 아래에 콤팩트한 세 칸으로 두고, 고른 칸만 강조합니다. */
+.sc__textpos { margin-top: 0; padding: 4px; border-radius: 14px; gap: 3px; }
+.sc__textposbtn {
+  min-height: 36px; font-size: 12.5px; font-weight: 800; letter-spacing: -0.3px;
+}
+
+/* 사진 위치 · 확대 — 사진이 들어갔을 때만 (bm-v1.66.0) */
+.sc__zoom { margin-top: 12px; }
+.sc__zoom[hidden] { display: none; }
+.sc__zoom .field__label { margin-bottom: 7px; }
+.sc__zoomrow { display: flex; align-items: center; gap: 7px; }
+.sc__zoombtn {
+  flex: none; width: 38px; height: 38px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--line-2); background: var(--card-2); color: var(--text);
+  font-size: 17px; font-weight: 800; line-height: 1;
+}
+.sc__zoombtn:active { transform: scale(0.95); }
+.sc__zoomslider {
+  flex: 1; min-width: 0; height: 38px; margin: 0; padding: 0;
+  accent-color: var(--accent); background: transparent;
+}
+.sc__zoomreset {
+  flex: none; height: 38px; padding: 0 12px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--line-2); background: transparent; color: var(--text-2);
+  font-size: 11.5px; font-weight: 800; letter-spacing: -0.25px; white-space: nowrap;
+}
+.sc__zoomreset:active { transform: scale(0.96); border-color: var(--accent-line); color: var(--accent); }
+.sc__dragghint { margin: 8px 2px 0; }
+
+/* 미리보기 끌기 — 사진이 있을 때만 손가락·마우스로 구도를 옮깁니다 */
+.sc__preview.is-drag .sc__canvas { touch-action: none; cursor: grab; }
+.sc__preview.is-drag .sc__canvas.is-grabbing { cursor: grabbing; }
 
 /* 사진 밝기 3단계 */
 .sc__shadebox { margin-top: 14px; }

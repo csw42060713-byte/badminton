@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v159.test.js — bm-v1.65.0
+ * test/v159.test.js — bm-v1.66.0
  *   😴 14일 넘게 활동이 없는 계정은 매칭 추천·탐색 목록에서 자동으로 숨기고,
  *      다시 접속하면 곧바로 복구합니다. (계정·데이터는 지우지 않음)
  *
@@ -325,7 +325,7 @@
     });
     eq((tabs.match(/id: '/g) || []).length, 5, '탭 5개');
     includes(readRoot('js/sharecard.js'), 'PALETTES', 'v1.57~1.58 공유 카드 색상 유지');
-    eq((readRoot('js/sharecard.js').match(/\{ id: '\w+', name: '[^']+', note:/g) || []).length, 15, '공유 카드 모음(모드 2 · 비율 2 · 디자인 3 · 밝기 3 · 색 5)');
+    eq((readRoot('js/sharecard.js').match(/\{ id: '\w+', name: '[^']+', note:/g) || []).length, 18, '공유 카드 모음(모드 2 · 비율 2 · 디자인 3 · 밝기 3 · 색 5 · 글씨 위치 3)');
     includes(readRoot('js/store.js'), 'DEAD_KEY', 'v1.58 격리 보관 유지');
     includes(readRoot('js/views/my.js'), 'retryBlocked', '격리된 저장 다시 보내기 유지');
   });
@@ -358,16 +358,16 @@
     includes(css, 'font-size: 11.5px', '작은 글씨');
   });
 
-  test('v1.59 버전: sw · app · index · TWA가 함께 bm-v1.65.0', function () {
+  test('v1.59 버전: sw · app · index · TWA가 함께 bm-v1.66.0', function () {
     if (!hasNode()) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.65.0'", 'sw.js');
-    includes(app, "version: 'v1.65.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-3', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.65.0', 'TWA 이름');
-    eq(twa.appVersion, '1.65.0', 'TWA 버전');
-    eq(twa.appVersionCode, 59, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.66.0'", 'sw.js');
+    includes(app, "version: 'v1.66.0'", 'app.js');
+    includes(index, 'styles.css?v=20261124-4', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.66.0', 'TWA 이름');
+    eq(twa.appVersion, '1.66.0', 'TWA 버전');
+    eq(twa.appVersionCode, 60, 'TWA 코드');
     includes(sw, '14일', 'sw 변경 이력');
     var run = readRoot('test/run.js');
     includes(run, 'test/v159.test.js', '테스트 목록');
