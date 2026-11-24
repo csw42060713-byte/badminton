@@ -6816,6 +6816,17 @@ body {
   content: ''; position: absolute; left: 7px; right: 30%; bottom: 9px; height: 2px;
   background: rgba(255,255,255,0.72); box-shadow: 0 -7px 0 -0.5px rgba(255,255,255,0.38);
 }
+.sc__design--receipt i { background: linear-gradient(165deg, #37504a, #0f1715 84%); }
+.sc__design--receipt i::after {
+  content: ''; position: absolute; left: 7px; right: 7px; top: 6px; bottom: 6px;
+  border-radius: 2px; background: #f8f3e7;
+  box-shadow: inset 0 0 0 1px rgba(29,27,24,0.10), 0 2px 6px rgba(0,0,0,0.34);
+}
+.sc__design--receipt i::before {
+  content: ''; position: absolute; z-index: 1; left: 12px; right: 12px; top: 15px; height: 1.5px;
+  background: repeating-linear-gradient(90deg, rgba(29,27,24,0.55) 0 3px, transparent 3px 6px);
+  box-shadow: 0 6px 0 -0.5px rgba(29,27,24,0.28), 0 12px 0 -0.5px rgba(29,27,24,0.16);
+}
 .sc__design--film i { background: linear-gradient(165deg, #faf8f3, #e9e3d7); }
 .sc__design--glass i { background: linear-gradient(165deg, #2a4a44, #0d1714 82%); }
 .sc__design--glass i::after {
