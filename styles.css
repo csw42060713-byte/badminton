@@ -2615,6 +2615,8 @@ body.kb-open .savebar .hint { display: none; }
 
 /* 6) 커뮤니티 — 입력은 한 줄, 글은 여백 있게 */
 .card--composer { padding: 14px 16px; }
+/* 빈 화면 '게스트 모집 글쓰기'에서 이 카드로 스크롤할 때 상단 머리에 가리지 않게 */
+.card--composer { scroll-margin-top: calc(var(--hdr-h) + var(--safe-t) + 8px); }
 .card--composer .row { gap: 10px; }
 .post { padding: 15px 16px; }
 .post__text { font-size: 14.5px; line-height: 1.62; margin-top: 9px; }
@@ -2676,6 +2678,27 @@ body.kb-open .savebar .hint { display: none; }
   font-size: 12.5px; font-weight: 700; color: var(--text-2);
 }
 .coachflow i { font-style: normal; color: var(--muted); margin: 0 4px; }
+
+/* 코치·지도자 입구 — 동호인·초보 화면에서는 위 탭 대신 맨 아래 보조 줄 (bm-v1.63.0) */
+.coachmentor {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 4px; padding: 12px 13px;
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--bg-2) 70%, var(--card));
+}
+.coachmentor__ic {
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px;
+  border-radius: 10px; background: color-mix(in srgb, var(--text) 7%, var(--card)); color: var(--muted);
+}
+.coachmentor__ic .ico { width: 17px; height: 17px; }
+.coachmentor__t { flex: 1; min-width: 0; }
+.coachmentor__t b { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: -0.25px; color: var(--text-2); }
+.coachmentor__t p { margin-top: 2px; font-size: 10.5px; line-height: 1.45; color: var(--muted); }
+.coachmentor__st { display: inline-block; margin-left: 5px; vertical-align: 1px; }
+.coachmentor__st .pill { font-size: 9.5px; padding: 1px 6px; }
+.coachmentor__b { flex: none; }
+.coachback { margin-bottom: 4px; color: var(--muted); font-size: 12px; }
+.coachline { margin: 0 2px 2px; font-size: 12.5px; font-weight: 800; letter-spacing: -0.25px; color: var(--text-2); }
 .card--profile .stats { display: grid; grid-template-columns: repeat(3, 1fr); }
 
 /* 시작화면 — 브랜드는 가운데, 버튼은 엄지 자리 */
@@ -5103,6 +5126,69 @@ body {
 .nearp__s.is-work, .nearp__s.is-avail { border-color: var(--live-line); background: var(--live-soft); color: var(--live); }
 .near__empty { display: flex; align-items: center; gap: 6px; margin-top: 9px; font-size: 11.5px; color: var(--muted); }
 .near__hint { margin-top: 7px; font-size: 9.8px; }
+
+/* 선택한 동호인 — 지도·목록 어느 쪽에서 눌러도 화면 아래에 바로 매칭 요청 · 1:1 채팅 · 프로필 (bm-v1.63.0)
+ * 전에는 사람을 누르면 토스트만 떴습니다. 이제 아래에 카드가 떠오릅니다. */
+.gymacthost {
+  position: absolute; left: 12px; right: 12px;
+  bottom: calc(var(--safe-b) + 12px);
+  z-index: 4;
+  pointer-events: none;
+  display: flex; justify-content: center;
+}
+.gymacthost:empty { display: none; }
+.nearact {
+  pointer-events: auto;
+  width: 100%; max-width: 436px;
+  padding: 11px 12px 10px;
+  border: 1px solid var(--line); border-radius: 18px;
+  background: color-mix(in srgb, var(--card) 96%, transparent);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  box-shadow: 0 12px 28px color-mix(in srgb, #000 28%, transparent);
+  animation: gymactIn 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes gymactIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.nearact__top { display: flex; align-items: center; gap: 9px; }
+.nearact__av {
+  flex: none; display: grid; place-items: center;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 10%, var(--card));
+  color: var(--text-2); font-size: 14px; font-weight: 900;
+}
+.nearact__av.is-lit { background: var(--live); color: #fff; }
+.nearact__t { flex: 1; min-width: 0; }
+.nearact__t b { display: block; font-size: 13.5px; font-weight: 800; letter-spacing: -0.3px; color: var(--text); }
+.nearact__t p { margin-top: 1px; font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nearact__x {
+  flex: none; display: grid; place-items: center; width: 26px; height: 26px;
+  border: 0; border-radius: 50%; background: transparent; color: var(--muted);
+}
+.nearact__x .ico { width: 15px; height: 15px; }
+.nearact__st {
+  display: flex; align-items: center; gap: 5px; margin-top: 8px;
+  font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: -0.2px;
+}
+.nearact__st.is-work, .nearact__st.is-avail { color: var(--live); }
+.nearact__note { margin-top: 4px; font-size: 11px; color: var(--text-2); line-height: 1.45; }
+.nearact__acts { display: flex; gap: 7px; margin-top: 9px; }
+.nearact__acts .btn { flex: 1; }
+.nearact__hint { margin-top: 6px; font-size: 10px; color: var(--muted); line-height: 1.4; }
+.nearact__hint b { color: var(--text-2); }
+/* 지도 위에서 고른 사람 표시 */
+.gymp.is-sel { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent); }
+.gymperson .nearact__av { width: 40px; height: 40px; font-size: 16px; }
+.gymperson__top { display: flex; align-items: center; gap: 10px; }
+.gymperson__t { flex: 1; min-width: 0; }
+.gymperson__t b { display: block; font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
+.gymperson__t p { margin-top: 2px; font-size: 11.5px; color: var(--muted); }
+.gymperson__row { display: flex; align-items: center; gap: 5px; margin-top: 10px; font-size: 11.5px; color: var(--text-2); }
+.gymperson__row .ico { width: 14px; height: 14px; color: var(--muted); }
+.gymperson__note { margin-top: 8px; font-size: 12px; color: var(--text-2); line-height: 1.5; }
+.gymperson .pp__note { margin-top: 11px; }
 
 /* ---------- 20.5 지도 안 게스트 모집 ---------- */
 .recruit {

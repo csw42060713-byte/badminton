@@ -558,7 +558,9 @@
 
   /* ---------- 빈 화면 ----------
    * 첫 방문에 빈 화면만 보이지 않도록, 아직 공유하지 않은 최근 일지를
-   * 한 번에 올리는 버튼을 둡니다. 올릴 일지가 없으면 일지 쓰기로 보냅니다. */
+   * 한 번에 올리는 버튼을 둡니다. 올릴 일지가 없으면 일지 쓰기로 보냅니다.
+   * 2026-11-23 저녁 — 저녁에 게스트 모집 글을 올리거나 찾는 동호인이
+   * 바로 닿도록 '게스트 모집 글쓰기' 입구를 함께 둡니다(누르면 분류가 게스트 모집으로). */
   function shareableRecord(state) {
     var me = (state.me && state.me.key) || '';
     var shared = {};
@@ -575,13 +577,17 @@
 
   function emptyBlock(state) {
     var rec = shareableRecord(state);
+    var guest = '<button type="button" class="btn btn--ghost btn--sm" data-act="write-guest">' +
+      UI.icon('bolt') + '게스트 모집 글쓰기</button>';
     var action = '<div class="empty__acts">' +
       (rec
         ? '<button type="button" class="btn btn--primary btn--sm" data-act="share-last">' +
           UI.icon('send') + U.shortDay(rec.date) + ' 기록 그대로 공유</button>' +
+          guest +
           '<button type="button" class="linkbtn" data-act="write-log">새 일지 쓰기</button>'
         : '<button type="button" class="btn btn--primary btn--sm" data-act="write-log">' +
-          UI.icon('edit') + '일지 쓰고 공유하기</button>') +
+          UI.icon('edit') + '일지 쓰고 공유하기</button>' +
+          guest) +
       '</div>';
     return UI.emptyState('community', '아직 글이 없어요',
       rec ? '지난 훈련 기록이 그대로 첫 글이 돼요.' : '오늘 훈련을 남기면 첫 글이 돼요.', action);
@@ -916,6 +922,29 @@
         if (ev.target.closest('[data-act="write-log"]')) {
           ev.preventDefault();
           ctx.actions.setTab('log');
+          return;
+        }
+        /* 빈 화면 '게스트 모집 글쓰기' (2026-11-23)
+         * 분류를 게스트 모집으로 바꾸면 모집 입력칸(언제·어디·몇 명)이 열립니다.
+         * 이어서 작성 카드로 스크롤하고 글쓰기 칸에 커서를 놓습니다(본문은 비워 둔 채). */
+        if (ev.target.closest('[data-act="write-guest"]')) {
+          ev.preventDefault();
+          ctx.actions.setComposerTopic(D.MEET.topic);
+          UI.haptic(8);
+          var curRoot = root;
+          var go = function () {
+            var card = curRoot.querySelector('.card--composer');
+            var ta = curRoot.querySelector('[data-composer]');
+            var when = curRoot.querySelector('[data-vitefield="when"]');
+            if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            /* 글은 사람이 쓰고, 모집 칸(언제·어디·몇 명)은 바로 아래에 열려 있습니다 */
+            var target = ta || when;
+            if (target && target.focus) {
+              try { target.focus({ preventScroll: true }); } catch (e) { target.focus(); }
+            }
+          };
+          if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go);
+          else go();
           return;
         }
         if (ev.target.closest('[data-act="post"]')) {
