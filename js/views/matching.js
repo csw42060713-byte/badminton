@@ -1513,5 +1513,38 @@
   view.openProfile = openProfile;
   view.openHeartSheet = openHeartSheet;
   view.profileBody = profileBody;   /* 테스트·점검용 (프로필 시트 본문) */
+
+  /* ---------- 다른 화면(체육관 지도)에서 매칭 흐름으로 이어지는 입구 (2026-11-23)
+   *  · 매칭 탭의 프로필 시트·매칭 신청(편지지)·1:1 대화를 그대로 재사용합니다.
+   *  · 지도에서 동네 동호인을 눌렀을 때 바로 이 함수들로 들어옵니다. */
+  view.matchWith = function (ctx, userKey) {
+    if (!ctx || !userKey) return null;
+    var state = ctx.store && ctx.store.state;
+    if (!state) return null;
+    var p = profileOf(state, userKey) || personOf(state, userKey);
+    if (!p) return null;
+    openProfile(p, ctx);
+    return p;
+  };
+
+  /* 이미 대화할 수 있는 사이(친구 · 매칭 성사 · 승인된 코치)인지 */
+  view.canChatWith = function (ctx, userKey) {
+    var state = ctx && ctx.store && ctx.store.state;
+    if (!state || !userKey) return false;
+    var me = meKey(state);
+    if (!me) return false;
+    return !!D.canChatWith(state.data.idx, me, userKey);
+  };
+
+  /* 대화방을 바로 연다 — 방 ID 계산은 매칭 화면과 같은 규칙(statusOf) */
+  view.openChatWith = function (ctx, userKey) {
+    var state = ctx && ctx.store && ctx.store.state;
+    if (!state || !userKey) return { ok: false, reason: 'no_key' };
+    var st = statusOf(state, personOf(state, userKey));
+    if (!st.canChat || !st.roomId) return { ok: false, reason: 'no_chat' };
+    var res = ctx.actions.openChat(st.roomId, userKey);
+    if (res && res.ok) ctx.actions.markChatRead(st.roomId, userKey);
+    return res || { ok: false, reason: 'no_chat' };
+  };
   BM.views.matching = view;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

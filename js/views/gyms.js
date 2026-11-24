@@ -28,6 +28,16 @@
  *   · 내 상태 카드에서 '운동 중'·'지금 운동 가능'을 켜고 끄고, 운동 가능 시간대를 고릅니다.
  *   · 지도 안에서 게스트 모집 글을 보고, 그 자리에서 모집 글을 올릴 수 있습니다.
  *
+ *  동네 동호인 → 바로 매칭·대화 (2026-11-23 저녁 사용성 점검)
+ *   · 전에는 사람을 누르면 지도만 옮기고 "정하늘 · 운동 가능 시간" 토스트만 떴습니다.
+ *   · 이제 누른 사람 아래에 '선택한 동호인' 카드가 열리고, 그 자리에서
+ *       매칭 요청  → 매칭 탭의 프로필 시트(하트·편지지 흐름 그대로)
+ *       1:1 채팅   → 이미 대화할 수 있는 사이(친구·매칭 성사·승인 코치)일 때
+ *       프로필 보기 → 그 사람 카드(지도 화면 안) / 실제 프로필이면 매칭 프로필 시트
+ *     로 이어집니다. 매칭 탭의 함수(js/views/matching.js)를 그대로 재사용합니다.
+ *   · 지도에 보이는 예시 동호인은 실제 계정이 없으므로, 카드에서 그 사실을 밝히고
+ *     '매칭에서 동호인 찾기'로 보냅니다(없는 요청을 보내지 않습니다).
+ *
  *  오프라인·타일 실패
  *   · Leaflet 을 못 불러오면 좌표를 % 위치로 계산한 핀 지도를 그립니다(핀·카드 그대로).
  *   · 타일만 실패하면 지도 바탕에 안내 한 줄을 띄우고 핀은 그대로 둡니다.
@@ -49,7 +59,7 @@
   var model = {
     scope: 'guest', onlyFav: false, query: '', region: 'all', club: '', geo: null, geoState: 'idle', focus: '',
     home: null, posts: [], profiles: [], now: null,
-    onlyLit: false, recruitOpen: false, draft: null, pickHome: false
+    onlyLit: false, recruitOpen: false, draft: null, pickHome: false, person: ''
   };
   var map = null;              /* Leaflet 지도 */
   var markerLayer = null;
@@ -227,15 +237,55 @@
   }
 
   /* 동호인 한 명 — 지도 바로 위에 가로로 늘어놓는 카드 (불 켜짐/꺼짐이 한눈에) */
-  function personRowHtml(p) {
+  function personRowHtml(p, m) {
     var st = p.status;
-    return '<button type="button" class="nearp' + (st.lit ? ' is-lit' : '') + '" data-gym-person="' + U.esc(p.id) + '"' +
+    var on = !!(m && m.person === p.id);
+    return '<button type="button" class="nearp' + (st.lit ? ' is-lit' : '') + (on ? ' is-focus' : '') +
+      '" data-gym-person="' + U.esc(p.id) + '" aria-expanded="' + (on ? 'true' : 'false') + '"' +
       ' aria-label="' + U.esc(p.name + ' ' + st.label) + '">' +
       '<span class="nearp__top"><span class="nearp__av">' + U.esc(initial(p.name)) + '</span>' +
       '<span class="nearp__t"><b>' + U.esc(p.name) + '</b>' +
       '<small>' + U.esc(p.level || '동호인') + ' · ' + U.esc(G().distLabel(p.dist)) + '</small></span></span>' +
       '<span class="nearp__s is-' + st.key + '">' + lamp(st.lit) + U.esc(st.label) + '</span>' +
       '</button>';
+  }
+
+  /* 고른 동호인 — 이 자리에서 바로 매칭 요청·1:1 대화·프로필로 이어집니다 (2026-11-23)
+   *  · 매칭 탭의 함수(js/views/matching.js)를 그대로 씁니다: 매칭 요청은 프로필 시트(하트·편지지),
+   *    대화는 이미 대화할 수 있는 사이일 때만 보입니다.
+   *  · 지도에 보이는 예시 동호인은 실제 계정이 없으므로 없는 요청을 보내지 않고,
+   *    그 사실을 카드에 밝힌 뒤 '매칭에서 동호인 찾기'로 보냅니다. */
+  function personActHtml(p, m) {
+    var st = p.status || N().statusOf(p, nowOf(m));
+    var real = !!p.userKey;
+    var ctx = ctxRef;
+    var M = BM.views && BM.views.matching;
+    var canChat = !!(real && ctx && M && M.canChatWith && M.canChatWith(ctx, p.userKey));
+    var meta = [p.level || '동호인', p.gym || p.area, p.dist != null ? G().distLabel(p.dist) : '']
+      .filter(Boolean).join(' · ');
+    var acts = '<button type="button" class="btn btn--primary btn--sm grow" data-gym-match="' + U.esc(p.id) + '">' +
+        UI.icon('heart') + '매칭 요청</button>' +
+      (canChat
+        ? '<button type="button" class="btn btn--ghost btn--sm grow" data-gym-chat="' + U.esc(p.id) + '">' +
+          UI.icon('community') + '1:1 채팅</button>'
+        : '<button type="button" class="btn btn--ghost btn--sm grow" data-gym-profile="' + U.esc(p.id) + '">' +
+          UI.icon('search') + '프로필 보기</button>');
+    var hint = !real
+      ? '지도에 보이는 <b>예시 동호인</b>이에요 · 실제 프로필이 있는 동호인에게 바로 요청할 수 있어요'
+      : (canChat ? '바로 1:1 대화를 할 수 있는 사이예요'
+        : '매칭이 성사되면 1:1 대화가 열려요 · 수락 시 하트 ' + D.HEART_RULES.MATCH_COST + '개 차감');
+    return '<div class="nearact" data-gymact="' + U.esc(p.id) + '">' +
+      '<div class="nearact__top">' +
+      '<span class="nearact__av' + (st.lit ? ' is-lit' : '') + '">' + U.esc(initial(p.name)) + '</span>' +
+      '<div class="nearact__t"><b>' + U.esc(p.name) + '</b><p>' + U.esc(meta) + '</p></div>' +
+      '<button type="button" class="nearact__x" data-gym-person-close aria-label="접기">' + UI.icon('close') + '</button>' +
+      '</div>' +
+      '<p class="nearact__st is-' + st.key + '">' + lamp(st.lit) + U.esc(st.label) +
+        (st.range ? ' · ' + U.esc(st.range) : '') + '</p>' +
+      (p.note ? '<p class="nearact__note">‘' + U.esc(p.note) + '’</p>' : '') +
+      '<div class="nearact__acts">' + acts + '</div>' +
+      '<p class="nearact__hint">' + hint + '</p>' +
+      '</div>';
   }
 
   function nearHtml(m) {
@@ -251,9 +301,20 @@
       pack.inside.filter(function (p) { return p.status.working; }).length + '명' +
       (pack.outside ? ' · 5km 밖 ' + pack.outside + '명은 뺐어요' : '') + '</p>';
     var body = rows.length
-      ? '<div class="nearlist">' + rows.map(personRowHtml).join('') + '</div>'
+      ? '<div class="nearlist">' + rows.map(function (p) { return personRowHtml(p, m); }).join('') + '</div>'
       : '<p class="near__empty">' + lamp(true) + '지금 불이 켜진 동호인이 없어요. 운동 가능 시간을 켜 두면 여기에 보여요.</p>';
     return '<section class="near" data-gymnear>' + head + body + '</section>';
+  }
+
+  /* 고른 사람(카드) — 지금 고른 사람을 반경 안에서 다시 찾아 줍니다 */
+  function pickedOf(m) {
+    if (!m || !m.person) return null;
+    return peopleOf(m).inside.filter(function (p) { return p.id === m.person; })[0] || null;
+  }
+
+  function actHostHtml(m) {
+    var p = pickedOf(m);
+    return p ? personActHtml(p, m) : '';
   }
 
   /* ---------- 지도 안 게스트 모집 ----------
@@ -411,7 +472,8 @@
     out += pack.inside.filter(function (p) { return !m.onlyLit || p.status.lit; }).map(function (p) {
       var pos = boxPos(box, p.lat, p.lng);
       if (!pos) return '';
-      return '<button type="button" class="gymp is-flat' + (p.status.lit ? ' is-lit' : '') + '"' +
+      return '<button type="button" class="gymp is-flat' + (p.status.lit ? ' is-lit' : '') +
+        (m.person === p.id ? ' is-sel' : '') + '"' +
         ' style="left:' + pos.x + '%;top:' + pos.y + '%" data-gym-person="' + U.esc(p.id) + '"' +
         ' aria-label="' + U.esc(p.name + ' ' + p.status.label) + '"><i>' + U.esc(initial(p.name)) + '</i></button>';
     }).join('');
@@ -605,9 +667,11 @@
       profiles: (m && m.profiles) || [], idx: (m && m.idx) || null,
       now: (m && m.now) || null, onlyLit: !!(m && m.onlyLit),
       recruitOpen: !!(m && m.recruitOpen),
-      draft: (m && m.draft) || null
+      draft: (m && m.draft) || null,
+      person: (m && m.person) || ''
     };
-    return headHtml(mm) + '<div class="gympage__body" data-gymbody>' + bodyHtml(mm) + '</div>';
+    return headHtml(mm) + '<div class="gympage__body" data-gymbody>' + bodyHtml(mm) + '</div>' +
+      '<div class="gymacthost" data-gymacthost>' + actHostHtml(mm) + '</div>';
   }
 
   /* ---------- 지도 ---------- */
@@ -696,9 +760,10 @@
   /* ---------- 동네 동호인 (사람 아이콘) ---------- */
   function personIcon(p) {
     var L = leaflet();
+    var on = !!(model && model.person === p.id);
     return L.divIcon({
       className: 'gymp-wrap',
-      html: '<span class="gymp' + (p.status && p.status.lit ? ' is-lit' : '') + '"><i>' +
+      html: '<span class="gymp' + (p.status && p.status.lit ? ' is-lit' : '') + (on ? ' is-sel' : '') + '"><i>' +
         U.esc(initial(p.name)) + '</i></span>',
       iconSize: [30, 30], iconAnchor: [15, 15]
     });
@@ -827,21 +892,95 @@
     if (card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  /* 사람을 눌렀을 때 — 그 사람 위치로 지도를 옮기고 목록의 줄을 짚어 줍니다 */
+  /* 사람을 눌렀을 때 — 그 사람 위치로 지도를 옮기고, 화면 아래에 바로 할 수 있는 일을 엽니다.
+   *  (2026-11-23: 전에는 토스트만 떴지만, 이제 매칭 요청·1:1 대화·프로필 버튼이 열립니다)
+   *  화면을 움직이지 않고 지도·목록 어느 쪽에서 눌러도 보이도록 아래에 고정합니다. */
   function raisePerson(id) {
     if (!page) return;
-    var row = page.querySelector('[data-gym-person="' + id + '"]');
-    Array.prototype.forEach.call(page.querySelectorAll('.nearp.is-focus'), function (n) {
-      n.classList.remove('is-focus');
-    });
-    if (row) {
-      row.classList.add('is-focus');
-      if (row.scrollIntoView) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    var same = model.person === String(id || '');
+    model.person = same ? '' : String(id || '');
+    /* 가로로 넘겨 보던 사람 목록의 위치는 그대로 둡니다 */
+    var before = page.querySelector('.nearlist');
+    var sx = before ? before.scrollLeft : 0;
+    UI.haptic(6);
+    refresh();
+    var after = page.querySelector('.nearlist');
+    if (after && sx) after.scrollLeft = sx;
+    if (!model.person) return;
     var pack = peopleOf(model);
     var p = pack.inside.filter(function (x) { return x.id === id; })[0];
     if (p && map) map.setView([p.lat, p.lng], 14, { animate: true });
-    if (p) UI.toast(p.name + ' · ' + p.status.label + (p.status.range ? ' (' + p.status.range + ')' : ''));
+  }
+
+  function closePerson() {
+    model.person = '';
+    UI.haptic(4);
+    refresh();
+  }
+
+  function personById(id) {
+    return peopleOf(model).inside.filter(function (p) { return p.id === id; })[0] || null;
+  }
+
+  /* 매칭 요청 — 실제 프로필이면 매칭 탭의 프로필 시트(하트·편지지 흐름)를 그대로,
+   * 예시 동호인이면 그 사실을 밝히는 카드를 띄웁니다(없는 요청을 보내지 않음). */
+  function matchPerson(id, ctx, intent) {
+    var p = personById(id);
+    if (!p) return;
+    var M = BM.views && BM.views.matching;
+    if (p.userKey && M && M.matchWith) {
+      M.matchWith(ctx || ctxRef, p.userKey);
+      return;
+    }
+    personSheet(p, ctx || ctxRef, intent);
+  }
+
+  /* 1:1 대화 — 매칭 탭과 같은 규칙(친구·매칭 성사·승인 코치)일 때만 열립니다.
+   * 대화 화면(DM)은 지도 화면보다 아래 z 순서라, 지도를 먼저 닫고 열어야 보입니다. */
+  function chatPerson(id, ctx) {
+    var p = personById(id);
+    if (!p || !p.userKey) return;
+    var M = BM.views && BM.views.matching;
+    if (!M || !M.openChatWith) return;
+    var c = ctx || ctxRef;
+    if (M.canChatWith && !M.canChatWith(c, p.userKey)) {
+      UI.toast('아직 대화할 수 있는 사이가 아니에요. 매칭이 성사되면 열려요', 'error');
+      return;
+    }
+    /* 대화 화면(DM)은 지도 화면보다 아래 z 순서라, 지도를 먼저 닫고 엽니다 */
+    close();
+    var res = M.openChatWith(c, p.userKey);
+    if (!res || !res.ok) UI.toast('대화를 열지 못했어요', 'error');
+  }
+
+  /* 동네 동호인 카드 — 예시 동호인의 상태·한마디와, 실제 동호인은 어떻게 이어지는지 */
+  function personSheet(p, ctx, intent) {
+    var st = p.status || N().statusOf(p, nowOf(model));
+    var meta = [p.level || '동호인', p.gym || p.area, p.dist != null ? G().distLabel(p.dist) : '']
+      .filter(Boolean).join(' · ');
+    var body = '<div class="gymperson">' +
+      '<div class="gymperson__top">' +
+      '<span class="nearact__av' + (st.lit ? ' is-lit' : '') + '">' + U.esc(initial(p.name)) + '</span>' +
+      '<div class="gymperson__t"><b>' + U.esc(p.name) + '</b><p>' + U.esc(meta) + '</p></div>' +
+      '<span class="nearp__s is-' + st.key + '">' + lamp(st.lit) + U.esc(st.label) + '</span></div>' +
+      (st.range ? '<p class="gymperson__row">' + UI.icon('clock') + '<span>운동 가능 시간 · ' + U.esc(st.range) + '</span></p>' : '') +
+      (p.note ? '<p class="gymperson__note">‘' + U.esc(p.note) + '’</p>' : '') +
+      '<div class="pp__note pp__note--info">' + UI.icon('alert') +
+      '<span>지도에 보이는 <b>예시 동호인</b>이에요. 실제 동호인이 프로필을 올리면 이 자리에 나타나고, ' +
+      '<b>매칭 요청</b>·<b>1:1 대화</b>가 바로 열립니다.</span></div>' +
+      '<button type="button" class="btn btn--primary btn--big mt8" data-gym-find-mates>' + UI.icon('search') + '매칭에서 동호인 찾기</button>' +
+      '</div>';
+    var title = intent === 'match' ? p.name + ' 님에게 매칭 요청' : p.name + ' 님 · 동네 동호인';
+    var wrap = UI.openSheet({ title: title, body: body });
+    if (!wrap) return;
+    wrap.addEventListener('click', function (ev) {
+      if (!ev.target.closest('[data-gym-find-mates]')) return;
+      ev.preventDefault();
+      UI.closeSheet();
+      close();
+      if (ctx && ctx.actions && ctx.actions.setTab) ctx.actions.setTab('matching');
+      UI.toast('매칭에서 실제 동호인을 찾아보세요');
+    });
   }
 
   /* 내 집 바꾸기 — 저장(이 기기) 후 지도·목록을 다시 */
@@ -1001,6 +1140,7 @@
     put('[data-gympins]', pinsHtml(model));
     put('[data-gymnote]', mapNoteInner(model));
     put('[data-gymlist]', listHtml(model));
+    put('[data-gymacthost]', actHostHtml(model));
     syncMarkers();
     syncHome();
     syncPeople();
@@ -1140,7 +1280,7 @@
       now: optsRef.now || null,
       onlyLit: false, recruitOpen: !!optsRef.recruitOpen,
       draft: { place: focusVenue ? focusVenue.name : '', when: '', cap: '', fee: '' },
-      pickHome: false
+      pickHome: false, person: ''
     };
 
     page = document.createElement('div');
@@ -1248,6 +1388,13 @@
       /* ---- 동네 동호인 ---- */
       var person = ev.target.closest('[data-gym-person]');
       if (person) { ev.preventDefault(); raisePerson(person.getAttribute('data-gym-person')); return; }
+      if (ev.target.closest('[data-gym-person-close]')) { ev.preventDefault(); closePerson(); return; }
+      var matchBtn = ev.target.closest('[data-gym-match]');
+      if (matchBtn) { ev.preventDefault(); matchPerson(matchBtn.getAttribute('data-gym-match'), ctx, 'match'); return; }
+      var chatBtn = ev.target.closest('[data-gym-chat]');
+      if (chatBtn) { ev.preventDefault(); chatPerson(chatBtn.getAttribute('data-gym-chat'), ctx); return; }
+      var profBtn = ev.target.closest('[data-gym-profile]');
+      if (profBtn) { ev.preventDefault(); matchPerson(profBtn.getAttribute('data-gym-profile'), ctx, 'profile'); return; }
 
       /* ---- 지도 안 게스트 모집 ---- */
       if (ev.target.closest('[data-gym-recruit-new]')) {

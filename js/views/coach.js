@@ -627,7 +627,7 @@
       '<button class="btn btn--primary btn--big mt16" data-act="go-log">' + UI.icon('log') + '오늘 일지 남기기</button>' +
       (coaches.length
         ? '<ul class="coachcards mt16">' + coaches.slice(0, 6).map(function (c) { return coachCard(c, state); }).join('') + '</ul>'
-        : '<p class="hint">아직 활동 중인 코치가 없어요. 위 <b>멘토 신청</b> 탭에서 내가 먼저 신청할 수 있어요.</p>') +
+        : '<p class="hint">아직 활동 중인 코치가 없어요. <b>멘토 신청</b>에서 내가 먼저 신청할 수 있어요.</p>') +
       '</section>';
   }
 
@@ -716,6 +716,33 @@
     });
   }
 
+  /* ---------- 코치·지도자 입구 (2026-11-23 저녁 사용성 점검) ----------
+   *  전에는 코치 탭 맨 위 탭 줄에 '코치 찾기 · 피드백'과 '멘토 신청'이 나란히 있어,
+   *  코치를 찾으러 온 동호인·초보도 첫 줄에서 멘토 신청을 먼저 보았습니다.
+   *  이제 '내 유형'(MY)이 동호인·초보·미선택이면 위 탭은 코치 찾기 하나만 두고,
+   *  멘토 신청은 목록 맨 아래 보조 줄로 내립니다. 선수·코치 유형은 위 탭 그대로입니다. */
+  function mentorEntryHtml(mine) {
+    var st = mine && mine.status;
+    return '<section class="coachmentor" data-coachmentor>' +
+      '<span class="coachmentor__ic" aria-hidden="true">' + UI.icon('coach') + '</span>' +
+      '<div class="coachmentor__t"><b>코치·지도자이신가요?' +
+      (st ? ' <span class="coachmentor__st">' + statusPill(st) + '</span>' : '') + '</b>' +
+      '<p>' + (st === '승인'
+        ? '멘토로 승인되었어요. 신청 내용은 여기에서 다시 볼 수 있어요.'
+        : st === '심사중'
+          ? '신청이 관리자에게 전달되었어요. 진행 상황은 여기에서 확인해요.'
+          : '소속과 경력을 인증하면 코치로 선수 일지를 보고 피드백을 남길 수 있어요.') + '</p></div>' +
+      '<button type="button" class="btn btn--ghost btn--sm coachmentor__b" data-coachtab="apply">' +
+        (st ? '내 멘토 신청' : '멘토 신청') + '</button>' +
+      '</section>';
+  }
+
+  /* 보조 줄에서 들어온 멘토 신청 화면 — 위 탭이 없으니 돌아가는 길을 함께 둡니다 */
+  function mentorBackHtml() {
+    return '<button type="button" class="linkbtn coachback" data-coachtab="feedback">' +
+      '← 코치 찾기로 돌아가기</button>';
+  }
+
   var view = {
     title: '코치',
     render: function (state) {
@@ -725,6 +752,10 @@
       var tab = state.ui.coachTab || 'feedback';
       if (!admin && tab === 'approve') tab = 'feedback';
       if (admin && tab === 'apply') tab = 'approve';
+      /* 내 유형(MY) — 선수·코치일 때만 멘토 신청을 위 탭으로 강조합니다 */
+      var role = D.roleOf(state.me || {});
+      var mentorTop = admin || role === 'player' || role === 'coach';
+      var mineApp = mentorAppsOf(state)[0] || null;
       var players = playersWithLogs(state);
       var myFeedback = (state.data.feedback || []).filter(function (f) {
         return state.me && f.target === state.me.key;
@@ -758,15 +789,20 @@
 
       return '' +
         mentorBanner(state) +
-        '<div class="seg seg--wide" data-coachtabs>' +
-        '<button class="seg__btn' + (tab === 'feedback' ? ' is-on' : '') + '" data-coachtab="feedback">' +
-          (canCoach ? '선수 피드백' : '코치 찾기 · 피드백') + '</button>' +
-        (admin
-          ? '<button class="seg__btn' + (tab === 'approve' ? ' is-on' : '') + '" data-coachtab="approve">멘토 심사' +
-            (pendingCount ? ' <i class="badge">' + pendingCount + '</i>' : '') + '</button>'
-          : '<button class="seg__btn' + (tab === 'apply' ? ' is-on' : '') + '" data-coachtab="apply">멘토 신청</button>') +
-        '</div>' +
-        (tab === 'feedback' ? feedbackHtml : (admin ? mentorAdminBlock(state) : myApplicationBlock(state)));
+        (mentorTop
+          ? '<div class="seg seg--wide" data-coachtabs>' +
+            '<button class="seg__btn' + (tab === 'feedback' ? ' is-on' : '') + '" data-coachtab="feedback">' +
+              (canCoach ? '선수 피드백' : '코치 찾기 · 피드백') + '</button>' +
+            (admin
+              ? '<button class="seg__btn' + (tab === 'approve' ? ' is-on' : '') + '" data-coachtab="approve">멘토 심사' +
+                (pendingCount ? ' <i class="badge">' + pendingCount + '</i>' : '') + '</button>'
+              : '<button class="seg__btn' + (tab === 'apply' ? ' is-on' : '') + '" data-coachtab="apply">멘토 신청</button>') +
+            '</div>'
+          /* 동호인·초보는 탭 대신 이 화면 이름만 한 줄로 (멘토 신청은 맨 아래 보조 줄) */
+          : '<p class="coachline" data-coachtabs>' + (canCoach ? '선수 피드백' : '코치 찾기 · 피드백') + '</p>') +
+        (tab === 'feedback'
+          ? feedbackHtml + (mentorTop ? '' : mentorEntryHtml(mineApp))
+          : (admin ? mentorAdminBlock(state) : (mentorTop ? '' : mentorBackHtml()) + myApplicationBlock(state)));
     },
 
     mount: function (root, ctx) {

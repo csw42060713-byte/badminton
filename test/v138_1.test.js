@@ -43,11 +43,11 @@
 
   BM.test.test('v1.41.1 버전: sw · app · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    BM.test.includes(readRoot('sw.js'), "var VERSION = 'bm-v1.64.0'", 'sw.js');
-    BM.test.includes(readRoot('app.js'), "version: 'v1.64.0'", 'app.js');
+    BM.test.includes(readRoot('sw.js'), "var VERSION = 'bm-v1.65.0'", 'sw.js');
+    BM.test.includes(readRoot('app.js'), "version: 'v1.65.0'", 'app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    BM.test.eq(twa.appVersionName, '1.64.0', 'TWA 버전 이름');
-    BM.test.eq(twa.appVersion, '1.64.0', 'TWA appVersion');
-    BM.test.eq(twa.appVersionCode, 58, 'TWA 버전 코드(웹만 바뀌면 그대로)');
+    BM.test.eq(twa.appVersionName, '1.65.0', 'TWA 버전 이름');
+    BM.test.eq(twa.appVersion, '1.65.0', 'TWA appVersion');
+    BM.test.eq(twa.appVersionCode, 59, 'TWA 버전 코드(웹만 바뀌면 그대로)');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
