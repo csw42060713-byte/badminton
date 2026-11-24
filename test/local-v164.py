@@ -1,4 +1,4 @@
-"""bm-v1.65.0 로컬 점검 (390×844) — 하트 연속출석 3·7·14일 · 하트 부스트 · AdMob 훅 · 히어로 즉시갱신 · 챔피언 프레임
+"""bm-v1.64.0 로컬 점검 (390×844) — 하트 연속출석 3·7·14일 · 하트 부스트 · AdMob 훅 · 히어로 즉시갱신 · 챔피언 프레임
 
   1) MY 하트 지갑: 연속 출석 일수 + 다음 보너스까지 남은 날(3·7·14일) · 하트 부스트 줄
   2) 하트 부스트: 하트 3개로 열고 켜면 출석·광고가 실제로 +1 ('적용 중(+1)')
@@ -107,14 +107,14 @@ with sync_playwright() as p:
     twa = read('twa-manifest.json')
     index = read('index.html')
     css = read('styles.css')
-    check('A-0 sw.js bm-v1.65.0', "var VERSION = 'bm-v1.65.0'" in sw)
-    check('A-0 index styles.css?v=20261124-3', 'styles.css?v=20261124-3' in index)
-    check('A-0 TWA 1.65.0 · 코드 59',
-          '"appVersionName": "1.65.0"' in twa and '"appVersionCode": 59' in twa)
+    check('A-0 sw.js bm-v1.64.0', "var VERSION = 'bm-v1.64.0'" in sw)
+    check('A-0 index styles.css?v=20261124-2', 'styles.css?v=20261124-2' in index)
+    check('A-0 TWA 1.64.0 · 코드 58',
+          '"appVersionName": "1.64.0"' in twa and '"appVersionCode": 58' in twa)
     check('A-0 부스트 줄 스타일', '.boostline {' in css and '.boostline.is-on {' in css)
 
     login('점검왕')
-    check('A 앱 버전 v1.65.0', page.evaluate("() => BM.app.version") == 'v1.65.0',
+    check('A 앱 버전 v1.64.0', page.evaluate("() => BM.app.version") == 'v1.64.0',
           page.evaluate("() => BM.app.version"))
     tabs = page.evaluate("() => BM.app.TABS.map(t => t.id)")
     check('A 5개 탭 그대로', tabs == ['log', 'matching', 'community', 'coach', 'my'], tabs)
