@@ -147,7 +147,7 @@
     eq(sc.W, 1080, '가로 1080');
     eq(sc.H, 1350, '세로 1350 (4:5)');
     eq(sc.MODES.map(function (m) { return m.id; }).join(','), 'today,comp', '오늘 운동 · 대회 인증');
-    /* bm-v1.66.0 — 세 가지 '출력'은 디자인 3종(매거진·필름·스티커)으로 대체됐습니다 */
+    /* bm-v1.67.0 — 세 가지 '출력'은 디자인 3종(매거진·필름·스티커)으로 대체됐습니다 */
     eq(sc.RESULTS.join(','), '우승,준우승,3위,출전', '성적 4종');
   });
 
@@ -232,7 +232,7 @@
     var html = sc._sheetBody(ctxOf(state));
     includes(html, 'data-sc-mode="today"', '오늘 운동 탭');
     includes(html, 'data-sc-mode="comp"', '대회 인증 탭');
-    /* bm-v1.66.0 — 디자인 3종(매거진·필름·스티커) */
+    /* bm-v1.67.0 — 디자인 3종(매거진·필름·스티커) */
     ['magazine', 'film', 'sticker'].forEach(function (id) {
       includes(html, 'data-sc-design="' + id + '"', '디자인 ' + id);
     });
@@ -285,7 +285,7 @@
     includes(src, 'URL.createObjectURL', '공유가 없으면 다운로드');
     includes(src, 'createLinearGradient', '사진 위 그라디언트');
     includes(src, 'clearRect', '투명 스티커(배경 투명)');
-    includes(src, 'BADMINTON', '브랜드 한 줄 (bm-v1.66.0 — 로고 그림 대신 얇은 워드마크)');
+    includes(src, 'BADMINTON', '브랜드 한 줄 (bm-v1.67.0 — 로고 그림 대신 얇은 워드마크)');
     excludes(src, 'fetch(', '서버 전송 없음');
     excludes(src, 'XMLHttpRequest', '서버 전송 없음');
     excludes(src, 'new FormData', '업로드 없음');
@@ -551,17 +551,17 @@
     includes(run, 'test/v157.test.js', '이 테스트 파일');
   });
 
-  test('v1.57 버전: sw · app · index · TWA가 함께 bm-v1.66.0', function () {
+  test('v1.57 버전: sw · app · index · TWA가 함께 bm-v1.67.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.66.0'", 'sw.js');
-    includes(app, "version: 'v1.66.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-4', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.66.0', 'TWA 이름');
-    eq(twa.appVersion, '1.66.0', 'TWA 버전');
-    eq(twa.appVersionCode, 60, 'TWA 코드');
-    includes(sw, 'bm-v1.66.0', 'sw 변경 이력');
+    includes(sw, "var VERSION = 'bm-v1.67.0'", 'sw.js');
+    includes(app, "version: 'v1.67.0'", 'app.js');
+    includes(index, 'styles.css?v=20261124-5', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.67.0', 'TWA 이름');
+    eq(twa.appVersion, '1.67.0', 'TWA 버전');
+    eq(twa.appVersionCode, 61, 'TWA 코드');
+    includes(sw, 'bm-v1.67.0', 'sw 변경 이력');
   });
 
   test('v1.57 스타일: 공유 카드·푸시 상태 스타일이 있다', function () {

@@ -431,11 +431,11 @@
 
   test('v1.48 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.66.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.66.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261124-4', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.66.0"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 60', '앱 버전 코드');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.67.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.67.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261124-5', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.67.0"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 61', '앱 버전 코드');
   });
 
   test('v1.48 배선: 새 파일 없이 기존 파일만 바뀐다 (서비스워커·테스트 목록)', function () {

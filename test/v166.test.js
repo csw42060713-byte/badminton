@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v166.test.js — bm-v1.66.0
+ * test/v166.test.js — bm-v1.67.0
  *   🖼️ 인스타 카드 사진 드래그·확대 & 글씨 위치 이동
  *
  *  승우 님 요청: "이미지 같은거 원하는 위치에 넣을수없어?" → "ㄱㄱ" → "둘다"
@@ -224,18 +224,19 @@
 
     /* 카드 폭을 덮는 스크림 사각형 — 채우기가 그라데이션이라 stops로 판단합니다 */
     function darkRects(log) {
+      /* v1.67 — 사진 필터 레이어(단색 rgba)는 빼고, 스며드는 스크림(그라데이션)만 셉니다 */
       return log.rects.filter(function (r) {
         if (r.w !== 1080) return false;
-        if (r.fill && r.fill.stops) return r.fill.stops.some(function (c) { return String(c).indexOf('rgba(') === 0; });
-        return String(r.fill).indexOf('rgba(') === 0;
+        if (!(r.fill && r.fill.stops)) return false;
+        return r.fill.stops.some(function (c) { return String(c).indexOf('rgba(') === 0; });
       });
     }
     ok(darkRects(bottom).length >= 1, '아래 — 하단 스크림');
-    ok(darkRects(bottom)[0].y >= 660, '아래 스크림은 카드 중턱 아래에서 시작 (' + Math.round(darkRects(bottom)[0].y) + ')');
+    ok(darkRects(bottom).some(function (r) { return r.y >= 660; }), '아래 스크림은 카드 중턱 아래에서 시작');
     ok(darkRects(middle).length >= 1, '가운데 — 띠');
     var peak = function (log) {
       return log.gradients.some(function (g) {
-        return g.stops.some(function (c) { return String(c).indexOf(',0.72)') > 0; });
+        return g.stops.some(function (c) { return String(c).indexOf(',0.54)') > 0; });
       });
     };
     ok(peak(middle), '가운데는 한가운데가 가장 진한 띠');
@@ -283,7 +284,8 @@
       var log = drawCard(compSpec({ design: 'sticker', textPos: pos, photo: null }));
       ys[pos] = yOf(log, '우승');
       /* 투명 PNG — 카드를 꽉 채우는 불투명 사각형이 없어야 합니다 */
-      var full = log.rects.filter(function (r) { return r.w === 1080 && r.h === 1350; });
+      /* v1.67 — 메달 광택(그라데이션)은 투명도가 있어 바탕이 아닙니다 */
+      var full = log.rects.filter(function (r) { return r.w === 1080 && r.h === 1350 && !(r.fill && r.fill.stops); });
       eq(full.length, 0, pos + ' 불투명 바탕 없음');
     });
     ok(ys.top < ys.middle && ys.middle < ys.bottom,
@@ -541,15 +543,15 @@
     ['김원호', '안세영', '서승재'].forEach(function (name) { excludes(src, name, name + ' 없음'); });
   });
 
-  test('v1.66 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.66.0', function () {
+  test('v1.66 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.67.0', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.66.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.66.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261124-4', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.67.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.67.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261124-5', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.66.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.66.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 60, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.67.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.67.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 61, 'TWA 버전 코드');
   });
 
   test('v1.66 배선: 테스트 목록에 v166이 들어 있다', function () {

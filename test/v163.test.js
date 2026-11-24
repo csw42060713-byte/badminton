@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v163.test.js — bm-v1.66.0
+ * test/v163.test.js — bm-v1.67.0
  *   📸 인스타 공유 시트 단순화 · 사진 버튼 상단 + 기본 감성 배경 4종
  *
  *  사용자 피드백: "어 잘안보여 그리고 어떡게 하는건지 복잡해"
@@ -258,7 +258,7 @@
     sc._setState(uiState({ photo: null }));
     var html = sc._sheetBody(ctxOf(stateOf([rec()])));
     var more = html.indexOf('<details class="sc__more">');
-    eq((html.match(/data-sc-design="/g) || []).length, 3, '디자인 3');
+    eq((html.match(/data-sc-design="/g) || []).length, 4, '디자인 4 (v1.67 글래스)');
     eq((html.match(/data-sc-ratio="/g) || []).length, 2, '비율 2');
     eq((html.match(/data-sc-shade="/g) || []).length, 3, '밝기 3칸은 있지만');
     var shadeIdx = html.indexOf('sc__shadebox');
@@ -389,7 +389,7 @@
     var scrim = m.log.gradients.filter(function (g) { return g.y0 >= 1350 * 0.5 && g.stops.length >= 5; })[0];
     ok(!!scrim, '아래에서 시작하는 다단 스크림');
     ok(scrim.stops[0].indexOf(',0)') > 0, '위는 투명');
-    ok(scrim.stops[scrim.stops.length - 1].indexOf(',0.95)') > 0, '맨 아래는 진하게');
+    ok(scrim.stops[scrim.stops.length - 1].indexOf(',0.58)') > 0, '맨 아래는 진하게 (v1.67 스크림 축소)');
     var src = readRoot('js/sharecard.js');
     includes(src, 'letterSpacing', '자간 다듬기');
     includes(src, "tracking(g, 0)", '자간 원복');
@@ -450,16 +450,16 @@
     includes(ui, 'tune:', '접기 아이콘');
   });
 
-  test('v1.63 버전: sw · app · index · TWA가 함께 bm-v1.66.0', function () {
+  test('v1.63 버전: sw · app · index · TWA가 함께 bm-v1.67.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.66.0'", 'sw.js');
-    includes(sw, 'bm-v1.66.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.66.0'", 'app.js');
+    includes(sw, "var VERSION = 'bm-v1.67.0'", 'sw.js');
+    includes(sw, 'bm-v1.67.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.67.0'", 'app.js');
     ok(/styles\.css\?v=20261124-\d+/.test(index), 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.66.0', 'TWA 이름');
-    eq(twa.appVersion, '1.66.0', 'TWA 버전');
-    eq(twa.appVersionCode, 60, 'TWA 코드');
+    eq(twa.appVersionName, '1.67.0', 'TWA 이름');
+    eq(twa.appVersion, '1.67.0', 'TWA 버전');
+    eq(twa.appVersionCode, 61, 'TWA 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

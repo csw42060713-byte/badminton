@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v160.test.js — bm-v1.66.0
+ * test/v160.test.js — bm-v1.67.0
  *   ✨ 인스타 공유 카드 감성 리디자인 (매거진 · 필름 · 스티커)
  *
  *  사용자가 요청한 그대로를 검증합니다.
@@ -8,7 +8,7 @@
  *
  *   1) 개발자 표·네모박스 탈피 — 사진이 주인공, 하단 30%만 스며드는 스크림,
  *      큰 숫자 2~3개 + 얇은 라인 + 작은 스탯. strokeRect(네모 테두리) 없음.
- *   2) 디자인 3종 — 매거진(에디토리얼) · 필름(폴라로이드) · 스티커(투명 오버레이).
+ *   2) 디자인 4종 — 매거진(에디토리얼) · 글래스(프로스트 유리, v1.67) · 필름(폴라로이드) · 스티커(투명).
  *   3) 인스타 비율 2종 — 피드 4:5(1080×1350) · 스토리 9:16(1080×1920, 위아래 220px 안전).
  *   4) 사진 없을 때도 에디토리얼 배경 · 사진 밝기 3단계 · 오늘 운동/대회 인증 모두 적용.
  *   5) 보호 — 사진은 폰 안에서만(업로드 없음) · 5개 탭 · CSP · 실명 없음 · 버전.
@@ -201,14 +201,14 @@
   });
 
   /* =========================================================
-   * 2. 디자인 3종 · 색 5종 · 사진 밝기 3단계
+   * 2. 디자인 4종 · 색 5종 · 사진 밝기 3단계
    * ========================================================= */
 
   test('v1.60 디자인: 매거진 · 필름 · 스티커 3종이고 기본은 매거진이다', function () {
     var sc = SC();
-    eq(sc.DESIGNS.length, 3, '디자인 3종');
-    eq(sc.DESIGNS.map(function (d) { return d.id; }).join(','), 'magazine,film,sticker', '아이디');
-    eq(sc.DESIGNS.map(function (d) { return d.name; }).join(','), '매거진,필름,스티커', '이름');
+    eq(sc.DESIGNS.length, 4, '디자인 4종 (v1.67 글래스 추가)');
+    eq(sc.DESIGNS.map(function (d) { return d.id; }).join(','), 'magazine,glass,film,sticker', '아이디');
+    eq(sc.DESIGNS.map(function (d) { return d.name; }).join(','), '매거진,글래스,필름,스티커', '이름');
     eq(sc.designById(undefined).id, 'magazine', '모르는 값은 매거진');
     eq(sc.designById('film').name, '필름', '필름');
     eq(sc.designById('sticker').id, 'sticker', '스티커');
@@ -247,7 +247,8 @@
     var covers = ['original', 'soft', 'deep'].map(function (id) {
       var m = mockCanvas();
       sc.draw(m.canvas, cardSpec({ shade: id, photo: photo, palette: 'night' }));
-      var c = m.log.rects.filter(function (r) { return r.w === 1080 && r.h === 1350 && String(r.fill).indexOf('rgba(') === 0; });
+      /* v1.67 — 사진 필터 레이어 대신 어둡게 덮는 스크림(rgb 4,9,7)만 봅니다 */
+      var c = m.log.rects.filter(function (r) { return r.w === 1080 && r.h === 1350 && String(r.fill).indexOf('rgba(4,9,7,') === 0; });
       return c.length ? String(c[0].fill) : '';
     });
     eq(covers[0], '', '원본은 사진을 덮지 않는다');
@@ -276,7 +277,7 @@
     /* 스크림은 아래 30% 남짓에서만 시작 */
     var scrims = m.log.gradients.filter(function (g) { return g.stops.some(function (c) { return String(c).indexOf('rgba(') === 0; }); });
     ok(scrims.some(function (g) { return g.y0 >= 1350 * 0.5; }), '아래쪽에서 스며드는 그라데이션');
-    ok(scrims.some(function (g) { return g.stops.some(function (c) { return String(c).indexOf(',0.95)') > 0; }); }), '맨 아래는 진하게');
+    ok(scrims.some(function (g) { return g.stops.some(function (c) { return String(c).indexOf(',0.58)') > 0; }); }), '맨 아래는 진하게 (v1.67 스크림 축소)');
   });
 
   test('v1.60 매거진: 큰 숫자 하나 + 얇은 선 1개 + 작은 스탯 2개', function () {
@@ -349,7 +350,7 @@
   });
 
   /* =========================================================
-   * 6. 오늘 운동 · 대회 인증 × 디자인 3종
+   * 6. 오늘 운동 · 대회 인증 × 디자인 3종(현재 4종)
    * ========================================================= */
 
   test('v1.60 오늘 운동: 운동 시간·승패·날짜가 세 디자인 모두에 들어간다', function () {
@@ -460,7 +461,7 @@
     var html = sc._sheetBody(ctxOf(state));
     includes(html, 'data-sc-mode="today"', '오늘 운동 탭');
     includes(html, 'data-sc-mode="comp"', '대회 인증 탭');
-    eq((html.match(/data-sc-design="/g) || []).length, 3, '디자인 3칸');
+    eq((html.match(/data-sc-design="/g) || []).length, 4, '디자인 4칸');
     ['magazine', 'film', 'sticker'].forEach(function (id) {
       includes(html, 'data-sc-design="' + id + '"', '디자인 ' + id);
     });
@@ -601,17 +602,17 @@
     excludes(SC()._sheetBody(ctxOf(stateOf([rec()]))), '김원호', '시트 예시도 가명만');
   });
 
-  test('v1.60 버전: sw · app · index · TWA가 함께 bm-v1.66.0', function () {
+  test('v1.60 버전: sw · app · index · TWA가 함께 bm-v1.67.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.66.0'", 'sw.js');
-    includes(sw, 'bm-v1.66.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.66.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-4', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.66.0', 'TWA 이름');
-    eq(twa.appVersion, '1.66.0', 'TWA 버전');
-    eq(twa.appVersionCode, 60, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.67.0'", 'sw.js');
+    includes(sw, 'bm-v1.67.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.67.0'", 'app.js');
+    includes(index, 'styles.css?v=20261124-5', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.67.0', 'TWA 이름');
+    eq(twa.appVersion, '1.67.0', 'TWA 버전');
+    eq(twa.appVersionCode, 61, 'TWA 코드');
     includes(index, 'js/sharecard.js', 'index 스크립트');
   });
 

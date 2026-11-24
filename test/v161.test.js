@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v161.test.js — bm-v1.66.0
+ * test/v161.test.js — bm-v1.67.0
  *   ✏️ 인스타 카드 문구 프리셋 · 직접 입력
  *
  *  사용자가 요청한 그대로를 검증합니다.
@@ -12,7 +12,7 @@
  *      + '직접 쓰기'(24자) — 고른/쓴 문구가 매거진 · 필름 · 스티커 셋 다에 들어간다.
  *   3) 줄바꿈·제어문자 정리 · 24자 상한 · HTML 이스케이프(캔버스는 fillText).
  *   4) 대회 카드도 제목 한 줄을 바꿀 수 있다.
- *   5) 보호 — 5개 탭 · 입구 세 곳 · CSP · 실명 없음 · 버전(bm-v1.66.0) · 캐시 키.
+ *   5) 보호 — 5개 탭 · 입구 세 곳 · CSP · 실명 없음 · 버전(bm-v1.67.0) · 캐시 키.
  *
  * 실행: node test/run.js
  * ============================================================ */
@@ -147,7 +147,7 @@
     return cardSpec(s);
   }
 
-  var DESIGNS3 = ['magazine', 'film', 'sticker'];
+  var DESIGNS3 = ['magazine', 'glass', 'film', 'sticker'];
 
   /* =========================================================
    * 1. 프리셋 — 실제 게시물에서 많이 쓰는 다섯 문구 + 직접 쓰기
@@ -456,7 +456,7 @@
     eq((tabs.match(/id: '/g) || []).length, 5, '탭 5개');
 
     eq(sc.MODES.length, 2, '두 모드');
-    eq(sc.DESIGNS.map(function (d) { return d.id; }).join(','), 'magazine,film,sticker', '디자인 3종');
+    eq(sc.DESIGNS.map(function (d) { return d.id; }).join(','), 'magazine,glass,film,sticker', '디자인 4종');
     eq(sc.RATIOS.length, 2, '비율 2종');
     eq(sc.SHADES.length, 3, '밝기 3단계');
     eq(sc.PALETTES.length, 5, '색 5종');
@@ -493,17 +493,17 @@
     excludes(SC()._sheetBody(ctxOf(stateOf([rec()]))), '김원호', '시트 예시도 가명만');
   });
 
-  test('v1.61 버전: sw · app · index · TWA가 함께 bm-v1.66.0', function () {
+  test('v1.61 버전: sw · app · index · TWA가 함께 bm-v1.67.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.66.0'", 'sw.js');
-    includes(sw, 'bm-v1.66.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.66.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-4', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.66.0', 'TWA 이름');
-    eq(twa.appVersion, '1.66.0', 'TWA 버전');
-    eq(twa.appVersionCode, 60, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.67.0'", 'sw.js');
+    includes(sw, 'bm-v1.67.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.67.0'", 'app.js');
+    includes(index, 'styles.css?v=20261124-5', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.67.0', 'TWA 이름');
+    eq(twa.appVersion, '1.67.0', 'TWA 버전');
+    eq(twa.appVersionCode, 61, 'TWA 코드');
     includes(index, 'js/sharecard.js', 'index 스크립트');
   });
 

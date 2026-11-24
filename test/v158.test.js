@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v158.test.js — bm-v1.66.0
+ * test/v158.test.js — bm-v1.67.0
  *   🎨 인스타 카드 색·디자인 다양화 + 동기화 큐 막힘 해결
  *
  *  사용자가 요청한 두 가지를 그대로 검증합니다.
@@ -142,7 +142,7 @@
       ok(/^#[0-9a-f]{6}$/i.test(p.accent), p.id + ' 강조색');
       ok(/^#[0-9a-f]{6}$/i.test(p.text), p.id + ' 글자색');
       eq(p.bg.length, 3, p.id + ' 바탕 3단');
-      /* bm-v1.66.0 — 사진을 어둡게 하는 색은 scrim(RGB) 하나로 */
+      /* bm-v1.67.0 — 사진을 어둡게 하는 색은 scrim(RGB) 하나로 */
       eq(p.scrim.length, 3, p.id + ' 사진 스크림 색');
     });
     var night = sc.paletteById('night');
@@ -152,13 +152,13 @@
     eq(sc.paletteById('gold').name, '챔피언 골드', '골드');
   });
 
-  /* bm-v1.66.0 — v1.58의 미니멀·포스터·코트 라인을 매거진·필름·스티커로 다시 그렸습니다.
+  /* bm-v1.67.0 — v1.58의 미니멀·포스터·코트 라인을 매거진·필름·스티커로 다시 그렸습니다.
    *   (사진이 주인공 · 박스·테두리 없음 · 인스타 비율 2종 · 사진 밝기 3단계) */
-  test('v1.60 디자인: 매거진·필름·스티커 3종과 비율 2종 · 밝기 3단계다', function () {
+  test('v1.60 디자인: 매거진·글래스·필름·스티커 4종과 비율 2종 · 밝기 3단계다', function () {
     var sc = SC();
-    eq(sc.DESIGNS.length, 3, '디자인 3종');
-    eq(sc.DESIGNS.map(function (l) { return l.id; }).join(','), 'magazine,film,sticker', '아이디');
-    eq(sc.DESIGNS.map(function (l) { return l.name; }).join(','), '매거진,필름,스티커', '이름');
+    eq(sc.DESIGNS.length, 4, '디자인 4종 (v1.67 글래스 추가)');
+    eq(sc.DESIGNS.map(function (l) { return l.id; }).join(','), 'magazine,glass,film,sticker', '아이디');
+    eq(sc.DESIGNS.map(function (l) { return l.name; }).join(','), '매거진,글래스,필름,스티커', '이름');
     eq(sc.designById(undefined).id, 'magazine', '모르는 값은 매거진');
     eq(sc.designById('film').name, '필름', '필름');
 
@@ -186,7 +186,7 @@
     includes(html, 'sc__design--film is-on', '디자인 칩 선택 표시');
     includes(html, 'sc__ratio--story is-on', '비율 칩 선택 표시');
     eq((html.match(/data-sc-pal="/g) || []).length, 5, '색상 칩 5개');
-    eq((html.match(/data-sc-design="/g) || []).length, 3, '디자인 칩 3개');
+    eq((html.match(/data-sc-design="/g) || []).length, 4, '디자인 칩 4개');
     eq((html.match(/data-sc-ratio="/g) || []).length, 2, '비율 칩 2개');
     eq((html.match(/data-sc-shade="/g) || []).length, 3, '사진 밝기 3단계');
     includes(html, '카드 색', '색 제목');
@@ -226,7 +226,7 @@
   test('v1.60 그리기: 디자인 3종 × 비율 2종 × 모드 2가 모두 그려지고 고른 색이 쓰인다', function () {
     var sc = SC();
     var checked = 0;
-    ['magazine', 'film', 'sticker'].forEach(function (d) {
+    ['magazine', 'glass', 'film', 'sticker'].forEach(function (d) {
       ['feed', 'story'].forEach(function (r) {
         var m = mockCanvas();
         var out = sc.draw(m.canvas, cardSpec({ design: d, ratio: r, palette: 'court' }));
@@ -246,11 +246,12 @@
           meta: '', metaLine: '○○시 오픈 배드민턴 대회', label: '○○시 오픈 배드민턴 대회 · B조 복식'
         }));
         ok(c.log.texts.join('|').indexOf('준우승') >= 0, d + '/' + r + ' 성적');
-        ok(usesColor(c.log, sc.paletteById('court').accent), d + '/' + r + ' 대회 카드 색');
+        /* v1.67 — 대회 입상 카드는 고른 색 대신 메달 색(준우승 = 실버)이 포인트 */
+        ok(usesColor(c.log, sc.medalOf('준우승').accent), d + '/' + r + ' 대회 카드 메달 색');
         checked++;
       });
     });
-    eq(checked, 12, '디자인 3 × 비율 2 × 모드 2');
+    eq(checked, 16, '디자인 4 × 비율 2 × 모드 2');
   });
 
   test('v1.60 그리기: 매거진·필름은 박스·테두리 없이 그리고, 스티커는 배경을 칠하지 않는다', function () {
@@ -281,7 +282,8 @@
       var m = mockCanvas();
       sc.draw(m.canvas, cardSpec({ design: 'magazine', shade: id, photo: photo, palette: 'night' }));
       ok(m.log.ops.indexOf('drawImage') >= 0, id + ' 사진을 그린다');
-      var cover = m.log.rects.filter(function (r) { return r.w === 1080 && r.h === 1350 && String(r.fill).indexOf('rgba(') === 0; });
+      /* v1.67 — 사진 필터 레이어가 아니라 어둡게 덮는 스크림(rgb 4,9,7)만 봅니다 */
+      var cover = m.log.rects.filter(function (r) { return r.w === 1080 && r.h === 1350 && String(r.fill).indexOf('rgba(4,9,7,') === 0; });
       return cover.length ? String(cover[0].fill) : '';
     });
     eq(dims[0], '', '원본은 사진을 덮지 않는다');
@@ -563,7 +565,7 @@
     eq((tabs.match(/id: '/g) || []).length, 5, '탭 5개');
     eq(D.CONDITION_BANDS.length, 5, 'v1.56 컨디션 5단계 유지');
     eq(SC().MODES.length, 2, '공유 카드 두 모드 유지');
-    eq(SC().DESIGNS.length, 3, '공유 카드 디자인 3종 유지');
+    eq(SC().DESIGNS.length, 4, '공유 카드 디자인 4종 (v1.67 글래스 추가)');
     eq(SC().RATIOS.length, 2, '비율 2종');
     eq(SC().RESULTS.length, 4, '성적 4종 유지');
     includes(readRoot('js/views/log.js'), 'data-act="share-log"', '커뮤니티 공유 유지');
@@ -597,17 +599,17 @@
     excludes(SC()._sheetBody(ctxOf(stateOf([rec()]))), '김원호', '시트 예시');
   });
 
-  test('v1.58 버전: sw · app · index · TWA가 함께 bm-v1.66.0', function () {
+  test('v1.58 버전: sw · app · index · TWA가 함께 bm-v1.67.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.66.0'", 'sw.js');
-    includes(app, "version: 'v1.66.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-4', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.66.0', 'TWA 이름');
-    eq(twa.appVersion, '1.66.0', 'TWA 버전');
-    eq(twa.appVersionCode, 60, 'TWA 코드');
-    includes(sw, 'bm-v1.66.0', 'sw 변경 이력');
+    includes(sw, "var VERSION = 'bm-v1.67.0'", 'sw.js');
+    includes(app, "version: 'v1.67.0'", 'app.js');
+    includes(index, 'styles.css?v=20261124-5', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.67.0', 'TWA 이름');
+    eq(twa.appVersion, '1.67.0', 'TWA 버전');
+    eq(twa.appVersionCode, 61, 'TWA 코드');
+    includes(sw, 'bm-v1.67.0', 'sw 변경 이력');
     includes(sw, '인스타 카드 색·디자인', 'sw 변경 이력 내용');
     var run = readRoot('test/run.js');
     includes(run, 'test/v158.test.js', '테스트 목록');
