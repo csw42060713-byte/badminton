@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v158.test.js — bm-v1.70.0
+ * test/v158.test.js — bm-v1.71.0
  *   🎨 인스타 카드 색·디자인 다양화 + 동기화 큐 막힘 해결
  *
  *  사용자가 요청한 두 가지를 그대로 검증합니다.
@@ -142,7 +142,7 @@
       ok(/^#[0-9a-f]{6}$/i.test(p.accent), p.id + ' 강조색');
       ok(/^#[0-9a-f]{6}$/i.test(p.text), p.id + ' 글자색');
       eq(p.bg.length, 3, p.id + ' 바탕 3단');
-      /* bm-v1.70.0 — 사진을 어둡게 하는 색은 scrim(RGB) 하나로 */
+      /* bm-v1.71.0 — 사진을 어둡게 하는 색은 scrim(RGB) 하나로 */
       eq(p.scrim.length, 3, p.id + ' 사진 스크림 색');
     });
     var night = sc.paletteById('night');
@@ -152,13 +152,13 @@
     eq(sc.paletteById('gold').name, '챔피언 골드', '골드');
   });
 
-  /* bm-v1.70.0 — v1.58의 미니멀·포스터·코트 라인을 매거진·필름·스티커로 다시 그렸습니다.
+  /* bm-v1.71.0 — v1.58의 미니멀·포스터·코트 라인을 매거진·필름·스티커로 다시 그렸습니다.
    *   (사진이 주인공 · 박스·테두리 없음 · 인스타 비율 2종 · 사진 밝기 3단계) */
   test('v1.60 디자인: 매거진·글래스·필름·스티커 4종과 비율 2종 · 밝기 3단계다', function () {
     var sc = SC();
-    eq(sc.DESIGNS.length, 4, '디자인 4종 (v1.67 글래스 추가)');
-    eq(sc.DESIGNS.map(function (l) { return l.id; }).join(','), 'magazine,glass,film,sticker', '아이디');
-    eq(sc.DESIGNS.map(function (l) { return l.name; }).join(','), '매거진,글래스,필름,스티커', '이름');
+    eq(sc.DESIGNS.length, 4, '디자인 4종 (v1.71 영수증 추가)');
+    eq(sc.DESIGNS.map(function (l) { return l.id; }).join(','), 'magazine,receipt,film,sticker', '아이디');
+    eq(sc.DESIGNS.map(function (l) { return l.name; }).join(','), '매거진,영수증,필름,스티커', '이름');
     eq(sc.designById(undefined).id, 'magazine', '모르는 값은 매거진');
     eq(sc.designById('film').name, '필름', '필름');
 
@@ -565,7 +565,7 @@
     eq((tabs.match(/id: '/g) || []).length, 5, '탭 5개');
     eq(D.CONDITION_BANDS.length, 5, 'v1.56 컨디션 5단계 유지');
     eq(SC().MODES.length, 2, '공유 카드 두 모드 유지');
-    eq(SC().DESIGNS.length, 4, '공유 카드 디자인 4종 (v1.67 글래스 추가)');
+    eq(SC().DESIGNS.length, 4, '공유 카드 디자인 4종 (v1.71 영수증 추가)');
     eq(SC().RATIOS.length, 2, '비율 2종');
     eq(SC().RESULTS.length, 4, '성적 4종 유지');
     includes(readRoot('js/views/log.js'), 'data-act="share-log"', '커뮤니티 공유 유지');
@@ -599,17 +599,17 @@
     excludes(SC()._sheetBody(ctxOf(stateOf([rec()]))), '김원호', '시트 예시');
   });
 
-  test('v1.58 버전: sw · app · index · TWA가 함께 bm-v1.70.0', function () {
+  test('v1.58 버전: sw · app · index · TWA가 함께 bm-v1.71.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.70.0'", 'sw.js');
-    includes(app, "version: 'v1.70.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-8', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.70.0', 'TWA 이름');
-    eq(twa.appVersion, '1.70.0', 'TWA 버전');
-    eq(twa.appVersionCode, 64, 'TWA 코드');
-    includes(sw, 'bm-v1.70.0', 'sw 변경 이력');
+    includes(sw, "var VERSION = 'bm-v1.71.0'", 'sw.js');
+    includes(app, "version: 'v1.71.0'", 'app.js');
+    includes(index, 'styles.css?v=20261124-9', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.71.0', 'TWA 이름');
+    eq(twa.appVersion, '1.71.0', 'TWA 버전');
+    eq(twa.appVersionCode, 65, 'TWA 코드');
+    includes(sw, 'bm-v1.71.0', 'sw 변경 이력');
     includes(sw, '인스타 카드 색·디자인', 'sw 변경 이력 내용');
     var run = readRoot('test/run.js');
     includes(run, 'test/v158.test.js', '테스트 목록');

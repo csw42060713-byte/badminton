@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v167.test.js — bm-v1.70.0
+ * test/v167.test.js — bm-v1.71.0
  *   ✨ 인스타 공유 카드 자동 꾸미기 · 메달 임팩트 · 도발 멘트
  *
  *  승우 님 피드백:
@@ -277,14 +277,16 @@
    * 3. 글래스 디자인
    * ========================================================= */
 
-  test('v1.67 글래스: 디자인 4종에 들어 있고 미리보기 칸이 있다', function () {
+  test('v1.67 글래스: v1.71에는 칸에서 빠지고 영수증이 들어오며, 그리는 방법은 남는다', function () {
     if (!hasNode) return;
     var sc = SC();
-    eq(sc.DESIGNS.map(function (d) { return d.id; }).join(','), 'magazine,glass,film,sticker', '디자인 4종');
-    eq(sc.designById('glass').name, '글래스', '이름');
+    /* v1.71 — 디자인 칸은 매거진 · 영수증 · 필름 · 스티커 4종. 글래스는 예전 값 보호용(레거시) */
+    eq(sc.DESIGNS.map(function (d) { return d.id; }).join(','), 'magazine,receipt,film,sticker', '디자인 4종');
+    eq(sc.designById('glass').name, '글래스', '레거시 값도 이름이 살아 있다');
     var html = sc._sheetBody(ctxOf(stateOf()));
-    includes(html, 'data-sc-design="glass"', '글래스 칩');
-    includes(readRoot('styles.css'), '.sc__design--glass i', '글래스 미리보기 그림');
+    includes(html, 'data-sc-design="receipt"', '영수증 칩');
+    eq(sc.presetDesignId('glass'), 'magazine', '레거시 값은 매거진으로');
+    includes(readRoot('styles.css'), '.sc__design--glass i', '글래스 미리보기 그림(레거시 CSS)');
   });
 
   test('v1.67 글래스: 사진 위 유리 배지에 핵심 스탯·셔틀콕·1px 테두리', function () {
@@ -486,17 +488,21 @@
     var sc = SC();
     var rows = [rec({ id: 'b1', games: [{ a: 21, b: 15 }, { a: 21, b: 12 }] })];
     var st = stateOf(rows);
-    sc._setState(uiState({ recordId: 'b1' }));
+    /* v1.71 — 꾸밈 배지를 켜야 카드에 얹힙니다(기본은 깔끔한 카드) */
+    sc._setState(uiState({ recordId: 'b1', deco: true }));
     var spec = sc._specOf(ctxOf(st));
     includes(String(spec.badge), '오늘 2전 전승', 'spec 배지');
     var log = drawCard(spec);
     includes(textsOf(log), spec.badge, '카드에 배지 글씨');
     /* 끄기 */
-    sc._setState(uiState({ recordId: 'b1', badge: false }));
+    sc._setState(uiState({ recordId: 'b1', deco: true, badge: false }));
     eq(sc._specOf(ctxOf(st)).badge, '', '배지 끄기');
-    sc._setState(uiState({ recordId: 'b1' }));
+    sc._setState(uiState({ recordId: 'b1', deco: true }));
     var html = sc._sheetBody(ctxOf(st));
     includes(html, 'data-sc-badgetoggle', '시트 토글');
+    /* 꾸밈 배지가 꺼져 있으면 카드에 배지 글씨가 없다 */
+    sc._setState(uiState({ recordId: 'b1' }));
+    excludes(textsOf(drawCard(sc._specOf(ctxOf(st)))), '오늘 2전 전승', '기본 카드는 배지 없이 깔끔');
   });
 
   /* =========================================================
@@ -508,14 +514,14 @@
     var sc = SC();
     var win = rec({ id: 'w1', games: [{ a: 21, b: 15 }, { a: 18, b: 21 }, { a: 21, b: 19 }] });
     var stWin = stateOf([win]);
-    sc._setState(uiState({ recordId: 'w1' }));
+    sc._setState(uiState({ recordId: 'w1', deco: true }));
     eq(sc._specOf(ctxOf(stWin)).stamp, 'WIN', '승 > 패 → WIN');
     includes(textsOf(drawCard(sc._specOf(ctxOf(stWin)))), 'WIN', '카드에 WIN');
     var perfect = rec({ id: 'w2', games: [{ a: 21, b: 15 }, { a: 21, b: 9 }] });
     var stP = stateOf([perfect]);
     sc._setState(uiState({ recordId: 'w2' }));
     eq(sc._specOf(ctxOf(stP)).stamp, 'GG', '전승 → GG');
-    sc._setState(uiState({ recordId: 'w1', win: false }));
+    sc._setState(uiState({ recordId: 'w1', deco: true, win: false }));
     eq(sc._specOf(ctxOf(stWin)).stamp, '', '끄면 스탬프 없음');
     sc._setState(uiState({ recordId: 'w1' }));
     var lost = rec({ id: 'w3', games: [{ a: 15, b: 21 }] });
@@ -591,15 +597,15 @@
     ['김원호', '안세영', '서재승', '서승재'].forEach(function (name) { excludes(src, name, name + ' 없음'); });
   });
 
-  test('v1.67 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.70.0', function () {
+  test('v1.67 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.71.0', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.70.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.70.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261124-8', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.71.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.71.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261124-9', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.70.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.70.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 64, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.71.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.71.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 65, 'TWA 버전 코드');
   });
 
   test('v1.67 배선: 테스트 목록에 v167이 들어 있다', function () {

@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v168.test.js — bm-v1.70.0
+ * test/v168.test.js — bm-v1.71.0
  *   🏸 실전 감각연습 + 오후 보강 웨이트 (선수 현장 루틴)
  *
  *  승우 님이 현장에서 하던 하루를 알려 주고 "코칭에 추가해둬"라고 했습니다.
@@ -16,7 +16,7 @@
  *   5) 쉬운 말 — 처음 보는 사람도 알아듣게 줄임말 옆에 설명을 붙인다
  *   6) 약점(드라이브·드롭·헤어핀·풋워크·스매시)과 한 줄로 연결
  *   7) 일지 & AI 카드에 접힌 블록 하나로 붙고, 기존 블록은 그대로
- *   8) 실존 선수 이름 없음 · 순수 함수 · 버전(bm-v1.70.0)
+ *   8) 실존 선수 이름 없음 · 순수 함수 · 버전(bm-v1.71.0)
  *
  * 실행: node test/run.js
  * ============================================================ */
@@ -273,13 +273,13 @@
 
   test('v1.68 버전: sw · app · 스타일 캐시 · TWA · 테스트 목록이 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.70.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.70.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261124-8', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.71.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.71.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261124-9', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.70.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.70.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 64, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.71.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.71.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 65, 'TWA 버전 코드');
     includes(readRoot('test/run.js'), 'test/v168.test.js', '테스트 목록 배선');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

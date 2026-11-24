@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v166.test.js — bm-v1.70.0
+ * test/v166.test.js — bm-v1.71.0
  *   🖼️ 인스타 카드 사진 드래그·확대 & 글씨 위치 이동
  *
  *  승우 님 요청: "이미지 같은거 원하는 위치에 넣을수없어?" → "ㄱㄱ" → "둘다"
@@ -245,14 +245,21 @@
     eq(Math.round(darkRects(top)[0].y), 0, '위 스크림은 맨 위에서 시작');
   });
 
-  test('v1.66 매거진: 위·가운데는 머리줄(날짜)과 겹치지 않는다', function () {
+  test('v1.66 매거진: 위·가운데 글씨가 위 여백·워드마크와 겹치지 않는다', function () {
+    /* v1.71 — 날짜·장소는 카드 맨 아래로 내려가 머리줄이 없어졌습니다.
+     * 위·가운데를 골라도 안전 여백과 워드마크(BADMINTON)를 침범하지 않는지만 봅니다. */
     ['top', 'middle'].forEach(function (pos) {
       var log = drawCard(compSpec({ textPos: pos, ratio: 'story' }));
-      var date = yOf(log, '11/24 (화)');
       var big = yOf(log, '우승');
-      ok(date !== null && big !== null, pos + ' 날짜·큰 숫자 모두');
-      ok(big > date + 40, pos + ' 큰 숫자는 날짜 줄 아래 (' + big + ' > ' + date + ')');
+      ok(big !== null, pos + ' 큰 숫자');
+      ok(big > 220 + 60, pos + ' 위 안전 여백 아래 (' + big + ')');
+      ok(big < 1700, pos + ' 아래 안전 여백 위 (' + big + ')');
+      var mark = yOf(log, 'BADMINTON');
+      ok(mark === null || Math.abs(mark - big) > 60, pos + ' 워드마크와 안 겹침');
     });
+    var topBig = yOf(drawCard(compSpec({ textPos: 'top', ratio: 'story' })), '우승');
+    var midBig = yOf(drawCard(compSpec({ textPos: 'middle', ratio: 'story' })), '우승');
+    ok(topBig < midBig, '위 < 가운데 (' + topBig + ' < ' + midBig + ')');
   });
 
   test('v1.66 필름: 아래는 인화지 여백, 가운데·위는 사진 위 흰 글씨', function () {
@@ -543,15 +550,15 @@
     ['김원호', '안세영', '서승재'].forEach(function (name) { excludes(src, name, name + ' 없음'); });
   });
 
-  test('v1.66 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.70.0', function () {
+  test('v1.66 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.71.0', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.70.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.70.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261124-8', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.71.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.71.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261124-9', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.70.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.70.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 64, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.71.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.71.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 65, 'TWA 버전 코드');
   });
 
   test('v1.66 배선: 테스트 목록에 v166이 들어 있다', function () {

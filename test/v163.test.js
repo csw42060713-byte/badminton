@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v163.test.js — bm-v1.70.0
+ * test/v163.test.js — bm-v1.71.0
  *   📸 인스타 공유 시트 단순화 · 사진 버튼 상단 + 기본 감성 배경 4종
  *
  *  사용자 피드백: "어 잘안보여 그리고 어떡게 하는건지 복잡해"
@@ -141,19 +141,19 @@
   test('v1.63 배경 모델: 기본 감성 배경 4종이 있다', function () {
     var sc = SC();
     eq(sc.BGS.length, 4, '4종');
-    eq(sc.BGS.map(function (b) { return b.id; }).join(','), 'courtnight,shuttlelight,sunsetcourt,mintmesh', 'id');
-    eq(sc.BGS.map(function (b) { return b.name; }).join(','), '코트 야경,셔틀콕 라이트,노을 코트,민턴 그라데이션', '이름');
+    eq(sc.BGS.map(function (b) { return b.id; }).join(','), 'nightcourt,sunsetshuttle,darkstudio,mintmesh', 'id');
+    eq(sc.BGS.map(function (b) { return b.name; }).join(','), '야경 코트,노을 체육관,다크 스튜디오,민턴 그라데이션', '이름');
     sc.BGS.forEach(function (b) { ok(b.note && b.note.length > 2, b.id + ' 설명'); });
-    eq(sc.bgById('courtnight').name, '코트 야경', 'id로 찾기');
+    eq(sc.bgById('nightcourt').name, '야경 코트', 'id로 찾기');
     eq(sc.bgById('nope').id, '', '모르는 id는 없음');
     eq(sc.bgById('').id, '', '빈 값은 없음');
   });
 
   test('v1.63 배경: 스티커(투명)에는 절대 깔지 않고, 고른 색·비율은 그대로', function () {
     var sc = SC();
-    ok(sc.bgOf({ design: 'magazine', bg: 'courtnight' }), '매거진 + 배경');
+    ok(sc.bgOf({ design: 'magazine', bg: 'nightcourt' }), '매거진 + 배경');
     ok(sc.bgOf({ design: 'film', bg: 'mintmesh' }), '필름 + 배경');
-    eq(sc.bgOf({ design: 'sticker', bg: 'courtnight' }), null, '스티커는 투명 우선');
+    eq(sc.bgOf({ design: 'sticker', bg: 'nightcourt' }), null, '스티커는 투명 우선');
     eq(sc.bgOf({ design: 'magazine', bg: '' }), null, '고르지 않으면 색 메쉬');
     eq(sc.bgOf(null), null, 'spec 없음');
   });
@@ -275,7 +275,7 @@
     sc._setState(uiState({}));
     var html = sc._sheetBody(ctxOf(stateOf([rec()])));
     eq((html.match(/data-sc-bg="/g) || []).length, 4, '배경 칩 4');
-    ['courtnight', 'shuttlelight', 'sunsetcourt', 'mintmesh'].forEach(function (id) {
+    ['nightcourt', 'sunsetshuttle', 'darkstudio', 'mintmesh'].forEach(function (id) {
       includes(html, 'data-sc-bg="' + id + '"', '칩 ' + id);
       includes(html, 'data-sc-bgthumb="' + id + '"', '썸네일 ' + id);
     });
@@ -285,8 +285,8 @@
     var design = html.indexOf('data-sc-design="magazine"');
     ok(bgs > photo && bgs < design, '사진 버튼과 디자인 사이');
 
-    sc._setState(uiState({ bg: 'sunsetcourt' }));
-    includes(sc._sheetBody(ctxOf(stateOf([rec()]))), 'sc__bg is-on" data-sc-bg="sunsetcourt"', '고른 배경 표시');
+    sc._setState(uiState({ bg: 'sunsetshuttle' }));
+    includes(sc._sheetBody(ctxOf(stateOf([rec()]))), 'sc__bg is-on" data-sc-bg="sunsetshuttle"', '고른 배경 표시');
   });
 
   test('v1.63 시트: 스티커를 고르면 사진·배경 칸을 숨기고 투명 PNG로 저장한다', function () {
@@ -328,9 +328,9 @@
     for (var i = 1; i < keys.length; i++) {
       ok(sigs[keys[i]] !== sigs[keys[0]], keys[i] + ' 는 ' + keys[0] + ' 와 다른 그림');
     }
-    eq((sigs.courtnight.match(/#0a2a20/) || []).length, 1, '코트 야경 바탕색');
-    ok(sigs.shuttlelight.indexOf('rgba(255,196,120') >= 0, '셔틀콕 라이트 조명');
-    ok(sigs.sunsetcourt.indexOf('#f6ab63') >= 0, '노을 코트 지평선 색');
+    eq((sigs.nightcourt.match(/#0a2a20/) || []).length, 1, '야경 코트 바탕색');
+    ok(sigs.darkstudio.indexOf('rgba(255,196,120') >= 0, '다크 스튜디오 조명');
+    ok(sigs.sunsetshuttle.indexOf('#f6ab63') >= 0, '노을 체육관 지평선 색');
     ok(sigs.mintmesh.indexOf('rgba(86,255,206') >= 0, '민턴 그라데이션 민트');
   });
 
@@ -338,9 +338,9 @@
     var sc = SC();
     ['magazine', 'film'].forEach(function (d) {
       var m = mockCanvas();
-      sc.draw(m.canvas, cardSpec({ design: d, bg: 'courtnight', photo: null }));
+      sc.draw(m.canvas, cardSpec({ design: d, bg: 'nightcourt', photo: null }));
       eq(m.log.ops.indexOf('drawImage'), -1, d + ' · 사진 없이 그린다');
-      ok(m.log.stops.indexOf('#0a2a20') >= 0, d + ' · 배경 아트가 깔린다');
+      ok(m.log.stops.indexOf('#0a2a20') >= 0, d + ' · 기본 배경(사진 자리엔 캔버스 fallback)이 깔린다');
       ok(m.log.fillTexts > 0, d + ' · 글씨도 그린다');
       ok(m.log.texts.join('|').indexOf('민턴일기') >= 0, d + ' · 문구');
       ok(m.log.texts.join('|').indexOf('90') >= 0, d + ' · 숫자');
@@ -350,7 +350,7 @@
   test('v1.63 그리기: 스티커는 배경을 고르게 해도 투명 그대로다', function () {
     var sc = SC();
     var m = mockCanvas();
-    sc.draw(m.canvas, cardSpec({ design: 'sticker', bg: 'sunsetcourt' }));
+    sc.draw(m.canvas, cardSpec({ design: 'sticker', bg: 'sunsetshuttle' }));
     eq(m.log.rects.length, 0, '바탕을 칠하지 않는다');
     eq(m.log.stops.indexOf('#f6ab63'), -1, '배경 아트도 깔지 않는다');
     eq(m.log.ops.indexOf('clearRect'), 0, '먼저 투명으로 지운다');
@@ -370,8 +370,8 @@
 
   test('v1.63 그리기: 고른 배경이 spec에 실린다(스티커는 빈 값)', function () {
     var sc = SC();
-    sc._setState(uiState({ design: 'magazine', bg: 'shuttlelight' }));
-    eq(sc._specOf(ctxOf(stateOf([rec()]))).bg, 'shuttlelight', '매거진 spec.bg');
+    sc._setState(uiState({ design: 'magazine', bg: 'darkstudio' }));
+    eq(sc._specOf(ctxOf(stateOf([rec()]))).bg, 'darkstudio', '매거진 spec.bg');
     sc._setState(uiState({ design: 'film', bg: 'mintmesh' }));
     eq(sc._specOf(ctxOf(stateOf([rec()]))).bg, 'mintmesh', '필름 spec.bg');
     sc._setState(uiState({ design: 'sticker', bg: 'mintmesh' }));
@@ -385,7 +385,7 @@
   test('v1.63 매거진: 스크림이 여러 단계로 부드럽게 스며들고 맨 아래는 진하다', function () {
     var sc = SC();
     var m = mockCanvas();
-    sc.draw(m.canvas, cardSpec({ design: 'magazine', bg: 'courtnight' }));
+    sc.draw(m.canvas, cardSpec({ design: 'magazine', bg: 'nightcourt' }));
     var scrim = m.log.gradients.filter(function (g) { return g.y0 >= 1350 * 0.5 && g.stops.length >= 5; })[0];
     ok(!!scrim, '아래에서 시작하는 다단 스크림');
     ok(scrim.stops[0].indexOf(',0)') > 0, '위는 투명');
@@ -450,16 +450,16 @@
     includes(ui, 'tune:', '접기 아이콘');
   });
 
-  test('v1.63 버전: sw · app · index · TWA가 함께 bm-v1.70.0', function () {
+  test('v1.63 버전: sw · app · index · TWA가 함께 bm-v1.71.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.70.0'", 'sw.js');
-    includes(sw, 'bm-v1.70.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.70.0'", 'app.js');
+    includes(sw, "var VERSION = 'bm-v1.71.0'", 'sw.js');
+    includes(sw, 'bm-v1.71.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.71.0'", 'app.js');
     ok(/styles\.css\?v=20261124-\d+/.test(index), 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.70.0', 'TWA 이름');
-    eq(twa.appVersion, '1.70.0', 'TWA 버전');
-    eq(twa.appVersionCode, 64, 'TWA 코드');
+    eq(twa.appVersionName, '1.71.0', 'TWA 이름');
+    eq(twa.appVersion, '1.71.0', 'TWA 버전');
+    eq(twa.appVersionCode, 65, 'TWA 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

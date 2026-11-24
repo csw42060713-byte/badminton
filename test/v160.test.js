@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v160.test.js — bm-v1.70.0
+ * test/v160.test.js — bm-v1.71.0
  *   ✨ 인스타 공유 카드 감성 리디자인 (매거진 · 필름 · 스티커)
  *
  *  사용자가 요청한 그대로를 검증합니다.
@@ -8,7 +8,7 @@
  *
  *   1) 개발자 표·네모박스 탈피 — 사진이 주인공, 하단 30%만 스며드는 스크림,
  *      큰 숫자 2~3개 + 얇은 라인 + 작은 스탯. strokeRect(네모 테두리) 없음.
- *   2) 디자인 4종 — 매거진(에디토리얼) · 글래스(프로스트 유리, v1.67) · 필름(폴라로이드) · 스티커(투명).
+ *   2) 디자인 4종 — 매거진(에디토리얼) · 영수증(민턴 영수증, v1.71) · 필름(폴라로이드) · 스티커(투명).
  *   3) 인스타 비율 2종 — 피드 4:5(1080×1350) · 스토리 9:16(1080×1920, 위아래 220px 안전).
  *   4) 사진 없을 때도 에디토리얼 배경 · 사진 밝기 3단계 · 오늘 운동/대회 인증 모두 적용.
  *   5) 보호 — 사진은 폰 안에서만(업로드 없음) · 5개 탭 · CSP · 실명 없음 · 버전.
@@ -206,9 +206,9 @@
 
   test('v1.60 디자인: 매거진 · 필름 · 스티커 3종이고 기본은 매거진이다', function () {
     var sc = SC();
-    eq(sc.DESIGNS.length, 4, '디자인 4종 (v1.67 글래스 추가)');
-    eq(sc.DESIGNS.map(function (d) { return d.id; }).join(','), 'magazine,glass,film,sticker', '아이디');
-    eq(sc.DESIGNS.map(function (d) { return d.name; }).join(','), '매거진,글래스,필름,스티커', '이름');
+    eq(sc.DESIGNS.length, 4, '디자인 4종 (v1.71 영수증 추가)');
+    eq(sc.DESIGNS.map(function (d) { return d.id; }).join(','), 'magazine,receipt,film,sticker', '아이디');
+    eq(sc.DESIGNS.map(function (d) { return d.name; }).join(','), '매거진,영수증,필름,스티커', '이름');
     eq(sc.designById(undefined).id, 'magazine', '모르는 값은 매거진');
     eq(sc.designById('film').name, '필름', '필름');
     eq(sc.designById('sticker').id, 'sticker', '스티커');
@@ -602,17 +602,17 @@
     excludes(SC()._sheetBody(ctxOf(stateOf([rec()]))), '김원호', '시트 예시도 가명만');
   });
 
-  test('v1.60 버전: sw · app · index · TWA가 함께 bm-v1.70.0', function () {
+  test('v1.60 버전: sw · app · index · TWA가 함께 bm-v1.71.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.70.0'", 'sw.js');
-    includes(sw, 'bm-v1.70.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.70.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-8', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.70.0', 'TWA 이름');
-    eq(twa.appVersion, '1.70.0', 'TWA 버전');
-    eq(twa.appVersionCode, 64, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.71.0'", 'sw.js');
+    includes(sw, 'bm-v1.71.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.71.0'", 'app.js');
+    includes(index, 'styles.css?v=20261124-9', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.71.0', 'TWA 이름');
+    eq(twa.appVersion, '1.71.0', 'TWA 버전');
+    eq(twa.appVersionCode, 65, 'TWA 코드');
     includes(index, 'js/sharecard.js', 'index 스크립트');
   });
 

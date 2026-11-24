@@ -297,8 +297,17 @@
  *             밀리게 만든 다음, 코스를 틀거나 짧게 놓아 빈틈을 노립니다. 밀기 전에 방향부터 바꾸면
  *             앞을 지키는 상대에게 걸린다는 순서까지 함께 적었습니다.
  *             js/ai.js·js/views/log.js 가 바뀌어 캐시를 bm-v1.70.0으로 올립니다.
+ * 2026-11-24: 🎨 인스타 공유 카드 감성 전면 리디자인(bm-v1.71.0) — 카드가 군더더기를 벗었습니다.
+ *             〔고화질 기본 배경 3종〕 야경 코트 · 노을 체육관 · 다크 스튜디오 실사 사진을
+ *             1080×1350 JPEG로 넣어, 내 사진이 없어도 바로 화보 같은 카드가 나옵니다.
+ *             〔레이아웃〕 도장·자랑 배지·전적·도발 멘트를 한꺼번에 얹지 않고 큰 숫자 하나 +
+ *             얇은 선 + 짧은 한 줄 + 맨 아래 날짜·장소만. 도장류는 '꾸밈 배지'를 켤 때만.
+ *             〔영수증〕 요즘 인스타에서 도는 '오늘의 민턴 영수증' 카드(찢은 종이 · 바코드) 추가,
+ *             글래스는 칸에서 빠지고 영수증이 들어왔습니다(예전 값은 그대로 그려집니다).
+ *             js/sharecard.js·styles.css·assets/share-bg/* 가 바뀌어 캐시를 bm-v1.71.0으로 올리고
+ *             배경 사진 3장을 SHELL에 넣어 오프라인에서도 사용합니다.
  * ============================================================ */
-var VERSION = 'bm-v1.70.0';
+var VERSION = 'bm-v1.71.0';
 var SHELL = [
   './',
   './index.html',
@@ -345,7 +354,10 @@ var SHELL = [
   './js/vendor/leaflet/leaflet.css',
   './js/vendor/leaflet/images/marker-icon.png',
   './js/vendor/leaflet/images/marker-icon-2x.png',
-  './js/vendor/leaflet/images/marker-shadow.png'
+  './js/vendor/leaflet/images/marker-shadow.png',
+  './assets/share-bg/night-court.jpg',
+  './assets/share-bg/sunset-shuttle.jpg',
+  './assets/share-bg/minimal-studio.jpg'
 ];
 
 self.addEventListener('install', function (event) {
