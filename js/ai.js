@@ -467,6 +467,12 @@
     ],
     '수비': [
       {
+        name: '수비 타이밍 — 예측했을 때 / 아닐 때',
+        method: '코스를 예측한 공은 앞에서 짧게 잡아 상대를 압박하고, 예측하지 못한 공은 몸 쪽 뒤로 살짝 당겨 시간을 벌어 받아칩니다. 앞에서 급하게 치려 하면 공이 더 빠르게 느껴져요.',
+        sets: vol('랠리', [6, 8, 10, 10, 12, 12, 15], [2, 3, 3, 3, 4, 4, 4]),
+        point: '예측했으면 앞에서 짧게 / 예측 못 했으면 뒤로 당겨 여유롭게'
+      },
+      {
         name: '좌우 수비 블록',
         method: '스매시를 블록으로 되받아 네트 앞으로. 좌우로 흔들리며 자세가 무너지지 않게.',
         sets: vol('회', [10, 12, 15, 15, 20, 20, 25], [3, 3, 3, 4, 4, 4, 4]),
@@ -632,11 +638,12 @@
       '뒤로 밀렸을 때는 억지 스매시보다 깊은 클리어·풀드 드롭으로 랠리 재정비'
     ],
     '복식': [
+      '수비에서 공격으로 뒤집을 땐 먼저 공을 세게 한 번 쳐서 상대를 뒤로 밀리게 만들고, 그다음 코스를 틀거나 짧게 놓아 빈틈을 노리세요 — 밀기 전에 방향부터 바꾸면 앞을 지키는 상대에게 걸립니다',
       '숏서브는 T자 부근, 서브 후 전위는 네트를 지키고 후위는 미드/후방 커버 (BWF 복식 서브). 몸쪽만 반복하면 읽힙니다 — 국내 국가대표 분석에서 몸쪽 서브 ' + rng(DOUBLES_SERVE.bodyPct, '%') + '인 조의 서브 실점이 ' + rng(DOUBLES_SERVE.lossPct, '%') + '였습니다',
       '리시브는 네트 앞으로 차지하기. 숏 드라이브 ' + rng(DOUBLES_RECEIVE.shortDrivePct, '%') + '·드라이브 ' + rng(DOUBLES_RECEIVE.drivePct, '%') + '·헤어핀 ' + rng(DOUBLES_RECEIVE.hairpinPct, '%') + '에 몰리지 말고 구질·코스(중앙/대각/직선)를 섞기',
       '공격은 전후(공격) / 수비는 좌우(수비). 셔틀 높이를 보고 둘이 동시에 바꾸기',
       '전위는 공격 방향 쪽으로 붙는 채널 어택 — 스트레이트·중앙 공격으로 2대1 만들기',
-      '수비에서는 블록·드라이브로 앞으로 나가 주도권 회수, 리프트는 스트레이트 공격엔 크로스로',
+      '수비에서는 블록·드라이브로 앞으로 나가 주도권 회수, 리프트는 스트레이트 공격엔 크로스로 — 코스를 예측한 수비는 앞에서 짧게 잡아 압박하고, 예측 못 한 공은 몸 쪽 뒤로 살짝 당겨 시간을 벌고 여유롭게 받아치기',
       '드라이브 싸움에서는 중앙(두 선수 사이)과 몸쪽을 먼저 겨냥'
     ],
     '혼합복식': [
@@ -1445,6 +1452,95 @@
       focus: senseFocus(weakList),
       summary: '감각연습 3블록(45~50분) · 보강 웨이트 3묶음',
       source: SENSE.source
+    };
+  }
+
+  /* ---------- 시합 당일 준비 (bm-v1.70.0) ----------
+   * 체전 1등 선수 현장 기준(2026-11-24 인터뷰)에서 두 가지를 그대로 옮겼습니다.
+   *   ① 시합 들어가기 직전 — 가볍게 조깅 → 스트레칭으로 관절 풀기 → 코트에서 시합
+   *      (사용자 답변: "조깅하고 스트레칭하고 시합 뛰고")
+   *   ② 복식 수비 → 공격 전환 — 공을 세게 한 번 쳐서 상대를 뒤로 밀리게 만든 다음,
+   *      코스를 틀거나 짧게 놓아 빈틈을 노리기 (사용자 답변: "공을 세게한번쳐서 밀리게 하고 틀거나 놔")
+   * 평소 훈련 웜업(WARMUP · PREVENT)과 네트 예열 구조는 그대로 두고,
+   * 대회·시합이 있는 날에만 이 순서를 하나 더 얹습니다. */
+  var MATCH_DAY = {
+    title: '시합 당일 준비',
+    note: '대회나 시합이 있는 날, 코트에 들어가기 전 순서예요. 평소 하던 웜업은 그대로 하고, 그 위에 이 세 가지를 순서대로 더하면 됩니다.',
+    steps: [
+      {
+        name: '가볍게 조깅', min: 5,
+        how: '코트 밖에서 몸이 따뜻해질 때까지 가볍게 뜁니다. 옆 사람과 이야기할 수 있는 속도면 충분하고, 숨이 조금 차면 멈춰도 돼요.'
+      },
+      {
+        name: '스트레칭으로 관절 풀기', min: 5,
+        how: '발목·무릎·어깨를 크게 돌리고 다리를 앞뒤로 흔들어 관절을 풀어 줍니다. 시합 직전에는 힘을 오래 주는 스트레칭보다 움직이면서 푸는 스트레칭이 몸을 덜 굳게 해요.'
+      },
+      {
+        name: '코트에서 시합', min: 0,
+        how: '이제 코트에 들어가 실제 경기처럼 뛰어 봅니다. 첫 랠리는 힘을 조금 빼고 시작해 셔틀 속도와 코트 감각을 확인한 뒤 올리세요.'
+      }
+    ],
+    order: '가볍게 조깅 → 스트레칭으로 관절 풀기 → 코트에서 시합',
+    switchTitle: '수비에서 공격으로 뒤집기',
+    switchNote: '복식에서 수비에 몰려 있을 때 공격으로 뒤집는 순서예요. 한 번에 바꾸려 하지 말고, 밀어낸 다음에 바꿉니다.',
+    switchSteps: [
+      {
+        name: '① 세게 한 번 쳐서 밀어내기',
+        how: '수비에서 받은 공을 아래로 힘 있게 한 번 쳐서(드라이브·푸시) 상대 쪽 깊숙이 보냅니다. 상대 두 명이 뒤로 물러나야 다음이 열려요.'
+      },
+      {
+        name: '② 밀린 걸 보고 코스 틀기 · 짧게 놓기',
+        how: '상대가 뒤로 물러난 순간 앞이 비어요. 그때 대각이나 직선으로 코스를 틀거나, 네트 앞에 살짝 짧게 놓아 빈 곳을 찌릅니다.'
+      },
+      {
+        name: '③ 순서 지키기',
+        how: '밀기 전에 방향부터 바꾸면 앞을 지키는 상대에게 그대로 걸립니다. 세게 한 번 → 상대가 물러나는지 보기 → 코스 바꾸기, 이 순서를 지키세요.'
+      }
+    ],
+    partner: '파트너와 미리 약속해 두세요. 한 명이 세게 밀어 상대를 뒤로 보내면, 다른 한 명은 네트 쪽으로 붙어 앞자리를 차지합니다(전후 전환).',
+    defenseTitle: '수비에서 받는 타이밍',
+    defenseNote: '예측한 수비와 예측 못 한 수비는 받는 자리가 달라야 해요.',
+    defenseSteps: [
+      {
+        name: '예측한 공 — 앞에서 짧게',
+        how: '상대가 어디로 칠지 예측했으면 앞에서 짧게 잡아 바로 압박합니다. 이때는 앞에서 치는 게 오히려 상대를 몰아붙여요.'
+      },
+      {
+        name: '예측 못 한 공 — 뒤로 살짝 당겨 여유',
+        how: '예측하지 못한 공을 앞에서 급하게 치려 하면 공이 더 빠르게 느껴져 실수가 나요. 몸 쪽 뒤로 살짝 당겨 시간을 벌고, 최대한 편한 자세로 여유 있게 받아치세요.'
+      }
+    ],
+    singleNote: '단식도 같아요. 세게 깊게 한 번 보내 상대를 뒤로 밀어낸 뒤, 드롭이나 코스 변경으로 앞뒤를 흔들어 빈 곳을 노리세요.',
+    source: '체전 1등 선수 현장 기준(2026-11-24) — 시합 직전 조깅·스트레칭 후 시합 / 수비에서 세게 밀고 코스 틀기'
+  };
+
+  /* matchDay(discipline)
+   *   → 시합 직전 3단계 + 종목에 맞춘 수비→공격 전환 (복식·혼합복식은 3단계, 단식은 한 줄 안내)
+   * 같은 입력이면 같은 결과(순수 함수) — 카드가 다시 그려져도 흔들리지 않게 매번 새 객체로 돌려줍니다. */
+  function matchDay(discipline) {
+    var key = disciplineKey(discipline);
+    var dbl = key !== '단식';
+    return {
+      title: MATCH_DAY.title,
+      note: MATCH_DAY.note,
+      discipline: key,
+      order: MATCH_DAY.order,
+      steps: MATCH_DAY.steps.map(function (s) {
+        return { name: s.name, min: s.min, how: s.how };
+      }),
+      switchBlock: {
+        title: MATCH_DAY.switchTitle,
+        note: dbl ? MATCH_DAY.switchNote : MATCH_DAY.singleNote,
+        steps: dbl ? MATCH_DAY.switchSteps.map(function (s) { return { name: s.name, how: s.how }; }) : [],
+        partner: dbl ? MATCH_DAY.partner : ''
+      },
+      defenseBlock: {
+        title: MATCH_DAY.defenseTitle,
+        note: MATCH_DAY.defenseNote,
+        steps: MATCH_DAY.defenseSteps.map(function (s) { return { name: s.name, how: s.how }; })
+      },
+      summary: '시합 직전 3단계 · 수비에서 공격 전환 · 수비 타이밍',
+      source: MATCH_DAY.source
     };
   }
 
@@ -2380,6 +2476,7 @@
       loadGuide: loadGuide,
       offcourt: offcourtRoutine(discipline),
       sense: senseRoutine(discipline, level, weakSkills),
+      match: matchDay(discipline),
       pace: pace,
       week: week,
       risk: risk,
@@ -2420,6 +2517,7 @@
     proBalance: proBalance, loadRhythm: loadRhythm, PRO_BAL: PRO_BAL, RHYTHM: RHYTHM,
     offcourtRoutine: offcourtRoutine, OFFCOURT: OFFCOURT,
     senseRoutine: senseRoutine, SENSE: SENSE, senseFocus: senseFocus,
+    matchDay: matchDay, MATCH_DAY: MATCH_DAY,
     paceGuide: paceGuide, SELF_PACE: SELF_PACE, PAIN_RULE: PAIN_RULE,
     disciplineKey: disciplineKey, PREVENT: PREVENT, LOAD_GUIDE: LOAD_GUIDE,
     /* 논문 기준값 — 화면 문구와 같은 숫자 */
