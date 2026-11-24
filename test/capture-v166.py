@@ -96,6 +96,18 @@ with sync_playwright() as p:
         page.click('#sheet [data-sc-zoomin]')
         page.wait_for_timeout(90)
     card('photo_zoom')
+    # 사진 없이 기본 배경(노을 코트) + 글씨 위 — 밝은 배경에서도 글씨가 읽히는지
+    page.click('#sheet [data-sc-photoclear]')           # 사진 빼고 기본 배경으로
+    page.wait_for_timeout(500)
+    page.click('#sheet [data-sc-bg="sunsetcourt"]')
+    page.wait_for_timeout(400)
+    page.click('#sheet [data-sc-textpos="top"]')
+    page.wait_for_timeout(400)
+    card('bg_sunset_top')
+    page.click('#sheet [data-sc-textpos="middle"]')
+    page.wait_for_timeout(400)
+    card('bg_sunset_middle')
+
     # 화면(시트) 전체도 한 장
     page.screenshot(path=OUT + '/v166_sheet_zoom_controls.png')
 

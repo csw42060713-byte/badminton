@@ -1054,9 +1054,9 @@
          * 덮도록 글씨 묶음 아래 +130px까지 깔고 그 뒤로 서서히 사라집니다. */
         var tBot = Math.min(H, blockBottom + 130);
         var topScrim = g.createLinearGradient(0, 0, 0, tBot);
-        topScrim.addColorStop(0, rgba(p.scrim, 0.92));
-        topScrim.addColorStop(0.55, rgba(p.scrim, 0.72));
-        topScrim.addColorStop(0.82, rgba(p.scrim, 0.52));
+        topScrim.addColorStop(0, rgba(p.scrim, 0.94));
+        topScrim.addColorStop(0.55, rgba(p.scrim, 0.82));
+        topScrim.addColorStop(0.82, rgba(p.scrim, 0.62));
         topScrim.addColorStop(1, rgba(p.scrim, 0));
         g.fillStyle = topScrim;
         g.fillRect(0, 0, W, tBot);
