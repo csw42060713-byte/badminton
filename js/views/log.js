@@ -552,6 +552,49 @@
       '</div></details>';
   }
 
+  /* 시합 당일 준비 (bm-v1.70.0)
+   *   시합 직전 3단계(가볍게 조깅 → 스트레칭으로 관절 풀기 → 코트에서 시합)와
+   *   복식 수비 → 공격 전환(세게 한 번 밀어낸 뒤 코스 틀기·짧게 놓기)을 한 접기에 담습니다. */
+  function matchFold(an) {
+    var m = an && an.match;
+    if (!m || !m.steps || !m.steps.length) return '';
+    var steps = m.steps.map(function (s) {
+      return '<li><b>' + U.esc(s.name) + '</b>' +
+        (s.min > 0 ? ' (' + s.min + '분)' : '') + ' — ' + U.esc(s.how) + '</li>';
+    }).join('');
+    var sw = m.switchBlock;
+    var swSteps = (sw && sw.steps && sw.steps.length)
+      ? '<ul class="bullets">' + sw.steps.map(function (s) {
+        return '<li><b>' + U.esc(s.name) + '</b> — ' + U.esc(s.how) + '</li>';
+      }).join('') + '</ul>'
+      : '';
+    var df = m.defenseBlock;
+    var dfSteps = (df && df.steps && df.steps.length)
+      ? '<ul class="bullets">' + df.steps.map(function (s) {
+        return '<li><b>' + U.esc(s.name) + '</b> — ' + U.esc(s.how) + '</li>';
+      }).join('') + '</ul>'
+      : '';
+    return '<details class="fold fold--ai" data-fold="match">' +
+      '<summary class="fold__sum"><span>' + U.esc(m.title) + ' <small>조깅 → 스트레칭 → 코트</small></span>' +
+      '<i class="fold__val">' + m.steps.length + '단계</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' +
+      '<p class="planbox__v">' + U.esc(m.note) + '</p>' +
+      '<div class="planbox mt8"><p class="planbox__t">시합 직전 워밍업</p>' +
+      '<p class="planbox__v">' + U.esc(m.order) + '</p>' +
+      '<ul class="bullets">' + steps + '</ul></div>' +
+      (sw
+        ? '<div class="planbox mt8"><p class="planbox__t">' + U.esc(sw.title) + '</p>' +
+          '<p class="planbox__v">' + U.esc(sw.note) + '</p>' + swSteps +
+          (sw.partner ? '<p class="planbox__v">' + U.esc(sw.partner) + '</p>' : '') + '</div>'
+        : '') +
+      (df
+        ? '<div class="planbox mt8"><p class="planbox__t">' + U.esc(df.title) + '</p>' +
+          '<p class="planbox__v">' + U.esc(df.note) + '</p>' + dfSteps + '</div>'
+        : '') +
+      '<p class="planbox__src">' + U.esc(m.source) + '</p>' +
+      '</div></details>';
+  }
+
   function guardFold(an) {
     var g = an && an.guard;
     if (!g) return '';
@@ -675,6 +718,7 @@
       balanceFold(an) +
       offcourtFold(an) +
       senseFold(an) +
+      matchFold(an) +
       '<details class="fold fold--ai" data-fold="week">' +
       '<summary class="fold__sum"><span>이번 주 루틴 <small>다음 훈련 · 실전</small></span>' +
       '<i class="fold__val">' + an.week.length + '회차</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +

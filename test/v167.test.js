@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v167.test.js — bm-v1.69.0
+ * test/v167.test.js — bm-v1.70.0
  *   ✨ 인스타 공유 카드 자동 꾸미기 · 메달 임팩트 · 도발 멘트
  *
  *  승우 님 피드백:
@@ -591,15 +591,15 @@
     ['김원호', '안세영', '서재승', '서승재'].forEach(function (name) { excludes(src, name, name + ' 없음'); });
   });
 
-  test('v1.67 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.69.0', function () {
+  test('v1.67 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.70.0', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.69.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.69.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261124-7', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.70.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.70.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261124-8', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.69.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.69.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 63, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.70.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.70.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 64, 'TWA 버전 코드');
   });
 
   test('v1.67 배선: 테스트 목록에 v167이 들어 있다', function () {
