@@ -1050,11 +1050,13 @@
         g.fillStyle = band;
         g.fillRect(0, bTop, W, bBot - bTop);
       } else if (pos === 'top') {
-        /* 위 — 위에서 내려오며 사라지는 스크림(스토리 안전 여백까지 덥습니다) */
-        var tBot = Math.min(H, blockBottom + 56);
+        /* 위 — 위에서 내려오며 사라지는 스크림. 마지막 줄(파트너·상대)까지
+         * 덮도록 글씨 묶음 아래 +130px까지 깔고 그 뒤로 서서히 사라집니다. */
+        var tBot = Math.min(H, blockBottom + 130);
         var topScrim = g.createLinearGradient(0, 0, 0, tBot);
-        topScrim.addColorStop(0, rgba(p.scrim, 0.90));
-        topScrim.addColorStop(0.55, rgba(p.scrim, 0.62));
+        topScrim.addColorStop(0, rgba(p.scrim, 0.92));
+        topScrim.addColorStop(0.55, rgba(p.scrim, 0.72));
+        topScrim.addColorStop(0.82, rgba(p.scrim, 0.52));
         topScrim.addColorStop(1, rgba(p.scrim, 0));
         g.fillStyle = topScrim;
         g.fillRect(0, 0, W, tBot);
