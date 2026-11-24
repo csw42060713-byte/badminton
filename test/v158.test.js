@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v158.test.js — bm-v1.68.0
+ * test/v158.test.js — bm-v1.69.0
  *   🎨 인스타 카드 색·디자인 다양화 + 동기화 큐 막힘 해결
  *
  *  사용자가 요청한 두 가지를 그대로 검증합니다.
@@ -142,7 +142,7 @@
       ok(/^#[0-9a-f]{6}$/i.test(p.accent), p.id + ' 강조색');
       ok(/^#[0-9a-f]{6}$/i.test(p.text), p.id + ' 글자색');
       eq(p.bg.length, 3, p.id + ' 바탕 3단');
-      /* bm-v1.68.0 — 사진을 어둡게 하는 색은 scrim(RGB) 하나로 */
+      /* bm-v1.69.0 — 사진을 어둡게 하는 색은 scrim(RGB) 하나로 */
       eq(p.scrim.length, 3, p.id + ' 사진 스크림 색');
     });
     var night = sc.paletteById('night');
@@ -152,7 +152,7 @@
     eq(sc.paletteById('gold').name, '챔피언 골드', '골드');
   });
 
-  /* bm-v1.68.0 — v1.58의 미니멀·포스터·코트 라인을 매거진·필름·스티커로 다시 그렸습니다.
+  /* bm-v1.69.0 — v1.58의 미니멀·포스터·코트 라인을 매거진·필름·스티커로 다시 그렸습니다.
    *   (사진이 주인공 · 박스·테두리 없음 · 인스타 비율 2종 · 사진 밝기 3단계) */
   test('v1.60 디자인: 매거진·글래스·필름·스티커 4종과 비율 2종 · 밝기 3단계다', function () {
     var sc = SC();
@@ -599,17 +599,17 @@
     excludes(SC()._sheetBody(ctxOf(stateOf([rec()]))), '김원호', '시트 예시');
   });
 
-  test('v1.58 버전: sw · app · index · TWA가 함께 bm-v1.68.0', function () {
+  test('v1.58 버전: sw · app · index · TWA가 함께 bm-v1.69.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.68.0'", 'sw.js');
-    includes(app, "version: 'v1.68.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-6', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.68.0', 'TWA 이름');
-    eq(twa.appVersion, '1.68.0', 'TWA 버전');
-    eq(twa.appVersionCode, 62, 'TWA 코드');
-    includes(sw, 'bm-v1.68.0', 'sw 변경 이력');
+    includes(sw, "var VERSION = 'bm-v1.69.0'", 'sw.js');
+    includes(app, "version: 'v1.69.0'", 'app.js');
+    includes(index, 'styles.css?v=20261124-7', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.69.0', 'TWA 이름');
+    eq(twa.appVersion, '1.69.0', 'TWA 버전');
+    eq(twa.appVersionCode, 63, 'TWA 코드');
+    includes(sw, 'bm-v1.69.0', 'sw 변경 이력');
     includes(sw, '인스타 카드 색·디자인', 'sw 변경 이력 내용');
     var run = readRoot('test/run.js');
     includes(run, 'test/v158.test.js', '테스트 목록');

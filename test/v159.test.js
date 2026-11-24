@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v159.test.js — bm-v1.68.0
+ * test/v159.test.js — bm-v1.69.0
  *   😴 14일 넘게 활동이 없는 계정은 매칭 추천·탐색 목록에서 자동으로 숨기고,
  *      다시 접속하면 곧바로 복구합니다. (계정·데이터는 지우지 않음)
  *
@@ -358,16 +358,16 @@
     includes(css, 'font-size: 11.5px', '작은 글씨');
   });
 
-  test('v1.59 버전: sw · app · index · TWA가 함께 bm-v1.68.0', function () {
+  test('v1.59 버전: sw · app · index · TWA가 함께 bm-v1.69.0', function () {
     if (!hasNode()) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.68.0'", 'sw.js');
-    includes(app, "version: 'v1.68.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-6', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.68.0', 'TWA 이름');
-    eq(twa.appVersion, '1.68.0', 'TWA 버전');
-    eq(twa.appVersionCode, 62, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.69.0'", 'sw.js');
+    includes(app, "version: 'v1.69.0'", 'app.js');
+    includes(index, 'styles.css?v=20261124-7', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.69.0', 'TWA 이름');
+    eq(twa.appVersion, '1.69.0', 'TWA 버전');
+    eq(twa.appVersionCode, 63, 'TWA 코드');
     includes(sw, '14일', 'sw 변경 이력');
     var run = readRoot('test/run.js');
     includes(run, 'test/v159.test.js', '테스트 목록');

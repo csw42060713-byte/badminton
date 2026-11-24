@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v156.test.js — bm-v1.68.0
+ * test/v156.test.js — bm-v1.69.0
  *   ✨ 일지 컨디션 5단계 + 시작(온보딩) 앱 분위기 선택
  *
  *  사용자가 승인한 두 가지 UX 개선을 그대로 검증합니다.
@@ -238,7 +238,7 @@
     includes(html, '다크 코트', '다크 안내');
     includes(html, '라이트', '라이트 안내');
     includes(html, '사쿠라 핑크', '사쿠라 안내');
-    /* bm-v1.68.0 — 테마가 모두 무료라 카드에 하트 가격 배지가 없습니다 */
+    /* bm-v1.69.0 — 테마가 모두 무료라 카드에 하트 가격 배지가 없습니다 */
     excludes(html, '하트 2', '무료 테마에 하트 배지 없음');
     excludes(html, 'onbtheme__price', '가격 배지 자체가 없음');
     includes(html, 'data-onb-theme-note', '아래 한 줄 안내');
@@ -264,7 +264,7 @@
     });
     eq(D.themePrice('th_night'), 0, '다크 무료');
     eq(D.themePrice('th_def'), 0, '라이트 무료');
-    eq(D.themePrice('th_sakura'), 0, '사쿠라도 무료 (bm-v1.68.0)');
+    eq(D.themePrice('th_sakura'), 0, '사쿠라도 무료 (bm-v1.69.0)');
   });
 
   test('v1.56 시작: 여성일 때만 사쿠라에 은은한 추천 배지 (남성·비공개는 표시 안 함)', function () {
@@ -386,16 +386,16 @@
     includes(run, 'test/v156.test.js', '테스트 로드');
   });
 
-  test('v1.56 버전: sw · app · index · TWA가 함께 bm-v1.68.0', function () {
+  test('v1.56 버전: sw · app · index · TWA가 함께 bm-v1.69.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.68.0'", 'sw.js');
-    includes(app, "version: 'v1.68.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-6', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.68.0', 'TWA 이름');
-    eq(twa.appVersion, '1.68.0', 'TWA 버전');
-    eq(twa.appVersionCode, 62, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.69.0'", 'sw.js');
+    includes(app, "version: 'v1.69.0'", 'app.js');
+    includes(index, 'styles.css?v=20261124-7', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.69.0', 'TWA 이름');
+    eq(twa.appVersion, '1.69.0', 'TWA 버전');
+    eq(twa.appVersionCode, 63, 'TWA 코드');
   });
 
   test('v1.56 스타일: 5단계 카드·테마 카드 스타일이 있다', function () {
