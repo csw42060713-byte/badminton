@@ -400,8 +400,16 @@
   test('v1.60 모델: 오늘 운동 스펙 — 큰 숫자 1개 + 스탯 2개 · 날짜·체육관·상대', function () {
     if (!hasNode) return;
     var sc = SC();
-    var state = stateOf([rec(),
-      rec({ id: 'r_v160b', date: '2026-11-22' }), rec({ id: 'r_v160c', date: '2026-11-21' })]);
+    /* 연속 일수는 '오늘'부터 거슬러 세므로 날짜를 고정하면 다음 날부터 테스트가 깨집니다.
+     * 오늘·어제·그저께로 바꿔 언제 돌려도 3일이 되게 합니다. */
+    function daysAgo(n) {
+      var d = new Date(U.ymd() + 'T00:00:00');
+      d.setDate(d.getDate() - n);
+      return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    }
+    var today = daysAgo(0);
+    var state = stateOf([rec({ date: today }),
+      rec({ id: 'r_v160b', date: daysAgo(1) }), rec({ id: 'r_v160c', date: daysAgo(2) })]);
     sc._setState(uiState({ recordId: 'r_v160', gym: '나래울체육관', partner: '민호', rival: '지호' }));
     var spec = sc._specOf(ctxOf(state));
     eq(spec.design, 'magazine', '기본 매거진');
@@ -412,7 +420,7 @@
     eq(spec.stats.length, 2, '나머지 스탯 2개');
     eq(spec.stats[0].value, '2승 1패', '승패');
     eq(spec.stats[1].value, '3일', '연속');
-    includes(spec.top, '11/23', '위 줄 날짜');
+    includes(spec.top, Number(today.slice(5, 7)) + '/' + Number(today.slice(8, 10)), '오늘 날짜');
     includes(spec.top, '나래울체육관', '위 줄 체육관');
     includes(spec.meta, '민호와 함께', '파트너');
     includes(spec.meta, 'vs 지호', '라이벌');

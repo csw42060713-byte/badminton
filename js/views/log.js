@@ -595,6 +595,27 @@
       '</div></details>';
   }
 
+  /* 심화 · 선수 루틴 묶음 (bm-v1.72.0)
+   * 저장 뒤 접힘 메뉴가 9개씩 이어지면 동호인은 무엇부터 봐야 할지 모릅니다(2026-11-25 06시 점검).
+   * 선수 7대 훈련 균형 · 오프코트 · 실전 감각연습 · 시합 당일 준비는 이 한 접기 안에 묶습니다. */
+  function proFold(an) {
+    var parts = [];
+    var bal = an && an.balance;
+    if (bal && bal.on) parts.push('7대 훈련 균형');
+    var oc = an && an.offcourt;
+    if (oc && oc.days && oc.days.length) parts.push('오프코트');
+    var sn = an && an.sense;
+    if (sn && sn.court && sn.court.blocks && sn.court.blocks.length) parts.push('실전 감각연습');
+    var mt = an && an.match;
+    if (mt && mt.steps && mt.steps.length) parts.push('시합 준비');
+    var inner = balanceFold(an) + offcourtFold(an) + senseFold(an) + matchFold(an);
+    if (!inner) return '';
+    return '<details class="fold fold--ai fold--pro" data-fold="pro">' +
+      '<summary class="fold__sum"><span>심화 · 선수 루틴 더 보기 <small>' + U.esc(parts.join(' · ')) + '</small></span>' +
+      '<i class="fold__val">' + parts.length + '가지</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' + inner + '</div></details>';
+  }
+
   function guardFold(an) {
     var g = an && an.guard;
     if (!g) return '';
@@ -705,6 +726,9 @@
       (warn ? '<div class="risk risk--' + warn.level + '">' + UI.icon('alert') +
         '<span>' + U.esc(warn.text) + '</span></div>' : '') +
       '<h3 class="sec-title">' + UI.icon('check') + '추천 드릴</h3>' +
+      /* 통증 부위에 부담 큰 드릴을 바꿨으면 왜 바뀌었는지 먼저 한 줄 (bm-v1.72.0) */
+      (an.drills && an.drills.note
+        ? '<p class="hint drill__swap" data-drill-swap>' + UI.icon('alert') + ' ' + U.esc(an.drills.note) + '</p>' : '') +
       easyGuide(an, drills) +
       '<ol class="drills drills--core">' + drills.map(function (d, i) {
         return '<li class="drill drill--core"><div class="drill__no">' + (i + 1) + '</div><div class="drill__body">' +
@@ -715,10 +739,7 @@
       analysisDetails(an, D.partnerStats(((state && state.data && state.data.records) || []), { limit: 3 })) +
       preventFold(an) +
       guardFold(an) +
-      balanceFold(an) +
-      offcourtFold(an) +
-      senseFold(an) +
-      matchFold(an) +
+      proFold(an) +
       '<details class="fold fold--ai" data-fold="week">' +
       '<summary class="fold__sum"><span>이번 주 루틴 <small>다음 훈련 · 실전</small></span>' +
       '<i class="fold__val">' + an.week.length + '회차</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +

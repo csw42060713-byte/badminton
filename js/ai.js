@@ -1311,6 +1311,108 @@
     source: '체전 1등 선수 현장 기준(2026-11-22) — 조금 아프더라도 바로 쉬고 상태 보기'
   };
 
+  /* ---------- 통증 부위에 부담 없는 드릴 (bm-v1.72.0) ----------
+   * "무릎 쉬기"라고 안내해 놓고 바로 아래에서 육각 풋워크(30초×5세트)를 추천하던
+   * 모순을 없앱니다(2026-11-25 06시 점검).
+   *   · 하체 통증(무릎·발목 등) → 다리를 쓰지 않는 상체·스트레칭·회복으로 바꿉니다.
+   *   · 상체 통증(어깨·팔꿈치 등) → 머리 위·팔을 많이 쓰는 드릴만 빼고 안전한 드릴로 채웁니다.
+   * 드릴 이름과 설명에 이 낱말이 있으면 그 부위에 부담이 큰 동작으로 봅니다. */
+  var PAIN_LOAD_WORDS = {
+    '무릎': ['풋워크', '스텝', '점프', '착지', '런지', '섀도', '전후', '좌우', '수비', '로테이션'],
+    '발목': ['풋워크', '스텝', '점프', '착지', '런지', '섀도', '전후', '좌우', '수비'],
+    '아킬레스건': ['풋워크', '스텝', '점프', '착지', '런지', '섀도', '전후', '좌우'],
+    '종아리': ['풋워크', '스텝', '점프', '착지', '섀도', '전후'],
+    '허벅지': ['풋워크', '스텝', '점프', '착지', '런지', '섀도'],
+    '고관절': ['풋워크', '스텝', '점프', '착지', '런지', '섀도'],
+    '허리': ['점프', '착지', '스매시', '섀도'],
+    '어깨': ['스매시', '클리어', '킬', '리프트', '서브'],
+    '팔꿈치': ['스매시', '드라이브', '클리어'],
+    '손목': ['스매시', '드라이브', '헤어핀', '푸시', '킬'],
+    '손가락': ['스매시', '드라이브', '헤어핀', '푸시']
+  };
+  var PAIN_LOWER_AREAS = ['무릎', '발목', '아킬레스건', '종아리', '허벅지', '고관절', '발', '정강이'];
+  var PAIN_UPPER_AREAS = ['어깨', '팔꿈치', '손목', '손가락', '팔', '가슴', '등'];
+
+  /* 통증이 있을 때 대신 넣는 드릴 — 부위에 부담을 싣지 않는 것만 */
+  var PAIN_SAFE_DRILLS = {
+    lower: [
+      { name: '앉아서 상체 스트록 폼', method: '의자에 앉아 어깨 회전과 라켓 펴기만 반복합니다. 무릎·발목에 체중을 싣지 않아요.', sets: '10분 · 2세트', point: '아픈 다리는 그대로 두고 상체만' },
+      { name: '통증 부위 가벼운 스트레칭', method: '오늘 아픈 부위 주변을 아프지 않은 범위까지만 30초씩 천천히 늘립니다.', sets: '30초 × 2', point: '조금이라도 아프면 바로 멈추기' },
+      { name: '회복 · 냉온 찜질 가이드', method: '오늘은 코트 대신 붓기가 있으면 15분 냉찜질, 2주 넘게 이어지면 병원에 다녀오세요.', sets: '15분', point: '쉬는 날도 훈련이에요' }
+    ],
+    upper: [
+      { name: '하체 풋워크 6방향', method: '라켓을 내려놓고 발놀림만 합니다. 어깨·팔에 힘을 싣지 않아요.', sets: '30초 × 3세트', point: '상체는 편하게, 발만 빠르게' },
+      { name: '코어 · 호흡 정리', method: '누워서 무릎을 굽혀 허리를 바닥에 붙이고 호흡합니다. 팔을 쓰지 않아요.', sets: '10분', point: '허리는 바닥에 붙이고 천천히' },
+      { name: '통증 부위 가벼운 스트레칭', method: '아픈 부위는 아프지 않은 범위까지만 30초씩 천천히 늘립니다.', sets: '30초 × 2', point: '조금이라도 아프면 바로 멈추기' }
+    ],
+    both: [
+      { name: '통증 부위 가벼운 스트레칭', method: '아픈 부위는 아프지 않은 범위까지만 30초씩 천천히 늘립니다.', sets: '30초 × 2', point: '조금이라도 아프면 바로 멈추기' },
+      { name: '호흡 정리 · 회복 10분', method: '앉거나 누워서 긴 호흡으로 몸을 낮춥니다. 오늘은 회복이 먼저예요.', sets: '10분', point: '숨을 끝까지 내쉬기' },
+      { name: '회복 · 냉온 찜질 가이드', method: '붓기가 있으면 15분 냉찜질, 2주 넘게 이어지면 병원에 다녀오세요.', sets: '15분', point: '쉬는 날도 훈련이에요' }
+    ]
+  };
+
+  function painAreaKind(areas) {
+    var lower = false, upper = false;
+    (areas || []).forEach(function (a) {
+      if (PAIN_LOWER_AREAS.indexOf(a) >= 0) lower = true;
+      else if (PAIN_UPPER_AREAS.indexOf(a) >= 0) upper = true;
+    });
+    if (lower && upper) return 'both';
+    if (lower) return 'lower';
+    if (upper) return 'upper';
+    return 'lower';   /* 모르는 부위는 다리를 쓰지 않는 쪽으로 안전하게 */
+  }
+
+  function drillLoadHit(drill, words) {
+    var text = String((drill && drill.name) || '') + ' ' + String((drill && drill.method) || '');
+    for (var i = 0; i < words.length; i++) if (words[i] && text.indexOf(words[i]) >= 0) return words[i];
+    return '';
+  }
+
+  /* 통증 부위 → 부담 없는 드릴 3개 + 화면에 쓸 안내 한 줄 */
+  function painSafeDrills(drills, areas, level) {
+    var list = U.uniq((areas || []).filter(Boolean));
+    var out = { drills: (drills || []).slice(), note: '', swapped: [] };
+    if (!list.length) return out;
+    var kind = painAreaKind(list);
+    var words = [];
+    list.forEach(function (a) { words = words.concat(PAIN_LOAD_WORDS[a] || []); });
+    if (!words.length) words = ['점프', '착지', '풋워크'];
+
+    /* 하체 통증이면 다리를 쓰는 드릴을 통째로 빼고 상체·스트레칭·회복으로 바꿉니다 */
+    if (kind === 'lower' || kind === 'both') {
+      var safe = PAIN_SAFE_DRILLS[kind].map(function (d) {
+        return { name: d.name, level: level || LEVEL_FALLBACK, method: d.method, sets: d.sets, point: d.point, safeFor: list.slice() };
+      });
+      out.drills = safe;
+      out.swapped = (drills || []).filter(function (d) { return drillLoadHit(d, words); }).map(function (d) { return d.name; });
+      out.note = list.join('·') + ' 통증이 있어 오늘 추천 드릴은 ' + list.join('·') +
+        '에 부담이 큰 동작 대신 상체·스트레칭·회복 3가지로 바꿨어요.';
+      return out;
+    }
+
+    /* 상체 통증이면 머리 위·팔을 많이 쓰는 드릴만 빼고 나머지로 채웁니다 */
+    var kept = [];
+    var dropped = [];
+    (drills || []).forEach(function (d) {
+      if (drillLoadHit(d, words)) dropped.push(d.name); else kept.push(d);
+    });
+    var topUp = PAIN_SAFE_DRILLS.upper.map(function (d) {
+      return { name: d.name, level: level || LEVEL_FALLBACK, method: d.method, sets: d.sets, point: d.point, safeFor: list.slice() };
+    });
+    topUp.forEach(function (d) {
+      if (kept.length < 3 && !kept.some(function (x) { return x.name === d.name; })) kept.push(d);
+    });
+    out.drills = kept.slice(0, 3);
+    out.swapped = dropped;
+    if (dropped.length) {
+      out.note = list.join('·') + ' 통증이 있어 ' + list.join('·') + '에 부담이 큰 드릴 ' + dropped.length +
+        '개를 빼고, 부담 없는 드릴로 채웠어요.';
+    }
+    return out;
+  }
+
   /* ---------- 실전 감각연습 + 오후 보강 웨이트 (bm-v1.68.0) ----------
    * 체전 1등 선수 현장에서 하던 하루를 그대로 옮겼습니다(사용자 제보·승인 2026-11-24).
    *   오전 코트: 몸풀기(양쪽 약 5분) → 2대1 감각연습 30분 → 뒷코트 감각연습 10분 = 약 45~50분
@@ -2375,6 +2477,10 @@
     /* ---------- 맞춤처방 ---------- */
     var care = { rehab: [], stretch: [], mental: [], warmup: [] };
     var painList = U.uniq(painToday.concat(painCounts.filter(function (p) { return p.n >= 3; }).map(function (p) { return p.name; })));
+    /* 통증 부위에 부담이 큰 드릴은 빼고 안전한 드릴로 바꿉니다 (bm-v1.72.0)
+     * — 위에서 "무릎 쉬기"라고 해 놓고 아래에서 육각 풋워크를 권하던 모순 제거 */
+    var drillSwap = painSafeDrills(drills, painToday, level);
+    drills = drillSwap.drills;
     /* 통증 부위·종목에 맞춘 예방 워밍업과 종목별 인터벌 기준 (논문 근거) */
     var prevent = preventionWarmup(painList, discipline);
     var guard = jointGuard(painList, weakSkills, { intensity: intensity, minutes: minutes, load: load });
@@ -2418,7 +2524,11 @@
     /* ---------- 다음 목표 + 이번 주 루틴 ---------- */
     var focus = weakSkills[0] + ' 정확도 1개';
     if (cond != null && cond <= 4) focus = '회복 (20분 가볍게)';
-    else if (painToday.length) focus = painToday[0] + ' 쉬기 + 가볍게 ' + weakSkills[0];
+    else if (painToday.length) {
+      /* 하체 통증이면 '가볍게 풋워크' 같은 다음 목표도 다리를 쓰지 않는 쪽으로 (bm-v1.72.0) */
+      var lowerPain = painToday.some(function (a) { return PAIN_LOWER_AREAS.indexOf(a) >= 0; });
+      focus = painToday[0] + ' 쉬기' + (lowerPain ? ' (오늘은 상체·스트레칭)' : ' + 부담 없는 드릴');
+    }
     else if (ws.rate != null && ws.rate < 40) focus = '리시브 안정 + 실수 줄이기';
 
     var gp = gradePlan(level);
@@ -2467,7 +2577,7 @@
       flow: flow,
       gameMode: scoreMode,
       load: load,
-      drills: { drills: drills },
+      drills: { drills: drills, note: drillSwap.note || '', swapped: (drillSwap.swapped || []).slice(), areas: painList.slice() },
       care: care,
       prevent: prevent,
       guard: guard,
@@ -2519,6 +2629,7 @@
     senseRoutine: senseRoutine, SENSE: SENSE, senseFocus: senseFocus,
     matchDay: matchDay, MATCH_DAY: MATCH_DAY,
     paceGuide: paceGuide, SELF_PACE: SELF_PACE, PAIN_RULE: PAIN_RULE,
+    painSafeDrills: painSafeDrills, PAIN_SAFE_DRILLS: PAIN_SAFE_DRILLS, PAIN_LOAD_WORDS: PAIN_LOAD_WORDS,
     disciplineKey: disciplineKey, PREVENT: PREVENT, LOAD_GUIDE: LOAD_GUIDE,
     /* 논문 기준값 — 화면 문구와 같은 숫자 */
     SPLIT_STEP: SPLIT_STEP, DOUBLES_SERVE: DOUBLES_SERVE, DOUBLES_RECEIVE: DOUBLES_RECEIVE,

@@ -230,7 +230,7 @@
     includes(r.direction[0], '드라이브가 이번 주 3번', '1순위 약점');
     includes(r.direction[0], '드라이브 드릴', '드릴 안내');
     includes(r.direction.join(' '), '무릎', '통증 반영');
-    includes(r.direction[2], '게임에 들어가기 전에', '동호인 맞춤');
+    includes(r.direction[2], '아픈 부위가 편해질 때까지는', '동호인 맞춤 — 통증이 있으면 드릴 대신 회복 안내(v1.72)');
   });
 
   test('v1.41 선수 유형이면 7대 훈련으로 방향을 잡는다', function () {
