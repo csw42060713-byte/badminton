@@ -1304,7 +1304,7 @@
 
     /* 기본(아래) 자리 — 예전과 똑같은 위치에서 시작합니다.
      * 전적 태그 한 줄(spec.tagLine)이 있으면 그만큼 위로 올려 카드 밖으로 나가지 않게 합니다. */
-    var metaY = F.bottom - (spec.tagLine ? 92 : 52);
+    var metaY = F.bottom - (spec.tagLine ? 106 : 52);
     var ruleY = metaY - (spec.meta ? 58 : 36);
     var valBase = ruleY - 76;
     var bigBase = (hasStats ? valBase - 98 : ruleY - 86);
@@ -1425,6 +1425,21 @@
     g.textAlign = 'left';
 
     /* 큰 숫자 · 단위 · 자리는 위에서 계산했고, 여기서는 글씨만 그립니다 */
+    /* 잡지 표지 느낌 — 숫자 위에 아주 작은 영문 라벨 (COURT LOG · CONTEST LOG) */
+    var enY = kickerY - (spec.mode === 'comp' ? (spec.phrase ? 88 : 44) : 36);
+    if (enY > F.safeTop + 150) {
+      tracking(g, 3.4);
+      g.textAlign = 'left';
+      g.font = font(16, 700, MONO);
+      g.fillStyle = p.accent;
+      g.globalAlpha = 0.62;
+      g.shadowColor = shadow;
+      g.shadowBlur = shadowBlur * 0.6;
+      g.fillText(spec.mode === 'comp' ? 'CONTEST LOG' : 'COURT LOG', pad, enY);
+      g.shadowBlur = 0;
+      g.globalAlpha = 1;
+      tracking(g, 0);
+    }
     if (spec.mode === 'comp') {
       if (spec.phrase) {
         tracking(g, 0.6);
