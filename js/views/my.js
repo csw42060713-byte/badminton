@@ -97,21 +97,94 @@
     return '남은 ' + h.adRemaining + '회';
   }
 
-  /* 연속 출석 안내 — 하트 카드 · 꾸미기 패널이 함께 씁니다 */
+  /* 연속 출석 안내 — 하트 카드 · 꾸미기 패널이 함께 씁니다
+   *  왼쪽 줄: 꾸미기 무료 해금(3·7·14일)까지, 아래 줄: 하트 보너스(3·7·14일)까지 (bm-v1.64.0) */
   function streakLine(hearts) {
     var days = hearts.checkinStreak || 0;
     var next = hearts.streakNext;
     if (!days) return '출석을 이어 가면 3일·7일·14일에 꾸미기가 무료로 열려요';
-    return days + '일 연속 출석 중' + (next ? ' · ' + next.days + '일까지 ' + next.left + '일' : ' · 해금 가능한 꾸미기를 모두 받았어요');
+    if (!next) return days + '일 연속 출석 중 · 해금 가능한 꾸미기를 모두 받았어요';
+    var gift = /배지/.test(next.label || '') ? '배지' : '프레임';
+    return days + '일 연속 출석 중 · ' + next.days + '일까지 ' + next.left + '일 (' + gift + ' 무료)';
   }
 
-  /* 7일 연속 출석 보너스 한 줄 (bm-v1.36.0) — 공용 충전 시트와 같은 문구를 씁니다 */
+  /* 3·7·14일 연속 출석 보너스 한 줄 (bm-v1.64.0) — 공용 충전 시트와 같은 문구를 씁니다 */
   function streakBonusLine(hearts) {
     var live = liveHearts(hearts);
     if (BM.ads && typeof BM.ads.streakText === 'function') return BM.ads.streakText(live);
     var b = hearts.streakBonus;
     if (!b || !(b.amount > 0)) return '';
-    return b.left + '일 더 하면 보너스 하트 +' + b.amount + ' (' + b.days + '일마다)';
+    return b.left + '일 더 하면 보너스 하트 +' + b.amount;
+  }
+
+  /* 하트 부스트 줄 (bm-v1.64.0)
+   *  · 잠김: '하트 3개로 평생 켜기' — 누르면 하트 시트(모자라면 광고)로 이어집니다.
+   *  · 켜짐: '적용 중(+1)' · 끄기 버튼. 상태는 프로필 꾸미기 JSON의 boost 값입니다. */
+  function boostLine(hearts) {
+    var b = (hearts && hearts.boost) || {};
+    var price = Math.max(1, Number(b.price) || 3);
+    var owned = !!b.owned, on = !!b.equipped;
+    var sub = on ? '적용 중(+' + Math.max(1, Number(b.bonus) || 1) + ') · 출석·광고 +1'
+      : owned ? '켜면 출석·광고가 +1' : '하트 ' + price + '개로 한 번 열면 계속';
+    var btn = owned
+      ? '<button type="button" class="chip chip--sm' + (on ? ' is-on' : '') + '" data-act="boost" data-boost="' + (on ? '0' : '1') + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + (on ? '끄기' : '켜기') + '</button>'
+      : '<button type="button" class="chip chip--sm" data-act="boost" data-boost="1">하트 ' + price + '개로 열기</button>';
+    return '<div class="boostline' + (on ? ' is-on' : '') + '" data-region="boost">' +
+      UI.icon('spark') +
+      '<span class="boostline__t">하트 부스트</span>' +
+      '<span class="boostline__s">' + U.esc(sub) + '</span>' + btn + '</div>';
+  }
+
+  /* 하트 부스트 열기/켜기/끄기 (bm-v1.64.0)
+   *  하트 지갑 카드와 꾸미기 시트가 같은 흐름을 씁니다.
+   *  · 처음이면 하트 3개로 해금(모자라면 공용 하트 시트 → 채우면 그 자리에서 열기)
+   *  · 그 뒤 setHeartBoost(true/false) 로 켜고 끕니다. */
+  function runBoost(ctx, want, after) {
+    var hearts = (ctx.store.state.data && ctx.store.state.data.hearts) || {};
+    var bst = hearts.boost || {};
+    var price = Math.max(1, Number(bst.price) || 3);
+
+    function equip(on) {
+      var onRes = ctx.actions.setHeartBoost(on);
+      if (onRes && onRes.ok) {
+        UI.toast(on ? '하트 부스트를 켰어요 · 출석·광고 +1' : '하트 부스트를 껐어요');
+        UI.haptic(10);
+      } else if (onRes && onRes.reason === 'not_owned') {
+        UI.toast('먼저 하트로 하트 부스트를 열어 주세요');
+      } else if (onRes && onRes.reason === 'locked') {
+        UI.toast('잠시만요, 처리 중이에요');
+      } else {
+        UI.toast('바꾸지 못했어요. 잠시 뒤 다시 시도해 주세요', 'error');
+      }
+      if (after) after();
+    }
+
+    if (want && !bst.owned) {
+      var buyRes = ctx.actions.buyDeco('boost', 'heart');
+      if (buyRes.ok) {
+        UI.toast(buyRes.purchased ? '하트 ' + buyRes.price + '개로 하트 부스트를 열었어요' : '이미 열려 있어요');
+        UI.haptic(12);
+      } else if (buyRes.reason === 'hearts') {
+        openHeartSheet(ctx, {
+          need: price,
+          intro: function (s) {
+            return '<p class="sheet__text">하트 부스트 — <b>하트 ' + price +
+              '개</b>로 한 번 열면 계속 써요. 지금 <b>' + s.balance + '개</b> 있어요.' +
+              (s.balance < price ? ' <span class="warn">' + (price - s.balance) + '개 부족</span>' : '') + '</p>';
+          },
+          continueLabel: '열기',
+          onContinue: function () { runBoost(ctx, true, after); }
+        });
+        return;
+      } else if (buyRes.reason === 'locked') {
+        UI.toast('잠시만요, 처리 중이에요');
+        return;
+      } else {
+        UI.toast('지금은 열 수 없어요. 잠시 뒤 다시 시도해 주세요', 'error');
+        return;
+      }
+    }
+    equip(want);
   }
 
   function heartCard(hearts) {
@@ -150,6 +223,7 @@
       (streakBonusLine(hearts)
         ? '<p class="streakbonus">' + UI.icon('spark') + '<span>' + U.esc(streakBonusLine(hearts)) + '</span></p>'
         : '') +
+      boostLine(hearts) +
 
       (recent.length ? '<ul class="ledger">' + recent.map(ledgerRow).join('') + '</ul>'
         : '<p class="hint">아직 하트 내역이 없어요. 출석 체크로 시작해 보세요.</p>') +
@@ -852,11 +926,21 @@
           ev.preventDefault();
           var ci = ctx.actions.checkIn();
           if (ci.ok) {
-            /* 7일째면 보너스가 함께 들어옵니다 — 토스트도 그날은 따로 */
-            UI.toast(ci.bonus ? ci.streak + '일 연속 출석! 하트 +' + ci.gained + ' (보너스 +' + ci.bonus + ')' : '출석 체크 완료! 하트 +' + ci.gained);
+            /* 연속 보너스가 붙는 날(3·7·14일)은 토스트도 따로 — 부스트 보너스도 함께 알려 줍니다 */
+            var parts = [];
+            if (ci.bonus) parts.push(ci.streak + '일 연속! 보너스 +' + ci.bonus);
+            if (ci.boost) parts.push('부스트 +' + ci.boost);
+            UI.toast('출석 체크 완료 · 하트 +' + ci.gained + (parts.length ? ' (' + parts.join(' · ') + ')' : ''));
             UI.haptic(14);
           } else if (ci.reason === 'done') UI.toast('오늘은 이미 출석했어요');
           else if (ci.reason === 'locked') UI.toast('잠시만요');
+          return;
+        }
+        /* 하트 부스트 — 열기(하트 3개) · 켜기 · 끄기 (bm-v1.64.0) */
+        var boostBtn = ev.target.closest('[data-act="boost"]');
+        if (boostBtn) {
+          ev.preventDefault();
+          runBoost(ctx, boostBtn.getAttribute('data-boost') === '1');
           return;
         }
         var adBtn = ev.target.closest('[data-act="ad"]');
@@ -1412,6 +1496,11 @@
           (b ? U.esc(b) : '없음') + lockTag(db) + '</button>';
       }).join('') + '</div>' +
 
+      /* 하트 부스트 — 출석·광고 적립을 늘리는 꾸미기 (bm-v1.64.0).
+       * 꾸미기 상점과 같은 자리에서 열고 켜고 끕니다(시트는 그 자리에서 다시 그립니다). */
+      '<p class="deco__sub" data-sub="boost">하트 부스트</p>' +
+      boostLine(state.data && state.data.hearts) +
+
       '<h4 class="avstudio__label" data-sec="level">실력(급수)</h4>' +
       decoChips('level', D.VOCAB.grades, draft.level) +
 
@@ -1508,6 +1597,16 @@
           }, 120);
         }
         node.addEventListener('click', function (ev) {
+          /* 하트 부스트 — 꾸미기 시트 안에서 열고 켜고 끄기 (bm-v1.64.0) */
+          if (ev.target.closest('[data-act="boost"]')) {
+            ev.preventDefault();
+            var wantBoost = ev.target.closest('[data-act="boost"]').getAttribute('data-boost') === '1';
+            var at = sheetScrollOf(node);
+            runBoost(ctx, wantBoost, function () {
+              openDecorateSheet(ctx, { draft: draft, scroll: at });
+            });
+            return;
+          }
           var chip = ev.target.closest('[data-dfield]');
           if (chip) {
             ev.preventDefault();

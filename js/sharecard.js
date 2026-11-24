@@ -76,6 +76,37 @@
     { id: 'deep', name: '감성 어둡게', note: '필름 톤', dim: 0.46 }
   ];
 
+  /* ---------- 대회 카드 프레임 (bm-v1.64.0) ----------
+   * 기본은 프레임 없음(무료). 대회 인증 카드에만 '챔피언 월계관/골드 프레임'을
+   * 하트 2개로 한 번 열면 계속 씁니다(소유 기록은 꾸미기구매 target='card:champ').
+   * 디자인·색·비율·문구는 그대로 무료라 바이럴을 막지 않습니다. */
+  var FRAMES = [
+    { id: 'none', label: '기본', hint: '프레임 없음', price: 0, deco: '' },
+    { id: 'champ', label: '챔피언 골드', hint: '월계관 · 메탈릭 골드', price: 2, deco: 'card:champ' }
+  ];
+
+  function frameOptionById(id) {
+    for (var i = 0; i < FRAMES.length; i++) if (FRAMES[i].id === id) return FRAMES[i];
+    return FRAMES[0];
+  }
+
+  function frameDeco(id) {
+    var f = frameOptionById(id);
+    return f ? f.deco : '';
+  }
+
+  /* 이 기기 사용자가 챔피언 프레임을 열어 두었는지 */
+  function ownsFrame(ctx, id) {
+    var deco = frameDeco(id);
+    if (!deco) return true;                 /* 기본 프레임은 늘 무료 */
+    var st = ctx && ctx.store ? ctx.store.state : {};
+    var me = st && st.me;
+    var idx = st && st.idx;
+    if (!me || !me.key || !idx || !BM.domain || !BM.domain.ownsDeco) return false;
+    var streak = st.data && st.data.hearts ? (st.data.hearts.checkinStreak || 0) : 0;
+    return BM.domain.ownsDeco(idx, me.key, deco, streak);
+  }
+
   /* ---------- 색 5종 (포인트 1색) ----------
    * accent — 강조 글씨·단위·스탬프 / onAccent — 강조 바탕 위 글씨
    * bg     — 사진이 없을 때의 메쉬 그라데이션 바탕 / glow·glow2 — 그 위 은은한 빛
@@ -1336,6 +1367,51 @@
     }
   }
 
+  /* 챔피언 골드 프레임 그리기 (bm-v1.64.0) — 대회 인증 카드 위에 마지막으로 덮습니다.
+   * 메탈릭 골드 이중 테두리 + 네 모서리 월계관 잎. 사진·배경·필름 종이 위에서도 또렷합니다. */
+  function paintLeaf(g, x, y, rot, len, color) {
+    g.save();
+    g.translate(x, y);
+    g.rotate(rot);
+    g.fillStyle = color;
+    g.beginPath();
+    if (typeof g.ellipse === 'function') g.ellipse(0, 0, len * 0.34, len, 0, 0, Math.PI * 2);
+    else g.arc(0, 0, len * 0.5, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+  }
+
+  function paintChampFrame(g, F, p) {
+    var gold = '#e8c26a';
+    var goldSoft = 'rgba(232,194,106,0.62)';
+    var inset = Math.round(F.W * 0.019);
+    var inner = inset + Math.round(F.W * 0.011);
+    var lw = Math.max(2, Math.round(F.W * 0.0035));
+    g.save();
+    /* 바깥 얇은 선 + 안쪽 금빛 선 — rect + stroke 로 그립니다(사각 박스 대신 프레임 선) */
+    g.strokeStyle = goldSoft; g.lineWidth = Math.max(1.5, lw * 0.7);
+    g.beginPath(); g.rect(inset, inset, F.W - inset * 2, F.H - inset * 2); g.stroke();
+    g.strokeStyle = gold; g.lineWidth = lw * 1.7;
+    g.beginPath(); g.rect(inner, inner, F.W - inner * 2, F.H - inner * 2); g.stroke();
+    /* 네 모서리 월계관 — 가로·세로 가지에 잎 3장씩 */
+    var s = Math.round(F.W * 0.046);
+    var corners = [
+      { x: inner, y: inner, dx: 1, dy: 1 },
+      { x: F.W - inner, y: inner, dx: -1, dy: 1 },
+      { x: inner, y: F.H - inner, dx: 1, dy: -1 },
+      { x: F.W - inner, y: F.H - inner, dx: -1, dy: -1 }
+    ];
+    corners.forEach(function (c) {
+      for (var i = 0; i < 3; i++) {
+        var k = s * (0.66 + i * 0.64);
+        var len = s * (0.52 - i * 0.07);
+        paintLeaf(g, c.x + c.dx * k, c.y + c.dy * s * 0.17, Math.PI / 2, len, gold);
+        paintLeaf(g, c.x + c.dx * s * 0.17, c.y + c.dy * k, 0, len, gold);
+      }
+    });
+    g.restore();
+  }
+
   /* spec → 캔버스 (캔버스가 없으면 null) */
   function draw(canvas, spec, cb) {
     if (!canvas || !canvas.getContext) return null;
@@ -1350,6 +1426,7 @@
     if (d === 'film') paintFilm(g, s, p, F);
     else if (d === 'sticker') paintSticker(g, s, p, F);
     else paintMagazine(g, s, p, F);
+    if (s.mode === 'comp' && frameOptionById(s.frame).id === 'champ') paintChampFrame(g, F, p);
     if (typeof cb === 'function') cb(canvas);
     return canvas;
   }
@@ -1415,6 +1492,7 @@
       shade: shadeById(prefs.shade).id,
       palette: paletteById(prefs.palette).id,
       bg: bgById(prefs.bg).id,
+      frame: frameOptionById(prefs.frame).id,
       phrase: phraseText(prefs.phrase) || DEFAULT_PHRASE,
       phraseComp: phraseText(prefs.phraseComp) || DEFAULT_PHRASE,
       recordId: rec ? rec.id : '',
@@ -1449,7 +1527,9 @@
       shade: shadeById(ui.shade).id,
       palette: paletteById(ui.palette).id,
       bg: ui.bg || '',
-      photo: ui.photo || null
+      photo: ui.photo || null,
+      /* 카드 프레임은 대회 인증 카드에만 (bm-v1.64.0) */
+      frame: ui.mode === 'comp' ? frameOptionById(ui.frame).id : 'none'
     };
 
     if (ui.mode === 'comp') {
@@ -1564,6 +1644,59 @@
     return '피드 4:5예요. 스토리에 올리려면 비율을 스토리로 바꿔 주세요.';
   }
 
+  /* 대회 카드 프레임 칩 — 기본은 무료, 챔피언은 하트 2개로 한 번 열면 계속 (bm-v1.64.0) */
+  function framePicks(ctx) {
+    return '<div class="field" data-sc-framebox><div class="field__label"><span>카드 프레임</span>' +
+      '<small>챔피언은 하트로 열어요</small></div>' +
+      '<div class="chips chips--wrap" role="group" aria-label="대회 카드 프레임">' + FRAMES.map(function (f) {
+        var owned = ownsFrame(ctx, f.id);
+        var on = frameOptionById(ui.frame).id === f.id;
+        return '<button type="button" class="chip sc__framechip' + (on ? ' is-on' : '') + (owned ? '' : ' is-locked') + '"' +
+          ' data-sc-frame="' + f.id + '" aria-pressed="' + (on ? 'true' : 'false') + '"' +
+          ' title="' + U.esc(f.label + ' · ' + f.hint + (owned ? '' : ' · 하트 ' + f.price + '개로 열기')) + '">' +
+          U.esc(f.label) + (owned ? '' : ' · 하트 ' + f.price) + '</button>';
+      }).join('') + '</div></div>';
+  }
+
+  /* 챔피언 프레임 열기 — 하트가 모자라면 공용 하트 시트로 이어집니다 */
+  function unlockFrame(ctx, id, done) {
+    var opt = frameOptionById(id);
+    if (!opt.deco) { done(); return; }
+    var actions = (ctx && ctx.actions) || {};
+    var canBuy = typeof actions.buyDeco === 'function';
+    var res = canBuy ? actions.buyDeco('card', opt.id) : { ok: false, reason: 'no_store' };
+    if (res && res.ok) {
+      BM.ui.toast(res.purchased ? '하트 ' + res.price + '개로 ' + opt.label + ' 프레임을 열었어요' : '이미 열려 있어요');
+      BM.ui.haptic(12);
+      done();
+      return;
+    }
+    if (res && res.reason === 'hearts' && BM.ads && BM.ads.openHeartSheet) {
+      BM.ads.openHeartSheet(ctx, {
+        need: opt.price,
+        intro: function (s) {
+          return '<p class="sheet__text">' + U.esc(opt.label) + ' 프레임 — <b>하트 ' + opt.price +
+            '개</b>로 한 번 열면 계속 써요. 지금 <b>' + s.balance + '개</b> 있어요.' +
+            (s.balance < opt.price ? ' <span class="warn">' + (opt.price - s.balance) + '개 부족</span>' : '') + '</p>';
+        },
+        continueLabel: '열기',
+        onContinue: function () {
+          var again = actions.buyDeco('card', opt.id);
+          if (again && again.ok) {
+            BM.ui.toast(opt.label + ' 프레임을 열었어요');
+            BM.ui.haptic(12);
+          } else {
+            BM.ui.toast('아직 하트가 모자라요', 'error');
+          }
+          done();
+        }
+      });
+      return;
+    }
+    if (res && res.reason === 'locked') { BM.ui.toast('잠시만요, 처리 중이에요'); return; }
+    BM.ui.toast('챔피언 프레임은 하트 ' + opt.price + '개로 열 수 있어요', 'error');
+  }
+
   /* 시트 — 초보자 기준 3초 완성 흐름 (bm-v1.63.0)
    *   탭 → 한 줄 안내 → 미리보기 → 📷 사진 넣기 (+ 기본 배경 4종) → 대회 입력(대회 탭)
    *   → 디자인 · 비율 · 사진 밝기 → 접기(문구 · 색 · 내용) → 저장
@@ -1619,7 +1752,7 @@
           'aria-pressed="' + (ui.result === r ? 'true' : 'false') + '">' + r + '</button>';
       }).join('') + '</div></div>' +
       field('파트너', 'compPartner', ui.compPartner, { max: 12, placeholder: '비워도 돼요' }) +
-      '</div>';
+      '</div>' + framePicks(ctx);
 
     var emptyToday = ui.mode === 'today' && !rec;
     var emptyNote = emptyToday
@@ -1797,7 +1930,32 @@
 
         function repaint() { paintPreview(node, ctx); }
 
+        /* 대회 프레임을 열거나 모드를 바꾼 뒤 — 시트 안쪽만 다시 그립니다 */
+        function refresh() {
+          var body = node.querySelector('.sheet__body');
+          if (body) body.innerHTML = sheetBody(ctx);
+          paintPreview(node, ctx);
+          paintBgThumbs(node);
+        }
+
         node.addEventListener('click', function (ev) {
+          /* 대회 인증 카드 프레임 (bm-v1.64.0) */
+          var fr = ev.target.closest('[data-sc-frame]');
+          if (fr) {
+            ev.preventDefault();
+            var fid = frameOptionById(fr.getAttribute('data-sc-frame')).id;
+            if (!ownsFrame(ctx, fid)) { unlockFrame(ctx, fid, function () { ui.frame = 'champ'; writePrefs({ frame: ui.frame }); refresh(); }); return; }
+            ui.frame = fid;
+            Array.prototype.forEach.call(node.querySelectorAll('[data-sc-frame]'), function (b) {
+              var on = frameOptionById(b.getAttribute('data-sc-frame')).id === ui.frame;
+              b.classList.toggle('is-on', on);
+              b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+            BM.ui.haptic(6);
+            writePrefs({ frame: ui.frame });
+            repaint();
+            return;
+          }
           var ph = ev.target.closest('[data-sc-phrase]');
           if (ph) {
             ev.preventDefault();
@@ -1982,6 +2140,8 @@
   BM.sharecard = {
     W: W, H: H, MODES: MODES, RESULTS: RESULTS,
     DESIGNS: DESIGNS, RATIOS: RATIOS, SHADES: SHADES, PALETTES: PALETTES, BGS: BGS,
+    FRAMES: FRAMES, frameOptionById: frameOptionById, ownsFrame: ownsFrame,
+    unlockFrame: unlockFrame, paintChampFrame: paintChampFrame,
     PHRASES: PHRASES, PHRASE_MAX: PHRASE_MAX, DEFAULT_PHRASE: DEFAULT_PHRASE,
     designById: designById, ratioById: ratioById, shadeById: shadeById, paletteById: paletteById,
     bgById: bgById, bgOf: bgOf, paintBg: paintBg,

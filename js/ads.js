@@ -16,13 +16,20 @@
  *     openHeartSheet 하나로 모읍니다. 시트 안에서 출석·광고를 바로 받고,
  *     필요 하트를 채우면 원래 하려던 동작으로 이어집니다.
  *
- * AdMob 연결(출시 시)
- *  - Android: WebView에 window.AndroidBridge.showRewardedAd(adUnit) 를 추가하고
- *    광고 콜백에서 evaluateJavascript("BM.app.onRewardAdResult(true,'heart_reward')").
+ * AdMob 연결(출시 시 — bm-v1.64.0 브리지 훅 정리)
+ *  - 안드로이드 래퍼(TWA·WebView)는 아래 둘 중 하나만 있으면 됩니다:
+ *      window.BadmintonBridge.showRewardedAd(adUnit)   (또는 window.AndroidBridge · AndroidAdMob · BadmintonNative)
+ *    광고를 끝까지 본 뒤 다음 중 하나로 결과를 알려 주세요(어느 쪽이든 동작):
+ *      window.BadmintonAdMob.reward(true, 'heart_reward', txId)
+ *      window.BM.app.onRewardAdResult(true, 'heart_reward', txId)
+ *    txId(광고 SDK의 거래 ID)를 주면 같은 시청 건이 두 번 적립되지 않습니다.
  *  - 광고 단위 ID는 BM.ads.setUnits({ heart_reward: 'ca-app-pub-…/…' }) 로 넣습니다.
- *  - 콜백에 광고 SDK 의 거래 ID 가 있으면 세 번째 인자로 넘기세요:
- *    BM.app.onRewardAdResult(true, 'heart_reward', txId)
- *    (없으면 시각 기반 ID를 만들지만, SDK 값을 주는 쪽이 중복 적립을 더 확실히 막습니다.)
+ *    하트 부스트·주간 리포트 자리는 단위 ID만 미리 등록해 둡니다.
+ *    window.BadmintonAdMob.setUnits({…}) 로도 같은 일을 할 수 있습니다.
+ *
+ * 하트 부스트 (bm-v1.64.0)
+ *  - 꾸미기에서 'boost:heart'를 열고 켜 두면 출석·광고 적립이 +1 (store.checkIn · watchAd).
+ *  - 미리보기 화면도 그 순간의 보상 값(하트 상태의 adReward)을 그대로 보여 줍니다.
  *
  * 다중 슬롯 (bm-v1.47.0)
  *  - 광고 자리는 SLOTS 에 이름으로 모여 있습니다. 지금 실제로 쓰는 것은 heart_reward 이고,
@@ -53,7 +60,7 @@
 
   function bridge() {
     if (typeof root === 'undefined' || !root) return null;
-    var cands = [root.AndroidBridge, root.BadmintonNative];
+    var cands = [root.BadmintonBridge, root.AndroidBridge, root.AndroidAdMob, root.BadmintonNative];
     for (var i = 0; i < cands.length; i++) {
       var b = cands[i];
       if (b && typeof b.showRewardedAd === 'function') return b;
@@ -165,22 +172,31 @@
       freeHeartsLeft: (canCheckIn ? checkinReward : 0) + remaining * adReward,
       freeChancesLeft: (canCheckIn ? 1 : 0) + remaining,
 
-      /* 연속 출석 보너스 안내 (bm-v1.36.0) — MY 하트 카드와 같은 문구를 씁니다 */
+      /* 연속 출석 보너스 안내 (bm-v1.36.0 → v1.64: 3·7·14일) — MY 하트 카드와 같은 문구를 씁니다 */
       streak: Math.max(0, numVal(h.checkinStreak, 0)),
-      streakBonus: h.streakBonus || null
+      streakBonus: h.streakBonus || null,
+
+      /* 하트 부스트 상태 (bm-v1.64.0) */
+      boost: h.boost || null
     };
   }
 
-  /* 7일 연속 보너스 안내 한 줄 — MY 하트 카드·충전 시트 공용 */
+  /* 하트 부스트 안내 한 줄 — MY 카드·충전 시트 공용 (bm-v1.64.0) */
+  function boostText(s) {
+    var b = (s && s.boost) || null;
+    if (!b || !b.equipped) return '';
+    return '하트 부스트 적용 중(+' + Math.max(0, numVal(b.bonus, 1)) + ') · 출석·광고 적립에 붙어요';
+  }
+
+  /* 3·7·14일 연속 보너스 안내 한 줄 — MY 하트 카드·충전 시트 공용 */
   function streakText(s) {
     var b = (s && s.streakBonus) || null;
     var amount = b ? numVal(b.amount, 0) : 0;
     if (!(amount > 0)) return '';
-    var days = Math.max(1, numVal(b.days, 7));
-    var left = Math.max(1, numVal(b.left, days));
+    var left = Math.max(1, numVal(b.left, 3));
     var run = Math.max(0, numVal(s.streak, 0));
     var head = run > 0 ? run + '일 연속 출석 중 · ' : '';
-    return head + left + '일 더 하면 보너스 하트 +' + amount + ' (' + days + '일마다)';
+    return head + left + '일 더 하면 보너스 하트 +' + amount;
   }
 
   /* 광고 줄에 쓰는 한 줄 — 남은 초가 있으면 1초마다 이 문구가 바뀝니다 */
@@ -255,6 +271,16 @@
     return (typeof UI.hasDom === 'function') ? !!UI.hasDom() : !!UI.hasDom;
   }
 
+  /* 지금 이 기기에서 광고를 보면 받을 하트 수 — 하트 부스트가 켜져 있으면 2 (bm-v1.64.0) */
+  function rewardNow() {
+    try {
+      var store = BM.app && BM.app.ctx && BM.app.ctx.store;
+      var h = store && store.state && store.state.data && store.state.data.hearts;
+      if (h && numVal(h.adReward, 0) > 0) return numVal(h.adReward, 1);
+    } catch (e) { /* 화면이 없는 환경(테스트)에서는 기본값 */ }
+    return (BM.domain && BM.domain.HEART_RULES.AD_REWARD) || 1;
+  }
+
   /* 웹 미리보기: 3초 · 중간에 닫으면 지급하지 않습니다 */
   function playPreview(adUnit, txId) {
     return new Promise(function (resolve) {
@@ -282,7 +308,7 @@
           body: '<div class="ad-sim">' +
             '<div class="ad-sim__badge">AD</div>' +
             '<p class="ad-sim__t">광고를 보는 중이에요</p>' +
-            '<p class="ad-sim__s">끝까지 보면 하트 <b>' + (BM.domain ? BM.domain.HEART_RULES.AD_REWARD : 1) + '개</b> · <b data-ad-count>' + PREVIEW_SEC + '</b>초</p>' +
+            '<p class="ad-sim__s">끝까지 보면 하트 <b>' + rewardNow() + '개</b> · <b data-ad-count>' + PREVIEW_SEC + '</b>초</p>' +
             '<div class="adbar adbar--lg"><i data-ad-progress style="width:0%"></i></div>' +
             '<button type="button" class="btn btn--ghost btn--big mt16" data-ad-cancel>그만 보기</button>' +
             '<p class="hint">웹에서는 광고 미리보기예요. 앱(스토어)에서는 이 자리에 실제 광고가 나옵니다.</p></div>'
@@ -478,6 +504,7 @@
         '<span class="freeline__d" data-free-d>' + escText(freeDetail(s)) + '</span></p>' +
         '<div class="charge">' + rowsHtml(s) + '</div>' +
         (streakText(s) ? '<p class="hint" data-streak-bonus>' + escText(streakText(s)) + '</p>' : '') +
+        (boostText(s) ? '<p class="hint" data-boost-line>' + escText(boostText(s)) + '</p>' : '') +
         '<p class="hint" data-hint>' + escText(hintText(s)) + '</p>' +
         (enough
           ? '<button type="button" class="btn btn--primary btn--big mt8" data-charge="continue">' +
@@ -634,6 +661,21 @@
     freeText: freeText,
     freeDetail: freeDetail,
     streakText: streakText,
+    boostText: boostText,
+    rewardNow: rewardNow,
     openHeartSheet: openHeartSheet
+  };
+
+  /* ---------- 래퍼(안드로이드)와의 약속 ----------
+   * 조환비 님 쪽 TWA/WebView 가 광고를 재생한 뒤 아래 둘 중 하나를 부르면 동작합니다.
+   *   window.BadmintonAdMob.reward(true, 'heart_reward', txId)
+   *   window.BM.app.onRewardAdResult(true, 'heart_reward', txId)
+   * 단위 ID 등록과 상태 확인도 같은 자리에서 됩니다(setUnits · ready). */
+  root.BadmintonAdMob = {
+    reward: function (ok, adUnit, txId) { return onRewardAdResult(ok, adUnit, txId); },
+    setUnits: function (map) { return setUnits(map || {}); },
+    units: function () { return units; },
+    ready: function () { return available(); },
+    showRewarded: function (slot) { return showRewarded({ unit: slot || 'heart_reward' }); }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

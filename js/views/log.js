@@ -1525,6 +1525,53 @@
     return node;
   }
 
+  /* ---------- 첫 화면 히어로 요약 (bm-v1.64.0) ----------
+   * '이번 달 N분 · 승률 · 최근 2주'는 일지 저장/수정/삭제로 바로 바뀌는데,
+   * 예전에는 view.update 가 이 카드를 그리지 않아 탭을 다시 열기 전까지 옛 숫자가 남았습니다.
+   *  · render 와 update 가 같은 heroBlock 을 쓰고, 값이 바뀌었을 때만 다시 그립니다.
+   *  · 바뀐 숫자가 없으면 건드리지 않아 입력 중 화면이 흔들리지 않습니다. */
+  function heroSig(state) {
+    var st = (state && state.data && state.data.stats) || {};
+    return [
+      st.streak || 0, st.sessions14 || 0,
+      st.winRate == null ? '-' : st.winRate,
+      st.minutesMonth || 0, st.avgCond == null ? '-' : st.avgCond,
+      (state && state.me && state.me.nick) || ''
+    ].join('|');
+  }
+
+  function heroBlock(state) {
+    var stats = (state.data && state.data.stats) || {};
+    return '' +
+      '<section class="card card--hero" data-sig="' + U.esc(heroSig(state)) + '">' +
+      '<div class="hero__top"><div><p class="hero__hi">' + U.esc((state.me && state.me.nick) || '회원') + '님, 오늘 어땠나요?</p>' +
+      '<p class="hero__sub">' + (stats.streak >= 2 ? stats.streak + '일 연속 기록 중 🔥' : '한 줄만 남겨도 AI가 다음 훈련을 골라드려요') + '</p></div>' +
+      '<div class="hero__stat"><strong>' + (stats.sessions14 || 0) + '</strong><span>최근 2주</span></div></div>' +
+      '<div class="stat-strip">' +
+      '<div><span>승률</span><strong>' + (stats.winRate == null ? '—' : stats.winRate + '%') + '</strong></div>' +
+      '<div><span>이번 달</span><strong>' + (stats.minutesMonth || 0) + '<i>분</i></strong></div>' +
+      '<div><span>평균 컨디션</span><strong>' + (stats.avgCond == null ? '—' : stats.avgCond) + '</strong></div>' +
+      '</div>' +
+      /* bm-v1.62.0 — 인스타 공유 입구를 첫 화면에.
+       *  요약 카드 안(스크롤 없이 보이는 자리)에서 1탭으로 시트가 열립니다.
+       *  bm-v1.64.0 — 카드를 다시 그려도 이 버튼은 늘 최신 일지(state.data.records[0])로 열립니다. */
+      '<button type="button" class="hero__share" data-act="share-card" data-sc-mode="today"' +
+      ' data-share-entry="log-hero" aria-label="인스타 공유 카드 만들기">' +
+      '<span class="hero__share-ico" aria-hidden="true">📸</span>' +
+      '<span class="hero__share-t">인스타 공유</span>' +
+      '<span class="hero__share-s">오늘 운동 · 대회 인증</span>' +
+      UI.icon('arrow', 'hero__share-car') + '</button>' +
+      /* 코트에서 바로 쓰는 도구 — 점수판·영상 자세 비교를 한 줄에 (bm-v1.50.0) */
+      '<div class="courttools">' +
+      '<button type="button" class="courttool" data-act="open-scoreboard">' +
+      UI.icon('plus') +
+      '<span class="courttool__t">코트 점수판<small>21·25점 · 듀스 자동 · 끝나면 일지로</small></span>' +
+      UI.icon('arrow', 'courttool__car') + '</button>' +
+      (BM.pose ? BM.pose.entryHtml() : '') +
+      '</div>' +
+      '</section>';
+  }
+
   var view = {
     title: '일지 & AI',
     render: function (state) {
@@ -1534,33 +1581,7 @@
       var recent = (state.data.records || []).slice(0, 8);
       var stats = state.data.stats || {};
       return '' +
-        '<section class="card card--hero">' +
-        '<div class="hero__top"><div><p class="hero__hi">' + U.esc((state.me && state.me.nick) || '회원') + '님, 오늘 어땠나요?</p>' +
-        '<p class="hero__sub">' + (stats.streak >= 2 ? stats.streak + '일 연속 기록 중 🔥' : '한 줄만 남겨도 AI가 다음 훈련을 골라드려요') + '</p></div>' +
-        '<div class="hero__stat"><strong>' + (stats.sessions14 || 0) + '</strong><span>최근 2주</span></div></div>' +
-        '<div class="stat-strip">' +
-        '<div><span>승률</span><strong>' + (stats.winRate == null ? '—' : stats.winRate + '%') + '</strong></div>' +
-        '<div><span>이번 달</span><strong>' + (stats.minutesMonth || 0) + '<i>분</i></strong></div>' +
-        '<div><span>평균 컨디션</span><strong>' + (stats.avgCond == null ? '—' : stats.avgCond) + '</strong></div>' +
-        '</div>' +
-        /* bm-v1.62.0 — 인스타 공유 입구를 첫 화면에.
-         *  예전에는 저장 직후 스트립이나 최근 기록 상세를 열어야만 보였습니다.
-         *  요약 카드 안(스크롤 없이 보이는 자리)에서 1탭으로 시트가 열립니다. */
-        '<button type="button" class="hero__share" data-act="share-card" data-sc-mode="today"' +
-        ' data-share-entry="log-hero" aria-label="인스타 공유 카드 만들기">' +
-        '<span class="hero__share-ico" aria-hidden="true">📸</span>' +
-        '<span class="hero__share-t">인스타 공유</span>' +
-        '<span class="hero__share-s">오늘 운동 · 대회 인증</span>' +
-        UI.icon('arrow', 'hero__share-car') + '</button>' +
-        /* 코트에서 바로 쓰는 도구 — 점수판·영상 자세 비교를 한 줄에 (bm-v1.50.0) */
-        '<div class="courttools">' +
-        '<button type="button" class="courttool" data-act="open-scoreboard">' +
-        UI.icon('plus') +
-        '<span class="courttool__t">코트 점수판<small>21·25점 · 듀스 자동 · 끝나면 일지로</small></span>' +
-        UI.icon('arrow', 'courttool__car') + '</button>' +
-        (BM.pose ? BM.pose.entryHtml() : '') +
-        '</div>' +
-        '</section>' +
+        heroBlock(state) +
 
         routineBlock(state) +
 
@@ -2146,6 +2167,12 @@
     },
 
     update: function (root, state) {
+      /* bm-v1.64.0 — 저장·수정·삭제 직후 히어로 요약(이번 달 N분·승률·최근 2주)을 바로 갱신합니다.
+       * 예전에는 이 카드가 다시 그려지지 않아 방금 저장한 숫자가 탭을 다시 열 때까지 남았습니다. */
+      var heroEl = root.querySelector('.card--hero');
+      if (heroEl && heroEl.getAttribute('data-sig') !== heroSig(state)) {
+        heroEl.outerHTML = heroBlock(state);
+      }
       /* v1.55 — 메모·영상: 값이 새로 채워지면 접힌 칸을 저절로 펼치고(점수판·영상 자세 비교),
        * 입력 중이 아닌 칸의 글자는 상태에 맞춥니다(입력 중 커서는 건드리지 않음). */
       var dd = (state && state.drafts && state.drafts.log) || {};
@@ -2304,6 +2331,8 @@
   }
 
   view.recordDetail = recordDetail;
+  view.heroBlock = heroBlock;                   /* v1.64: 첫 화면 요약 카드(저장 직후 즉시 갱신) */
+  view.heroSig = heroSig;
   view.latestRecord = latestRecord;             /* v1.62: 첫 화면 칩이 여는 최신 일지 */
   view.shareRecordOf = shareRecordOf;           /* v1.62: 입구별로 열 일지 고르기 */
   view.analysisCard = analysisCard;
