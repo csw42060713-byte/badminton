@@ -2643,5 +2643,6 @@ bubblewrap build            # → app-release-bundle.aab
 - **⑥ 영상 자세 비교**: 점프 예시의 1·2구간 시간이 겹치던 것을 `1구간 0.0~1.5초 · 2구간 1.5~3.0초`로 나눴고, 예시를 본 뒤에도 **다른 예시로 바꾸는 버튼이 사라지지 않습니다**.
 - 파일: `js/sharecard.js`(영수증 본문·TOTAL·대회 날짜) · `js/ai.js`(통증 드릴 대체·이유 한 줄) · `js/views/log.js`(접힘 묶음·이유 줄) · `js/report.js`(접전·회복 문구·오타) · `js/pose.js`(예시 구간·전환 버튼) · `styles.css` · `test/morning-ux.test.js`(16개) · `test/check-morning.py`.
 - 버전: `sw.js` `bm-v1.72.0` · `app.js` `v1.72.0` · `twa-manifest.json` `1.72.0`(`appVersionCode` **66**) · `styles.css?v=20261125-1`. 테스트 파일의 버전 단언·캐시 키 정규식도 함께 올렸습니다.
-- 검증: `node test/run.js` **1526/1526**.
+- 검증: `node test/run.js` **1526/1526** · 라이브 390×844 `test/live-v172.py` **33/33**(앱 오류 0 · CSP 위반 0 · 가로 넘침 0, 390·360 폭). 라이브에서 시간·점수 없는 일지(11/21 · 풋워크)의 영수증이 `TOTAL 풋워크`로 채워지고 종이가 비지 않는 것, 대회 인증 날짜를 `2026-11-15`로 바꾸면 카드가 `11/15 (일)`이 되는 것, 무릎 통증에서 드릴이 `앉아서 상체 스트록 폼 · 통증 부위 가벼운 스트레칭 · 회복 · 냉온 찜질 가이드`로 바뀌고 이유 한 줄이 붙는 것, 심화 접기가 1개로 묶이는 것, 접전 -33%p에 보완 문구가 나오는 것, 예시 `1구간 0.0~1.5초 · 2구간 1.5~3.0초`와 전환 버튼 유지까지 확인했습니다. 라이브 캡처 `downloads/live-morning-ux.png`.
+- 배포: `main` `4badf1c` · `gh-pages` `9574eb5`(`test/`·`supabase/`·`ideas.md` 제외, main과 공유 파일 동일). 라이브 `https://csw42060713-byte.github.io/badminton/`에서 `sw.js` `bm-v1.72.0` · `app.js` `v1.72.0` · `styles.css?v=20261125-1` 내려받기 확인.
 - 보안/DB: 새 시트 칸·새 DB 컬럼·새 파일 없음(테스트 제외), CSP·`U.esc` 그대로, 사진·영상은 여전히 폰 안에서만.
