@@ -127,21 +127,25 @@
   }
 
   /* 하트 부스트 줄 (bm-v1.64.0)
-   *  · 잠김: '하트 3개로 평생 켜기' — 누르면 하트 시트(모자라면 광고)로 이어집니다.
-   *  · 켜짐: '적용 중(+1)' · 끄기 버튼. 상태는 프로필 꾸미기 JSON의 boost 값입니다. */
+   *  · 잠김: '한 번 열면 출석·광고 적립이 계속 +1' + '하트 3개로 열기' — 누르면 하트 시트로.
+   *  · 켜짐: '적용 중(+1)' · 끄기 버튼. 상태는 프로필 꾸미기 JSON의 boost 값입니다.
+   *  · bm-v1.79.0 — 바로 위 '오늘의 하트 부스트'(무료·광고 1회)와 헷갈리지 않게
+   *    이 줄은 '꾸미기'라고 밝히고, 하트 3개로 무엇이 열리는지 한 줄로 적습니다. */
   function boostLine(hearts) {
     var b = (hearts && hearts.boost) || {};
     var price = Math.max(1, Number(b.price) || 3);
     var owned = !!b.owned, on = !!b.equipped;
-    var sub = on ? '적용 중(+' + Math.max(1, Number(b.bonus) || 1) + ') · 출석·광고 +1'
-      : owned ? '켜면 출석·광고가 +1' : '하트 ' + price + '개로 한 번 열면 계속';
+    var sub = on ? '적용 중(+' + Math.max(1, Number(b.bonus) || 1) + ') · 출석·광고 적립이 계속 붙어요'
+      : owned ? '켜면 출석·광고 적립이 계속 +1'
+        : '한 번 열면 출석·광고 적립이 계속 +1';
     var btn = owned
       ? '<button type="button" class="chip chip--sm' + (on ? ' is-on' : '') + '" data-act="boost" data-boost="' + (on ? '0' : '1') + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + (on ? '끄기' : '켜기') + '</button>'
       : '<button type="button" class="chip chip--sm" data-act="boost" data-boost="1">하트 ' + price + '개로 열기</button>';
     return '<div class="boostline' + (on ? ' is-on' : '') + '" data-region="boost">' +
       UI.icon('spark') +
-      '<span class="boostline__t">하트 부스트</span>' +
-      '<span class="boostline__s">' + U.esc(sub) + '</span>' + btn + '</div>';
+      '<span class="boostline__txt">' +
+      '<span class="boostline__t">하트 부스트 · 꾸미기</span>' +
+      '<span class="boostline__s">' + U.esc(sub) + '</span></span>' + btn + '</div>';
   }
 
   /* 하트 부스트 열기/켜기/끄기 (bm-v1.64.0)
@@ -853,16 +857,24 @@
           if (BM.views.friends) BM.views.friends.copyAndTell(codeCopy.getAttribute('data-code-copy'));
           return;
         }
-        /* bm-v1.76.0 — 내 라켓 · 스트링: 편집 시트 · 오늘 갈았어요 */
+        /* bm-v1.76.0 — 내 라켓 · 스트링: 편집 시트 · 오늘 갈았어요
+         * bm-v1.79.0 — '+ 라켓 한 자루 더'는 시트를 빈 자루가 붙은 채로 엽니다 */
         if (ev.target.closest('[data-act="gear-sheet"]')) {
           ev.preventDefault();
           if (BM.gear) BM.gear.openSheet(ctx);
           UI.haptic(8);
           return;
         }
+        if (ev.target.closest('[data-act="gear-add"]')) {
+          ev.preventDefault();
+          if (BM.gear) BM.gear.openSheet(ctx, { add: true });
+          UI.haptic(8);
+          return;
+        }
         if (ev.target.closest('[data-act="gear-restung"]')) {
           ev.preventDefault();
-          if (BM.gear) BM.gear.restung(ctx);
+          var grBtn = ev.target.closest('[data-act="gear-restung"]');
+          if (BM.gear) BM.gear.restung(ctx, grBtn.getAttribute('data-gear-idx'));
           return;
         }
         /* bm-v1.80.0 — 내 커스텀 라켓 꾸미기 */
@@ -1590,8 +1602,9 @@
       }).join('') + '</div>' +
 
       /* 하트 부스트 — 출석·광고 적립을 늘리는 꾸미기 (bm-v1.64.0).
-       * 꾸미기 상점과 같은 자리에서 열고 켜고 끕니다(시트는 그 자리에서 다시 그립니다). */
-      '<p class="deco__sub" data-sub="boost">하트 부스트</p>' +
+       * 꾸미기 상점과 같은 자리에서 열고 켜고 끕니다(시트는 그 자리에서 다시 그립니다).
+       * bm-v1.79.0 — MY 하트 카드의 '오늘의 하트 부스트'(무료·광고 1회)와 다름을 이름에 밝힙니다. */
+      '<p class="deco__sub" data-sub="boost">하트 부스트 · 꾸미기 <small>하트로 열면 출석·광고 +1</small></p>' +
       boostLine(state.data && state.data.hearts) +
 
       '<h4 class="avstudio__label" data-sec="level">실력(급수)</h4>' +

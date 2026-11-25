@@ -395,7 +395,33 @@
     };
   }
 
-  /* `📅 약속 잡기` 시트 — 체육관·날짜·시간 입력 → 약속 카드 메시지 */
+  /* `📅 약속 잡기` 시트 — 체육관·날짜·시간 입력 → 약속 카드 메시지
+   *  bm-v1.79.0 — 자주 가는 체육관 칩과 '지도에서 고르기'를 붙여 이름을 직접 치지 않아도 되게. */
+  function apptGymChips(state, cur, otherKey) {
+    var G = BM.gyms;
+    if (!G) return '';
+    var me = (state && state.me) || {};
+    var scope = me.key || 'guest';
+    var other = (otherKey && UI.person) ? UI.person(state, otherKey) : {};
+    var names = [], seen = {};
+    function add(n) {
+      n = String(n || '').trim();
+      if (!n || seen[n]) return;
+      seen[n] = 1; names.push(n);
+    }
+    add(cur);
+    add(me.club);
+    add(other && other.club);
+    (G.favorites(scope) || []).forEach(function (id) { var v = G.get(id); if (v) add(v.name); });
+    names = names.slice(0, 5);
+    if (!names.length) return '';
+    return '<div class="chips apptchips" data-apt-gyms>' + names.map(function (n) {
+      var on = String(cur || '') === n;
+      return '<button type="button" class="chip chip--sm' + (on ? ' is-on' : '') + '" data-apt-gym-pick="' + U.esc(n) + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' + U.esc(n) + '</button>';
+    }).join('') + '</div>';
+  }
+
   function openApptSheet(ctx, otherKey, prefill, roomId) {
     var state = ctx.store.state;
     var d = apptDefaults(state, otherKey);
@@ -407,6 +433,8 @@
       body: '<p class="sheet__text">' + U.esc(nick) + '님에게 <b>체육관·날짜·시간</b>을 카드로 보내요. 받으면 좋아요 / 시간 조정을 1탭으로 고를 수 있어요.</p>' +
         '<label class="flabel">체육관' +
         '<input type="text" data-apt-field="gym" maxlength="' + D.APPT.maxGym + '" placeholder="예: ○○체육관" value="' + U.esc(v.gym) + '"></label>' +
+        apptGymChips(state, v.gym, otherKey) +
+        '<button type="button" class="btn btn--ghost btn--sm apptmap" data-apt-gym-map>' + UI.icon('pin') + '지도에서 고르기</button>' +
         '<div class="row gap8">' +
         '<label class="flabel grow">날짜<input type="date" data-apt-field="date" value="' + U.esc(v.date) + '"></label>' +
         '<label class="flabel grow">시간<input type="time" data-apt-field="time" value="' + U.esc(v.time) + '"></label>' +
@@ -418,6 +446,46 @@
         (prefill ? '<p class="hint">상대가 제안한 시간을 바꿔 새 카드로 보냅니다.</p>' : ''),
       onMount: function (wrap) {
         wrap.addEventListener('click', function (ev) {
+          /* 자주 가는 체육관 칩 — 누르면 체육관 칸이 그 이름으로 (다시 누르면 지움) */
+          var gchip = ev.target.closest('[data-apt-gym-pick]');
+          if (gchip) {
+            ev.preventDefault();
+            var gname = gchip.getAttribute('data-apt-gym-pick') || '';
+            var ginp = wrap.querySelector('[data-apt-field="gym"]');
+            var gnext = (ginp && ginp.value === gname) ? '' : gname;
+            if (ginp) ginp.value = gnext;
+            UI.$$('[data-apt-gym-pick]', wrap).forEach(function (b) {
+              var on = b.getAttribute('data-apt-gym-pick') === gnext;
+              b.classList.toggle('is-on', on);
+              b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+            UI.haptic(6);
+            return;
+          }
+          /* 지도에서 고르기 — 시트 위에 지도가 열리고, 고른 체육관 이름이 칸에 들어갑니다 */
+          if (ev.target.closest('[data-apt-gym-map]')) {
+            ev.preventDefault();
+            if (!BM.views || !BM.views.gyms || !BM.views.gyms.open) {
+              UI.toast('지금은 지도를 열 수 없어요', 'error');
+              return;
+            }
+            var hadGym = wrap.querySelector('[data-apt-field="gym"]');
+            BM.views.gyms.open(ctx, {
+              onPick: function (gv) {
+                if (!gv) return;
+                if (hadGym) hadGym.value = gv.name;
+                var hint = wrap.querySelector('[data-apt-hint]');
+                if (hint) hint.textContent = '‘' + gv.name + '’을 넣었어요. 날짜·시간을 확인하고 보내 주세요.';
+                UI.$$('[data-apt-gym-pick]', wrap).forEach(function (b) {
+                  var on = b.getAttribute('data-apt-gym-pick') === gv.name;
+                  b.classList.toggle('is-on', on);
+                  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                });
+                UI.haptic(8);
+              }
+            });
+            return;
+          }
           var send = ev.target.closest('[data-apt-send]');
           if (!send) return;
           ev.preventDefault();
@@ -449,7 +517,11 @@
   /* ---------- 매너 한 줄 태그 (bm-v1.29.0) ----------
    * 매칭이 성사된 1:1 방 상단에서 경기 후 한 번 남깁니다. 정해진 4종만 보여 주고
    * (자유 입력 없음), 오늘 이미 남겼으면 조용한 한 줄로 바뀝니다.
-   * 코치 방은 수업 피드백 자리라 태그를 두지 않습니다. */
+   * 코치 방은 수업 피드백 자리라 태그를 두지 않습니다.
+   * bm-v1.79.0 — 늘 펼쳐져 대화 영역을 좁히던 카드를 기본 '한 줄'로 접고,
+   *  눌렀을 때만 4칩이 펼쳐집니다(칩은 화면을 다시 그리지 않고 hidden 만 바꿉니다). */
+  var mannerOpen = false;
+
   function mannerHtml(state, other, canChat, kind) {
     var me = (state.me && state.me.key) || '';
     if (!me || !other || !canChat || kind === 'coach') return '';
@@ -459,12 +531,17 @@
         '<span>오늘 <b>' + U.esc(UI.person(state, other).nick || '상대') + '</b>님에게 남긴 매너 · <b>' +
         U.esc(sent.label || '한 줄') + '</b></span></div>';
     }
-    return '<div class="manner" data-manner>' +
-      '<p class="manner__t">' + UI.icon('heart') + '같이 친 경기 어땠어요? <small>한 개만 골라 주세요</small></p>' +
+    return '<div class="manner' + (mannerOpen ? ' is-open' : '') + '" data-manner>' +
+      '<button type="button" class="manner__fold" data-manner-toggle aria-expanded="' + (mannerOpen ? 'true' : 'false') + '">' +
+      UI.icon('heart') +
+      '<span class="manner__fold-t">같이 친 경기 어땠어요? <small>한 개만 골라 주세요</small></span>' +
+      '<span class="manner__fold-go">' + (mannerOpen ? '접기' : '한 줄 남기기') + UI.icon('arrow', 'manner__car') + '</span>' +
+      '</button>' +
+      '<div class="manner__body" data-manner-body' + (mannerOpen ? '' : ' hidden') + '>' +
       '<div class="manner__chips">' + D.MANNER_TAGS.map(function (t) {
         return '<button type="button" class="manner__chip" data-manner-tag="' + U.esc(t.code) + '">' +
           U.esc(t.label) + '</button>';
-      }).join('') + '</div></div>';
+      }).join('') + '</div></div></div>';
   }
 
   function roomHtml(state) {
@@ -634,6 +711,21 @@
         }, adjState.ui.chatRoom);
         return;
       }
+      /* 매너 한 줄 카드 접기/펼치기 (bm-v1.79.0) — 화면을 다시 그리지 않고 자리만 바꿉니다 */
+      var mtog = ev.target.closest('[data-manner-toggle]');
+      if (mtog) {
+        ev.preventDefault();
+        mannerOpen = !mannerOpen;
+        var mbox = mtog.closest('[data-manner]');
+        var mbody = mbox ? mbox.querySelector('[data-manner-body]') : null;
+        if (mbody) mbody.hidden = !mannerOpen;
+        if (mbox) mbox.classList.toggle('is-open', mannerOpen);
+        mtog.setAttribute('aria-expanded', mannerOpen ? 'true' : 'false');
+        var mgo = mtog.querySelector('.manner__fold-go');
+        if (mgo) mgo.innerHTML = (mannerOpen ? '접기' : '한 줄 남기기') + (UI.icon('arrow', 'manner__car'));
+        UI.haptic(6);
+        return;
+      }
       /* 매너 한 줄 태그 — 한 번 누르면 그 자리에서 남기고 화면이 바뀝니다 */
       var mtag = ev.target.closest('[data-manner-tag]');
       if (mtag) {
@@ -642,7 +734,7 @@
         var mroom = findThread(mstate, mstate.ui.chatRoom);
         var mto = (mroom && mroom.other) || mstate.ui.chatOther || '';
         var mgive = ctx.actions.giveManner(mto, mtag.getAttribute('data-manner-tag'));
-        if (mgive.ok) { UI.haptic(12); UI.toast('매너 태그를 남겼어요 · ' + mgive.label); }
+        if (mgive.ok) { mannerOpen = false; UI.haptic(12); UI.toast('매너 태그를 남겼어요 · ' + mgive.label); }
         else if (mgive.reason === 'daily') UI.toast('오늘은 이미 남겼어요' + (mgive.label ? ' · ' + mgive.label : '') + '. 내일 다시 남길 수 있어요.');
         else if (mgive.reason === 'no_login') UI.toast('로그인하면 매너 태그를 남길 수 있어요', 'error');
         else if (mgive.reason === 'not_allowed') UI.toast('친구이거나 매칭이 성사된 상대에게만 남길 수 있어요', 'error');

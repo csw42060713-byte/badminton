@@ -196,11 +196,11 @@
     includes(out, '아직 기록이 없어요', '안내 문구');
   });
 
-  test('v1.33 매칭: 조건을 고르기 전 안내 카드에도 그림이 있다', function () {
+  test('v1.33 매칭: 조건을 고르기 전에도 빈 화면이 아니라 안내(그림)나 추천 카드가 보인다 (bm-v1.79.0)', function () {
     var out = html(BM.views.matching.render(stateOf({ ui: { tab: 'matching', matchFilter: {} } })), '매칭');
-    includes(out, 'matchintro', '안내 카드');
-    includes(out, 'matchintro__art', '안내 카드 그림');
-    includes(out, 'empty__art', '그림 svg');
+    includes(out, 'empty__art', '선수가 없을 때는 그림 안내');
+    includes(out, '아직 등록된 선수가 없어요', '빈 안내 문구');
+    excludes(out, 'matchintro', '예전 빈 안내 카드는 없음');
   });
 
   test('v1.33 매칭: 조건을 풀어도 선수가 없으면 그림 + 첫 행동 버튼', function () {

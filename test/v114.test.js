@@ -64,17 +64,17 @@
 
   /* ---------- 1. 찾기: 조건을 골라야 목록이 나온다 ---------- */
 
-  test('v1.14 찾기: 처음에는 목록 대신 안내 카드만 보인다', function () {
+  test('v1.14 찾기: 처음에도 추천 선수 목록이 바로 보인다 (bm-v1.79.0)', function () {
     var st = stateOf();
     var html = BM.views.matching.render(st);
-    includes(html, 'matchintro', '안내 카드');
-    includes(html, '원하는 급수·조건이나', '안내 문구');
-    includes(html, '전체', '전체 안내');
-    includes(html, '원하는 급수·조건이나 <b>전체</b>를 눌러 선수를 찾아보세요', '문구 그대로');
-    includes(html, 'data-act="show-all"', '전체 보기 버튼');
-    excludes(html, 'class="pcard"', '선수 카드는 아직 없음');
-    excludes(html, 'class="pcards"', '선수 목록 없음');
-    excludes(html, '명 찾음', '결과 수 없음');
+    includes(html, 'resultbar__rec', '추천 안내');
+    includes(html, '내 동네 · 비슷한 급수를 먼저', '추천 기준 한 줄');
+    includes(html, 'class="pcards pcards--rec"', '추천 선수 목록');
+    includes(html, 'class="pcard"', '선수 카드가 바로 보임');
+    includes(html, '명 찾음', '결과 수');
+    excludes(html, 'matchintro', '예전 빈 안내 카드는 없음');
+    /* '전체 선수 보기'는 필터 줄의 '전체' 버튼 하나만 (중복 제거) */
+    eq((html.match(/전체 선수 보기/g) || []).length, 1, '전체 선수 보기 버튼은 1개');
   });
 
   test('v1.14 찾기: 전체를 누르면 조건 없이 모든 선수가 나온다', function () {

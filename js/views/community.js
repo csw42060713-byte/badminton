@@ -461,6 +461,30 @@
     }).join('');
   }
 
+  /* 몇 명 빠른 선택 칩 (bm-v1.79.0) — 언제·게스트비처럼 2·4·6명을 한 번에
+   *  · 누르면 칸에 그대로 적히고, 같은 칩을 다시 누르면 지웁니다. */
+  var CAP_CHIPS = ['2', '4', '6'];
+  function capChips(cur) {
+    var v = String(cur == null ? '' : cur).replace(/[^0-9]/g, '');
+    return CAP_CHIPS.map(function (n) {
+      var on = v === n;
+      return '<button type="button" class="chip chip--sm' + (on ? ' is-on' : '') + '" data-vitecap-val="' + n + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' + n + '명</button>';
+    }).join('');
+  }
+
+  /* 칸에 적힌 값에 맞춰 몇 명 칩의 켜짐만 바꿉니다 (포커스 유지) */
+  function syncCapChips(root, val) {
+    var host = root.querySelector('[data-vitecap]');
+    if (!host) return;
+    var v = String(val == null ? '' : val).replace(/[^0-9]/g, '');
+    UI.$$('.chip', host).forEach(function (b) {
+      var on = String(b.getAttribute('data-vitecap-val') || '') === v;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
   /* 날짜·시간 칸 → 글자 한 줄. 칸을 바꿀 때마다 글자 칸과 칩만 맞춥니다 */
   function syncWhen(root, ctx) {
     var box = root.querySelector('[data-vitewhenbox]');
@@ -570,6 +594,7 @@
       '</div>' +
       '<label class="viteform__f"><span>몇 명</span>' +
       '<input type="text" inputmode="numeric" maxlength="3" data-vitefield="cap" enterkeyhint="next" placeholder="6" value="' + U.esc(m.cap || '') + '"></label>' +
+      '<div class="chips viteform__chips vitecap" data-vitecap>' + capChips(m.cap) + '</div>' +
       '<label class="viteform__f viteform__f--wide"><span>어디 체육관</span>' +
       '<input type="text" maxlength="30" data-vitefield="place" placeholder="동네 체육관 이름" value="' + U.esc(m.place || '') + '">' +
       '<button type="button" class="viteform__pick" data-act="pick-gym">' + UI.icon('pin') + '지도에서 고르기</button></label>' +
@@ -752,6 +777,19 @@
           if (finp) finp.value = next;
           ctx.actions.setComposerMeet('fee', next);
           syncFeeChips(root, next);
+          UI.haptic(6);
+          return;
+        }
+        /* 몇 명 빠른 선택 칩 (bm-v1.79.0) — 2·4·6명을 한 번에, 다시 누르면 지움 */
+        var cchip = ev.target.closest('[data-vitecap-val]');
+        if (cchip) {
+          ev.preventDefault();
+          var cval = cchip.getAttribute('data-vitecap-val') || '';
+          var cinp = root.querySelector('[data-vitefield="cap"]');
+          var cnext = (cinp && String(cinp.value || '').replace(/[^0-9]/g, '') === cval) ? '' : cval;
+          if (cinp) cinp.value = cnext;
+          ctx.actions.setComposerMeet('cap', cnext);
+          syncCapChips(root, cnext);
           UI.haptic(6);
           return;
         }
@@ -1058,6 +1096,7 @@
             });
             paintWhen(root, { date: U.ymd(), start: '', end: '' });
             syncFeeChips(root, '');
+            syncCapChips(root, '');
             var vf = root.querySelector('[data-viteform]');
             if (vf) vf.hidden = true;
             /* v1.79 — 체육관 후기 칸도 비우고 접습니다 */
@@ -1094,6 +1133,8 @@
         /* 체육관 후기의 체육관 이름 — 화면을 다시 그리지 않고 값만 담아 둡니다 */
         var gfInp = ev.target.closest('[data-gymfield]');
         if (gfInp) ctx.actions.setComposerGym(gfInp.getAttribute('data-gymfield'), gfInp.value);
+        /* 몇 명을 손으로 고쳐도 2·4·6명 칩의 켜짐이 따라갑니다 (bm-v1.79.0) */
+        if (vf && vf.getAttribute('data-vitefield') === 'cap') syncCapChips(root, vf.value);
         var ri = ev.target.closest('[data-reply-input]');
         if (ri) replyDrafts[ri.getAttribute('data-reply-input')] = ri.value;
       }, { passive: true });

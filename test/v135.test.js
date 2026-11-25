@@ -365,8 +365,12 @@
     st.ui.tab = 'matching';
     st.ui.matchFilter = { level: '', gender: '', region: '', discipline: '', query: '' };
     var out = html(BM.views.matching.render(st), '매칭');
-    includes(out, '원하는 급수·조건이나 <b>전체</b>를 눌러 선수를 찾아보세요', '안내 제목은 그대로');
-    includes(out, 'data-act="show-all"', '전체 선수 보기 버튼도 그대로');
+    /* bm-v1.79.0 — 빈 안내 카드 대신 추천 목록(선수가 없으면 그림 안내)이 먼저 보이고,
+     *  '전체'는 필터 줄에 하나만 */
+    includes(out, 'data-act="show-all"', '전체 보기 버튼은 필터 줄에 그대로');
+    excludes(out, 'matchintro', '빈 안내 카드는 없음');
+    includes(out, 'empty__art', '선수가 없으면 그림 안내');
+    excludes(out, '원하는 급수·조건이나 <b>전체</b>를 눌러 선수를 찾아보세요', '빈 안내 문구는 없음');
     excludes(out, '급수·지역·종목·성별 중 하나를 고르거나', '바로 위 칩과 겹치는 설명 줄은 없음');
     excludes(out, 'muted sm">급수 · 지역 · 종목', '카드 머리의 중복 라벨도 없음');
     includes(out, 'data-filter=', '필터 칩은 그대로');

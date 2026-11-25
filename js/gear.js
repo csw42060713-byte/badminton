@@ -7,6 +7,8 @@
  *
  *  저장: 새 시트 칸·새 DB 컬럼 없이 프로필 꾸미기 JSON(theme.gear) 한 칸.
  *        (theme 은 이미 jsonb/JSON 문자열 칸이라 기기·시트·Supabase 모두 그대로 따라옵니다)
+ *          bm-v1.79.0 — 메인·서브 여러 자루는 theme.gears 배열에, 첫 자루는 예전 그대로
+ *          theme.gear 에도 함께 적어 둡니다(예전 화면·저장값 호환).
  *  알림: 브라우저 알림은 허용한 사람에게만, 하루 한 번(같은 날 중복 없음).
  *        화면이 보이는 중에는 MY 카드·일지 위 한 줄 배너로만 알립니다.
  *
@@ -19,7 +21,9 @@
 
   /* 자주 쓰는 프리셋 — 칩으로 1탭, 아니면 직접 입력 */
   var STRINGS = ['BG65', 'BG80', '에어로바이트', '엑스볼트63'];
-  var TENSIONS = [24, 25, 26, 27, 28];
+  /* bm-v1.79.0 — 초심·여성 동호인이 많이 쓰는 21~23 lbs 를 앞에 더했습니다 (21~28) */
+  var TENSIONS = [21, 22, 23, 24, 25, 26, 27, 28];
+  var MAX_RACKETS = 5;          /* 한 사람이 기억해 둘 라켓 수 — 메인 + 서브 */
   var CYCLES = [30, 45, 60, 90];
 
   var MIN_TENSION = 15;
@@ -82,7 +86,7 @@
     return g;
   }
 
-  /* 내 프로필(state.me · 저장된 프로필 행)에서 gear 를 꺼냅니다
+  /* 내 프로필(state.me · 저장된 프로필 행)에서 gear 를 꺼냅니다 (메인 라켓)
    *  · 저장 자리(진실)는 theme.gear — 화면용 me.gear 는 그 사본입니다.
    *    bm-v1.82.0 — 사본(me.gear)이 빈 값으로 남아 있어도 theme.gear 에 기록이 있으면
    *    그쪽을 읽어, 창을 다시 열 때 초기화된 것처럼 보이지 않게 했습니다. */
@@ -95,6 +99,41 @@
     else if (mirror && hasGear(mirror)) raw = mirror;
     else raw = saved || mirror;
     return raw ? normalizeGear(raw) : blank();
+  }
+
+  /* 여러 자루 정리 — 배열·한 자루·JSON 문자열을 모두 받습니다.
+   *  · 빈 기록은 빼고, 최대 MAX_RACKETS 자루까지 (메인 먼저). */
+  function normalizeGearList(v) {
+    if (typeof v === 'string') v = U.jsonParse(v, null);
+    if (!v) return [];
+    if (!Array.isArray(v)) v = [v];
+    var out = [];
+    v.forEach(function (o) {
+      var g = normalizeGear(o);
+      if (hasGear(g)) out.push(g);
+    });
+    return out.slice(0, MAX_RACKETS);
+  }
+
+  /* 내 라켓 모두 — theme.gears 가 있으면 그 목록, 없으면 예전 한 자루(theme.gear) */
+  function listOf(me) {
+    if (!me) return [];
+    var raw = me.gears || (me.theme && me.theme.gears) || null;
+    var list = raw ? normalizeGearList(raw) : [];
+    if (list.length) return list;
+    var one = gearOf(me);
+    return hasGear(one) ? [one] : [];
+  }
+
+  /* 여러 자루 중 가장 급한 시기 — 교체 시기가 온 라켓을 먼저 보여 줍니다 */
+  function worstOf(list, now) {
+    var rank = { due: 4, soon: 3, nodate: 2, ok: 1, empty: 0 };
+    var worst = null;
+    (list || []).forEach(function (g) {
+      var st = statusOf(g, now);
+      if (!worst || (rank[st.state] || 0) > (rank[worst.state] || 0)) worst = st;
+    });
+    return worst;
   }
 
   function dayMs() { return 86400000; }
@@ -160,47 +199,73 @@
     return !!st && (st.state === 'due' || st.state === 'soon');
   }
 
-  /* ---------- MY 카드 ---------- */
-  function cardHtml(state) {
-    var st = statusOf(gearOf(state && state.me), (state && state.ui && state.ui.gearNow) || null);
-    var g = st.gear;
-    var pill = st.state === 'due' ? '<span class="pill pill--no">줄 교체 시기!</span>'
+  /* ---------- MY 카드 (여러 자루) ----------
+   *  · 메인 라켓을 맨 위에 두고, 서브 라켓은 한 줄씩 붙입니다.
+   *  · 교체 시기가 온 자루에는 그 줄에서 바로 '오늘 갈았어요' 칩이 보입니다. */
+  function racketRowHtml(g, i, now) {
+    var st = statusOf(g, now);
+    var badge = st.state === 'due' ? '<span class="pill pill--no">줄 교체 시기!</span>'
       : st.state === 'soon' ? '<span class="pill pill--wait">곧 교체 D-' + st.daysLeft + '</span>'
-        : st.has ? '<span class="pill pill--ok">' + U.esc(st.label) + '</span>'
+        : '';
+    return '<li class="gear__row" data-gear-row="' + i + '" data-gear-state="' + st.state + '">' +
+      '<div class="gear__main">' +
+      '<p class="gear__racket">' + U.esc(g.racket || '내 라켓') +
+      (i === 0 ? '<span class="gear__tag">메인</span>' : '') + badge + '</p>' +
+      (specText(g) ? '<p class="gear__spec">' + U.esc(specText(g)) + '</p>' : '') +
+      (st.state === 'nodate'
+        ? '<p class="gear__meta">교체한 날을 적으면 다음 시기를 알려드려요</p>'
+        : '<p class="gear__meta">' + U.esc(st.meta) + '</p>') +
+      (g.memo ? '<p class="gear__memo">' + U.esc(g.memo) + '</p>' : '') +
+      (g.cycleDays ? '<p class="gear__cycle">교체 주기 ' + g.cycleDays + '일</p>' : '') +
+      '</div>' +
+      (g.strungAt
+        ? '<button type="button" class="gear__restung" data-act="gear-restung" data-gear-idx="' + i + '"' +
+          ' aria-label="' + U.esc((g.racket || '이 라켓') + ' 오늘 새 줄로 갈았어요') + '">오늘 갈았어요</button>'
+        : '') +
+      '</li>';
+  }
+
+  function cardHtml(state) {
+    var now = (state && state.ui && state.ui.gearNow) || null;
+    var list = listOf(state && state.me);
+    var worst = worstOf(list, now) || statusOf(blank(), now);
+    var pill = worst.state === 'due' ? '<span class="pill pill--no">줄 교체 시기!</span>'
+      : worst.state === 'soon' ? '<span class="pill pill--wait">곧 교체 D-' + worst.daysLeft + '</span>'
+        : worst.has ? '<span class="pill pill--ok">' + U.esc(worst.label) + '</span>'
           : '';
     var body;
-    if (!st.has) {
-      body = '<p class="gear__empty">라켓 · 스트링 · 장력을 한 번만 적어 두면, 다음에 몇 파운드로 맸는지 잊지 않아요.</p>';
+    if (!list.length) {
+      body = '<p class="gear__empty">라켓 · 스트링 · 장력을 한 번만 적어 두면, 다음에 몇 파운드로 맸는지 잊지 않아요. 메인·서브 여러 자루를 함께 적어 둘 수 있어요.</p>';
     } else {
-      body = '<div class="gear__main">' +
-        '<p class="gear__racket">' + U.esc(g.racket || '내 라켓') + '</p>' +
-        (specText(g) ? '<p class="gear__spec">' + U.esc(specText(g)) + '</p>' : '') +
-        (st.state === 'nodate'
-          ? '<p class="gear__meta">교체한 날을 적으면 다음 시기를 알려드려요</p>'
-          : '<p class="gear__meta">' + U.esc(st.meta) + '</p>') +
-        (g.memo ? '<p class="gear__memo">' + U.esc(g.memo) + '</p>' : '') +
-        (g.cycleDays ? '<p class="gear__cycle">교체 주기 ' + g.cycleDays + '일</p>' : '') +
-        '</div>';
+      body = '<ul class="gear__list">' + list.map(function (g, i) {
+        return racketRowHtml(g, i, now);
+      }).join('') + '</ul>';
     }
+    var hasStrung = list.some(function (g) { return !!g.strungAt; });
     return '' +
-      '<section class="card gear" data-region="gear" data-gear-state="' + st.state + '">' +
+      '<section class="card gear" data-region="gear" data-gear-state="' + worst.state + '" data-gear-count="' + list.length + '">' +
       '<header class="card__head"><h2>🏸 내 라켓 · 스트링</h2>' + pill + '</header>' +
       body +
       '<div class="gear__acts">' +
-      (st.has && g.strungAt
-        ? '<button type="button" class="btn btn--primary btn--sm grow" data-act="gear-restung">오늘 새 줄로 갈았어요</button>'
+      (list.length < MAX_RACKETS
+        ? '<button type="button" class="btn ' + (list.length ? 'btn--ghost' : 'btn--primary') + ' btn--sm grow" data-act="gear-add">' +
+          (list.length ? '+ 라켓 한 자루 더' : '내 라켓 기록하기') + '</button>'
         : '') +
-      '<button type="button" class="btn btn--ghost btn--sm' + (st.has && g.strungAt ? '' : ' grow') + '" data-act="gear-sheet">' +
-      (st.has ? '수정' : '내 라켓 기록하기') + '</button>' +
+      (list.length
+        ? '<button type="button" class="btn ' + (list.length < MAX_RACKETS ? 'btn--ghost' : 'btn--primary') + ' btn--sm grow" data-act="gear-sheet">' +
+          (hasStrung ? '수정' : '내 라켓 기록하기') + '</button>'
+        : '') +
       /* bm-v1.80.0 — 커스텀 라켓(색·참) 입구 */
       '<button type="button" class="btn btn--ghost btn--sm" data-act="racket-sheet" aria-label="내 커스텀 라켓 꾸미기">🎨</button>' +
       '</div>' +
       '</section>';
   }
 
-  /* ---------- 일지 & AI 위 한 줄 배너 (시기가 됐을 때만) ---------- */
+  /* ---------- 일지 & AI 위 한 줄 배너 (시기가 됐을 때만) ----------
+   *  여러 자루면 가장 급한 자루를 알려 줍니다. */
   function bannerHtml(state) {
-    var st = statusOf(gearOf(state && state.me), (state && state.ui && state.ui.gearNow) || null);
+    var now = (state && state.ui && state.ui.gearNow) || null;
+    var st = worstOf(listOf(state && state.me), now) || statusOf(blank(), now);
     if (!dueNow(st)) return '';
     var g = st.gear;
     var head = st.state === 'due' ? '줄 교체 시기예요' : '줄 갈 때가 다가와요';
@@ -225,12 +290,18 @@
     }).join('') + '</div>';
   }
 
-  function sheetBody(me) {
-    var g = gearOf(me);
+  /* 라켓 한 자루의 입력 묶음 — 자루마다 같은 칸이 하나씩 (bm-v1.79.0) */
+  function gearBlock(g, i, total) {
     var cycle = g.cycleDays || DEFAULT_CYCLE;
     var today = U.ymd();
-    return '' +
-      '<div class="gearform" data-gear-form>' +
+    return '<section class="gblock" data-gear-item data-gear-at="' + i + '">' +
+      '<div class="gblock__h">' +
+      '<span class="gblock__no">라켓 ' + (i + 1) + (i === 0 ? ' · 메인' : ' · 서브') + '</span>' +
+      (total > 1
+        ? '<button type="button" class="gblock__del" data-gear-del="' + i + '">이 자루 지우기</button>'
+        : '') +
+      '</div>' +
+
       '<label class="gfield"><span class="gfield__l">라켓 모델</span>' +
       '<input type="text" maxlength="24" data-gear="racket" value="' + U.esc(g.racket) + '" placeholder="예: 아스트록스 88D 프로" enterkeyhint="next"></label>' +
 
@@ -253,7 +324,25 @@
 
       '<label class="gfield"><span class="gfield__l">한 줄 메모<small>선택</small></span>' +
       '<input type="text" maxlength="40" data-gear="memo" value="' + U.esc(g.memo) + '" placeholder="예: 26은 조금 팽팽, 25가 편함"></label>' +
+      '</section>';
+  }
 
+  function blocksHtml(list) {
+    var arr = (list && list.length) ? list : [blank()];
+    return arr.map(function (g, i) { return gearBlock(g, i, arr.length); }).join('');
+  }
+
+  function sheetBody(me, extra) {
+    var list = listOf(me);
+    var arr = list.length ? list.slice() : [blank()];
+    /* '+ 라켓 한 자루 더'로 열면 빈 자루가 붙은 채로 시작합니다 (bm-v1.79.0) */
+    if (extra && arr.length < MAX_RACKETS) arr.push(blank());
+    return '' +
+      '<div class="gearform" data-gear-form>' +
+      '<p class="gblock__hint">메인 라켓을 첫 줄에, 서브 라켓은 아래에 한 자루씩 적어 두세요. 최대 ' + MAX_RACKETS + '자루까지 기억해 둬요.</p>' +
+      '<div class="gblocks" data-gear-list>' + blocksHtml(arr) + '</div>' +
+      '<button type="button" class="btn btn--ghost gadd" data-gear-add="1"' +
+      (arr.length >= MAX_RACKETS ? ' disabled' : '') + '>+ 라켓 한 자루 더</button>' +
       '<div class="row gap8 mt16">' +
       '<button type="button" class="btn btn--ghost grow" data-close="1">닫기</button>' +
       '<button type="button" class="btn btn--primary grow" data-gear-save="1">저장</button></div>' +
@@ -261,9 +350,10 @@
       '</div>';
   }
 
-  function readForm(wrap) {
+  /* 한 자루 입력칸 읽기 */
+  function readBlock(el) {
     function v(name) {
-      var n = wrap.querySelector('[data-gear="' + name + '"]');
+      var n = el ? el.querySelector('[data-gear="' + name + '"]') : null;
       return n ? n.value : '';
     }
     return normalizeGear({
@@ -272,8 +362,18 @@
     });
   }
 
-  function openSheet(ctx) {
+  /* 폼 안의 모든 자루 읽기 (빈 자루는 그대로 두고 저장할 때 거릅니다) */
+  function readForm(wrap) {
+    var items = wrap ? wrap.querySelectorAll('[data-gear-item]') : [];
+    var out = [];
+    Array.prototype.forEach.call(items, function (el) { out.push(readBlock(el)); });
+    if (!out.length) out.push(blank());
+    return out;
+  }
+
+  function openSheet(ctx, opts) {
     if (!hasDom || !BM.ui) return null;
+    opts = opts || {};
     /* bm-v1.82.0 — 창을 열 때 적은 값(me)을 오래 들고 있지 않고, 그때그때 지금 상태에서 읽습니다.
      * (다른 곳에서 저장한 라켓·커스텀 색이 이 창의 예전 값에 덮여 사라지는 일 방지) */
     function meNow() {
@@ -281,60 +381,96 @@
     }
     var wrap = BM.ui.openSheet({
       title: '🏸 내 라켓 · 스트링',
-      body: sheetBody(meNow()),
+      body: sheetBody(meNow(), !!opts.add),
       onMount: function (host) {
         var form = host.querySelector('[data-gear-form]');
         if (!form) return;
-        function field(name) { return form.querySelector('[data-gear="' + name + '"]'); }
-        function markPick(kind, value) {
-          Array.prototype.forEach.call(form.querySelectorAll('[data-gear-pick="' + kind + '"]'), function (b) {
+        var listHost = form.querySelector('[data-gear-list]');
+        function markPick(scope, kind, value) {
+          Array.prototype.forEach.call(scope.querySelectorAll('[data-gear-pick="' + kind + '"]'), function (b) {
             var on = String(b.getAttribute('data-value')) === String(value);
             b.classList.toggle('is-on', on);
             b.setAttribute('aria-pressed', on ? 'true' : 'false');
           });
         }
+        /* 자루 목록을 다시 그립니다 — 지금 적힌 값은 먼저 읽어 두었다가 그대로 살립니다 */
+        function paintList(list) {
+          if (!listHost) return;
+          listHost.innerHTML = blocksHtml(list);
+          var add = form.querySelector('[data-gear-add]');
+          if (add) add.disabled = list.length >= MAX_RACKETS;
+        }
         form.addEventListener('click', function (ev) {
+          var item = ev.target.closest('[data-gear-item]');
           var pick = ev.target.closest('[data-gear-pick]');
-          if (pick) {
+          if (pick && item) {
             ev.preventDefault();
             var kind = pick.getAttribute('data-gear-pick');
             var val = pick.getAttribute('data-value');
-            var input = field(kind);
+            var input = item.querySelector('[data-gear="' + kind + '"]');
             if (input) {
               /* 칩을 한 번 더 누르면 그 값은 지웁니다(직접 입력으로 바꿀 때) */
               var wasOn = pick.classList.contains('is-on');
               input.value = wasOn ? '' : val;
             }
-            markPick(kind, input ? input.value : '');
+            markPick(item, kind, input ? input.value : '');
             BM.ui.haptic(6);
             return;
           }
-          if (ev.target.closest('[data-gear-today]')) {
+          if (ev.target.closest('[data-gear-today]') && item) {
             ev.preventDefault();
-            var d = field('strungAt');
+            var d = item.querySelector('[data-gear="strungAt"]');
             if (d) d.value = U.ymd();
+            BM.ui.haptic(6);
+            return;
+          }
+          if (ev.target.closest('[data-gear-add]')) {
+            ev.preventDefault();
+            var list = readForm(form);
+            if (list.length >= MAX_RACKETS) {
+              BM.ui.toast('라켓은 ' + MAX_RACKETS + '자루까지 기억할 수 있어요');
+              return;
+            }
+            list.push(blank());
+            paintList(list);
+            BM.ui.haptic(8);
+            return;
+          }
+          var del = ev.target.closest('[data-gear-del]');
+          if (del) {
+            ev.preventDefault();
+            var at = Math.max(0, Number(del.getAttribute('data-gear-del')) || 0);
+            var cur = readForm(form);
+            cur.splice(at, 1);
+            paintList(cur.length ? cur : [blank()]);
             BM.ui.haptic(6);
             return;
           }
           if (ev.target.closest('[data-gear-save]')) {
             ev.preventDefault();
-            var g = readForm(form);
+            var got = readForm(form);
             /* bm-v1.80.0 — 라켓 기록을 고쳐도 커스텀 색(theme.gear.custom)은 그대로 */
             var prev = gearOf(meNow());
-            g.custom = prev.custom || g.custom;
-            var res = ctx.actions.setGear ? ctx.actions.setGear(g) : { ok: false };
+            if (got.length && prev && prev.custom) got[0].custom = prev.custom;
+            var save = normalizeGearList(got);
+            var res = null;
+            if (ctx.actions.setGears) res = ctx.actions.setGears(save);
+            else if (ctx.actions.setGear) res = ctx.actions.setGear(save[0] || blank());
             if (!res || !res.ok) {
               BM.ui.toast(res && res.reason === 'locked'
                 ? '잠시만요, 저장 중이에요' : '저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.', 'error');
               return;
             }
             BM.ui.closeSheet();
-            var st = statusOf(g, null);
-            if (!st.has) BM.ui.toast('라켓 기록을 지웠어요');
-            else if (st.state === 'due') BM.ui.toast('저장했어요 · 이미 교체 시기예요. 오늘 갈았다면 한 번만 눌러 주세요');
-            else if (st.state === 'soon') BM.ui.toast('저장했어요 · 교체까지 ' + st.daysLeft + '일 남았어요');
-            else if (st.state === 'nodate') BM.ui.toast('저장했어요 · 교체한 날을 적으면 시기를 알려드려요');
-            else BM.ui.toast('저장했어요 · 교체까지 ' + st.daysLeft + '일 남았어요');
+            if (!save.length) BM.ui.toast('라켓 기록을 지웠어요');
+            else if (save.length > 1) BM.ui.toast('라켓 ' + save.length + '자루를 저장했어요 · 교체 시기가 되면 알려 드릴게요');
+            else {
+              var st = statusOf(save[0], null);
+              if (st.state === 'due') BM.ui.toast('저장했어요 · 이미 교체 시기예요. 오늘 갈았다면 한 번만 눌러 주세요');
+              else if (st.state === 'soon') BM.ui.toast('저장했어요 · 교체까지 ' + st.daysLeft + '일 남았어요');
+              else if (st.state === 'nodate') BM.ui.toast('저장했어요 · 교체한 날을 적으면 시기를 알려드려요');
+              else BM.ui.toast('저장했어요 · 교체까지 ' + st.daysLeft + '일 남았어요');
+            }
             BM.ui.haptic(12);
             if (ctx.repaint) ctx.repaint();
             return;
@@ -344,17 +480,27 @@
           var el = ev.target;
           var name = el.getAttribute && el.getAttribute('data-gear');
           if (!name) return;
-          if (name === 'string' || name === 'tension' || name === 'cycleDays') markPick(name, el.value);
+          var item = el.closest('[data-gear-item]');
+          if (item && (name === 'string' || name === 'tension' || name === 'cycleDays')) markPick(item, name, el.value);
         });
       }
     });
     return wrap;
   }
 
-  /* 오늘 새 줄로 갈았어요 — 교체일만 오늘로 갱신합니다 */
-  function restung(ctx) {
-    if (!ctx || !ctx.actions || !ctx.actions.setGear) return { ok: false };
-    var res = ctx.actions.setGear({ strungAt: U.ymd() });
+  /* 오늘 새 줄로 갈았어요 — 그 자루의 교체일만 오늘로 (여러 자루 중 idx) */
+  function restung(ctx, idx) {
+    if (!ctx || !ctx.actions) return { ok: false };
+    var me = (ctx.store && ctx.store.state && ctx.store.state.me) || {};
+    var list = listOf(me);
+    var at = Math.max(0, Math.min(list.length - 1, Number(idx) || 0));
+    if (!list.length) {
+      if (BM.ui) BM.ui.toast('먼저 라켓을 기록해 주세요', 'error');
+      return { ok: false, reason: 'empty' };
+    }
+    list[at] = normalizeGear(Object.assign({}, list[at], { strungAt: U.ymd() }));
+    var res = ctx.actions.setGears ? ctx.actions.setGears(list)
+      : (ctx.actions.setGear ? ctx.actions.setGear({ strungAt: U.ymd() }) : { ok: false });
     if (!res || !res.ok) {
       if (BM.ui) {
         BM.ui.toast(res && res.reason === 'locked'
@@ -362,7 +508,7 @@
       }
       return res || { ok: false };
     }
-    var st = statusOf(res.gear || gearOf(ctx.store && ctx.store.state && ctx.store.state.me), null);
+    var st = statusOf(list[at], null);
     if (BM.ui) {
       BM.ui.toast('오늘 새 줄로 갈았어요 · 다음 교체까지 ' + st.daysLeft + '일');
       BM.ui.haptic(12);
@@ -388,7 +534,7 @@
   }
 
   function notifyIfDue(state, now) {
-    var st = statusOf(gearOf(state && state.me), now || null);
+    var st = worstOf(listOf(state && state.me), now || null) || statusOf(blank(), now || null);
     if (!dueNow(st)) return false;
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false;
     /* 화면을 보고 있을 때는 카드·배너로 충분합니다 */
@@ -413,12 +559,13 @@
   }
 
   BM.gear = {
-    STRINGS: STRINGS, TENSIONS: TENSIONS, CYCLES: CYCLES,
+    STRINGS: STRINGS, TENSIONS: TENSIONS, CYCLES: CYCLES, MAX_RACKETS: MAX_RACKETS,
     DEFAULT_CYCLE: DEFAULT_CYCLE, SOON_DAYS: SOON_DAYS, NOTIFY_KEY: NOTIFY_KEY,
     blank: blank, normalizeGear: normalizeGear, hasGear: hasGear, gearOf: gearOf,
-    statusOf: statusOf, specText: specText,
+    normalizeGearList: normalizeGearList, listOf: listOf, worstOf: worstOf,
+    statusOf: statusOf, specText: specText, gearBlock: gearBlock,
     cardHtml: cardHtml, bannerHtml: bannerHtml, sheetBody: sheetBody,
-    openSheet: openSheet, restung: restung, readForm: readForm,
+    openSheet: openSheet, restung: restung, readForm: readForm, readBlock: readBlock,
     notifyText: notifyText, notifyIfDue: notifyIfDue
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

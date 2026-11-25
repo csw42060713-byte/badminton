@@ -403,9 +403,15 @@
       includes(html, 'data-sb-point="a"', '+1 내 팀');
       includes(html, 'data-sb-save', '일지에 넣기');
       includes(html, 'data-sb-next', '다음 세트');
-      includes(html, '내 팀 · 민호', '카드 위 이름');
+      includes(html, '>민호<', '카드 위 이름 (방향 무관)');
       excludes(html, 'NaN', 'NaN 없음');
     });
+    /* bm-v1.79.0 — 가로는 '내 팀/상대 팀' 배지가 이름표를 나눠 맡고 카드에는 이름만 */
+    includes(port, '내 팀 · 민호', '세로는 예전처럼 팀 이름 + 파트너');
+    includes(land, 'sb__tag--mine', '가로 내 팀 배지');
+    includes(land, 'sb__tag--rvl', '가로 상대 팀 배지');
+    includes(land, '>내 팀</span>', '가로 내 팀 라벨');
+    includes(land, '>상대 팀</span>', '가로 상대 팀 라벨');
     eq(land.indexOf('data-sb-point="a"') < land.indexOf('data-sb-point="b"'), true, '가로는 내 팀이 먼저(왼쪽)');
     eq(port.indexOf('data-sb-point="b"') < port.indexOf('data-sb-point="a"'), true, '세로는 상대가 먼저(위)');
     includes(land, 'data-sb-view="land"', '가로 표시');
