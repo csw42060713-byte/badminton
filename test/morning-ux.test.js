@@ -341,12 +341,12 @@
   });
 
   /* =========================================================
-   * ⑦ 버전은 미리보기 단계라 그대로 (sw.js VERSION 유지)
+   * ⑦ 배포 버전 — 승인 뒤 sw.js VERSION을 bm-v1.72.0으로 올렸습니다
    * ========================================================= */
 
-  test('v1.72 미리보기: sw.js VERSION을 올리지 않는다 (승인 뒤 배포 때 한 번에)', function () {
+  test('v1.72 배포: sw.js VERSION이 bm-v1.72.0이고 테스트 목록에 등록돼 있다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), 'bm-v1.71.0', '버전 유지');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.72.0'", '버전');
     includes(readRoot('test/run.js'), 'test/morning-ux.test.js', '테스트 목록에 등록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

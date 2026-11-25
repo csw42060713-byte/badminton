@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v170.test.js — bm-v1.71.0
+ * test/v170.test.js — bm-v1.72.0
  *   🏸 실전 시합 웜업 · 복식 수비 전환 · 수비 타이밍 코칭
  *
  *  체전 1등 선수의 2026-11-24 19시 인터뷰에서 알려 준 실전 노하우 세 가지를
@@ -13,7 +13,7 @@
  *   3) 수비 타이밍은 예측/예측 못 함 두 가지로 나뉘고 수비 드릴·전술에도 붙는다
  *   4) 화면에 통계 기호·전문 약어가 없고, 글자는 HTML로 실행되지 않는다
  *   5) 기존 블록(추천 드릴·감각연습·관절 보호·맞춤 처방)은 그대로
- *   6) 실존 선수 이름 없음 · 버전(bm-v1.71.0)
+ *   6) 실존 선수 이름 없음 · 버전(bm-v1.72.0)
  *
  * 실행: node test/run.js
  * ============================================================ */
@@ -257,13 +257,13 @@
 
   test('v1.70 버전: sw · app · 스타일 캐시 · TWA · 테스트 목록이 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.71.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.71.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261124-9', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.72.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.72.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261125-1', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.71.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.71.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 65, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.72.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.72.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 66, 'TWA 버전 코드');
     includes(readRoot('test/run.js'), 'test/v170.test.js', '테스트 목록 배선');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

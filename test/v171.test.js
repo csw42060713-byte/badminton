@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v171.test.js — bm-v1.71.0
+ * test/v171.test.js — bm-v1.72.0
  *   🎨 인스타 공유 카드 감성 전면 리디자인 + 고화질 배경 3종
  *
  *  승우 님 요청: "인스타 공유 카드가 아직 어수선하고 아쉽다 — 싹 갈아엎어 줘."
@@ -200,7 +200,7 @@
   test('v1.71 배경 캐시: 서비스워커 SHELL에 사진 3장이 들어 있다', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js');
-    includes(sw, "var VERSION = 'bm-v1.71.0'", 'sw 버전');
+    includes(sw, "var VERSION = 'bm-v1.72.0'", 'sw 버전');
     includes(sw, "'./assets/share-bg/night-court.jpg'", '야경 코트 캐시');
     includes(sw, "'./assets/share-bg/sunset-shuttle.jpg'", '노을 체육관 캐시');
     includes(sw, "'./assets/share-bg/minimal-studio.jpg'", '다크 스튜디오 캐시');
@@ -493,13 +493,13 @@
 
   test('v1.71 버전: sw · app · 스타일 캐시 · TWA · README · 테스트 목록이 함께', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.71.0'", 'sw');
-    includes(readRoot('app.js'), "version: 'v1.71.0'", 'app');
-    includes(readRoot('index.html'), 'styles.css?v=20261124-9', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.72.0'", 'sw');
+    includes(readRoot('app.js'), "version: 'v1.72.0'", 'app');
+    includes(readRoot('index.html'), 'styles.css?v=20261125-1', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.71.0', 'TWA 이름');
-    eq(twa.appVersionCode, 65, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.71.0', 'README 이력');
+    eq(twa.appVersionName, '1.72.0', 'TWA 이름');
+    eq(twa.appVersionCode, 66, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.72.0', 'README 이력');
     includes(readRoot('test/run.js'), "'test/v171.test.js'", '테스트 목록');
   });
 

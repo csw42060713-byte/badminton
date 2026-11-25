@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v169.test.js — bm-v1.71.0
+ * test/v169.test.js — bm-v1.72.0
  *   🦵 런지·착지 부상 예방 보강 (무릎·발목 보호 체크)
  *
  *  최신 학술 논문 두 편을 '무릎·발목 보호 체크'에 반영했습니다.
@@ -19,7 +19,7 @@
  *   4) 논문 수치는 내부 값(LOWER_RISK)에 그대로
  *   5) 풋워크·수비 드릴의 한 줄 코칭도 같은 기준
  *   6) 관절 보호 접기 하나에 붙고, 기존 블록은 그대로 · 글자는 HTML로 실행되지 않음
- *   7) 실존 선수 이름 없음 · 버전(bm-v1.71.0)
+ *   7) 실존 선수 이름 없음 · 버전(bm-v1.72.0)
  *
  * 실행: node test/run.js
  * ============================================================ */
@@ -224,13 +224,13 @@
 
   test('v1.69 버전: sw · app · 스타일 캐시 · TWA · 테스트 목록이 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.71.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.71.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261124-9', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.72.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.72.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261125-1', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.71.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.71.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 65, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.72.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.72.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 66, 'TWA 버전 코드');
     includes(readRoot('test/run.js'), 'test/v169.test.js', '테스트 목록 배선');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
