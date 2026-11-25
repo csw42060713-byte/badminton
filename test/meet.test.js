@@ -274,9 +274,9 @@
     var sw = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf8');
     var app = fs.readFileSync(path.join(rootDir, 'app.js'), 'utf8');
     var index = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
-    ok(/var VERSION = 'bm-v1.77.0'/.test(sw), 'sw.js');
-    includes(app, "version: 'v1.77.0'", 'app.js v1.17.0');
-    includes(index, 'styles.css?v=20261125-6', 'styles.css 쿼리 갱신');
+    ok(/var VERSION = 'bm-v1.78.0'/.test(sw), 'sw.js');
+    includes(app, "version: 'v1.78.0'", 'app.js v1.17.0');
+    includes(index, 'styles.css?v=20261125-7', 'styles.css 쿼리 갱신');
     includes(index, 'js/routine.js', '루틴 파일 유지');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
