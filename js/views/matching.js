@@ -665,15 +665,20 @@
     opts = opts || {};
     var res = ctx.actions.requestMatch(p.userKey, note);
     UI.closeSheet();
-    if (res.ok) {
-      UI.toast((opts.letter ? '편지지를 보냈어요. ' : '요청을 보냈어요. ') +
-        '상대가 수락하면 하트 ' + (res.cost || D.HEART_RULES.MATCH_COST) + '개가 차감되고 대화가 열려요.');
-    } else if (res.reason === 'hearts') {
-      openHeartSheet(ctx, p.userKey, { need: D.HEART_RULES.MATCH_COST, continueLabel: '프로필로 돌아가기' });
-    } else if (res.reason === 'already') UI.toast('이미 요청한 상대예요.');
-    else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
-    else UI.toast('요청을 보내지 못했어요', 'error');
-    return res;
+    /* bm-v1.75.0 — 서버(Supabase)는 하트 2개 보유 여부를 서버에서 확인해 결과가 Promise 로 옴 */
+    return U.when(res, function (res) {
+      res = res || { ok: false, reason: 'error' };
+      if (res.ok) {
+        UI.toast((opts.letter ? '편지지를 보냈어요. ' : '요청을 보냈어요. ') +
+          '상대가 수락하면 하트 ' + (res.cost || D.HEART_RULES.MATCH_COST) + '개가 차감되고 대화가 열려요.');
+      } else if (res.reason === 'hearts') {
+        openHeartSheet(ctx, p.userKey, { need: D.HEART_RULES.MATCH_COST, continueLabel: '프로필로 돌아가기' });
+      } else if (res.reason === 'already') UI.toast('이미 요청한 상대예요.');
+      else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+      else if (res.reason === 'offline' || res.reason === 'login') UI.toast(res.message || '인터넷에 연결되면 보낼 수 있어요', 'error');
+      else UI.toast('요청을 보내지 못했어요', 'error');
+      return res;
+    });
   }
 
   /* 봉투 모양 미리보기 — 적는 즉시 미리보기에 반영됩니다. */
@@ -755,17 +760,20 @@
     UI.confirm('하트 ' + D.HEART_RULES.GIFT_COST + '개를 ' + p.nick + '님에게 선물할까요?').then(function (ok) {
       if (!ok) return;
       var r = ctx.actions.giftHeart(p.userKey);
-      if (r.ok) { UI.closeSheet(); UI.toast('하트를 선물했어요'); return; }
-      if (r.reason === 'hearts') {
-        openHeartSheet(ctx, '', {
-          need: D.HEART_RULES.GIFT_COST,
-          why: '하트 선물에는 <b>하트 ' + D.HEART_RULES.GIFT_COST + '개</b>가 필요해요.',
-          continueLabel: '다시 선물하기',
-          onContinue: function () { sendGift(ctx, p); }
-        });
-        return;
-      }
-      UI.toast('선물하지 못했어요', 'error');
+      U.when(r, function (r) {
+        r = r || { ok: false, reason: 'error' };
+        if (r.ok) { UI.closeSheet(); UI.toast('하트를 선물했어요'); return; }
+        if (r.reason === 'hearts') {
+          openHeartSheet(ctx, '', {
+            need: D.HEART_RULES.GIFT_COST,
+            why: '하트 선물에는 <b>하트 ' + D.HEART_RULES.GIFT_COST + '개</b>가 필요해요.',
+            continueLabel: '다시 선물하기',
+            onContinue: function () { sendGift(ctx, p); }
+          });
+          return;
+        }
+        UI.toast(r.message || '선물하지 못했어요', 'error');
+      });
     });
   }
 

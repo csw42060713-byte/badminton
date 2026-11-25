@@ -3263,7 +3263,19 @@
     if (!opt.deco) { done(); return; }
     var actions = (ctx && ctx.actions) || {};
     var canBuy = typeof actions.buyDeco === 'function';
-    var res = canBuy ? actions.buyDeco('card', opt.id) : { ok: false, reason: 'no_store' };
+    var resRaw = canBuy ? actions.buyDeco('card', opt.id) : { ok: false, reason: 'no_store' };
+    /* bm-v1.75.0 — Supabase 모드에서는 구매 결과가 서버 응답(Promise)으로 옵니다 */
+    if (resRaw && typeof resRaw.then === 'function') {
+      resRaw.then(function (r) { unlockFrameAfter(ctx, opt, r, done); },
+        function () { BM.ui.toast('프레임을 열지 못했어요', 'error'); done(); });
+      return;
+    }
+    unlockFrameAfter(ctx, opt, resRaw, done);
+  }
+
+  /* unlockFrame 의 뒷부분 — 결과를 받은 뒤 화면 처리(기기 저장·시트는 바로, 서버는 응답 뒤) */
+  function unlockFrameAfter(ctx, opt, res, done) {
+    var actions = (ctx && ctx.actions) || {};
     if (res && res.ok) {
       BM.ui.toast(res.purchased ? '하트 ' + res.price + '개로 ' + opt.label + ' 프레임을 열었어요' : '이미 열려 있어요');
       BM.ui.haptic(12);
@@ -3281,13 +3293,15 @@
         continueLabel: '열기',
         onContinue: function () {
           var again = actions.buyDeco('card', opt.id);
-          if (again && again.ok) {
-            BM.ui.toast(opt.label + ' 프레임을 열었어요');
-            BM.ui.haptic(12);
-          } else {
-            BM.ui.toast('아직 하트가 모자라요', 'error');
-          }
-          done();
+          Promise.resolve(again).then(function (r) {
+            if (r && r.ok) {
+              BM.ui.toast(opt.label + ' 프레임을 열었어요');
+              BM.ui.haptic(12);
+            } else {
+              BM.ui.toast((r && r.message) || '아직 하트가 모자라요', 'error');
+            }
+            done();
+          });
         }
       });
       return;

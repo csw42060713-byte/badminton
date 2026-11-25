@@ -334,8 +334,17 @@
  *             워터마크(SHUTTLIX)·푸시 알림 기본 제목. localStorage 키(bm_*), Supabase 테이블,
  *             주소 경로(/badminton/), TWA packageId(io.github.csw42060713_byte.badminton)는
  *             그대로입니다. 이름 글자만 바뀌어 캐시를 bm-v1.74.0으로 올립니다.
+ * 2026-11-25: 🔒 하트·광고 보상 서버 잠금 (bm-v1.75.0)
+ *             〔잠금〕 출석·광고·꾸미기·선물 하트의 적립/차감 행을 이제 서버(Supabase RPC)만
+ *             넣습니다. 브라우저가 app_records 에 '출석하트'·'광고하트'·'꾸미기구매'·
+ *             '선물하트'·'하트합치기'·'내하트사용' 행을 직접 넣으면 RLS 가 막습니다
+ *             (supabase/heart-rpc-v1.75.sql). 오늘 날짜·연속 출석 보너스·광고 5회/30초·
+ *             txId 중복·잔액 검사를 서버가 다시 셉니다. 기기 저장(체험)·26칸 시트 브리지는
+ *             그대로이고, 화면 문구도 그대로입니다. js/api.js·js/store.js·js/ads.js·
+ *             js/util.js·js/views/my.js·js/views/matching.js·js/sharecard.js 가 바뀌어
+ *             캐시를 bm-v1.75.0으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.74.0';
+var VERSION = 'bm-v1.75.0';
 var SHELL = [
   './',
   './index.html',
