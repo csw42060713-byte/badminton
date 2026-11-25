@@ -1522,7 +1522,7 @@
     g.font = font(18, 700, MONO);
     g.shadowColor = shadow;
     g.shadowBlur = img ? 12 : 0;
-    g.fillText('BADMINTON', W - pad, F.safeTop + 74);
+    g.fillText('SHUTTLIX', W - pad, F.safeTop + 74);
     g.shadowBlur = 0;
     g.globalAlpha = 1;
     tracking(g, 0);
@@ -1795,7 +1795,7 @@
     }
 
     /* 머리 */
-    centered('BADMINTON RECEIPT', y, 26, 700, MONO, PAPER.ink, 6);
+    centered('SHUTTLIX RECEIPT', y, 26, 700, MONO, PAPER.ink, 6);
     y += 42;
     centered(spec.mode === 'comp' ? '대회 인증 영수증' : '오늘의 민턴 영수증', y, 20, 600, FONT, PAPER.ink2, 1.5);
     y += 34;
@@ -2109,7 +2109,7 @@
     tracking(g, 2.6);
     g.fillStyle = 'rgba(255,255,255,0.44)';
     g.font = font(15, 700, FONT);
-    g.fillText('BADMINTON', cardX + cardW - 26, cardY + 60);
+    g.fillText('SHUTTLIX', cardX + cardW - 26, cardY + 60);
     tracking(g, 0);
     g.textAlign = 'left';
   }
@@ -2267,7 +2267,7 @@
     g.fillStyle = PAPER.ink3;
     tracking(g, 2.4);
     g.font = font(17, 700, FONT);
-    g.fillText('BADMINTON', W - 64, F.story ? F.bottom - 8 : H - 38);
+    g.fillText('SHUTTLIX', W - 64, F.story ? F.bottom - 8 : H - 38);
     tracking(g, 0);
     g.textAlign = 'left';
   }

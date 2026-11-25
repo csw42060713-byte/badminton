@@ -288,7 +288,7 @@
   function browserNotify(item) {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     if (typeof document !== 'undefined' && document.visibilityState === 'visible') return;
-    var title = '배드민턴 · ' + notifText(item);
+    var title = '셔틀릭스 · ' + notifText(item);
     var options = {
       body: item.kind === 'message' ? U.truncate((BM.domain && BM.domain.chatTextPreview) ? BM.domain.chatTextPreview(item.text) : (item.text || ''), 90) : '앱을 열어 확인해 보세요.',
       icon: 'icons/icon-192.png',
@@ -1097,7 +1097,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.73.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.74.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);
