@@ -782,6 +782,9 @@
         /* v1.41 — 통계 카드 아래 주간·월간 상세 리포트 입구 */
         (BM.report ? BM.report.entryHtml() : '') +
 
+        /* bm-v1.76.0 — 내 라켓 · 스트링 장력 메모 & 교체 알림 (생활 밀착 카드) */
+        (BM.gear ? BM.gear.cardHtml(state) : '') +
+
         roleCard(state) +
 
         routinePrefCard(state) +
@@ -819,6 +822,18 @@
         if (codeCopy) {
           ev.preventDefault();
           if (BM.views.friends) BM.views.friends.copyAndTell(codeCopy.getAttribute('data-code-copy'));
+          return;
+        }
+        /* bm-v1.76.0 — 내 라켓 · 스트링: 편집 시트 · 오늘 갈았어요 */
+        if (ev.target.closest('[data-act="gear-sheet"]')) {
+          ev.preventDefault();
+          if (BM.gear) BM.gear.openSheet(ctx);
+          UI.haptic(8);
+          return;
+        }
+        if (ev.target.closest('[data-act="gear-restung"]')) {
+          ev.preventDefault();
+          if (BM.gear) BM.gear.restung(ctx);
           return;
         }
         var sw = ev.target.closest('.theme[data-theme]');   /* html[data-theme]까지 올라가지 않게 */
