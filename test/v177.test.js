@@ -508,6 +508,43 @@
     includes(readRoot('js/store.js'), 'pushHook', '저장소 알림 훅');
   });
 
+  test('v1.77 sw: 알림을 누르면 그 대화방까치 열린다', function () {
+    if (!hasNode) return;
+    var vm = require('vm');
+    var opened = [], handlers = {};
+    var self = {
+      addEventListener: function (n, fn) { handlers[n] = fn; },
+      registration: { showNotification: function () { return Promise.resolve(); } },
+      clients: { matchAll: function () { return Promise.resolve([]); }, openWindow: function (u) { opened.push(u); return Promise.resolve(); } },
+      location: { origin: 'https://csw42060713-byte.github.io' }
+    };
+    vm.runInContext(readRoot('sw.js'), vm.createContext({ self: self, console: console, Date: Date, Promise: Promise }), { filename: 'sw.js' });
+    var waits = [];
+    handlers.notificationclick({
+      notification: { close: function () {}, data: { url: './#/chat/room_1234' } },
+      waitUntil: function (p) { waits.push(p); }
+    });
+    return Promise.all(waits).then(function () {
+      eq(opened.join(','), './#/chat/room_1234', '대화방까지 살림');
+      opened = []; waits = [];
+      handlers.notificationclick({
+        notification: { close: function () {}, data: { url: '#/chat' } },
+        waitUntil: function (p) { waits.push(p); }
+      });
+      return Promise.all(waits);
+    }).then(function () {
+      eq(opened.join(','), './#/matching', '방 ID 가 없으면 예전대로 매칭 탭');
+      opened = []; waits = [];
+      handlers.notificationclick({
+        notification: { close: function () {}, data: { url: 'https://evil.example.com/#' + '/chat/x<script>' } },
+        waitUntil: function (p) { waits.push(p); }
+      });
+      return Promise.all(waits);
+    }).then(function () {
+      ok(/^\.\/#\/(chat\/)?[A-Za-z0-9_-]*$/.test(opened.join('')), '위험한 글자는 지우고 앱 안 화면만(실제: ' + opened.join(',') + ')');
+    });
+  });
+
   test('v1.77 버전: sw · app · 스타일 캐시 · TWA · README 가 함께', function () {
     if (!hasNode) return;
     includes(readRoot('sw.js'), "var VERSION = 'bm-v1.77.0'", 'sw 캐시 이름');
