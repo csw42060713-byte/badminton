@@ -515,6 +515,8 @@
     paintDm(state);
     paintNotify(state);
     onIncoming(state);
+    /* bm-v1.76.0 — 줄 교체 시기가 됐을 때 하루 한 번만 브라우저 알림(허용한 사람에게만) */
+    if (BM.gear && BM.gear.notifyIfDue) BM.gear.notifyIfDue(state);
     if (painting) return;
     if (state.ui.tab !== currentTab) {
       mountView(state.ui.tab);
@@ -1097,7 +1099,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.75.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.76.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

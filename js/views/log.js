@@ -1694,6 +1694,9 @@
       return '' +
         heroBlock(state) +
 
+        /* bm-v1.76.0 — 줄 교체 시기가 됐을 때만 일지 위에 조용한 안내 한 줄 */
+        (BM.gear ? BM.gear.bannerHtml(state) : '') +
+
         routineBlock(state) +
 
         /* 코치 유형이면 피드백 흐름으로 이어지는 짧은 카드 */
@@ -2056,6 +2059,13 @@
       });
 
       root.addEventListener('click', function (ev) {
+        /* bm-v1.76.0 — 내 라켓 · 스트링 편집 (위 배너에서 열기) */
+        if (ev.target.closest('[data-act="gear-sheet"]')) {
+          ev.preventDefault();
+          UI.haptic(8);
+          if (BM.gear) BM.gear.openSheet(ctx);
+          return;
+        }
         /* 코치 유형 안내 → 코치 탭 */
         if (ev.target.closest('[data-act="go-coach"]')) {
           ev.preventDefault();

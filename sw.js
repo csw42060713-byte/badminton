@@ -343,8 +343,19 @@
  *             그대로이고, 화면 문구도 그대로입니다. js/api.js·js/store.js·js/ads.js·
  *             js/util.js·js/views/my.js·js/views/matching.js·js/sharecard.js 가 바뀌어
  *             캐시를 bm-v1.75.0으로 올립니다.
+ * 2026-11-25: 🏸 내 라켓 · 스트링 장력 메모 & 교체 알림 (bm-v1.76.0)
+ *             〔기록〕 MY 에 '🏸 내 라켓 · 스트링' 카드를 더했습니다 — 라켓 모델 · 스트링 ·
+ *             장력(lbs) · 교체한 날 · 교체 주기 · 한 줄 메모를 적어 두고, 지난 뒤 D+N일과
+ *             '교체까지 N일 남음'을 보여 줍니다. 스트링(BG65·BG80·에어로바이트·엑스볼트63) ·
+ *             장력(24~28) · 주기(30·45·60·90일) 칩과 직접 입력, 교체한 날 '오늘' 버튼,
+ *             '오늘 새 줄로 갈았어요' 원탭 리셋까지.
+ *             〔알림〕 주기가 지났거나 3일 안으로 다가오면 MY 카드 배지 + 일지 & AI 위 한 줄
+ *             배너로 조용히 알리고, 브라우저 알림을 허용한 사람에게는 하루 한 번만 알립니다.
+ *             〔저장〕 새 시트 칸·새 DB 컬럼 없이 프로필 꾸미기 JSON(theme.gear) 한 칸만.
+ *             js/gear.js 가 새로 생기고 js/store.js·js/views/my.js·js/views/log.js·
+ *             app.js·styles.css 가 바뀌어 캐시를 bm-v1.76.0으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.75.0';
+var VERSION = 'bm-v1.76.0';
 var SHELL = [
   './',
   './index.html',
@@ -362,6 +373,7 @@ var SHELL = [
   './js/auth.js',
   './js/store.js',
   './js/ui.js',
+  './js/gear.js',
   './js/gyms.js',
   './js/nearby.js',
   './js/art.js',

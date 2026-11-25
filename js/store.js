@@ -147,6 +147,8 @@
     if (grade) me.level = grade;
     /* v1.40 — 저장된 유형(꾸미기 JSON의 role)을 화면이 바로 쓰게 me.role로도 꺼내 둡니다 */
     me.role = D.roleOf(me);
+    /* bm-v1.76.0 — 내 라켓·스트링 기록(꾸미기 JSON의 gear)도 화면이 바로 쓰게 꺼내 둡니다 */
+    me.gear = BM.gear ? BM.gear.gearOf(me) : ((me.theme && me.theme.gear) || null);
     return me;
   }
 
@@ -739,6 +741,26 @@
         state.proPref = saveProPref(routineScope(), val);
         emit();
         return { ok: true, proPref: state.proPref };
+      },
+
+      /* ---------- bm-v1.76.0: 내 라켓 · 스트링 장력 메모 ----------
+       * 새 시트 칸·새 DB 컬럼 없이 프로필 꾸미기 JSON(theme.gear) 한 칸에만 적습니다.
+       * 넘기지 않은 값은 지금 것을 유지하고, 다 지우면 theme.gear 를 없앱니다. */
+      setGear: function (patch) {
+        var cur = BM.gear ? BM.gear.gearOf(state.me) : ((state.me && state.me.theme && state.me.theme.gear) || {});
+        var next = BM.gear ? BM.gear.normalizeGear({
+          racket: patch && patch.racket != null ? patch.racket : cur.racket,
+          string: patch && patch.string != null ? patch.string : cur.string,
+          tension: patch && patch.tension != null ? patch.tension : cur.tension,
+          strungAt: patch && patch.strungAt != null ? patch.strungAt : cur.strungAt,
+          cycleDays: patch && patch.cycleDays != null ? patch.cycleDays : cur.cycleDays,
+          memo: patch && patch.memo != null ? patch.memo : cur.memo
+        }) : cur;
+        var res = actions.saveProfile({ gear: next });
+        if (!res || !res.ok) return { ok: false, reason: (res && res.reason) || 'locked' };
+        state.me.gear = next;
+        emit();
+        return { ok: true, gear: next };
       },
 
       /* ---------- v1.40: 사용자 유형 (초보 · 동호인 · 선수 · 코치) ----------
@@ -1361,6 +1383,11 @@
           role: merged.role
         };
         if (!theme.role) delete theme.role;
+        /* bm-v1.76.0 — 내 라켓·스트링 기록은 꾸미기 JSON 안 gear 한 칸에만(넘기지 않으면 그대로) */
+        var gearNext = patch.gear != null
+          ? (BM.gear ? BM.gear.normalizeGear(patch.gear) : patch.gear)
+          : ((me.theme && me.theme.gear) || null);
+        if (gearNext && (!BM.gear || BM.gear.hasGear(gearNext))) theme.gear = gearNext;
         /* 꾸미기를 저장해도 켜 둔 하트 부스트(boost)는 그대로 남습니다 (bm-v1.64.0) */
         if (me.theme && me.theme.boost) theme.boost = 1;
         var entity = {
@@ -1373,7 +1400,8 @@
           key: me.key, nick: merged.nick, level: merged.level, discipline: merged.discipline,
           bio: merged.bio, region: merged.region, club: merged.club, gender: merged.gender,
           style: merged.style, role: merged.role,
-          availability: merged.availability, experience: merged.experience, theme: theme
+          availability: merged.availability, experience: merged.experience, theme: theme,
+          gear: theme.gear || (BM.gear ? BM.gear.blank() : null)
         };
         commit();
         return { ok: true };

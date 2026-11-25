@@ -7222,3 +7222,109 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
 }
 .sc__ink.is-on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+/* ============================================================
+ * bm-v1.76.0 — 🏸 내 라켓 · 스트링 장력 메모 & 교체 알림
+ *  · MY 카드(.gear) · 일지 & AI 위 한 줄 배너(.gearline) · 편집 시트(.gearform)
+ *  · 시기 색만 바꿉니다: ok(기본) · soon(노랑) · due(빨강) · empty/nodate(회색)
+ * ============================================================ */
+.gear .card__head { margin-bottom: 10px; }
+.gear__main { display: grid; gap: 3px; }
+.gear__racket {
+  margin: 0; font-size: 16px; font-weight: 900; letter-spacing: -0.4px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gear__spec {
+  margin: 0; font-size: 13px; font-weight: 800; color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.gear__meta {
+  margin: 4px 0 0; font-size: 12px; font-weight: 700; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.gear__memo {
+  margin: 6px 0 0; font-size: 12px; font-weight: 600; color: var(--text-2);
+  white-space: normal; word-break: keep-all;
+}
+.gear__cycle { margin: 2px 0 0; font-size: 11.3px; font-weight: 700; color: var(--muted); }
+.gear__empty { margin: 0; font-size: 12.4px; font-weight: 600; color: var(--muted); line-height: 1.5; }
+.gear__acts { display: flex; gap: 7px; margin-top: 12px; }
+.gear__acts .btn { min-height: 38px; }
+.gear[data-gear-state="due"] .gear__meta { color: color-mix(in srgb, var(--bad) 82%, var(--text)); }
+.gear[data-gear-state="soon"] .gear__meta { color: color-mix(in srgb, var(--warn) 78%, var(--text)); }
+
+/* 일지 & AI 위 한 줄 배너 — 시기가 됐을 때만, 카드처럼 무겁지 않게 */
+.gearline {
+  width: 100%; display: flex; align-items: center; gap: 9px;
+  margin: 0 0 10px; padding: 10px 12px;
+  border-radius: 14px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  color: var(--text); font: inherit; text-align: left;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.gearline:active { transform: scale(0.995); }
+.gearline--soon { border-color: color-mix(in srgb, var(--warn) 44%, var(--line)); }
+.gearline--due { border-color: color-mix(in srgb, var(--bad) 46%, var(--line)); }
+.gearline__ico {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 10px; font-size: 15px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.gearline--soon .gearline__ico { background: color-mix(in srgb, var(--warn) 16%, transparent); }
+.gearline--due .gearline__ico { background: color-mix(in srgb, var(--bad) 15%, transparent); }
+.gearline__txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.gearline__t {
+  font-size: 12.6px; font-weight: 900; letter-spacing: -0.2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gearline__s {
+  font-size: 11.3px; font-weight: 700; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gearline--due .gearline__t { color: color-mix(in srgb, var(--bad) 82%, var(--text)); }
+.gearline--soon .gearline__t { color: color-mix(in srgb, var(--warn) 76%, var(--text)); }
+.gearline__car { flex: none; width: 15px; height: 15px; color: var(--muted); }
+
+/* 편집 시트 */
+.gearform { display: grid; gap: 13px; }
+.gfield { display: grid; gap: 6px; min-width: 0; }
+.gfield > span.gfield__l, .gfield .gfield__l {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.2px; font-weight: 900; color: var(--text-2); letter-spacing: -0.2px;
+}
+.gfield .gfield__l small { font-size: 10.8px; font-weight: 700; color: var(--muted); }
+.gfield input[type="text"], .gfield input[type="number"], .gfield input[type="date"] {
+  width: 100%; min-height: 42px; padding: 0 12px;
+  border-radius: 12px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text); font: inherit; font-size: 14px; font-weight: 700;
+  -webkit-appearance: none; appearance: none;
+}
+.gfield input[type="number"] { font-variant-numeric: tabular-nums; }
+.gfield input:focus { outline: none; border-color: var(--accent-line); }
+.gfield__row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.gfield__row .gpick { flex: 1 1 auto; min-width: 0; flex-wrap: wrap; gap: 5px; }
+.gfield__row .gpick__b { padding: 0 10px; }
+.gfield .gfield__num {
+  flex: 0 0 72px; width: 72px; min-height: 34px; padding: 0 6px;
+  text-align: center; font-size: 13.5px;
+}
+.grow-row { display: flex; gap: 7px; align-items: center; }
+.grow-row input { flex: 1; min-width: 0; }
+.grow-row .btn { flex: none; min-height: 44px; }
+.gpick {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.gpick__b {
+  min-height: 34px; padding: 0 12px;
+  border-radius: 10px; border: 1px solid var(--line);
+  background: transparent; color: var(--text-2);
+  font: inherit; font-size: 12.4px; font-weight: 800;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.gpick__b.is-on {
+  border-color: var(--accent-line);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+}
+.gpick__b:active { transform: scale(0.97); }
