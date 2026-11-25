@@ -167,13 +167,15 @@ jarsigner -keystore android.keystore -storepass <비밀번호> -keypass <비밀�
 
 ### 방법 C — GitHub Actions (브라우저에서 버튼 한 번)
 
-`.github/workflows/build-aab.yml` 이 준비돼 있습니다(수동 실행).
+워크플로우 파일은 **`tools/build-aab.workflow.yml`** 에 있습니다(앱 권한으로는 `.github/workflows/`에 바로 밀어 넣을 수 없습니다).
 
-1. 저장소 **Settings → Secrets and variables → Actions** 에 두 개를 넣습니다.
+1. GitHub 웹 저장소 → **Add file → Create new file** → 이름 `.github/workflows/build-aab.yml`
+   → `tools/build-aab.workflow.yml` 내용을 그대로 붙여 넣고 커밋.
+2. **Settings → Secrets and variables → Actions** 에 두 개를 넣습니다.
    - `KEYSTORE_BASE64` = 업로드 키스토어를 base64로 인코딩한 값 (`base64 -w0 shuttlix-upload.keystore`)
    - `KEYSTORE_PASSWORD` = 키스토어·키 비밀번호
 2. **Actions → "셔틀릭스 .aab 빌드" → Run workflow** (versionCode를 비우면 `twa-manifest.json` 값)
-3. 끝나면 **Artifacts → shuttlix-aab** 에 서명된 `app-release.aab` 가 생깁니다.
+3. **Actions → "셔틀릭스 .aab 빌드" → Run workflow** 로 실행하고, 끝나면 **Artifacts → shuttlix-aab** 에서 서명된 `app-release.aab` 를 받습니다.
 
 ### 방법 A — 준비된 설정으로 빌드 (예전 기록)
 
