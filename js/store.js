@@ -625,6 +625,24 @@
       return e;
     }
 
+    /* ---------- 알림 보내기 훅 (bm-v1.77.0) ----------
+     *  채팅·약속 카드·매칭 요청·게스트 신청이 실제로 저장된 '직후' 상대에게 푸시를 부탁합니다.
+     *  · Supabase 모드에서만 서버(send-push)를 부릅니다 — 체험·시트 모드는 그대로 조용합니다.
+     *  · Firebase 키가 아직 없으면 서버가 pending_fcm_secret 만 돌려주고, 여기서는 무시합니다.
+     *  · 실패·오프라인이어도 메시지 전송 자체는 절대 막지 않습니다(반환값을 쓰지 않음). */
+    function pushHook(kind, toKey, extra) {
+      try {
+        var to = String(toKey || '').trim();
+        if (!to) return null;
+        if (!(BM.push && typeof BM.push.notify === 'function')) return null;
+        var opts = { to: to, mode: state.mode, me: state.me || {}, api: apiRef };
+        Object.keys(extra || {}).forEach(function (k) { opts[k] = extra[k]; });
+        return BM.push.notify(kind, opts);
+      } catch (e) {
+        return null;    /* 알림은 덤 — 메시지는 그대로 나갔습니다 */
+      }
+    }
+
     /* ---------- 서버 하트 함수 (bm-v1.75.0) ----------
      *  Supabase 모드에서는 하트 적립·차감을 서버(SECURITY DEFINER RPC)가 처리합니다.
      *  · 클라이언트가 '출석하트'·'광고하트'·'꾸미기구매'·'선물하트'·'하트합치기'·
@@ -1441,6 +1459,8 @@
           pushRow(req);
           state.ui.chatRoom = reqId;
           commit();
+          /* bm-v1.77.0 — 매칭 요청 도착 알림 */
+          pushHook('match', targetKey, { room: reqId });
           return { ok: true, roomId: reqId, cost: cost, balance: bal, chargeOnAccept: true };
         }
 
@@ -1521,6 +1541,8 @@
           }
         }));
         commit();
+        /* bm-v1.77.0 — 글쓴이에게 신청 도착 알림 */
+        pushHook('guest', String(post.userKey || ''), { room: key });
         return { ok: true, postId: key, note: text };
       },
 
@@ -1556,6 +1578,8 @@
           }
         }));
         commit();
+        /* bm-v1.77.0 — 신청한 사람에게 수락/거절 알림 */
+        pushHook(accept ? 'guest_accept' : 'guest_reject', applicant, { room: postId });
         return { ok: true, accepted: !!accept, postId: postId, applicant: applicant };
       },
 
@@ -1615,6 +1639,10 @@
         pushRow(entity);
         state.ui.chatDraft = '';
         commit();
+        /* bm-v1.77.0 — 상대에게 알림(단체방은 글쓴이에게, 내가 글쓴이면 보내지 않음) */
+        var notifyTo = group ? String(gpost && gpost.userKey || '') : otherKey;
+        if (group && notifyTo === String(state.me.key || '')) notifyTo = '';
+        pushHook('chat', notifyTo, { text: text, room: roomId });
         return { ok: true, group: group };
       },
 
@@ -1636,6 +1664,10 @@
         pushRow(entity);
         state.ui.chatDraft = '';
         commit();
+        /* bm-v1.77.0 — 약속 카드 도착 알림 (체육관·날짜·시간을 한 줄로) */
+        var apText = [String((appt || {}).gym || ''), D.apptWhen((appt || {}).date || '', (appt || {}).time || '')]
+          .filter(Boolean).join(' · ');
+        pushHook('appt', otherKey, { text: apText, room: roomId });
         return { ok: true, card: D.apptParse(text) };
       },
 
@@ -1653,6 +1685,8 @@
           createdAt: U.stamp()
         }));
         commit();
+        /* bm-v1.77.0 — 약속 카드 응답 알림 */
+        pushHook('appt', otherKey, { text: kind === 'adjust' ? '시간을 조정하고 싶대요' : '좋다고 했어요', room: roomId });
         return { ok: true, kind: kind === 'adjust' ? 'adjust' : 'ok' };
       },
 

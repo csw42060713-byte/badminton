@@ -857,6 +857,10 @@
     store.subscribe(onChange);
 
     var startTab = (location.hash || '').replace('#/', '') || 'log';
+    /* bm-v1.77.0 — 푸시 알림이 '#/chat/<방>' 으로 열어 준 경우: 채팅 목록 + 그 방까지 연다 */
+    var startRoom = '';
+    var roomHit = /^chat\/([A-Za-z0-9_-]{1,40})$/.exec(String(startTab));
+    if (roomHit) { startRoom = roomHit[1]; startTab = 'matching'; }
     if (!TABS.some(function (t) { return t.id === startTab; })) startTab = 'log';
     store.state.ui.tab = startTab;
 
@@ -877,6 +881,13 @@
         return;
       }
       mountView(store.state.ui.tab);
+      if (startRoom) {
+        var thread = (store.state.data.threads || []).filter(function (x) { return String(x.roomId) === startRoom; })[0];
+        if (thread) {
+          store.actions.openChats();
+          store.actions.openChat(startRoom, thread.other || '');
+        }
+      }
       paintNetBar(store.state);
       startWatchers();
       resumePush();
@@ -1071,7 +1082,12 @@
   }
 
   function resumePush() {
-    if (!store || !BM.push || !BM.push.autoEnable) return;
+    if (!store || !BM.push) return;
+    /* bm-v1.77.0 — 이 기기에 저장된 푸시 토큰을 서버에 다시 맞춥니다(재로그인·계정 변경 대비) */
+    if (BM.push.syncToken) {
+      try { BM.push.syncToken().catch(function () { /* 서버가 아직 없으면 조용히 */ }); } catch (e) { /* 무시 */ }
+    }
+    if (!BM.push.autoEnable) return;
     var prefs = store.state.prefs || {};
     if (prefs.push !== true) return;
     BM.push.autoEnable(prefs).catch(function () { /* 키가 없거나 지원 안 하면 조용히 */ });
@@ -1084,6 +1100,9 @@
     bindKeyboardScroll();
     bindGymLinks();
     bindPushRoute();
+    /* bm-v1.77.0 — 스토어 앱(TWA·웹뷰)이 푸시 토큰을 넘길 통로(window.ShuttlixPush)를
+     * 로그인·온보딩보다 먼저 열어 둡니다. 앱이 언제 토큰을 넘겨도 받을 수 있게. */
+    if (BM.push && BM.push.installBridge) BM.push.installBridge();
     /* 비밀번호 재설정 메일 링크로 돌아온 경우(#access_token=…&type=recovery):
        세션을 먼저 받아 두고 시작화면에서 새 비밀번호를 정하게 합니다. */
     var ready = BM.auth.bootstrapRecovery ? BM.auth.bootstrapRecovery() : Promise.resolve(null);
@@ -1099,7 +1118,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.76.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.77.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

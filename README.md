@@ -2740,3 +2740,38 @@ bubblewrap build            # → app-release-bundle.aab
 - 라이브 검증: `https://csw42060713-byte.github.io/badminton/` 390×844 `test/live-v176.py` **29/29** — 라이브 `sw.js` `bm-v1.76.0` · `app.js` `v1.76.0` · `styles.css?v=20261125-5` · TWA `1.76.0`/70 · `js/gear.js` 내려받기 · MY 카드 입력·저장·새로고침 유지·교체 시기 배지·일지 위 배너·오늘 갈았어요 리셋, **앱 오류 0 · CSP 위반 0 · 가로 넘침 0**(390·360). 캡처 `downloads/v176_live_racket_card.png` · `downloads/v176_live_racket_sheet.png` · `check-shots/v176_live_racket_card.png`. 이번 라이브 점검은 **기기 저장 모드**로 돌렸습니다(v1.75 검증 때 만든 임시 Supabase 계정은 확인 뒤 지워서, 같은 흐름을 서버 계정으로 다시 돌리려면 검사 계정이 필요합니다 — 저장 경로는 기기·시트·Supabase 모두 같은 `saveProfile`/`theme` 칸입니다).
 - 배포: `main` `ed5d0d4` + 카드 요약 줄 수정 `4873994` · `gh-pages` `eab7da6` + `c47170a`(`test/`·`supabase/`·`ideas.md` 제외, main과 공유 파일 동일).
 - 남은 일: Play 스토어 `.aab` 는 `twa-manifest.json`(1.76.0/70)으로 다시 빌드해야 새 버전이 설치본에 들어갑니다.
+
+---
+
+## 15-78. bm-v1.77.0 🔔 푸시 토큰 저장 + 발송 서버 틀 (2026-11-25 저녁)
+
+승우 님이 승인한 **FCM 푸시 토큰 저장 + 채팅·매칭 요청 등 연락 시 푸시 발송 서버 틀 & 앱 브리지**입니다. 조환비 님이 `.aab`·Firebase 설정을 마치면 **키만 꽂아 바로 동작**하도록 앱·DB·서버 함수를 미리 맞춰 두었습니다.
+
+- **`supabase/push-v1.77.sql`(신규)** — 실행하면 생기는 것
+  - `public.push_tokens` — 기기별 푸시 토큰(FCM 등록 토큰 · 웹 푸시 엔드포인트). `user_key` 당 최대 **10대**만 남기고 오래된 기기는 정리하며, 같은 기기에서 다른 계정으로 로그인하면 토큰의 주인이 그 계정으로 옮겨집니다(알림이 예전 주인에게 가지 않게).
+  - `public.push_log` — 누가 누구에게 어떤 알림을 보냈는지 **서버(Edge Function)만** 기록. 앱은 읽지도 쓰지도 못하고(정책 없음), 발송 횟수 제한·중복 차단의 근거로 씁니다.
+  - 함수 3개(SECURITY DEFINER, 로그인 사용자만 실행): `register_push_token(p_token, p_platform, p_ua)` · `unregister_push_token(p_token)`(토큰을 비우면 내 기기 전부) · `my_push_tokens()`(개수·플랫폼·마지막 접속만 — **토큰 값은 돌려주지 않음**).
+  - RLS: `push_tokens`는 **내 행만 SELECT** 가능하고 INSERT/UPDATE/DELETE 정책은 만들지 않았습니다 — 앱은 위 함수로만 손댈 수 있어 남의 토큰을 심거나 볼 수 없습니다.
+- **`supabase/functions/send-push/index.ts`(신규)** — 발송 서버 함수(Deno · npm 의존성 없이 Web Crypto만)
+  - `POST /functions/v1/send-push` `{ userKey, kind, title, body, url, roomId }` + `Authorization: Bearer <앱 access_token>`.
+  - ① 로그인 확인(`/auth/v1/user`) → `app_users.auth_uid` 로 **보낸 사람 user_key 를 서버가** 찾습니다(앱이 보낸 이름을 믿지 않음). ② 받는 사람의 토큰만 조회. ③ `FCM_SERVICE_ACCOUNT_JSON` 시크릿이 있으면 **FCM HTTP v1(`messages:send`)** 로 발송(RS256 JWT → OAuth 토큰 캐시, 안드로이드 `channel_id: bm_chat`·우선순위 HIGH, APNs·webpush 기본값 포함). ④ 시크릿이 없으면 아무 것도 보내지 않고 **`pending_fcm_secret`** 만 돌려줍니다 — 앱은 이 응답을 조용히 무시하므로 **채팅·신청이 절대 막히지 않습니다**. ⑤ 죽은 토큰(`UNREGISTERED`)은 표에서 지워 다음 발송이 헛돌지 않게 합니다. ⑥ 보낸 사람 **1시간 60건** 제한 · 같은 글 **8초** 안 재발송은 `duplicate` 로 건너뜁니다.
+  - FCM 시크릿·서비스 계정 값은 응답·로그 어디에도 남기지 않습니다.
+- **앱 브리지(`js/push.js`)** — 안드로이드 TWA·웹뷰가 토큰을 넘기는 표준 통로를 열었습니다.
+  - `window.ShuttlixPush.register(token, 'android')` · `unregister()` · `token()` · `status()` · `requestToken()`.
+  - 옛 통로도 그대로 받습니다: `window.AndroidBridge.requestPushToken()`/`getPushToken()`(앱 시작 때 한 번 호출), `postMessage({type:'BM_PUSH_TOKEN', token, platform})`, 커스텀 이벤트 `shuttlix:push-token`.
+  - 받은 토큰은 기기에 먼저 남기고(`bm_push_token_v1`) Supabase 모드에서 `register_push_token` 으로 내 계정에 올립니다. 앱을 열 때마다(`syncToken`) 다시 맞추므로 재로그인·계정 변경에도 어긋나지 않습니다.
+- **발송 훅(`js/store.js`)** — 메시지가 저장된 **직후** 상대에게 알림을 부탁합니다(실패·미설정은 조용히 지나감).
+  - `sendChat`(1:1은 상대, 단체방은 글쓴이 — 내가 글쓴이면 보내지 않음) · `sendAppt`/`respondAppt`(약속 카드·응답) · `requestMatch`(1:1 매칭 요청) · `applyGuest`(게스트 신청) · `respondGuest`(수락/거절).
+  - Supabase 모드가 아니면(체험·시트) 아무 것도 보내지 않습니다.
+  - 알림을 누르면 `#/chat/<방>`으로 열려 **그 대화방까지** 이어집니다(`sw.js` 가 방 ID를 살리고, `app.js` 가 시작할 때 그 방을 엽니다).
+- **MY › 알림 · 편지지** — 무엇이 어디로 오는지 두 줄로 나눠 보여 줍니다.
+  - `실시간 알림 (앱 켜짐)` — 스위치·브라우저 알림 권한 상태(켜짐/권한 필요/꺼짐).
+  - `백그라운드 푸시 (앱 닫힘)` — `앱에 연결됨`(토큰 등록됨) · `Firebase 키 대기` · `스토어 앱 연결 준비` · `알림 차단됨`.
+  - 스위치를 끄면 이 기기 토큰도 서버에서 해제하고, 켜면 저장된 토큰을 다시 맞춥니다.
+- **FCM 연동 가이드(조환비 님께 전달할 3줄)**
+  1. Firebase 콘솔에서 이 앱의 **서비스 계정 키(JSON)** 를 내려받아 `supabase secrets set FCM_SERVICE_ACCOUNT_JSON="$(cat service-account.json)" --project-ref mwgpakntlollndfluwgg` 로 넣고, `supabase functions deploy send-push --project-ref mwgpakntlollndfluwgg` 로 함수를 올려 주세요.
+  2. 웹 푸시까지 켤 때는 Firebase **웹 푸시 인증서(VAPID) 공개 키**를 `js/api.js` 의 `PUSH_CONFIG.vapidPublicKey` 에 넣어 주세요(비워 두면 앱은 '연결 준비' 상태로만 보입니다).
+  3. `.aab` 빌드에서 알림 표시를 켜려면 `twa-manifest.json` 의 `enableNotifications` 를 `true` 로 바꿔 다시 빌드하고, 안드로이드 채널 이름은 `bm_chat` 으로 맞춰 주세요.
+- 파일: `supabase/push-v1.77.sql`(신규) · `supabase/functions/send-push/index.ts`(신규) · `js/push.js` · `js/store.js` · `js/views/my.js` · `app.js` · `sw.js` · `index.html` · `styles.css` · `twa-manifest.json` · `README.md` · `test/v177.test.js`(신규) · `test/local-v177.py`(신규) · `test/live-v177.py`(신규).
+- 버전: `sw.js` `bm-v1.77.0` · `app.js` `v1.77.0` · `twa-manifest.json` `1.77.0`(`appVersionCode` **71**) · `styles.css?v=20261125-6`. 테스트 파일의 버전·캐시·TWA 코드 단언도 함께 올렸습니다.
+- 남은 일: 실제 FCM 발송은 **Firebase 서비스 계정 키**가 들어와야 검증됩니다(그때까지 서버 함수는 `pending_fcm_secret`). 서버 없이 앱만 확인하려면 `BM.push.notify()`/`registerToken()` 이 `not_remote`/`pending` 을 돌려주는 것이 정상입니다.
