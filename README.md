@@ -165,7 +165,7 @@ badminton-app/
 ├─ manifest.webmanifest  PWA/TWA 설정 (id·scope·start_url·아이콘·스크린샷)
 ├─ manifest.json         위와 같은 내용(예전 설치·도구 호환용 사본)
 ├─ sw.js                 오프라인 캐시 (앱 껍데기만, 시트 요청은 건드리지 않음)
-├─ .well-known/assetlinks.json   TWA 디지털 자산 링크(지문 넣는 템플릿)
+├─ .well-known/assetlinks.json   TWA 디지털 자산 링크(업로드 키 SHA-256 등록 · Play 앱 서명 지문은 추가 대기)
 ├─ twa-manifest.json     Bubblewrap 빌드 설정
 ├─ PLAY_STORE_GUIDE.md   플레이 스토어 출시 순서(서명·빌드·등록·심사 체크)
 ├─ store-assets/         스토어 등록 그래픽 + 만드는 스크립트

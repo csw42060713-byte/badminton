@@ -1,0 +1,17 @@
+# 서명 키·비밀번호는 절대 깃에 올리지 않습니다 (공개 저장소)
+*.keystore
+*.jks
+*.p12
+*.pepk
+*.keystore.b64
+KEYSTORE_INFO.txt
+key.properties
+android.keystore
+
+# 빌드 산출물
+*.aab
+*.apk
+build/
+.gradle/
+local.properties
+node_modules/

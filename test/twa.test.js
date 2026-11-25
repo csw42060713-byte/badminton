@@ -67,4 +67,33 @@
     ok(maskable.length, '웹 매니페스트에도 maskable 아이콘');
     eq(maskable[0].src, 'icons/icon-maskable-512.png', 'maskable 아이콘 경로 일치');
   });
+  test('자산 링크: assetlinks.json이 유효한 JSON이고 패키지·지문이 TWA 설정과 같다', function () {
+    if (!hasNode()) return;
+    var links = JSON.parse(readRoot('.well-known/assetlinks.json'));
+    ok(Array.isArray(links) && links.length === 1, 'assetlinks.json은 문장 1개짜리 배열');
+    var st = links[0];
+    ok(st.relation && st.relation.indexOf('delegate_permission/common.handle_all_urls') >= 0, 'handle_all_urls 관계');
+    eq(st.target.namespace, 'android_app', 'namespace = android_app');
+
+    var twa = JSON.parse(readRoot('twa-manifest.json'));
+    eq(st.target.package_name, twa.packageId, 'package_name = twa packageId');
+
+    var fps = st.target.sha256_cert_fingerprints || [];
+    ok(fps.length >= 1, 'SHA-256 지문이 최소 1개');
+    fps.forEach(function (fp) {
+      ok(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(fp), 'SHA-256 지문 형식(콜론 포함 32쌍)');
+      ok(fp.indexOf('REPLACE_WITH') < 0, '지문 자리에 임시 문구가 없다');
+      ok(twa.fingerprints.indexOf(fp) >= 0, 'twa-manifest fingerprints에도 같은 지문');
+    });
+    /* 업로드 키 지문이 실제로 들어가 있어야 앱이 주소창 없이 뜬다 */
+    ok(fps.indexOf('EB:05:FE:F5:CC:EB:A6:25:9E:8A:DC:39:12:DA:87:1C:C2:20:29:C3:BA:5A:DF:F3:48:09:E8:8F:E6:5E:0F:D0') >= 0, '업로드 키 지문 등록됨');
+  });
+
+  test('서명 키: 키스토어가 저장소에 없고 .gitignore가 키 파일을 막는다', function () {
+    if (!hasNode()) return;
+    ok(!fileExists('android.keystore'), '저장소에 android.keystore 없음');
+    ok(!fileExists('shuttlix-upload.keystore'), '저장소에 업로드 키스토어 없음');
+    var ignore = readRoot('.gitignore');
+    ['*.keystore', '*.jks'].forEach(function (p) { ok(ignore.indexOf(p) >= 0, '.gitignore에 ' + p); });
+  });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
