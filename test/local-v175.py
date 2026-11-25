@@ -9,6 +9,9 @@
   C) 출석 체크 → 서버에 '출석하트' 행 1개(hrt_ 접두어 = 서버가 만든 행)
   D) 같은 날 다시 눌러도 행이 늘지 않는다(서버가 'done')
   E) 클라이언트 직접 INSERT 는 RLS 로 막힌다(브라우저 안에서 fetch 로 시도, 403)
+· 이 점검은 임시 Supabase 검사 계정(work/.bm-test-user.json)으로 돌립니다 — 하트 적립이
+  이제 서버 함수만 하므로, 계정 세션 없이는 확인할 수 없습니다. 2026-11-25 검증 때 쓴
+  임시 계정은 확인 뒤 지웠습니다(새로 돌리려면 계정을 하나 만들어 그 파일에 넣으면 됩니다).
 · 실행(저장소 루트에서):
   LD_LIBRARY_PATH=/workspace/tmp/syslibs/usr/lib/x86_64-linux-gnu python3 test/local-v175.py
 """
