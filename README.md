@@ -2670,3 +2670,23 @@ bubblewrap build            # → app-release-bundle.aab
 - 보호/보안: 합치며 조환비 님 6건 코드(`js/sharecard.js` 영수증·대회 날짜, `js/ai.js` 통증 드릴, `js/views/log.js` 접힘, `js/report.js`, `js/pose.js`)를 그대로 보존했습니다. 실존 선수 이름·시트 ID 없음, 새 시트 칸·새 DB 컬럼 없음(약속 카드는 기존 `매칭채팅` 글만), 사진은 여전히 폰 안에서만.
 - 라이브 검증: `https://csw42060713-byte.github.io/badminton/` 390×844 `test/live-v173.py` **38/38**(앱 오류 0 · CSP 위반 0 · 가로 넘침 0, 390·360) + 조환비 님 `test/live-v172.py`(버전만 1.73으로) **33/33**. 라이브에서 29일 → 30일째 출석 `하트 +6 (보너스 +5)`와 🏆 해금, 오늘 첫 광고 `하트 +2 (오늘의 부스트 +1 포함)`, 상대 약속 카드 `좋아요` → `✅ 약속 확정`, 약점 칩 `수비` → `수비 타이밍` 드릴, 스티커 골드 글씨가 캔버스에 그려지는 것까지 확인. 캡처 `downloads/v173_live_c_checkin_30.png` · `v173_live_d_charge_sheet.png` · `v173_live_e_appt_confirmed.png` · `v173_live_f_log_weakness.png` · `v173_live_sticker_gold.png`.
 - 배포: `main` `0bf9349` · `gh-pages` `a3272b9`(`test/`·`supabase/`·`ideas.md` 제외, main과 공유 파일 동일).
+
+
+---
+
+## 15-75. bm-v1.74.0 🏸 앱 이름 `셔틀릭스 (Shuttlix)` 반영 (2026-11-25 오전)
+
+승우 님과 조환비(`@chohwanbi7`) 님이 최종 앱 이름을 **`셔틀릭스 (Shuttlix)`** 로 확정했고, 승우 님이 앱 내 표시 이름 반영을 승인(`"해줘"`)해 **표시 텍스트와 메타데이터만** 바꿨습니다. 기능·화면 구조·데이터는 손대지 않았습니다.
+
+- **앱 화면**: 브라우저 탭 제목 `셔틀릭스 · 배드민턴 일지 & 매칭` · 상단 헤더 워드마크 `SHUTTLIX` · 시작 로딩(스플래시) `SHUTTLIX` → `셔틀릭스` · 시작화면 제목 `셔틀릭스`(킥커 `SHUTTLIX`, 이메일 화면 브랜드 줄 `셔틀릭스`) · MY 맨 아래 버전 줄 `셔틀릭스 · v1.74.0`. 홈 화면에 추가할 때 쓰는 이름(`apple-mobile-web-app-title` · `application-name`)도 `셔틀릭스`로 새로 넣었습니다(예전엔 없어서 문서 제목이 대신 쓰였습니다).
+- **설치 파일**: `manifest.webmanifest` · `manifest.json` — `name` `셔틀릭스 · 배드민턴 매칭 · AI`, `short_name` `셔틀릭스`, 설명 첫머리 `셔틀릭스(Shuttlix)`. `twa-manifest.json` — `name`·`launcherName` `셔틀릭스`. **`packageId`(`io.github.csw42060713_byte.badminton`)·`startUrl`(`/badminton/index.html`)·`webManifestUrl`은 조환비 님과 유지 합의한 값 그대로**입니다.
+- **인스타 공유 카드**: 매거진(위 오른쪽 작은 워드마크) · 글래스(유리 카드 오른쪽 위) · 필름(아래 브랜드 줄) 세 자리를 `SHUTTLIX`로, 영수증 머리글을 `SHUTTLIX RECEIPT`로. 글자 수가 9 → 8로 줄어 자간·자리(18/17/15px · 자간 4/2.6/2.4)는 그대로 써도 넘치지 않습니다.
+- **알림**: `sw.js` 푸시 기본 제목 `셔틀릭스`, `app.js` 브라우저 알림 제목 접두어 `셔틀릭스 · `.
+- **개인정보처리방침**: 문서 제목·브랜드 줄·본문 첫 문장·앱 표기(`셔틀릭스 (Shuttlix · Google Play · 웹 앱)`)를 새 이름으로 맞췄습니다(같은 앱·같은 사업자, 조항 내용은 그대로).
+- **그대로 둔 것(절대 조건)**: `localStorage` 키(`bm_cache_v1`·`bm_queue_v1`·`bm_mode_v1`·`bm_rows_v1::…` 등 `bm_*`) · Supabase 테이블·컬럼 · 주소 경로(`/badminton/`) · TWA `packageId` · 시트 26칸 · 5개 탭 · 하트 규칙 · 화면 구조. 새 파일 없음(테스트 제외).
+- 파일: `index.html` · `manifest.webmanifest` · `manifest.json` · `twa-manifest.json` · `js/views/start.js` · `js/views/my.js` · `js/sharecard.js` · `sw.js` · `app.js` · `privacy.html` · `README.md` · `test/v174.test.js`(12개) · `test/local-v174.py` · `test/live-v174.py`.
+- 버전: `sw.js` `bm-v1.74.0` · `app.js` `v1.74.0` · `twa-manifest.json` `1.74.0`(`appVersionCode` **68**) · `styles.css?v=20261125-3`. 테스트 파일의 버전·캐시·TWA 코드 단언도 함께 올렸습니다.
+- 검증: `node test/run.js` **1566/1566** · 로컬 390×844 `test/local-v174.py` **22/22**(탭 제목·홈 화면 이름 메타·헤더 `SHUTTLIX`·스플래시 `SHUTTLIX`/`셔틀릭스`·시작화면·MY 버전 줄·공유 카드 캔버스, 앱 오류 0 · CSP 위반 0 · 가로 넘침 0, 390·360).
+- 라이브 검증: `https://csw42060713-byte.github.io/badminton/` 390×844 `test/live-v174.py` **27/27** — 라이브 `sw.js` `bm-v1.74.0` · `app.js` `v1.74.0` · `styles.css?v=20261125-3` · TWA `1.74.0`/68 · 매니페스트 이름 · `packageId` 그대로 · 스플래시·시작화면·헤더·MY 버전 줄·공유 카드 워터마크, **앱 오류 0 · CSP 위반 0 · 가로 넘침 0**(390·360). 캡처: `downloads/v174_live_home.png` · `v174_live_sharecard.png` · `v174_live_start.png`.
+- 배포: `main` `53e589a` · `gh-pages` `9c16190`(`test/`·`supabase/`·`ideas.md` 제외, main과 공유 파일 동일).
+- 남은 일(조환비 님·플레이 콘솔 쪽): Play 스토어 **등록 이름**과 스토어 아이콘 밑 이름은 Play Console에서 직접 바꿔야 하고, TWA `.aab`도 `twa-manifest.json`(1.74.0/68)으로 다시 빌드해야 새 이름이 설치본에 들어갑니다.
