@@ -242,9 +242,16 @@
     return '스트록';
   }
 
-  /* 유형(초보·동호인·선수·코치)에 맞춘 다음 한 걸음 */
-  function roleLine(role, weak) {
+  /* 유형(초보·동호인·선수·코치)에 맞춘 다음 한 걸음
+   * 아픈 부위가 있으면 '풋워크 드릴 10분' 같은 훈련 권유 대신 회복 안내 (bm-v1.72.0) */
+  function roleLine(role, weak, hasPain) {
     var w = weak || '';
+    if (hasPain) {
+      if (role === 'player') return '아픈 부위가 가라앉을 때까지는 7대 훈련 중 회복·유연성 항목만 챙기고 드릴은 쉬어 가세요.';
+      if (role === 'coach') return '아픈 부위를 말한 선수는 그 부위 드릴을 빼고 회복 위주로 피드백해 주세요.';
+      if (role === 'beginner') return '4주 루틴은 아픈 부위가 편해진 뒤에 이어 가고, 오늘은 가벼운 스트레칭만 해 보세요.';
+      return '아픈 부위가 편해질 때까지는 드릴 대신 가벼운 몸풀기와 스트레칭으로 시작해 보세요.';
+    }
     if (role === 'player') {
       return w
         ? '선수 루틴은 그대로 두고, 7대 훈련의 ' + proItemFor(w) + ' 세트만 하나 더 가져가 보세요.'
@@ -283,9 +290,16 @@
     if (rep) {
       out.push(PAIN_NEXT[rep.name] || (iga(rep.name) + ' ' + r.periodLabel + ' ' + rep.n + '번 나왔어요. 다음에는 강도를 한 단계 낮춰 보세요.'));
     } else if (c.close.games) {
-      var tail = c.close.rate != null && c.close.rate < 50
+      /* 지난 기간보다 접전 승률이 떨어졌는데도 칭찬하던 모순 수정 (bm-v1.72.0)
+       * — 2026-11-24 18시 점검: "-33%p 낮아요. 지금처럼 마지막까지 집중하는 게 잘 되고 있어요." */
+      var closeDropped = r.closeDiff != null && r.closeDiff <= -5;
+      var closeRose = r.closeDiff != null && r.closeDiff >= 5;
+      var closeLow = c.close.rate != null && c.close.rate < 50;
+      var tail = (closeDropped || closeLow)
         ? '. 마지막 3점은 서브를 낮게, 첫 공은 안전하게 가 보세요.'
-        : '. 지금처럼 마지막까지 집중하는 게 잘 되고 있어요.';
+        : closeRose
+          ? '. 지난 기간보다 접전을 잘 잡고 있어요 — 이 흐름을 이어 가세요.'
+          : '. 지금처럼 마지막까지 집중하는 게 잘 되고 있어요.';
       var diffTxt = r.closeDiff == null ? ''
         : ' (' + r.prevPeriodLabel + '보다 ' + Math.abs(r.closeDiff) + '포인트 ' +
           (r.closeDiff > 0 ? '높아요' : r.closeDiff < 0 ? '낮아요' : '그대로예요') + ')';
@@ -297,8 +311,8 @@
       out.push('훈련은 ' + c.sessions + '번 · ' + c.minutes + '분이에요. 게임 점수를 같이 남기면 승률과 접전 승률도 볼 수 있어요.');
     }
 
-    /* 3) 유형 맞춤 한 줄 */
-    out.push(roleLine(r.role, top ? top.name : ''));
+    /* 3) 유형 맞춤 한 줄 — 이번 기간에 아픈 부위가 있으면 회복 안내로 */
+    out.push(roleLine(r.role, top ? top.name : '', !!(rep || (r.pains && r.pains.length))));
     return out.slice(0, 3);
   }
 
@@ -348,7 +362,7 @@
     var head = '<h3 class="rpt__h">가장 자주 뜬 약점 <small>TOP ' + TOP_N + '</small></h3>';
     if (!r.weaknesses.length) {
       return '<section class="rpt__sec" data-rpt-sec="weak">' + head +
-        '<p class="rpt__none">약점 기술을 한 칸 남기면 여기에 자주 나온 기술부터 채워져요.<br>일지의 <b>약점 기술</b>에서 오늘 아쉬웠던 것 하나만 골라도 돼요.</p>' +
+        '<p class="rpt__none">약점 기술을 한 칸 남기면 여기에 자주 나온 기술부터 채워져요. 일지의 <b>약점 기술</b>에서 오늘 아쉬웠던 것 하나만 골라도 돼요.</p>' +
         '</section>';
     }
     return '<section class="rpt__sec" data-rpt-sec="weak">' + head +
