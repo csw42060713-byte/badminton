@@ -177,6 +177,11 @@ with sync_playwright() as p:
     check('C 카드에 남은 날', '45일' in txt, txt[:160])
     check('C 카드에 메모', '25가 편함' in txt, txt[:160])
     check('C 카드에 리셋 버튼', has("[data-region='gear'] [data-act='gear-restung']"))
+    page.wait_for_timeout(3200)          # 토스트가 사라진 뒤 카드만 깨끗하게
+    card = page.locator("[data-region='gear']").first
+    if card.count():
+        card.scroll_into_view_if_needed()
+        page.wait_for_timeout(300)
     shot('d_my_gear_saved')
 
     # ── D. 새로고침해도 유지 ──

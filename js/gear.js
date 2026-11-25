@@ -120,7 +120,7 @@
     if (out.state === 'due') {
       out.badge = '줄 교체 시기!';
       out.line = '주기보다 ' + (-out.daysLeft) + '일 지났어요' + (out.daysLeft === 0 ? ' · 오늘이 교체일이에요' : '');
-      out.meta = when + ' · D+' + since + '일';
+      out.meta = when + ' · D+' + since + '일 · ' + out.line;
     } else if (out.state === 'soon') {
       out.badge = '곧 교체 D-' + out.daysLeft;
       out.meta = when + ' · ' + out.line;
@@ -160,7 +160,7 @@
         (specText(g) ? '<p class="gear__spec">' + U.esc(specText(g)) + '</p>' : '') +
         (st.state === 'nodate'
           ? '<p class="gear__meta">교체한 날을 적으면 다음 시기를 알려드려요</p>'
-          : '<p class="gear__meta">' + U.esc(st.meta) + ' · ' + U.esc(st.line) + '</p>') +
+          : '<p class="gear__meta">' + U.esc(st.meta) + '</p>') +
         (g.memo ? '<p class="gear__memo">' + U.esc(g.memo) + '</p>' : '') +
         (g.cycleDays ? '<p class="gear__cycle">교체 주기 ' + g.cycleDays + '일</p>' : '') +
         '</div>';

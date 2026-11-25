@@ -141,10 +141,11 @@ with sync_playwright() as p:
     txt = text_of("[data-region='gear']")
     check('C 라이브 카드에 라켓 · 스트링 · 장력', '아스트록스 88D 프로' in txt and 'BG80 · 26 lbs' in txt, txt[:120])
     check('C 라이브 카드에 D+0 · 남은 날', 'D+0' in txt and '45일' in txt, txt[:160])
+    page.wait_for_timeout(3200)          # 토스트가 사라진 뒤 카드만 깨끗하게
     card = page.locator("[data-region='gear']").first
     if card.count():
         card.scroll_into_view_if_needed()
-        page.wait_for_timeout(200)
+        page.wait_for_timeout(300)
     shot('racket_card', OUT + '/v176_live_racket_card.png')
 
     # ── D. 새로고침해도 유지 ──
