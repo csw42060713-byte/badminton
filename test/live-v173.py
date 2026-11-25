@@ -227,8 +227,8 @@ with sync_playwright() as p:
     check('E 좋아요 → 약속 확정', '약속 확정' in panel, panel[-180:].replace('\n', ' '))
     check('E 확정 뒤 버튼 사라짐', not has('[data-apt-ok="apt173"]'))
     shot('e_appt_confirmed')
-    if has('[data-dm-close]'):
-        tap('[data-dm-close]', 500)
+    page.evaluate("() => BM.app.ctx.actions.closeChats()")
+    page.wait_for_timeout(600)
 
     # ── F. 수비 칩 · 스티커 3색 ──
     tap("#tabbar [data-tab='log']", 1000)

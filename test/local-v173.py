@@ -264,10 +264,8 @@ with sync_playwright() as p:
         "() => { const t = BM.app.ctx.store.state.data.threads.filter(x => String(x.roomId) === 'room172')[0]; return BM.domain.chatTextPreview(t.last.text); }").startswith('👍')
         or True)
     shot('d_appt_confirmed')
-    if has('[data-dm-back]'):
-        tap('[data-dm-back]', 500)
-    if has('[data-dm-close]'):
-        tap('[data-dm-close]', 500)
+    page.evaluate("() => BM.app.ctx.actions.closeChats()")
+    page.wait_for_timeout(500)
 
     # ── E. 일지 약점 칩 수비 ──
     tap("#tabbar [data-tab='log']", 900)
