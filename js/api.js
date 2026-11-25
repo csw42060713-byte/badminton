@@ -863,6 +863,20 @@
         });
       },
       resetDemo: function () { return Promise.resolve({ ok: false }); },
+      /* 서버 함수(RPC) — bm-v1.75.0
+       *  하트·광고 보상은 이제 서버(Supabase SECURITY DEFINER 함수)만 적립·차감합니다.
+       *  클라이언트가 app_records 에 '출석하트'·'광고하트'·'꾸미기구매' 행을 직접 넣으면
+       *  RLS 가 42501 로 막습니다(supabase/heart-rpc-v1.75.sql).
+       *  앱은 여기로만 부릅니다: heart_checkin · heart_ad_reward · heart_spend · heart_balance */
+      rpc: function (name, args) {
+        return rest('POST', 'rpc/' + String(name || ''), {
+          body: args || {}, prefer: 'return=representation'
+        }).then(function (data) {
+          var res = Array.isArray(data) ? (data[0] || null) : data;
+          if (typeof res === 'number') return { ok: true, value: res };
+          return res;
+        });
+      },
       /* 계정 삭제(탈퇴)
        *  · 로그인 세션(authenticated)이면 RPC delete_my_account 로
        *    내 기록을 진짜 DELETE 하고 auth.users 계정까지 지웁니다(service_role 키 없이).

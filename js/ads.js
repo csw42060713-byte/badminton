@@ -383,22 +383,27 @@
       var res = null;
       try { res = actions.watchAd({ verified: true, adUnit: r.adUnit, txId: r.txId }); }
       catch (e) { res = { ok: false, reason: 'error' }; }
-      var out = {
-        ok: !!(res && res.ok),
-        reason: res ? res.reason : 'error',
-        gained: res && res.gained,
-        remaining: res && res.remaining,
-        balance: res && res.balance,
-        dailyBoost: res && res.dailyBoost,
-        retryAfter: res && res.retryAfter,
-        ad: r
-      };
-      if (out.ok && !opts.silent && BM.ui) {
-        if (BM.ui.toast) BM.ui.toast('하트 +' + out.gained + (out.dailyBoost ? ' (오늘의 부스트 +' + out.dailyBoost + ' 포함)' : '') +
-          ' · 오늘 ' + out.remaining + '회 남음');
-        if (BM.ui.haptic) BM.ui.haptic(16);
-      }
-      return out;
+      /* bm-v1.75.0 — Supabase 모드에서는 적립 결과가 서버 응답(Promise)으로 옵니다 */
+      return Promise.resolve(res).then(function (res) {
+        res = res || { ok: false, reason: 'error' };
+        var out = {
+          ok: !!res.ok,
+          reason: res.reason,
+          gained: res.gained,
+          remaining: res.remaining,
+          balance: res.balance,
+          dailyBoost: res.dailyBoost,
+          retryAfter: res.retryAfter,
+          message: res.message,
+          ad: r
+        };
+        if (out.ok && !opts.silent && BM.ui) {
+          if (BM.ui.toast) BM.ui.toast('하트 +' + out.gained + (out.dailyBoost ? ' (오늘의 부스트 +' + out.dailyBoost + ' 포함)' : '') +
+            ' · 오늘 ' + out.remaining + '회 남음');
+          if (BM.ui.haptic) BM.ui.haptic(16);
+        }
+        return out;
+      });
     }, function () { return { ok: false, reason: 'error' }; });
   }
 
@@ -606,21 +611,26 @@
       }
 
       if (kind === 'checkin') {
-        var ci = actions.checkIn ? actions.checkIn() : null;
-        if (ci && ci.ok) {
-          UI.toast(ci.bonus
-            ? ci.streak + '일 연속 출석! 하트 +' + ci.gained + ' (보너스 +' + ci.bonus + ')'
-            : '출석 체크 완료 · 하트 +' + ci.gained);
-          UI.haptic(12);
-          reopen();
-        } else if (ci && ci.reason === 'done') {
-          UI.toast('오늘은 이미 출석했어요');
-          reopen();
-        } else if (ci && ci.reason === 'locked') {
-          UI.toast('잠시만요, 처리 중이에요');
-        } else {
-          UI.toast('출석 체크를 하지 못했어요', 'error');
-        }
+        /* bm-v1.75.0 — Supabase 모드에서는 출석 결과가 서버 응답(Promise)으로 옵니다 */
+        Promise.resolve(actions.checkIn ? actions.checkIn() : null).then(function (ci) {
+          ci = ci || { ok: false, reason: 'error' };
+          if (ci.ok) {
+            UI.toast(ci.bonus
+              ? ci.streak + '일 연속 출석! 하트 +' + ci.gained + ' (보너스 +' + ci.bonus + ')'
+              : '출석 체크 완료 · 하트 +' + ci.gained);
+            UI.haptic(12);
+            reopen();
+          } else if (ci.reason === 'done') {
+            UI.toast('오늘은 이미 출석했어요');
+            reopen();
+          } else if (ci.reason === 'locked') {
+            UI.toast('잠시만요, 처리 중이에요');
+          } else if (ci.reason === 'offline' || ci.reason === 'login') {
+            UI.toast(ci.message || '인터넷에 연결되면 출석할 수 있어요', 'error');
+          } else {
+            UI.toast('출석 체크를 하지 못했어요', 'error');
+          }
+        });
         return;
       }
 

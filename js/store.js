@@ -623,6 +623,42 @@
       return e;
     }
 
+    /* ---------- 서버 하트 함수 (bm-v1.75.0) ----------
+     *  Supabase 모드에서는 하트 적립·차감을 서버(SECURITY DEFINER RPC)가 처리합니다.
+     *  · 클라이언트가 '출석하트'·'광고하트'·'꾸미기구매'·'선물하트'·'하트합치기'·
+     *    '내하트사용' 행을 직접 넣으면 RLS 가 막습니다(supabase/heart-rpc-v1.75.sql).
+     *  · 기기 저장(체험)·26칸 시트 브리지는 예전처럼 앱/브리지가 검사합니다(그대로).
+     *  · 결과는 Promise 로 오므로 화면은 U.when(결과, 함수) 로 받습니다. */
+    function heartServer() {
+      return (apiRef && typeof apiRef.rpc === 'function') ? apiRef : null;
+    }
+
+    /* 서버가 만들어 준 행을 화면에 바로 꽂습니다 — 이미 서버에 있으니 큐에 다시 넣지 않습니다 */
+    function pushServerRow(r) {
+      if (!r || !r.id) return null;
+      var me = state.me || {};
+      var exists = state.rows.some(function (x) { return String(x[0]) === String(r.id); });
+      var row = D.toRow({
+        id: r.id, type: r.type, createdAt: r.created_at, date: r.date,
+        nick: r.nick || me.nick, level: me.level, discipline: me.discipline,
+        likes: r.likes, text: r.note || '', target: r.target || '', userKey: r.user_key || me.key
+      });
+      if (!exists) state.rows.unshift(row);
+      return row;
+    }
+
+    /* 서버 호출이 실패했을 때 화면에 보일 이유 */
+    function serverFail(err) {
+      var code = String((err && err.code) || '').toLowerCase();
+      if (code === 'network' || code === 'timeout' || code === 'offline' || code === 'bad_response') {
+        return { ok: false, reason: 'offline', message: '하트는 인터넷에 연결되면 받을 수 있어요.' };
+      }
+      if (code === 'session' || (err && err.status === 401)) {
+        return { ok: false, reason: 'login', message: '로그인이 풀렸어요. MY에서 다시 로그인해 주세요.' };
+      }
+      return { ok: false, reason: 'error', message: (err && err.message) || '서버가 받지 않았어요.' };
+    }
+
     /* ---------- 액션 ---------- */
     var actions = {
       init: function () {
@@ -971,6 +1007,17 @@
           return { ok: true, purchased: false, price: 0, id: id, balance: status.balance || 0 };
         }
         var price = D.decoPrice(id);
+        /* Supabase 모드: 하트는 서버가 검사하고 빠집니다(가격표도 서버가 압니다) */
+        var server = heartServer();
+        if (server) {
+          return server.rpc('heart_spend', { p_kind: 'deco', p_target: id }).then(function (res) {
+            res = res || { ok: false, reason: 'error' };
+            if (!res.ok) return res;
+            pushServerRow(res.row);
+            commit();
+            return res;
+          }, serverFail);
+        }
         if ((status.balance || 0) < price) {
           return { ok: false, reason: 'hearts', need: price - (status.balance || 0), price: price, id: id };
         }
@@ -1355,17 +1402,31 @@
           return r.userKey === (state.me && state.me.key) && r.target === targetKey && r.status !== '거절';
         });
         if (already) return { ok: false, reason: 'already' };
+
+        function send(bal) {
+          var reqId = U.uid();
+          var req = meEntity({
+            type: '매칭신청', id: reqId, clientId: U.clientId(), date: U.ymd(),
+            nick: state.me.nick, target: targetKey, status: '대기',
+            payload: { note: D.clampText(note, 60).trim(), heartCost: cost, payOn: 'accept' }
+          });
+          pushRow(req);
+          state.ui.chatRoom = reqId;
+          commit();
+          return { ok: true, roomId: reqId, cost: cost, balance: bal, chargeOnAccept: true };
+        }
+
+        /* Supabase 모드: 하트 2개를 가지고 있는지 서버가 확인합니다(차감은 수락 때 원장 규칙) */
+        var server = heartServer();
+        if (server) {
+          return server.rpc('heart_spend', { p_kind: 'match', p_target: targetKey }).then(function (res) {
+            res = res || { ok: false, reason: 'error' };
+            if (!res.ok) return res;
+            return send(res.balance);
+          }, serverFail);
+        }
         if (balance < cost) return { ok: false, reason: 'hearts', need: cost - balance };
-        var reqId = U.uid();
-        var req = meEntity({
-          type: '매칭신청', id: reqId, clientId: U.clientId(), date: U.ymd(),
-          nick: state.me.nick, target: targetKey, status: '대기',
-          payload: { note: D.clampText(note, 60).trim(), heartCost: cost, payOn: 'accept' }
-        });
-        pushRow(req);
-        state.ui.chatRoom = reqId;
-        commit();
-        return { ok: true, roomId: reqId, cost: cost, balance: balance, chargeOnAccept: true };
+        return send(balance);
       },
 
       /* 받은 요청 수락/거절 — 수락하면 보낸 사람 하트 2개가 이때 차감됩니다.
@@ -1740,7 +1801,7 @@
         return { ok: true };
       },
 
-      /* 출석 체크: 하루 1회 +1 · 연속 3·7·14일(그 뒤 14일마다) 보너스 +1/+2/+3 (bm-v1.64.0)
+    /* 출석 체크: 하루 1회 +1 · 연속 3·7·14일(그 뒤 14일마다) 보너스 +1/+2/+3 (bm-v1.64.0)
        *  · 보너스는 출석 행에 얹지 않고 원장(js/domain.js heartLedger)이 날짜 연속에서
        *    매번 다시 셉니다 — 앱을 다시 열거나 다른 기기에서도 같은 잔액이 되게(멱등).
        *    행에는 보너스를 받은 날이라는 메모만 남깁니다(중복 방지 키).
@@ -1751,6 +1812,20 @@
         var status = state.data.hearts || {};
         if (status.checkedInToday) return { ok: false, reason: 'done' };
         var me = state.me && state.me.key;
+        /* Supabase 모드: 오늘 날짜·연속 일수·보너스를 서버가 다시 세고, 행도 서버가 넣습니다 */
+        var server = heartServer();
+        if (server) {
+          return server.rpc('heart_checkin', {}).then(function (res) {
+            res = res || { ok: false, reason: 'error' };
+            if (!res.ok) {
+              if (res.reason === 'done') commit();   /* 다른 기기·다른 탭에서 먼저 출석한 경우 */
+              return res;
+            }
+            pushServerRow(res.row);
+            commit();
+            return res;
+          }, serverFail);
+        }
         var streak = (me ? D.checkinStreak(state.idx, me) : 0) + 1;
         var milestone = D.streakBonusFor(streak);
         var bonus = milestone ? Math.max(0, Number(milestone.amount) || 0) : 0;
@@ -1785,11 +1860,22 @@
         opts = opts || {};
         var me = state.me && state.me.key;
         var txId = D.cleanTxId ? D.cleanTxId(opts.txId) : '';
-        /* 중복은 시각과 상관없는 조건이라 잠금보다 먼저 봅니다 */
+        /* 중복은 시각과 치수 없는 조건이라 잠금보다 먼저 봅니다 */
         if (txId && me && D.adTxSeen(state.idx, me, txId)) {
           return { ok: false, reason: 'duplicate', txId: txId, balance: (state.data.hearts || {}).balance || 0 };
         }
         if (!tryLock('ad', 1200)) return { ok: false, reason: 'locked' };
+        /* Supabase 모드: 한도·간격·txId 중복·오늘의 부스트를 서버가 검사하고 적립행도 서버가 넣습니다 */
+        var server = heartServer();
+        if (server) {
+          return server.rpc('heart_ad_reward', { p_tx: txId || null, p_unit: opts.adUnit || '' }).then(function (res) {
+            res = res || { ok: false, reason: 'error' };
+            if (!res.ok) return res;
+            pushServerRow(res.row);
+            commit();
+            return res;
+          }, serverFail);
+        }
         var status = state.data.hearts || {};
         /* 실제 앱 연동 시: 광고 SDK의 '시청 완료(verified)' 신호가 없으면 적립하지 않도록
          * 여기서 막는 것을 권장합니다. 프로토타입은 서버가 한도·간격을 다시 검사합니다. */
@@ -1832,6 +1918,17 @@
           (state.idx.byType['매칭프로필'] || []).some(function (m) { return m.userKey === targetKey; });
         if (!known) return { ok: false, reason: 'no_target' };
         var status = state.data.hearts || {};
+        /* Supabase 모드: 잔액 검사·차감행을 서버가 합니다 */
+        var server = heartServer();
+        if (server) {
+          return server.rpc('heart_spend', { p_kind: 'gift', p_target: targetKey }).then(function (res) {
+            res = res || { ok: false, reason: 'error' };
+            if (!res.ok) return res;
+            pushServerRow(res.row);
+            commit();
+            return res;
+          }, serverFail);
+        }
         if (status.balance < D.HEART_RULES.GIFT_COST) {
           return { ok: false, reason: 'hearts', need: D.HEART_RULES.GIFT_COST - status.balance };
         }

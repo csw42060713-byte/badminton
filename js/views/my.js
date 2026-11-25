@@ -169,29 +169,36 @@
     }
 
     if (want && !bst.owned) {
-      var buyRes = ctx.actions.buyDeco('boost', 'heart');
-      if (buyRes.ok) {
-        UI.toast(buyRes.purchased ? '하트 ' + buyRes.price + '개로 하트 부스트를 열었어요' : '이미 열려 있어요');
-        UI.haptic(12);
-      } else if (buyRes.reason === 'hearts') {
-        openHeartSheet(ctx, {
-          need: price,
-          intro: function (s) {
-            return '<p class="sheet__text">하트 부스트 — <b>하트 ' + price +
-              '개</b>로 한 번 열면 계속 써요. 지금 <b>' + s.balance + '개</b> 있어요.' +
-              (s.balance < price ? ' <span class="warn">' + (price - s.balance) + '개 부족</span>' : '') + '</p>';
-          },
-          continueLabel: '열기',
-          onContinue: function () { runBoost(ctx, true, after); }
-        });
-        return;
-      } else if (buyRes.reason === 'locked') {
-        UI.toast('잠시만요, 처리 중이에요');
-        return;
-      } else {
-        UI.toast('지금은 열 수 없어요. 잠시 뒤 다시 시도해 주세요', 'error');
-        return;
-      }
+      /* bm-v1.75.0 — 하트 구매도 서버가 처리합니다(결과가 Promise 로 올 수 있어 U.when) */
+      U.when(ctx.actions.buyDeco('boost', 'heart'), function (buyRes) {
+        if (buyRes && buyRes.ok) {
+          UI.toast(buyRes.purchased ? '하트 ' + buyRes.price + '개로 하트 부스트를 열었어요' : '이미 열려 있어요');
+          UI.haptic(12);
+        } else if (buyRes && buyRes.reason === 'hearts') {
+          openHeartSheet(ctx, {
+            need: price,
+            intro: function (s) {
+              return '<p class="sheet__text">하트 부스트 — <b>하트 ' + price +
+                '개</b>로 한 번 열면 계속 써요. 지금 <b>' + s.balance + '개</b> 있어요.' +
+                (s.balance < price ? ' <span class="warn">' + (price - s.balance) + '개 부족</span>' : '') + '</p>';
+            },
+            continueLabel: '열기',
+            onContinue: function () { runBoost(ctx, true, after); }
+          });
+          return;
+        } else if (buyRes && buyRes.reason === 'locked') {
+          UI.toast('잠시만요, 처리 중이에요');
+          return;
+        } else if (buyRes && (buyRes.reason === 'offline' || buyRes.reason === 'login')) {
+          UI.toast(buyRes.message || '인터넷에 연결되면 열 수 있어요', 'error');
+          return;
+        } else {
+          UI.toast('지금은 열 수 없어요. 잠시 뒤 다시 시도해 주세요', 'error');
+          return;
+        }
+        equip(true);
+      });
+      return;
     }
     equip(want);
   }
@@ -936,16 +943,21 @@
 
         if (ev.target.closest('[data-act="checkin"]')) {
           ev.preventDefault();
-          var ci = ctx.actions.checkIn();
-          if (ci.ok) {
-            /* 연속 보너스가 붙는 날(3·7·14일)은 토스트도 따로 — 부스트 보너스도 함께 알려 줍니다 */
-            var parts = [];
-            if (ci.bonus) parts.push(ci.streak + '일 연속! 보너스 +' + ci.bonus);
-            if (ci.boost) parts.push('부스트 +' + ci.boost);
-            UI.toast('출석 체크 완료 · 하트 +' + ci.gained + (parts.length ? ' (' + parts.join(' · ') + ')' : ''));
-            UI.haptic(14);
-          } else if (ci.reason === 'done') UI.toast('오늘은 이미 출석했어요');
-          else if (ci.reason === 'locked') UI.toast('잠시만요');
+          /* bm-v1.75.0 — 하트 적립은 서버가 합니다. 결과가 바로 오거나(기기 저장)
+           * 서버 응답으로 올 수 있어(Supabase) U.when 으로 같은 문구를 씁니다. */
+          U.when(ctx.actions.checkIn(), function (ci) {
+            if (ci.ok) {
+              /* 연속 보너스가 붙는 날(3·7·14·30일)은 토스트도 따로 — 부스트 보너스도 함께 알려 줍니다 */
+              var parts = [];
+              if (ci.bonus) parts.push(ci.streak + '일 연속! 보너스 +' + ci.bonus);
+              if (ci.boost) parts.push('부스트 +' + ci.boost);
+              UI.toast('출석 체크 완료 · 하트 +' + ci.gained + (parts.length ? ' (' + parts.join(' · ') + ')' : ''));
+              UI.haptic(14);
+            } else if (ci.reason === 'done') UI.toast('오늘은 이미 출석했어요');
+            else if (ci.reason === 'locked') UI.toast('잠시만요');
+            else if (ci.reason === 'offline') UI.toast('인터넷에 연결되면 출석할 수 있어요', 'error');
+            else if (ci.reason === 'login') UI.toast('로그인이 풀렸어요. MY에서 다시 로그인해 주세요', 'error');
+          });
           return;
         }
         /* 하트 부스트 — 열기(하트 3개) · 켜기 · 끄기 (bm-v1.64.0) */
@@ -968,14 +980,18 @@
               return;
             }
             var res = ctx.actions.watchAd({ verified: true, adUnit: r.adUnit, txId: r.txId });
-            if (res.ok) {
-              UI.toast('하트 +' + res.gained + (res.dailyBoost ? ' (오늘의 부스트 +' + res.dailyBoost + ' 포함)' : '') +
-                ' · 오늘 ' + res.remaining + '회 남음');
-              UI.haptic(16);
-            } else if (res.reason === 'limit') UI.toast('오늘 몫을 모두 받았어요. 내일 다시 만나요!');
-            else if (res.reason === 'cooldown') UI.toast(res.retryAfter + '초 뒤에 다시 시도해 주세요');
-            else if (res.reason === 'duplicate') UI.toast('이미 받은 광고예요');
-            else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+            U.when(res, function (res) {
+              if (res.ok) {
+                UI.toast('하트 +' + res.gained + (res.dailyBoost ? ' (오늘의 부스트 +' + res.dailyBoost + ' 포함)' : '') +
+                  ' · 오늘 ' + res.remaining + '회 남음');
+                UI.haptic(16);
+              } else if (res.reason === 'limit') UI.toast('오늘 몫을 모두 받았어요. 내일 다시 만나요!');
+              else if (res.reason === 'cooldown') UI.toast(res.retryAfter + '초 뒤에 다시 시도해 주세요');
+              else if (res.reason === 'duplicate') UI.toast('이미 받은 광고예요');
+              else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+              else if (res.reason === 'offline') UI.toast('인터넷에 연결되면 하트를 받을 수 있어요', 'error');
+              else if (res.reason === 'login') UI.toast('로그인이 풀렸어요. MY에서 다시 로그인해 주세요', 'error');
+            });
           });
           return;
         }
@@ -1143,10 +1159,17 @@
 
   /* 하트가 모자라면 공용 충전 시트를 열고, 채운 뒤에는 이미 확인한 구매를 바로 이어서 진행합니다 */
   function buyDeco(ctx, kind, value, onDone) {
-    var res = ctx.actions.buyDeco(kind, value);
-    if (res.ok) {
+    /* bm-v1.75.0 — Supabase 모드에서는 서버(RPC)가 잔액을 보고 차감합니다. 결과가 Promise 로 옵니다. */
+    U.when(ctx.actions.buyDeco(kind, value), function (res) {
+    if (res && res.ok) {
       UI.toast(res.purchased ? '하트 ' + res.price + '개로 열었어요' : '이미 열려 있어요');
       UI.haptic(12);
+      onDone(res);
+      return;
+    }
+    res = res || { ok: false, reason: 'error' };
+    if (res.reason === 'offline' || res.reason === 'login') {
+      UI.toast(res.message || '인터넷에 연결되면 열 수 있어요', 'error');
       onDone(res);
       return;
     }
@@ -1172,6 +1195,7 @@
       UI.toast('열지 못했어요', 'error');
     }
     onDone(res);
+    });
   }
 
   function lockTag(d) {
