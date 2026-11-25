@@ -64,12 +64,17 @@ TWA는 **앱 서명 지문**과 사이트의 `assetlinks.json`이 일치해야 �
 
 ### 2-1. 업로드 키(keystore) 만들기 — 한 번만, 절대 잃어버리지 마세요
 
+> **2026-11-26 완료.** 업로드 키를 우리 쪽에서 만들어 비공개 보관함에 두었습니다
+> (워크스페이스 `work/keystore/shuttlix-upload.keystore`, alias `shuttlix`, RSA 2048-bit, 10,000일,
+> 비밀번호는 같은 폴더 `KEYSTORE_INFO.txt`). **둘 다 깃에 없습니다** — 공개 저장소에 올리면 안 됩니다.
+> 이미 키가 있으니 아래 명령으로 **다시 만들지 마세요.** 잃어버리면 같은 패키지로 업데이트할 수 없습니다.
+
 ```bash
 keytool -genkeypair -v \
   -keystore android.keystore \
-  -alias android \
+  -alias shuttlix \
   -keyalg RSA -keysize 2048 -validity 10000 \
-  -dname "CN=Badminton App, OU=Dev, O=Personal, L=Seoul, S=Seoul, C=KR"
+  -dname "CN=Shuttlix, OU=Mobile, O=Shuttlix, L=Suwon, ST=Gyeonggi-do, C=KR"
 ```
 
 - 파일(`android.keystore`)과 비밀번호를 **안전한 곳에 백업**하세요.
@@ -79,10 +84,13 @@ keytool -genkeypair -v \
 ### 2-2. 지문(SHA-256) 확인
 
 ```bash
-keytool -list -v -keystore android.keystore -alias android
+keytool -list -v -keystore android.keystore -alias shuttlix
 # → Certificate fingerprints:
-#    SHA256: 1A:2B:3C:...   ← 콜론 포함 32쌍
+#    SHA256: EB:05:FE:F5:CC:EB:A6:25:9E:8A:DC:39:12:DA:87:1C:C2:20:29:C3:BA:5A:DF:F3:48:09:E8:8F:E6:5E:0F:D0
 ```
+
+업로드 키 지문은 **`EB:05:FE:F5:CC:EB:A6:25:9E:8A:DC:39:12:DA:87:1C:C2:20:29:C3:BA:5A:DF:F3:48:09:E8:8F:E6:5E:0F:D0`** 입니다
+(`.well-known/assetlinks.json`·`twa-manifest.json`에 이미 들어가 있습니다).
 
 ### 2-3. `.well-known/assetlinks.json` 채우기
 
@@ -94,13 +102,16 @@ keytool -list -v -keystore android.keystore -alias android
       "namespace": "android_app",
       "package_name": "io.github.csw42060713_byte.badminton",
       "sha256_cert_fingerprints": [
-        "1A:2B:3C:...(업로드 키 지문)",
-        "9F:8E:7D:...(Play 앱 서명 키 지문)"
+        "EB:05:FE:F5:CC:EB:A6:25:9E:8A:DC:39:12:DA:87:1C:C2:20:29:C3:BA:5A:DF:F3:48:09:E8:8F:E6:5E:0F:D0"
       ]
     }
   }
 ]
 ```
+
+> **남은 일:** 위 배열에 **Play 앱 서명 키 지문**을 한 줄 더 넣으면 스토어에서 받은 앱도 주소창 없이 뜹니다.
+> 지금은 업로드 키만 등록돼 있어, 우리가 서명한 `.aab`/APK로 설치한 테스트 빌드에서는 전체 화면이 됩니다.
+> 지문 형식은 콜론 포함 32쌍(대문자)이어야 하고, 임시 문구(`REPLACE_WITH_...`)를 남겨 두면 안 됩니다.
 
 - **Play 앱 서명 키 지문**은 Play Console → (앱) → 설정 → **앱 무결성 → 앱 서명**에서 확인합니다.
   (앱을 한 번 업로드한 뒤에 보입니다. 두 지문을 모두 넣어 두면 테스트 빌드와 스토어 빌드가 모두 동작합니다.)

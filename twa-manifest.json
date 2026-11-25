@@ -35,12 +35,14 @@
   "fallbackType": "customtabs",
   "features": {},
   "orientation": "portrait",
-  "fingerprints": [],
+  "fingerprints": [
+    "EB:05:FE:F5:CC:EB:A6:25:9E:8A:DC:39:12:DA:87:1C:C2:20:29:C3:BA:5A:DF:F3:48:09:E8:8F:E6:5E:0F:D0"
+  ],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
   "signingKey": {
     "path": "./android.keystore",
-    "alias": "android"
+    "alias": "shuttlix"
   },
   "appVersion": "1.78.0"
 }
