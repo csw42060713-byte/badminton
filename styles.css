@@ -7031,6 +7031,24 @@ body {
 .pushstatus--ready { color: var(--warn); border-color: rgba(242,193,78,0.4); background: rgba(242,193,78,0.1); }
 .pushstatus--unsupported { color: var(--muted); }
 .prefrow--push { align-items: flex-start; }
+
+/* bm-v1.77.0 — 알림이 오는 두 길(실시간·백그라운드) 상태 두 줄 */
+.pushsteps { display: grid; gap: 8px; margin: 10px 0 4px; }
+.pushstep {
+  padding: 11px 13px; border-radius: var(--r-sm);
+  border: 1px solid var(--line); background: var(--card-2);
+}
+.pushstep.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
+.pushstep__t { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pushstep__t strong { font-size: 13px; font-weight: 800; letter-spacing: -0.3px; color: var(--text); }
+.pushstep__b {
+  flex: 0 0 auto; font-size: 10.5px; font-weight: 800; letter-spacing: -0.2px;
+  padding: 3px 8px; border-radius: 999px;
+  color: var(--text-2); background: color-mix(in srgb, var(--text) 6%, transparent);
+  border: 1px solid var(--line);
+}
+.pushstep.is-on .pushstep__b { color: var(--accent); border-color: var(--accent-line); background: var(--card); }
+.pushstep__s { margin: 5px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--muted); letter-spacing: -0.2px; }
 .flabel select {
   width: 100%; margin-top: 7px; min-height: 46px; padding: 10px 13px;
   border-radius: var(--r-sm); border: 1px solid var(--line-2);

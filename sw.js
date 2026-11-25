@@ -354,8 +354,24 @@
  *             〔저장〕 새 시트 칸·새 DB 컬럼 없이 프로필 꾸미기 JSON(theme.gear) 한 칸만.
  *             js/gear.js 가 새로 생기고 js/store.js·js/views/my.js·js/views/log.js·
  *             app.js·styles.css 가 바뀌어 캐시를 bm-v1.76.0으로 올립니다.
+ * 2026-11-25: 🔔 푸시 토큰 저장 + 발송 서버 틀 (bm-v1.77.0)
+ *             〔토큰〕 기기별 푸시 토큰을 내 계정에 저장합니다 — supabase/push-v1.77.sql 의
+ *             push_tokens 표와 register_push_token · unregister_push_token · my_push_tokens
+ *             함수(본인 토큰만 · 최대 10대 · 같은 기기에서 계정을 바꾸면 주인도 이동).
+ *             〔브리지〕 안드로이드 앱(TWA·웹뷰)이 토큰을 넘길 표준 통로 window.ShuttlixPush
+ *             (register·unregister·token·status)와 옛 AndroidBridge 훅,
+ *             postMessage(BM_PUSH_TOKEN)·커스텀 이벤트(shuttlix:push-token)를 js/push.js 에서 받습니다.
+ *             〔발송〕 채팅 · 약속 카드 · 1:1 매칭 요청 · 게스트 신청(수락/거절)이 나간 직후
+ *             Edge Function send-push 에 상대 알림을 부탁합니다. FCM_SERVICE_ACCOUNT_JSON
+ *             시크릿이 아직 없으면 pending_fcm_secret 만 돌아오고 앱은 조용히 지나갑니다
+ *             — 알림이 실패해도 메시지 전송은 절대 막히지 않습니다.
+ *             〔화면〕 MY › 알림·편지지에 '실시간 알림(앱 켜짐)'과 '백그라운드 푸시(앱 닫힘)'를
+ *             두 줄로 나눠 이 기기의 연결 상태를 보여 줍니다.
+ *             js/push.js·js/store.js·js/views/my.js·app.js·styles.css 가 바뀌고
+ *             supabase/push-v1.77.sql·supabase/functions/send-push/index.ts 가 새로 생겨
+ *             캐시를 bm-v1.77.0으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.76.0';
+var VERSION = 'bm-v1.77.0';
 var SHELL = [
   './',
   './index.html',
@@ -455,14 +471,20 @@ function pushPayload(data) {
   return out;
 }
 
-/* 알림 링크는 앱 안 화면으로만 — 다른 주소가 오면 첫 화면으로 */
+/* 알림 링크는 앱 안 화면으로만 — 다른 주소가 오면 첫 화면으로
+ * bm-v1.77.0 — 'chat/<방>' 처럼 뒤에 방 ID가 붙으면 그 방까지 살려 둡니다
+ *              ('#/chat' 만 오면 예전처럼 매칭 탭) */
 function pushTargetUrl(raw) {
   var s = String(raw || '').trim();
   var i = s.indexOf('#');
   if (i >= 0) s = s.slice(i + 1);
   s = s.replace(/^\/+/, '');
-  var seg = s.split(/[\/?#&]+/)[0].toLowerCase();
-  if (seg === 'chat') return './#/matching';
+  var parts = s.split(/[\/?#&]+/).filter(Boolean);
+  var seg = String(parts[0] || '').toLowerCase();
+  if (seg === 'chat') {
+    var room = String(parts[1] || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+    return room ? './#/chat/' + room : './#/matching';
+  }
   if (PUSH_TABS.indexOf(seg) >= 0) return './#/' + seg;
   return './';
 }

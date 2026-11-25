@@ -423,7 +423,7 @@
    * 키가 들어오면 스위치를 켜 둔 사람부터 그대로 구독됩니다. */
   function pushStatusOf() {
     if (BM.push && BM.push.status) return BM.push.status();
-    return { id: 'ready', label: 'Firebase 연결 준비됨 · 곧 켜져요' };
+    return { id: 'ready', label: 'Firebase 연결 준비됨 · 곧 켜져요', permission: 'default', firebaseReady: false };
   }
 
   function pushRow(state) {
@@ -441,7 +441,36 @@
       '<span class="pushstatus pushstatus--' + U.esc(st.id) + '" data-push-status>' + U.esc(st.label) + '</span></div>' +
       '<button type="button" class="switch' + (on ? ' is-on' : '') + '" role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
       ' aria-label="실시간 푸시 알림 ' + (on ? '끄기' : '켜기') + '" data-act="toggle-push">' +
-      '<i aria-hidden="true"></i><span>' + (on ? '켬' : '끔') + '</span></button></div>';
+      '<i aria-hidden="true"></i><span>' + (on ? '켬' : '끔') + '</span></button></div>' +
+      pushSteps(state);
+  }
+
+  /* bm-v1.77.0 — 알림이 어느 길로 오는지 두 줄로 나눠 보여 줍니다.
+   *   1) 실시간 알림 (앱 켜짐) : 앱을 열어 둔 동안 화면 배너·진동·브라우저 알림
+   *   2) 백그라운드 푸시 (앱 닫힘) : 스토어 앱(FCM)이 토큰을 넘겨 주면 폰 알림으로 */
+  function pushSteps(state) {
+    var on = !!(state && state.prefs && state.prefs.push === true);
+    var st = pushStatusOf();
+    var bg = (BM.push && BM.push.background) ? BM.push.background() : { id: 'ready', label: '스토어 앱 연결 준비', detail: '' };
+    var liveOn = on && st.permission === 'granted';
+    var liveLabel = liveOn ? '켜짐' : (on ? '권한 필요' : '꺼짐');
+    var liveHint = liveOn
+      ? '새 채팅·신청이 오면 화면 위 배너·짧은 진동으로 바로 알려 드려요.'
+      : on
+        ? '브라우저 알림을 허용하면 앱을 켜 둔 동안 바로 알려 드려요.'
+        : '스위치를 켜면 앱을 켜 둔 동안 바로 알려 드려요.';
+    var bgHint = String(bg.detail || '앱을 설치하고 알림을 켜면 이 기기가 연결돼요.');
+    return '<div class="pushsteps" data-push-steps>' +
+      step('live', '실시간 알림 (앱 켜짐)', liveLabel, liveHint, liveOn) +
+      step('bg', '백그라운드 푸시 (앱 닫힘)', String(bg.label || ''), bgHint, bg.id === 'linked') +
+      '</div>';
+  }
+
+  function step(id, title, label, hint, on) {
+    return '<div class="pushstep' + (on ? ' is-on' : '') + '" data-push-step="' + id + '">' +
+      '<div class="pushstep__t"><strong>' + U.esc(title) + '</strong>' +
+      '<span class="pushstep__b pushstep__b--' + U.esc(id) + '" data-push-step-label="' + id + '">' + U.esc(label) + '</span></div>' +
+      '<p class="pushstep__s">' + U.esc(hint) + '</p></div>';
   }
 
   function alarmPanel(state) {
@@ -873,6 +902,8 @@
           UI.haptic(8);
           if (!pushOn) {
             if (BM.push && BM.push.unsubscribe) BM.push.unsubscribe();
+            /* bm-v1.77.0 — 이 기기 토큰도 서버에서 해제(다시 켜면 새로 등록) */
+            if (BM.push && BM.push.unregisterToken) BM.push.unregisterToken();
             UI.toast('실시간 푸시 알림을 껐어요');
             return;
           }
@@ -884,6 +915,9 @@
             else if (res && res.reason === 'permission') UI.toast('알림을 허용해야 켤 수 있어요', 'error');
             else if (res && res.reason === 'unsupported') UI.toast('이 브라우저는 실시간 푸시를 지원하지 않아요', 'error');
             else UI.toast('푸시 구독을 마치지 못했어요. 잠시 뒤 다시 켜 주세요', 'error');
+            /* bm-v1.77.0 — 스토어 앱이 토큰을 넘겨 줬다면 지금 서버에 다시 맞춥니다 */
+            if (BM.push && BM.push.syncToken) BM.push.syncToken();
+            if (BM.push && BM.push.requestToken) BM.push.requestToken();
             if (ctx.repaint) ctx.repaint();
           });
           return;
@@ -2046,6 +2080,7 @@
   BM.views.my.alarmPanel = alarmPanel;               /* 테스트·점검용 (알림·편지지 설정) */
   BM.views.my.prefRow = prefRow;                     /* 테스트·점검용 */
   BM.views.my.pushRow = pushRow;                     /* 테스트·점검용 (v1.57 푸시 알림 상태) */
+  BM.views.my.pushSteps = pushSteps;                 /* 테스트·점검용 (v1.77 실시간·백그라운드 두 줄) */
   BM.views.my.sharePanel = sharePanel;               /* 테스트·점검용 (v1.57 인스타 공유 카드) */
   BM.views.my.heartCard = heartCard;                 /* 테스트·점검용 (하트 카드·보너스 줄) */
   BM.views.my.decoPreviewBody = decoPreviewBody;     /* 테스트·점검용 (꾸미기 미리보기 본문) */
