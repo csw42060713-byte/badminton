@@ -21,8 +21,10 @@
 | 대표 그래픽 | `store-assets/feature-graphic-1024x500.png` | ✅ 1024×500 PNG |
 | 스크린샷 4장 | `store-assets/screenshot-1~4-*.png` | ✅ 1080×1920 (405×720 화면, 9:16) |
 | 웹 앱 매니페스트 | `manifest.webmanifest` (+ 호환용 `manifest.json`) | ✅ id/scope/start_url/icons/maskable/screenshots |
-| 디지털 자산 링크 | `.well-known/assetlinks.json` | ⚠️ **지문 넣기 필요**(아래 2단계) |
-| Bubblewrap 설정 | `twa-manifest.json` | ⚠️ 지문·키 경로 확인 후 사용 |
+| 디지털 자산 링크 | `.well-known/assetlinks.json` (+ 필요 시 오리진 루트 사본) | ✅ **업로드 키 SHA-256 등록**(2026-11-26) · ⏳ Play 앱 서명 지문 추가 대기 |
+| Bubblewrap 설정 | `twa-manifest.json` | ✅ 지문·alias `shuttlix`·minSdk 24 반영 |
+| 업로드용 `.aab` | `shuttlix-1.78.0.aab` (versionCode 72) | ✅ 빌드·서명·검증 완료 · ⏳ Play Console 업로드 대기 |
+| 빌드 자동화 | `tools/build-aab.js` · `.github/workflows/build-aab.yml` | ✅ 준비됨(시크릿만 넣으면 Actions에서 .aab) |
 
 그래픽을 다시 만들려면:
 
@@ -113,6 +115,13 @@ keytool -list -v -keystore android.keystore -alias shuttlix
 > 지금은 업로드 키만 등록돼 있어, 우리가 서명한 `.aab`/APK로 설치한 테스트 빌드에서는 전체 화면이 됩니다.
 > 지문 형식은 콜론 포함 32쌍(대문자)이어야 하고, 임시 문구(`REPLACE_WITH_...`)를 남겨 두면 안 됩니다.
 
+> **⚠️ 오리진 루트 규칙 (GitHub Pages에서는 여기가 함정)** — 구글 문서와 앱 안의 `asset_statements`는
+> 사이트를 **`https://csw42060713-byte.github.io`(경로 없음)** 로 봅니다. 그래서 Chrome이 실제로 읽는 주소는
+> `https://csw42060713-byte.github.io/.well-known/assetlinks.json` 입니다.
+> 지금 파일은 `.../badminton/.well-known/assetlinks.json` 이라 서빙은 되지만 전체화면 검증에는 쓰이지 않습니다.
+> 해결: 같은 계정에 **`csw42060713-byte.github.io` 이름의 공개 저장소**를 만들어 루트에 같은 `assetlinks.json`을 두고
+> Pages를 켜면 됩니다(2분). 그 전까지는 앱이 커스텀탭처럼 위에 주소창이 보입니다 — Play 출시 자체는 가능합니다.
+
 - **Play 앱 서명 키 지문**은 Play Console → (앱) → 설정 → **앱 무결성 → 앱 서명**에서 확인합니다.
   (앱을 한 번 업로드한 뒤에 보입니다. 두 지문을 모두 넣어 두면 테스트 빌드와 스토어 빌드가 모두 동작합니다.)
 - `package_name`은 `twa-manifest.json`의 `packageId`와 **정확히 같아야** 합니다.
@@ -137,9 +146,36 @@ https://developers.google.com/digital-asset-links/tools/generator
 
 ## 3. TWA 빌드 (.aab 만들기)
 
-이 저장소의 `twa-manifest.json`을 그대로 쓰거나, 마법사로 새로 만들 수 있습니다.
+> **2026-11-26 완료.** JDK 17 · Android SDK(compileSdk 36, build-tools 36) · Gradle 8.11.1을 새로 설치하고
+> Bubblewrap 1.27 템플릿으로 빌드해 **`shuttlix-1.78.0.aab`(2.9MB, versionCode 72)** 를 만들었습니다.
+> 업로드 키로 `jarsigner` 서명 → `jar verified`, `bundletool validate` 통과. 폰 테스트용 유니버설 APK도 같은 키로 만들었습니다.
+> 아래 방법 A·B는 손으로 빌드할 때의 기록이고, **같은 결과를 다시 만드는 길은 방법 0(스크립트)·방법 C(Actions)** 입니다.
 
-### 방법 A — 준비된 설정으로 빌드 (권장)
+### 방법 0 — 이 저장소의 스크립트로 다시 빌드 (실제로 쓴 방법)
+
+```bash
+# 준비: JDK 17, Android SDK(ANDROID_HOME)에 platforms;android-36 · build-tools;36.0.0, Node 20
+npm install --no-save @bubblewrap/core@1.27.0
+node tools/build-aab.js --out build-twa            # twa-manifest.json → 안드로이드 프로젝트
+cd build-twa && ./gradlew bundleRelease             # app/build/outputs/bundle/release/app-release.aab
+jarsigner -keystore android.keystore -storepass <비밀번호> -keypass <비밀번호> \
+  -sigalg SHA256withRSA -digestalg SHA-256 app/build/outputs/bundle/release/app-release.aab shuttlix
+```
+
+- 버전만 올려서 다시 빌드하려면: `node tools/build-aab.js --out build-twa --version-name 1.79.0 --version-code 73`
+- `minSdkVersion`은 **24 이상**이어야 합니다(androidbrowserhelper 2.7.4 요구 — 21이면 매니페스트 병합에서 실패).
+
+### 방법 C — GitHub Actions (브라우저에서 버튼 한 번)
+
+`.github/workflows/build-aab.yml` 이 준비돼 있습니다(수동 실행).
+
+1. 저장소 **Settings → Secrets and variables → Actions** 에 두 개를 넣습니다.
+   - `KEYSTORE_BASE64` = 업로드 키스토어를 base64로 인코딩한 값 (`base64 -w0 shuttlix-upload.keystore`)
+   - `KEYSTORE_PASSWORD` = 키스토어·키 비밀번호
+2. **Actions → "셔틀릭스 .aab 빌드" → Run workflow** (versionCode를 비우면 `twa-manifest.json` 값)
+3. 끝나면 **Artifacts → shuttlix-aab** 에 서명된 `app-release.aab` 가 생깁니다.
+
+### 방법 A — 준비된 설정으로 빌드 (예전 기록)
 
 ```bash
 mkdir -p ~/badminton-android && cd ~/badminton-android

@@ -96,4 +96,15 @@
     var ignore = readRoot('.gitignore');
     ['*.keystore', '*.jks'].forEach(function (p) { ok(ignore.indexOf(p) >= 0, '.gitignore에 ' + p); });
   });
+  test('빌드 틀: minSdk 24 이상이고 .aab 빌드 스크립트·워크플로우가 있으며 키는 시크릿으로만 받는다', function () {
+    if (!hasNode()) return;
+    var twa = JSON.parse(readRoot('twa-manifest.json'));
+    ok(twa.minSdkVersion >= 24, 'minSdkVersion 24 이상 (androidbrowserhelper 요구)');
+    ok(fileExists('tools/build-aab.js'), 'tools/build-aab.js 있음');
+    ok(fileExists('tools/build-aab.workflow.yml'), 'tools/build-aab.workflow.yml 있음 (Actions에 그대로 붙여 넣는 파일)');
+    var flow = readRoot('tools/build-aab.workflow.yml');
+    ok(flow.indexOf('workflow_dispatch') >= 0, '수동 실행(workflow_dispatch)');
+    ok(flow.indexOf('secrets.KEYSTORE_BASE64') >= 0, '키스토어는 시크릿에서만');
+    ok(flow.indexOf('bundleRelease') >= 0, 'bundleRelease로 .aab 생성');
+  });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

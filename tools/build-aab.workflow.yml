@@ -1,0 +1,114 @@
+# 셔틀릭스 — Play Console 업로드용 .aab를 GitHub Actions에서 만듭니다 (수동 실행).
+#
+# 준비(한 번만): 저장소 Settings → Secrets and variables → Actions 에
+#   KEYSTORE_BASE64    업로드 키스토어 파일을 base64로 인코딩한 값
+#                      (로컬: base64 -w0 shuttlix-upload.keystore)
+#   KEYSTORE_PASSWORD  키스토어·키 비밀번호
+# 를 넣습니다. 키스토어와 비밀번호는 저장소에 커밋하지 않습니다.
+#
+# 이 파일을 쓰려면: GitHub 웹에서 `Add file → Create new file` → 이름 `.github/workflows/build-aab.yml`
+#  → 아래 내용 전체를 붙여 넣고 커밋합니다(앱 권한으로는 워크플로우 파일을 밀어 넣을 수 없습니다).
+#
+# 실행: Actions → "셔틀릭스 .aab 빌드" → Run workflow
+# 결과: 아티팩트 shuttlix-aab 안의 app-release.aab (업로드 키로 서명됨)
+name: 셔틀릭스 .aab 빌드
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'versionName (비우면 twa-manifest.json 값)'
+        required: false
+        type: string
+      version_code:
+        description: 'versionCode (비우면 twa-manifest.json 값, 업로드마다 올려야 합니다)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-aab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: SDK 패키지 (compileSdk 36 · build-tools 36)
+        run: |
+          yes | sdkmanager --licenses > /dev/null
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bubblewrap core 설치
+        run: npm install --no-audit --no-fund --no-save @bubblewrap/core@1.27.0
+
+      - name: 키스토어 준비 (시크릿)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::저장소 시크릿 KEYSTORE_BASE64 가 없습니다. 업로드 키스토어를 base64로 넣어 주세요."
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > android.keystore
+          test -s android.keystore
+          echo "키스토어 준비 완료"
+
+      - name: TWA 프로젝트 생성 (twa-manifest.json 기준)
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          ARGS="--out build-twa --manifest twa-manifest.json"
+          if [ -n "$VERSION_NAME" ]; then ARGS="$ARGS --version-name $VERSION_NAME"; fi
+          if [ -n "$VERSION_CODE" ]; then ARGS="$ARGS --version-code $VERSION_CODE"; fi
+          node tools/build-aab.js $ARGS
+
+      - name: 기기 테스트용 로직 테스트 (node test/run.js)
+        run: node test/run.js
+
+      - name: Gradle .aab 빌드
+        working-directory: build-twa
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease --console=plain --no-daemon
+
+      - name: 업로드 키로 서명 (jarsigner)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: shuttlix
+        run: |
+          set -e
+          AAB=build-twa/app/build/outputs/bundle/release/app-release.aab
+          ls -l "$AAB"
+          jarsigner -keystore android.keystore \
+            -storepass "$KEYSTORE_PASSWORD" -keypass "$KEYSTORE_PASSWORD" \
+            -sigalg SHA256withRSA -digestalg SHA-256 "$AAB" "$KEY_ALIAS"
+          jarsigner -verify "$AAB"
+          echo "— 서명 인증서 —"
+          keytool -printcert -jarfile "$AAB" | grep -Ei "Owner|SHA256" || true
+
+      - name: 정리 (키스토어 삭제)
+        if: always()
+        run: rm -f android.keystore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shuttlix-aab
+          path: build-twa/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
