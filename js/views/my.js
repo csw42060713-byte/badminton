@@ -98,23 +98,32 @@
   }
 
   /* 연속 출석 안내 — 하트 카드 · 꾸미기 패널이 함께 씁니다
-   *  왼쪽 줄: 꾸미기 무료 해금(3·7·14일)까지, 아래 줄: 하트 보너스(3·7·14일)까지 (bm-v1.64.0) */
+   *  왼쪽 줄: 꾸미기 무료 해금(3·7·14일 + 30일 챔피언 배지)까지,
+   *  아래 줄: 하트 보너스(3·7·14·30일)까지 (bm-v1.73.0) */
   function streakLine(hearts) {
     var days = hearts.checkinStreak || 0;
     var next = hearts.streakNext;
-    if (!days) return '출석을 이어 가면 3일·7일·14일에 꾸미기가 무료로 열려요';
-    if (!next) return days + '일 연속 출석 중 · 해금 가능한 꾸미기를 모두 받았어요';
+    if (!days) return '출석을 이어 가면 3·7·14일 꾸미기와 30일 챔피언 배지가 무료로 열려요';
+    if (!next) return days + '일 연속 출석 중 · 열 수 있는 꾸미기를 모두 받았어요';
     var gift = /배지/.test(next.label || '') ? '배지' : '프레임';
     return days + '일 연속 출석 중 · ' + next.days + '일까지 ' + next.left + '일 (' + gift + ' 무료)';
   }
 
-  /* 3·7·14일 연속 출석 보너스 한 줄 (bm-v1.64.0) — 공용 충전 시트와 같은 문구를 씁니다 */
+  /* 3·7·14·30일 연속 출석 보너스 한 줄 (bm-v1.73.0) — 공용 충전 시트와 같은 문구를 씁니다 */
   function streakBonusLine(hearts) {
     var live = liveHearts(hearts);
     if (BM.ads && typeof BM.ads.streakText === 'function') return BM.ads.streakText(live);
     var b = hearts.streakBonus;
     if (!b || !(b.amount > 0)) return '';
     return b.left + '일 더 하면 보너스 하트 +' + b.amount;
+  }
+
+  /* 오늘의 하트 부스트 한 줄 (bm-v1.73.0) — 하트 부스트를 아직 열지 않은 사람도
+   * 오늘 첫 리워드 광고 한 편에 하트 +1을 더 받습니다. */
+  function dailyBoostLine(hearts) {
+    var live = liveHearts(hearts);
+    if (BM.ads && typeof BM.ads.dailyBoostText === 'function') return BM.ads.dailyBoostText(live);
+    return '';
   }
 
   /* 하트 부스트 줄 (bm-v1.64.0)
@@ -222,6 +231,9 @@
       '<p class="streakline">' + UI.icon('check') + '<span>' + U.esc(streakLine(hearts)) + '</span></p>' +
       (streakBonusLine(hearts)
         ? '<p class="streakbonus">' + UI.icon('spark') + '<span>' + U.esc(streakBonusLine(hearts)) + '</span></p>'
+        : '') +
+      (dailyBoostLine(hearts)
+        ? '<p class="hint dailyline" data-daily-boost>' + U.esc(dailyBoostLine(hearts)) + '</p>'
         : '') +
       boostLine(hearts) +
 
@@ -957,7 +969,8 @@
             }
             var res = ctx.actions.watchAd({ verified: true, adUnit: r.adUnit, txId: r.txId });
             if (res.ok) {
-              UI.toast('하트 +' + res.gained + ' · 오늘 ' + res.remaining + '회 남음');
+              UI.toast('하트 +' + res.gained + (res.dailyBoost ? ' (오늘의 부스트 +' + res.dailyBoost + ' 포함)' : '') +
+                ' · 오늘 ' + res.remaining + '회 남음');
               UI.haptic(16);
             } else if (res.reason === 'limit') UI.toast('오늘 몫을 모두 받았어요. 내일 다시 만나요!');
             else if (res.reason === 'cooldown') UI.toast(res.retryAfter + '초 뒤에 다시 시도해 주세요');
@@ -1999,4 +2012,6 @@
   BM.views.my.decoPreviewBody = decoPreviewBody;     /* 테스트·점검용 (꾸미기 미리보기 본문) */
   BM.views.my.openDecoPreviewSheet = openDecoPreviewSheet;   /* 테스트·점검용 */
   BM.views.my.streakBonusLine = streakBonusLine;     /* 테스트·점검용 (7일 연속 보너스 줄) */
+  BM.views.my.dailyBoostLine = dailyBoostLine;       /* 테스트·점검용 (오늘의 하트 부스트 줄) */
+  BM.views.my.streakLine = streakLine;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

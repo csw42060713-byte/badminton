@@ -1529,6 +1529,44 @@
         return { ok: true, group: group };
       },
 
+      /* 1:1 대화방 `📅 코트 약속` 카드 (bm-v1.73.0)
+       *  · 체육관·날짜·시간을 구조화해 그대로 보냅니다. 화면은 이 글을 카드로 그립니다.
+       *  · 새 칸 없이 `매칭채팅` 행의 글(text)에 표시([[APT]]{…})만 남깁니다. */
+      sendAppt: function (roomId, otherKey, appt) {
+        if (!(state.me && state.me.key)) return { ok: false, reason: 'no_login' };
+        if (!roomId || !otherKey) return { ok: false, reason: 'no_room' };
+        if (!D.canChatWith(state.idx, state.me.key, otherKey)) return { ok: false, reason: 'not_allowed' };
+        var text = D.apptText(appt || {});
+        if (!text) return { ok: false, reason: 'empty' };
+        if (!tryLock('chat:' + roomId, 450)) return { ok: false, reason: 'locked' };
+        var entity = meEntity({
+          type: '매칭채팅', id: U.uid(), clientId: U.clientId(), nick: state.me.nick,
+          userKey: state.me.key, target: otherKey, team: roomId, text: text,
+          createdAt: U.stamp()
+        });
+        pushRow(entity);
+        state.ui.chatDraft = '';
+        commit();
+        return { ok: true, card: D.apptParse(text) };
+      },
+
+      /* 약속 카드 1탭 응답 — `좋아요`(ok) / `시간 조정`(adjust) */
+      respondAppt: function (roomId, otherKey, cardId, kind) {
+        if (!(state.me && state.me.key)) return { ok: false, reason: 'no_login' };
+        if (!roomId || !otherKey) return { ok: false, reason: 'no_room' };
+        if (!D.canChatWith(state.idx, state.me.key, otherKey)) return { ok: false, reason: 'not_allowed' };
+        var text = D.apptReplyText(cardId, kind === 'adjust' ? 'adjust' : 'ok');
+        if (!text) return { ok: false, reason: 'empty' };
+        if (!tryLock('chat:' + roomId, 450)) return { ok: false, reason: 'locked' };
+        pushRow(meEntity({
+          type: '매칭채팅', id: U.uid(), clientId: U.clientId(), nick: state.me.nick,
+          userKey: state.me.key, target: otherKey, team: roomId, text: text,
+          createdAt: U.stamp()
+        }));
+        commit();
+        return { ok: true, kind: kind === 'adjust' ? 'adjust' : 'ok' };
+      },
+
       /* ---------- 1:1 채팅(상단 DM) ---------- */
       openChats: function () {
         state.ui.chatOpen = true;
@@ -1762,17 +1800,24 @@
           return { ok: false, reason: 'cooldown', retryAfter: status.nextAdInSec };
         }
         var boost = me ? D.heartBoost(state.idx, me, state.me && state.me.theme) : { bonus: 0 };
-        var gained = D.HEART_RULES.AD_REWARD + (boost.bonus || 0);
+        /* 오늘의 하트 부스트 — 그날 첫 광고 한 편에 +1 (bm-v1.73.0, 하루 1회)
+         *  · 행(likes)에는 예전처럼 광고값(1 + 부스트)만 적고, 하루 부스트는
+         *    원장(heartLedger)이 '그날 첫 광고 행'에서 한 줄로 더합니다 — 두 번 들어가지 않게. */
+        var firstToday = !(status.adUsedToday > 0);
+        var dailyBoost = firstToday ? (D.DAILY_BOOST ? D.DAILY_BOOST.amount : 0) : 0;
+        var rowGain = D.HEART_RULES.AD_REWARD + (boost.bonus || 0);
+        var gained = rowGain + dailyBoost;
         var entity = meEntity({
           type: '광고하트', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
-          likes: gained, target: opts.adUnit || '',
+          likes: rowGain, target: opts.adUnit || '',
           text: txId ? D.adTxNote(txId) : ''
         });
         pushRow(entity);
         commit();
         var after = state.data.hearts || {};
         return {
-          ok: true, gained: gained, base: D.HEART_RULES.AD_REWARD, boost: boost.bonus || 0, txId: txId,
+          ok: true, gained: gained, base: D.HEART_RULES.AD_REWARD, boost: boost.bonus || 0,
+          dailyBoost: dailyBoost, txId: txId,
           remaining: after.adRemaining, balance: after.balance,
           nextAdInSec: D.HEART_RULES.AD_COOLDOWN_SEC
         };

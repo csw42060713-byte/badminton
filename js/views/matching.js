@@ -523,7 +523,7 @@
         '<div class="room__mid"><strong>' + U.esc(group ? (r.title || D.MEET.roomLabel) : rp.nick) +
         (group ? ' <span class="pill pill--ok">단체</span>' : '') +
         (!group && rp.level ? ' <span class="pill pill--grade">' + U.esc(rp.level) + '</span>' : '') + '</strong>' +
-        '<p>' + U.esc(U.truncate((r.last && r.last.text) || '대화를 시작해 보세요', 34)) + '</p>' +
+        '<p>' + U.esc(U.truncate(D.chatTextPreview((r.last && r.last.text) || '대화를 시작해 보세요'), 34)) + '</p>' +
         (group ? '' : UI.presence(D.presenceOf(state.data.idx, r.other), { cls: 'presence--row' })) + '</div>' +
         '<div class="room__right"><time>' + U.esc(D.chatListTime(r.at)) + '</time>' +
         (r.unread ? '<span class="badge">' + r.unread + '</span>' : '') + '</div></li>';
