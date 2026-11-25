@@ -2,7 +2,7 @@
 <html lang="ko" data-theme="th_def">
 <head>
 <meta charset="utf-8">
-<title>배드민턴 · 일지 & 매칭</title>
+<title>셔틀릭스 · 배드민턴 일지 & 매칭</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f6f8f6">
 <!-- bm-v1.41.1 — 보안 장치(CSP). 다른 곳에서 들어온 스크립트·iframe·엉뚱한 주소를
@@ -17,7 +17,9 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com 'sha256-INWe/ZxfH4F6qWiJqxsEThPW9Jdnza93ljULyO5kONE=' 'sha256-rBT/184oEeaTp5T04yQ08/fyWhcM0n8C3Vjm3Zjn3LQ=' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://accounts.google.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://mwgpakntlollndfluwgg.supabase.co wss://mwgpakntlollndfluwgg.supabase.co https://accounts.google.com https://script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://storage.googleapis.com; frame-src https://accounts.google.com; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; worker-src 'self' blob:; manifest-src 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="color-scheme" content="light dark">
-<meta name="description" content="일지·AI 분석·1:1 매칭·커뮤니티·코치 피드백을 한 화면에 담은 모바일 배드민턴 앱">
+<meta name="description" content="셔틀릭스(Shuttlix) — 일지·AI 분석·1:1 매칭·커뮤니티·코치 피드백을 한 화면에 담은 모바일 배드민턴 앱">
+<meta name="application-name" content="셔틀릭스">
+<meta name="apple-mobile-web-app-title" content="셔틀릭스">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="mobile-web-app-capable" content="yes">
@@ -41,7 +43,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=20261125-2">
+<link rel="stylesheet" href="styles.css?v=20261125-3">
 <!-- 지도(Leaflet) 스타일·코드는 저장소에 함께 넣었습니다 — 오프라인에서도 지도 틀이 뜨고, 외부 CDN에 기대지 않습니다 -->
 <link rel="stylesheet" href="js/vendor/leaflet/leaflet.css">
 <link rel="preconnect" href="https://accounts.google.com">
@@ -57,8 +59,8 @@
     <div class="splash__tile">
       <img class="splash__logo" src="icons/icon-512.png" alt="" width="512" height="512" decoding="async" fetchpriority="high">
     </div>
-    <p class="splash__brand">BADMINTON</p>
-    <p class="splash__t">배드민턴</p>
+    <p class="splash__brand">SHUTTLIX</p>
+    <p class="splash__t">셔틀릭스</p>
     <p class="splash__s">오늘의 코트를 준비하고 있어요</p>
     <span class="splash__bar" aria-hidden="true"><i></i></span>
   </div>
@@ -76,7 +78,7 @@ setTimeout(function () {
   <div class="hdr__left">
     <span class="hdr__logo" aria-hidden="true">🏸</span>
     <div class="hdr__titles">
-      <span class="hdr__brand">BADMINTON</span>
+      <span class="hdr__brand">SHUTTLIX</span>
       <h1 id="hdrTitle">일지 &#38; AI</h1>
     </div>
   </div>

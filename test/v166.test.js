@@ -247,14 +247,14 @@
 
   test('v1.66 매거진: 위·가운데 글씨가 위 여백·워드마크와 겹치지 않는다', function () {
     /* v1.71 — 날짜·장소는 카드 맨 아래로 내려가 머리줄이 없어졌습니다.
-     * 위·가운데를 골라도 안전 여백과 워드마크(BADMINTON)를 침범하지 않는지만 봅니다. */
+     * 위·가운데를 골라도 안전 여백과 워드마크(SHUTTLIX)를 침범하지 않는지만 봅니다. */
     ['top', 'middle'].forEach(function (pos) {
       var log = drawCard(compSpec({ textPos: pos, ratio: 'story' }));
       var big = yOf(log, '우승');
       ok(big !== null, pos + ' 큰 숫자');
       ok(big > 220 + 60, pos + ' 위 안전 여백 아래 (' + big + ')');
       ok(big < 1700, pos + ' 아래 안전 여백 위 (' + big + ')');
-      var mark = yOf(log, 'BADMINTON');
+      var mark = yOf(log, 'SHUTTLIX');
       ok(mark === null || Math.abs(mark - big) > 60, pos + ' 워드마크와 안 겹침');
     });
     var topBig = yOf(drawCard(compSpec({ textPos: 'top', ratio: 'story' })), '우승');
@@ -550,15 +550,15 @@
     ['김원호', '안세영', '서승재'].forEach(function (name) { excludes(src, name, name + ' 없음'); });
   });
 
-  test('v1.66 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.73.0', function () {
+  test('v1.66 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.74.0', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.73.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.73.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261125-2', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.74.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.74.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261125-3', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.73.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.73.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 67, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.74.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.74.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 68, 'TWA 버전 코드');
   });
 
   test('v1.66 배선: 테스트 목록에 v166이 들어 있다', function () {

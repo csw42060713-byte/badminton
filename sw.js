@@ -328,8 +328,14 @@
  *             〔일지·인스타〕 약점 칩에 수비(수비 타이밍 코칭) 추가, 스티커 글씨 흰색·라임·골드 3색.
  *             js/domain.js·js/ads.js·js/store.js·js/views/chat.js·js/views/my.js·js/sharecard.js·
  *             styles.css 가 바뀌어 캐시를 bm-v1.73.0으로 올립니다.
+ * 2026-11-25: 🏸 앱 이름 '셔틀릭스 (Shuttlix)' 반영 (bm-v1.74.0)
+ *             〔이름〕 승우 님·조환비 님 확정 이름으로 앱 안 표시 이름만 바꿉니다 —
+ *             문서 제목·상단 헤더·시작 로딩·시작화면·매니페스트·TWA·인스타 공유 카드
+ *             워터마크(SHUTTLIX)·푸시 알림 기본 제목. localStorage 키(bm_*), Supabase 테이블,
+ *             주소 경로(/badminton/), TWA packageId(io.github.csw42060713_byte.badminton)는
+ *             그대로입니다. 이름 글자만 바뀌어 캐시를 bm-v1.74.0으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.73.0';
+var VERSION = 'bm-v1.74.0';
 var SHELL = [
   './',
   './index.html',
@@ -414,7 +420,7 @@ var PUSH_TABS = ['log', 'matching', 'community', 'coach', 'my'];
 
 /* 푸시 페이로드 → 알림 글·갈 곳. JSON이 아니면 본문 글자만 씁니다. */
 function pushPayload(data) {
-  var out = { title: '배드민턴', body: '', url: './', tag: '' };
+  var out = { title: '셔틀릭스', body: '', url: './', tag: '' };
   try {
     if (data && typeof data === 'object') {
       out.title = String(data.title || data.heading || out.title).slice(0, 80);

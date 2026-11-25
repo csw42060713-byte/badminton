@@ -61,10 +61,10 @@
   test('v1.37 스플래시: 타이틀·서브 문구·진행선이 있다', function () {
     if (!hasNode) return;
     var sp = splashBlock(readRoot('index.html'));
-    includes(sp, 'class="splash__brand"', 'BADMINTON 킥커');
-    includes(sp, '>BADMINTON<', '브랜드 글자');
+    includes(sp, 'class="splash__brand"', 'SHUTTLIX 킥커');
+    includes(sp, '>SHUTTLIX<', '브랜드 글자');
     includes(sp, 'class="splash__t"', '앱 타이틀');
-    includes(sp, '>배드민턴<', '타이틀 글자');
+    includes(sp, '>셔틀릭스<', '타이틀 글자');
     includes(sp, 'class="splash__s"', '서브 문구');
     includes(sp, '오늘의 코트를 준비하고 있어요', '준비 문구');
     includes(sp, 'class="splash__bar"', '얇은 진행선');
@@ -166,8 +166,8 @@
     var start = readRoot('js/views/start.js');
     includes(start, '<div class="start__mark"><img src="icons/icon-512.png"', '시작화면 로고');
     excludes(start, '<span>🏸</span>', '이모지 제거');
-    includes(start, 'BADMINTON LOG', '킥커 유지');
-    includes(start, '배드민턴 분석', '앱 이름 유지');
+    includes(start, 'SHUTTLIX', '킥커 유지');
+    includes(start, '셔틀릭스', '앱 이름 유지');
   });
 
   test('v1.37 시작화면: 이메일 화면 위 작은 로고도 새 로고로 정돈', function () {
@@ -240,13 +240,13 @@
    * ========================================================= */
   test('v1.37 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.73.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.73.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261125-2', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.74.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.74.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261125-3', 'index.html 스타일 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.73.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.73.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 67, 'TWA 버전 코드(웹만 바뀌면 그대로)');
+    eq(twa.appVersionName, '1.74.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.74.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 68, 'TWA 버전 코드(웹만 바뀌면 그대로)');
   });
 
   test('v1.37 버전: sw.js 변경 이력에 이번 사이클이 남는다', function () {

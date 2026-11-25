@@ -264,7 +264,7 @@
     });
     eq(D.themePrice('th_night'), 0, '다크 무료');
     eq(D.themePrice('th_def'), 0, '라이트 무료');
-    eq(D.themePrice('th_sakura'), 0, '사쿠라도 무료 (bm-v1.73.0)');
+    eq(D.themePrice('th_sakura'), 0, '사쿠라도 무료 (bm-v1.74.0)');
   });
 
   test('v1.56 시작: 여성일 때만 사쿠라에 은은한 추천 배지 (남성·비공개는 표시 안 함)', function () {
@@ -386,16 +386,16 @@
     includes(run, 'test/v156.test.js', '테스트 로드');
   });
 
-  test('v1.56 버전: sw · app · index · TWA가 함께 bm-v1.73.0', function () {
+  test('v1.56 버전: sw · app · index · TWA가 함께 bm-v1.74.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.73.0'", 'sw.js');
-    includes(app, "version: 'v1.73.0'", 'app.js');
-    includes(index, 'styles.css?v=20261125-2', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.73.0', 'TWA 이름');
-    eq(twa.appVersion, '1.73.0', 'TWA 버전');
-    eq(twa.appVersionCode, 67, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.74.0'", 'sw.js');
+    includes(app, "version: 'v1.74.0'", 'app.js');
+    includes(index, 'styles.css?v=20261125-3', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.74.0', 'TWA 이름');
+    eq(twa.appVersion, '1.74.0', 'TWA 버전');
+    eq(twa.appVersionCode, 68, 'TWA 코드');
   });
 
   test('v1.56 스타일: 5단계 카드·테마 카드 스타일이 있다', function () {

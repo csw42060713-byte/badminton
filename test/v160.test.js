@@ -610,17 +610,17 @@
     excludes(SC()._sheetBody(ctxOf(stateOf([rec()]))), '김원호', '시트 예시도 가명만');
   });
 
-  test('v1.60 버전: sw · app · index · TWA가 함께 bm-v1.73.0', function () {
+  test('v1.60 버전: sw · app · index · TWA가 함께 bm-v1.74.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.73.0'", 'sw.js');
-    includes(sw, 'bm-v1.73.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.73.0'", 'app.js');
-    includes(index, 'styles.css?v=20261125-2', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.73.0', 'TWA 이름');
-    eq(twa.appVersion, '1.73.0', 'TWA 버전');
-    eq(twa.appVersionCode, 67, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.74.0'", 'sw.js');
+    includes(sw, 'bm-v1.74.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.74.0'", 'app.js');
+    includes(index, 'styles.css?v=20261125-3', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.74.0', 'TWA 이름');
+    eq(twa.appVersion, '1.74.0', 'TWA 버전');
+    eq(twa.appVersionCode, 68, 'TWA 코드');
     includes(index, 'js/sharecard.js', 'index 스크립트');
   });
 

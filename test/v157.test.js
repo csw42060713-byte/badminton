@@ -285,7 +285,7 @@
     includes(src, 'URL.createObjectURL', '공유가 없으면 다운로드');
     includes(src, 'createLinearGradient', '사진 위 그라디언트');
     includes(src, 'clearRect', '투명 스티커(배경 투명)');
-    includes(src, 'BADMINTON', '브랜드 한 줄 (bm-v1.73.0 — 로고 그림 대신 얇은 워드마크)');
+    includes(src, 'SHUTTLIX', '브랜드 한 줄 (bm-v1.74.0 — 로고 그림 대신 얇은 워드마크)');
     excludes(src, 'fetch(', '서버 전송 없음');
     excludes(src, 'XMLHttpRequest', '서버 전송 없음');
     excludes(src, 'new FormData', '업로드 없음');
@@ -350,7 +350,7 @@
     }).then(function () {
       eq(shown.length, 1, '글자 페이로드도 알림');
       eq(shown[0].opts.body, '그냥 글', '본문 글자');
-      eq(shown[0].title, '배드민턴', '기본 제목');
+      eq(shown[0].title, '셔틀릭스', '기본 제목');
 
       /* 클릭 — 열린 창이 없으면 해시를 붙여 새 창 */
       waits = [];
@@ -551,17 +551,17 @@
     includes(run, 'test/v157.test.js', '이 테스트 파일');
   });
 
-  test('v1.57 버전: sw · app · index · TWA가 함께 bm-v1.73.0', function () {
+  test('v1.57 버전: sw · app · index · TWA가 함께 bm-v1.74.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.73.0'", 'sw.js');
-    includes(app, "version: 'v1.73.0'", 'app.js');
-    includes(index, 'styles.css?v=20261125-2', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.73.0', 'TWA 이름');
-    eq(twa.appVersion, '1.73.0', 'TWA 버전');
-    eq(twa.appVersionCode, 67, 'TWA 코드');
-    includes(sw, 'bm-v1.73.0', 'sw 변경 이력');
+    includes(sw, "var VERSION = 'bm-v1.74.0'", 'sw.js');
+    includes(app, "version: 'v1.74.0'", 'app.js');
+    includes(index, 'styles.css?v=20261125-3', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.74.0', 'TWA 이름');
+    eq(twa.appVersion, '1.74.0', 'TWA 버전');
+    eq(twa.appVersionCode, 68, 'TWA 코드');
+    includes(sw, 'bm-v1.74.0', 'sw 변경 이력');
   });
 
   test('v1.57 스타일: 공유 카드·푸시 상태 스타일이 있다', function () {

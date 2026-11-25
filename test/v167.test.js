@@ -294,7 +294,7 @@
     includes(textsOf(log), '90분 · 2승 1패', '핵심 스탯 한 줄');
     includes(textsOf(log), '민턴일기', '문구');
     includes(textsOf(log), '11/24 (화) · 나래울체육관', '날짜·체육관');
-    includes(textsOf(log), 'BADMINTON', '브랜드');
+    includes(textsOf(log), 'SHUTTLIX', '브랜드');
     ok(log.strokes >= 2, '유리 테두리 선');
     ok(log.strokes >= 3, '셔틀콕 아이콘 선');
     /* 사진은 그대로 깔리고, 유리 카드가 그 위를 덮는다 */
@@ -311,7 +311,7 @@
         log.texts.forEach(function (x) {
           ok(x.y > 0 && x.y < H, mode + '/' + r + ' 글씨 y=' + Math.round(x.y) + ' 안쪽');
         });
-        includes(textsOf(log), 'BADMINTON', mode + '/' + r + ' 브랜드');
+        includes(textsOf(log), 'SHUTTLIX', mode + '/' + r + ' 브랜드');
       });
     });
   });
@@ -597,15 +597,15 @@
     ['김원호', '안세영', '서재승', '서승재'].forEach(function (name) { excludes(src, name, name + ' 없음'); });
   });
 
-  test('v1.67 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.73.0', function () {
+  test('v1.67 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.74.0', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.73.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.73.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261125-2', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.74.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.74.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261125-3', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.73.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.73.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 67, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.74.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.74.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 68, 'TWA 버전 코드');
   });
 
   test('v1.67 배선: 테스트 목록에 v167이 들어 있다', function () {
