@@ -312,7 +312,7 @@
     'boost:heart': 3,
     /* bm-v1.64.0 — 인스타 대회 인증 카드의 챔피언 골드 프레임(하트 2개, 한 번 열면 계속) */
     'card:champ': 2,
-    /* bm-v1.72.0 — 30일 연속 출석 챔피언 배지(연속 30일이면 무료 해금, 그 전에는 하트 3개) */
+    /* bm-v1.73.0 — 30일 연속 출석 챔피언 배지(연속 30일이면 무료 해금, 그 전에는 하트 3개) */
     'badge:champ': 3
   };
   var BADGE_IDS = { '': '', '🏸': 'racket', '🦋': 'butterfly', '🔥': 'fire', '⭐': 'star', '🥇': 'medal', '👑': 'crown', '🏆': 'champ' };
@@ -323,7 +323,7 @@
     { days: 3, id: 'badge:star', label: '3일 연속 출석 배지' },
     { days: 7, id: 'badge:medal', label: '7일 연속 출석 배지' },
     { days: 14, id: 'frame:gold', label: '14일 연속 금빛 프레임' },
-    /* bm-v1.72.0 — 30일을 채운 사람에게만 열리는 챔피언 배지(🏆) */
+    /* bm-v1.73.0 — 30일을 채운 사람에게만 열리는 챔피언 배지(🏆) */
     { days: 30, id: 'badge:champ', label: '30일 연속 출석 챔피언 배지' }
   ];
 
@@ -478,7 +478,7 @@
     THEME_PRICES: { th_def: 0, th_night: 0, th_court: 0, th_sakura: 0 }
   };
 
-  /* 오늘의 하트 부스트 (bm-v1.72.0) — 하루 첫 광고 한 편에 +1 (하루 1회)
+  /* 오늘의 하트 부스트 (bm-v1.73.0) — 하루 첫 광고 한 편에 +1 (하루 1회)
    *  · 하트 부스트(영구 +1)와 달리 무료이고 매일 새로 생깁니다.
    *  · 중복 방지 키는 '그날' 하나: 그날 첫 광고 행에서만 원장이 한 줄을 더합니다. */
   var DAILY_BOOST = { amount: 1, label: '오늘의 하트 부스트' };
@@ -497,7 +497,7 @@
    *  · 지급은 원장(heartLedger)이 출석 날짜의 연속을 매번 다시 세어 한 번만 더합니다(멱등).
    *  · 같은 구간이 두 번 들어가지 않게 '그 보너스를 받은 날짜'를 키로 씁니다
    *    (streakClaimKey). 하루에 보너스는 한 번뿐이라 달력 날짜가 곧 중복 방지 키입니다. */
-  /* 연속 출석 보너스 (bm-v1.72.0 — 3·7·14·30일, 그 뒤 14일마다 +3)
+  /* 연속 출석 보너스 (bm-v1.73.0 — 3·7·14·30일, 그 뒤 14일마다 +3)
    *  · 30일은 하트 +5 — 한 달을 채운 사람에게 가장 큰 보상.
    *  · 30일 뒤로는 예전처럼 14일마다(42·56…) +3을 한 번씩 더 줍니다. */
   var STREAK_BONUSES = [
@@ -1819,7 +1819,7 @@
     listOf(idx, '광고하트', userKey).forEach(function (h) {
       add('ad', '광고 보고 받기', h.likes || R.AD_REWARD, h);
     });
-    /* 오늘의 하트 부스트 (bm-v1.72.0)
+    /* 오늘의 하트 부스트 (bm-v1.73.0)
      *  · 하트 부스트(영구 +1)를 아직 열지 않은 사람도 광고를 볼 이유를 만들기 위해,
      *    **그날 첫 광고 한 편**에 하트 +1을 한 번 더 줍니다(하루 1회).
      *  · 보너스 행을 따로 저장하지 않고 '그날 첫 광고 행'에서 매번 세므로(멱등)
@@ -2950,7 +2950,7 @@
     return U.dayLabel(U.ymd(d));
   }
 
-  /* ---------- 코트 약속 카드 (bm-v1.72.0) ----------
+  /* ---------- 코트 약속 카드 (bm-v1.73.0) ----------
    * 1:1 대화방에서 체육관·날짜·시간을 구조화해 보내고, 받는 사람이
    * `좋아요` / `시간 조정`을 한 번에 고릅니다.
    *  · 새 시트 칸·새 DB 컬럼 없이 기존 `매칭채팅` 행의 글(text)에만 표시를 남깁니다.
@@ -3557,7 +3557,7 @@
     STREAK_BONUSES: STREAK_BONUSES, STREAK_BONUS_REPEAT_DAYS: STREAK_BONUS_REPEAT_DAYS,
     streakBonusFor: streakBonusFor, nextStreakBonus: nextStreakBonus, streakClaimKey: streakClaimKey,
     BOOST_ID: BOOST_ID, BOOST_BONUS: BOOST_BONUS, heartBoost: heartBoost,
-    /* bm-v1.72.0 — 오늘의 하트 부스트(하루 첫 광고 +1) */
+    /* bm-v1.73.0 — 오늘의 하트 부스트(하루 첫 광고 +1) */
     DAILY_BOOST: DAILY_BOOST, adDailyBoost: adDailyBoost,
     searchText: searchText, matchesQuery: matchesQuery, filterPlayers: filterPlayers, activeFilters: activeFilters,
     matchSearchActive: matchSearchActive,
@@ -3637,7 +3637,7 @@
     /* v1.20 */
     chatTime: chatTime, chatStamp: chatStamp, chatListTime: chatListTime,
     chatDayKey: chatDayKey, chatDayLabel: chatDayLabel,
-    /* bm-v1.72.0 — 코트 약속 카드 */
+    /* bm-v1.73.0 — 코트 약속 카드 */
     APPT: APPT, apptText: apptText, apptParse: apptParse, apptReplyText: apptReplyText,
     apptReplyParse: apptReplyParse, apptAnswer: apptAnswer, apptWhen: apptWhen,
     apptStatusLabel: apptStatusLabel, chatTextPreview: chatTextPreview,

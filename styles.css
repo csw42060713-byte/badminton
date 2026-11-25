@@ -2746,6 +2746,15 @@ summary { display: list-item; }
 .fold--ai .insights { margin-top: 4px; }
 .fold--ai .fold__body > .care__col:first-child { margin-top: 10px; }
 
+/* v1.72 — 심화·선수 루틴 묶기: 안쪽 접기는 점선으로만 나눠 한 덩어리로 */
+.fold--pro .fold__body > .fold { margin-top: 10px; border-top: 1px dashed var(--line); }
+.fold--pro .fold__body > .fold:first-child { margin-top: 6px; border-top: 0; }
+.fold--pro .fold__body > .fold .fold__sum { min-height: 46px; }
+/* 통증으로 드릴을 바꿨을 때 한 줄 — 드릴 제목 바로 아래 */
+.drill__swap { display: flex; align-items: flex-start; gap: 6px; padding: 8px 10px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--text-2); }
+.drill__swap .ico { flex: 0 0 auto; width: 14px; height: 14px; margin-top: 1px; color: var(--accent); }
+
 /* 매칭 — 하트 소모 안내를 카드·프로필 상단에서 먼저 보여 줌 */
 .pcard__act { align-items: center; gap: 8px; flex-wrap: wrap; }
 .pcard__cost {
@@ -6189,6 +6198,8 @@ body {
   background: var(--card-2); border: 1px solid var(--line);
   font-size: 12px; line-height: 1.5; color: var(--text-2);
 }
+/* v1.72 — 예시를 본 뒤 다른 예시로 바꾸는 줄: 지금 본 예시만 색으로 표시 */
+.pose__demo .linkbtn.is-on { color: var(--accent); font-weight: 800; text-decoration: underline; }
 .pose__status p { margin: 0; flex: 1; min-width: 160px; }
 .pose__status--err { border-color: color-mix(in srgb, var(--danger, #e5484d) 35%, var(--line)); }
 .pose__spin {
@@ -6985,6 +6996,13 @@ body {
 }
 .sc__compbox > .field__label { padding-top: 10px; }
 .sc__compbox .field { margin-top: 12px; }
+/* 대회 날짜 — 날짜 입력(input[type=date])은 기본 폭이 auto라 한 줄을 다 쓰게 (bm-v1.72.0) */
+.sc__datefield { display: block; }
+.sc__datefield input[type="date"] {
+  display: block; width: 100%; min-height: 44px; margin-top: 7px;
+  padding: 10px 12px; font-size: 14px; font-weight: 700;
+}
+.sc__datefield .hint { display: block; margin-top: 6px; }
 
 /* 저장 — 시트 아래에 붙어 있어 스크롤을 되돌리지 않아도 됩니다.
  * 위쪽은 투명 → 바탕색 그라데이션으로, 지나가는 내용이 잘린 느낌 없이 스며들게. */

@@ -241,7 +241,7 @@
 
   test('v1.36 연속 보너스: 규칙값 2개 · 7일마다 (bm-v1.64: 3·7·14일)', function () {
     eq(D.HEART_RULES.STREAK_7_BONUS, 2, '7일 보너스 2');
-    /* bm-v1.72.0 — 3일 +1 · 7일 +2 · 14일 +3 · 30일 +5, 그 뒤 14일마다 +3 */
+    /* bm-v1.73.0 — 3일 +1 · 7일 +2 · 14일 +3 · 30일 +5, 그 뒤 14일마다 +3 */
     eq(D.streakBonusLeft(0), 3, '시작은 3일');
     eq(D.streakBonusLeft(2), 1, '2일째 → 1일');
     eq(D.streakBonusLeft(3), 4, '3일째(받은 날) → 다음은 7일까지 4일');
@@ -489,13 +489,13 @@
 
   test('v1.36 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.72.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.72.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261125-1', '스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.73.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.73.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261125-2', '스타일 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.72.0', 'TWA 이름');
+    eq(twa.appVersionName, '1.73.0', 'TWA 이름');
     eq(twa.app, undefined, '군더더기 없음');
-    eq(twa.appVersionCode, 66, 'TWA 코드');
+    eq(twa.appVersionCode, 67, 'TWA 코드');
   });
 
   test('v1.36 캐시: 새 파일 없이 기존 목록 그대로', function () {

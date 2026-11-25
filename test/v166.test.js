@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v166.test.js — bm-v1.72.0
+ * test/v166.test.js — bm-v1.73.0
  *   🖼️ 인스타 카드 사진 드래그·확대 & 글씨 위치 이동
  *
  *  승우 님 요청: "이미지 같은거 원하는 위치에 넣을수없어?" → "ㄱㄱ" → "둘다"
@@ -550,15 +550,15 @@
     ['김원호', '안세영', '서승재'].forEach(function (name) { excludes(src, name, name + ' 없음'); });
   });
 
-  test('v1.66 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.72.0', function () {
+  test('v1.66 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.73.0', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.72.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.72.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261125-1', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.73.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.73.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261125-2', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.72.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.72.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 66, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.73.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.73.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 67, 'TWA 버전 코드');
   });
 
   test('v1.66 배선: 테스트 목록에 v166이 들어 있다', function () {

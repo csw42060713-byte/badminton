@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v172.test.js — bm-v1.72.0
+ * test/v173.test.js — bm-v1.73.0
  *   30일 출석 챔피언 · 오늘의 하트 부스트 · 📅 코트 약속 카드 · 스티커 글씨 3색 · 수비 칩
  *
  *  ideas.md(2026-11-25) 3과제를 그대로 구현했는지 봅니다.
@@ -27,7 +27,7 @@
   }
 
   var ME = BM.seed.ME;
-  var PEER = 'u_v172_peer';
+  var PEER = 'u_v173_peer';
 
   /* ---------- 연속 출석 행 만들기 (오늘까지 n일) ---------- */
   function streakRows(n) {
@@ -35,7 +35,7 @@
     for (var i = n - 1; i >= 0; i--) {
       var d = U.ymd(U.addDays(new Date(), -i));
       rows.push(D.toRow({
-        id: 'v172ck' + i, type: '출석하트', createdAt: d + ' 08:00:00', date: d,
+        id: 'v173ck' + i, type: '출석하트', createdAt: d + ' 08:00:00', date: d,
         nick: '나래', userKey: ME, likes: 1
       }));
     }
@@ -47,7 +47,7 @@
     for (var i = n; i >= 1; i--) {
       var d = U.ymd(U.addDays(new Date(), -i));
       rows.push(D.toRow({
-        id: 'v172cb' + i, type: '출석하트', createdAt: d + ' 08:00:00', date: d,
+        id: 'v173cb' + i, type: '출석하트', createdAt: d + ' 08:00:00', date: d,
         nick: '나래', userKey: ME, likes: 1
       }));
     }
@@ -103,10 +103,10 @@
   function storeWith(extra) {
     clearStorage();
     var rows = [
-      D.toRow({ id: 'v172p_me', type: '프로필', createdAt: U.stamp(), date: U.ymd(), nick: '나래', level: 'B조', discipline: '복식', userKey: ME }),
-      D.toRow({ id: 'v172p_peer', type: '프로필', createdAt: U.stamp(), date: U.ymd(), nick: '콕집사', level: 'C조', discipline: '복식', userKey: PEER }),
+      D.toRow({ id: 'v173p_me', type: '프로필', createdAt: U.stamp(), date: U.ymd(), nick: '나래', level: 'B조', discipline: '복식', userKey: ME }),
+      D.toRow({ id: 'v173p_peer', type: '프로필', createdAt: U.stamp(), date: U.ymd(), nick: '콕집사', level: 'C조', discipline: '복식', userKey: PEER }),
       D.toRow({
-        id: 'v172match', type: '매칭신청', createdAt: U.stamp(), date: U.ymd(),
+        id: 'v173match', type: '매칭신청', createdAt: U.stamp(), date: U.ymd(),
         nick: '나래', userKey: ME, target: PEER, status: '수락',
         payload: { note: '한 게임 해요', heartCost: 2, payOn: 'accept', charged: 0 }
       })
@@ -121,7 +121,7 @@
    * A. 30일 연속 출석 — +5 하트 · 챔피언 배지
    * ========================================================= */
 
-  test('v1.72 30일: 보너스 표에 30일 +5가 마지막 구간으로 있다', function () {
+  test('v1.73 30일: 보너스 표에 30일 +5가 마지막 구간으로 있다', function () {
     eq(D.STREAK_BONUSES.length, 4, '구간 4개');
     eq(D.STREAK_BONUSES[3].days, 30, '30일');
     eq(D.STREAK_BONUSES[3].amount, 5, '+5 하트');
@@ -132,7 +132,7 @@
     eq(b.key, 'streak:30', '구간 키');
   });
 
-  test('v1.72 30일: 14일 뒤 반복 구간은 예전처럼 +3 (30일 칸이 반복값을 바꾸지 않는다)', function () {
+  test('v1.73 30일: 14일 뒤 반복 구간은 예전처럼 +3 (30일 칸이 반복값을 바꾸지 않는다)', function () {
     eq(D.streakBonusFor(28).amount, 3, '28일 +3');
     eq(D.streakBonusFor(42).amount, 3, '42일도 +3');
     eq(D.streakBonusFor(29), null, '29일은 없음');
@@ -144,7 +144,7 @@
     eq(after.amount, 3, '42일은 +3 예고');
   });
 
-  test('v1.72 30일: 챔피언 배지(🏆)는 30일을 채운 사람에게만 열린다', function () {
+  test('v1.73 30일: 챔피언 배지(🏆)는 30일을 채운 사람에게만 열린다', function () {
     eq(D.badgeEmoji('champ'), '🏆', '챔피언 배지 그림');
     eq(D.badgeLabel('champ'), '챔피언', '이름');
     eq(D.decoName('badge:champ'), '배지 · 챔피언', '꾸미기 이름');
@@ -160,13 +160,13 @@
     includes(next.label, '챔피언', '목표 이름');
   });
 
-  test('v1.72 30일: 원장은 30일째에 +5를 한 줄 더하고, 다시 계산해도 한 번뿐', function () {
+  test('v1.73 30일: 원장은 30일째에 +5를 한 줄 더하고, 다시 계산해도 한 번뿐', function () {
     var idx = idxOf(streakRows(30));
     var st = D.heartStatus(idx, ME, Date.now());
     var rows = st.history.filter(function (h) { return h.kind === 'streak' && h.label === '30일 연속 출석 보너스'; });
     eq(rows.length, 1, '30일 보너스 한 줄');
     eq(rows[0].delta, 5, '+5');
-    eq(rows[0].id, 'v172ck0', '받은 날의 출석 행을 가리킴(중복 방지 키 streak:YYYY-MM-DD 의 근거)');
+    eq(rows[0].id, 'v173ck0', '받은 날의 출석 행을 가리킴(중복 방지 키 streak:YYYY-MM-DD 의 근거)');
     eq(st.checkinStreak, 30, '연속 30일');
     eq(st.balance, D.HEART_RULES.BASE + 30 + 1 + 2 + 3 + 3 + 5, '기본 + 출석30 + 3·7·14·28·30 보너스');
     /* 같은 기록을 다시 계산해도 늘 같은 숫자 (멱등) */
@@ -175,7 +175,7 @@
     eq(again.history.filter(function (h) { return h.kind === 'streak'; }).length, 5, '보너스 5줄(3·7·14·28·30) 그대로');
   });
 
-  test('v1.72 30일: 출석 체크가 30일째에 +5 보너스를 함께 준다', function () {
+  test('v1.73 30일: 출석 체크가 30일째에 +5 보너스를 함께 준다', function () {
     return storeWith(streakRowsBefore(29)).then(function (store) {
       var before = store.state.data.hearts.balance;
       eq(store.state.data.hearts.checkinStreak, 29, '어제까지 29일');
@@ -190,7 +190,7 @@
     });
   });
 
-  test('v1.72 30일: MY 하트 카드가 30일 목표와 30일 보너스를 안내한다', function () {
+  test('v1.73 30일: MY 하트 카드가 30일 목표와 30일 보너스를 안내한다', function () {
     var hearts = {
       balance: 5, checkinStreak: 26, streakNext: D.nextStreakMilestone(26),
       streakBonus: D.nextStreakBonus(26), history: [], adLimit: 5, adUsedToday: 0, adRemaining: 5,
@@ -208,13 +208,13 @@
    * B. 오늘의 하트 부스트 — 오늘 첫 광고 +1 (하루 1회)
    * ========================================================= */
 
-  test('v1.72 부스트: 오늘 첫 광고만 +1 더, 둘째 광고는 예전 그대로', function () {
+  test('v1.73 부스트: 오늘 첫 광고만 +1 더, 둘째 광고는 예전 그대로', function () {
     return storeWith([]).then(function (store) {
       var before = store.state.data.hearts.balance;
       eq(store.state.data.hearts.adReward, 1, '광고 기본 1');
       eq(store.state.data.hearts.dailyBoostLeft, 1, '오늘 부스트 남음');
       store.state.locks = {};
-      var first = store.actions.watchAd({ verified: true, adUnit: 'heart_reward', txId: 'tx-v172-a' });
+      var first = store.actions.watchAd({ verified: true, adUnit: 'heart_reward', txId: 'tx-v173-a' });
       ok(first.ok, '첫 광고');
       eq(first.gained, 2, '1 + 오늘의 부스트 1');
       eq(first.dailyBoost, 1, '부스트 표시');
@@ -222,7 +222,7 @@
       eq(store.state.data.hearts.dailyBoostLeft, 0, '오늘 부스트 소진');
       store.state.locks = {};
       noCooldown(store);
-      var second = store.actions.watchAd({ verified: true, adUnit: 'heart_reward', txId: 'tx-v172-b' });
+      var second = store.actions.watchAd({ verified: true, adUnit: 'heart_reward', txId: 'tx-v173-b' });
       ok(second.ok, '둘째 광고');
       eq(second.gained, 1, '예전처럼 +1');
       eq(second.dailyBoost, 0, '부스트 없음');
@@ -239,12 +239,12 @@
     });
   });
 
-  test('v1.72 부스트: 하루가 바뀌면 다시 생기고, 같은 날 두 광고도 부스트는 한 번', function () {
+  test('v1.73 부스트: 하루가 바뀌면 다시 생기고, 같은 날 두 광고도 부스트는 한 번', function () {
     var y = U.ymd(U.addDays(new Date(), -1));
     var rows = [
-      D.toRow({ id: 'v172ad_y1', type: '광고하트', createdAt: y + ' 09:00:00', date: y, userKey: ME, likes: 1 }),
-      D.toRow({ id: 'v172ad_y2', type: '광고하트', createdAt: y + ' 10:00:00', date: y, userKey: ME, likes: 1 }),
-      D.toRow({ id: 'v172ad_t1', type: '광고하트', createdAt: U.ymd() + ' 09:00:00', date: U.ymd(), userKey: ME, likes: 1 })
+      D.toRow({ id: 'v173ad_y1', type: '광고하트', createdAt: y + ' 09:00:00', date: y, userKey: ME, likes: 1 }),
+      D.toRow({ id: 'v173ad_y2', type: '광고하트', createdAt: y + ' 10:00:00', date: y, userKey: ME, likes: 1 }),
+      D.toRow({ id: 'v173ad_t1', type: '광고하트', createdAt: U.ymd() + ' 09:00:00', date: U.ymd(), userKey: ME, likes: 1 })
     ];
     var idx = idxOf(rows);
     var st = D.heartStatus(idx, ME, Date.now());
@@ -257,7 +257,7 @@
     eq(noAdsYet.dailyBoostLeft, 1, '오늘 광고 전이면 부스트 남음');
   });
 
-  test('v1.72 부스트: heart_boost(영구 +1)와 함께 쌓인다 — 첫 광고 3개', function () {
+  test('v1.73 부스트: heart_boost(영구 +1)와 함께 쌓인다 — 첫 광고 3개', function () {
     return storeWith([]).then(function (store) {
       var buy = store.actions.buyDeco('boost', 'heart');
       ok(buy.ok && buy.purchased, '하트 부스트 해금');
@@ -266,7 +266,7 @@
       eq(store.state.data.hearts.adReward, 2, '광고 +2 (부스트)');
       eq(store.state.data.hearts.dailyBoostLeft, 1, '오늘 부스트도 남음');
       store.state.locks = {};
-      var ad = store.actions.watchAd({ verified: true, adUnit: 'heart_reward', txId: 'tx-v172-boost' });
+      var ad = store.actions.watchAd({ verified: true, adUnit: 'heart_reward', txId: 'tx-v173-boost' });
       ok(ad.ok, '광고');
       eq(ad.boost, 1, '영구 부스트 +1');
       eq(ad.dailyBoost, 1, '오늘 부스트 +1');
@@ -274,19 +274,19 @@
     });
   });
 
-  test('v1.72 부스트: 하루 5회·30초 간격 가드는 그대로', function () {
+  test('v1.73 부스트: 하루 5회·30초 간격 가드는 그대로', function () {
     return storeWith([]).then(function (store) {
       var got = 0;
       for (var i = 0; i < 5; i++) {
         store.state.locks = {};
         noCooldown(store);
-        var r = store.actions.watchAd({ verified: true, adUnit: 'heart_reward', txId: 'tx-v172-limit-' + i });
+        var r = store.actions.watchAd({ verified: true, adUnit: 'heart_reward', txId: 'tx-v173-limit-' + i });
         if (r.ok) got++;
       }
       eq(got, 5, '하루 5회');
       store.state.locks = {};
       noCooldown(store);
-      var over = store.actions.watchAd({ verified: true, adUnit: 'heart_reward', txId: 'tx-v172-limit-6' });
+      var over = store.actions.watchAd({ verified: true, adUnit: 'heart_reward', txId: 'tx-v173-limit-6' });
       eq(over.ok, false, '6번째는 막힘');
       eq(over.reason, 'limit', '이유: 한도');
       eq(store.state.data.hearts.dailyBoostLeft, 0, '부스트도 소진');
@@ -294,7 +294,7 @@
     });
   });
 
-  test('v1.72 부스트: 안내 문구는 시트·하트 카드 공용 (받기 전/받은 뒤)', function () {
+  test('v1.73 부스트: 안내 문구는 시트·하트 카드 공용 (받기 전/받은 뒤)', function () {
     var g = BM.ads.getStatus({ adReward: 1, adLimit: 5, adUsedToday: 0, adRemaining: 5,
       dailyBoostLeft: 1, dailyBoostAmount: 1, dailyBoost: { amount: 1, usedToday: false, available: true } });
     includes(BM.ads.dailyBoostText(g), '오늘 첫 광고에 +1', '받기 전');
@@ -312,7 +312,7 @@
     includes(BM.ads.dailyBoostText(noAd), '내일 첫 광고에', '내일 안내');
   });
 
-  test('v1.72 부스트: MY 하트 카드·공용 충전 시트에 줄과 1탭 채우기 버튼', function () {
+  test('v1.73 부스트: MY 하트 카드·공용 충전 시트에 줄과 1탭 채우기 버튼', function () {
     var hearts = {
       balance: 0, checkinReward: 1, checkedInToday: true, canCheckIn: false,
       adReward: 1, adLimit: 5, adUsedToday: 1, adRemaining: 4, adCooldownSec: 30, nextAdInSec: 0, nextAdAt: 0,
@@ -342,7 +342,7 @@
    * C. 📅 코트 약속 카드 — 1:1 대화방 1탭 제안·응답
    * ========================================================= */
 
-  test('v1.72 약속: 카드 글은 구조화되고, 깨진 값은 카드로 만들지 않는다', function () {
+  test('v1.73 약속: 카드 글은 구조화되고, 깨진 값은 카드로 만들지 않는다', function () {
     var text = D.apptText({ id: 'p1', gym: '나래울체육관', date: '2026-11-27', time: '19:00', note: '첫 게임은 워밍업' });
     includes(text, D.APPT.card, '표시로 시작');
     var ap = D.apptParse(text);
@@ -364,7 +364,7 @@
     eq(D.apptWhen('2026-11-27', '25:99'), '11월 27일 (금) 25:99', '이상한 시간도 글자로는 보임');
   });
 
-  test('v1.72 약속: 좋아요 / 시간 조정 응답과 목록 미리보기', function () {
+  test('v1.73 약속: 좋아요 / 시간 조정 응답과 목록 미리보기', function () {
     eq(D.apptReplyParse(D.apptReplyText('p1', 'ok')).kind, 'ok', '좋아요');
     eq(D.apptReplyParse(D.apptReplyText('p1', 'adjust')).kind, 'adjust', '시간 조정');
     eq(D.apptReplyParse(D.apptReplyText('p1', 'ok')).id, 'p1', 'id');
@@ -381,9 +381,9 @@
     includes(D.apptStatusLabel(''), '기다', '기다리는 중');
   });
 
-  test('v1.72 약속: 성사된 상대에게만 보낼 수 있고, 응답이 대화에 남는다', function () {
+  test('v1.73 약속: 성사된 상대에게만 보낼 수 있고, 응답이 대화에 남는다', function () {
     return storeWith([]).then(function (store) {
-      var room = 'v172match';
+      var room = 'v173match';
       var res = store.actions.sendAppt(room, PEER, { gym: '나래울체육관', date: '2026-11-27', time: '19:00', note: '한 게임' });
       ok(res.ok, '친구·매칭 상대에게 보냄');
       ok(res.card && res.card.gym === '나래울체육관', '보낸 카드 돌려줌');
@@ -394,7 +394,7 @@
       eq(row.userKey, ME, '보낸 사람');
       ok(D.apptParse(row.text), '글에 카드 표시');
       eq(store.actions.sendAppt(room, PEER, { gym: '', date: '2026-11-27', time: '19:00' }).reason, 'empty', '빈 체육관 거절');
-      eq(store.actions.sendAppt(room, 'u_v172_stranger', { gym: '코트', date: '2026-11-27', time: '19:00' }).reason,
+      eq(store.actions.sendAppt(room, 'u_v173_stranger', { gym: '코트', date: '2026-11-27', time: '19:00' }).reason,
         'not_allowed', '모르는 사람에게는 못 보냄');
 
       var ans = store.actions.respondAppt(room, PEER, res.card.id, 'ok');
@@ -414,7 +414,7 @@
     });
   });
 
-  test('v1.72 약속: 대화방에 📅 약속 잡기 버튼과 카드(좋아요·시간 조정)가 그려진다', function () {
+  test('v1.73 약속: 대화방에 📅 약속 잡기 버튼과 카드(좋아요·시간 조정)가 그려진다', function () {
     var msgs = [
       { id: 'c1', userKey: PEER, nick: '콕집사', text: D.apptText({ id: 'p9', gym: '나래울체육관', date: '2026-11-27', time: '19:00', note: '한 게임' }),
         createdAt: '2026-11-25 09:00:00' }
@@ -456,7 +456,7 @@
     includes(BM.views.chat.roomHtml(state), '답을 기다리는 중', '기다리는 중');
   });
 
-  test('v1.72 약속: 약속 시트는 체육관·날짜·시간을 받아 보내고, 모자란 값을 잡아 준다', function () {
+  test('v1.73 약속: 약속 시트는 체육관·날짜·시간을 받아 보내고, 모자란 값을 잡아 준다', function () {
     var src = readRoot('js/views/chat.js');
     includes(src, 'data-apt-field="gym"', '체육관 칸');
     includes(src, 'type="date"', '날짜 칸');
@@ -470,7 +470,7 @@
     includes(readRoot('js/store.js'), 'respondAppt: function', 'store 에 respondAppt');
   });
 
-  test('v1.72 약속: 대화 목록·알림도 JSON 대신 사람 말로 보인다', function () {
+  test('v1.73 약속: 대화 목록·알림도 JSON 대신 사람 말로 보인다', function () {
     var state = {
       me: { key: ME },
       data: {
@@ -493,7 +493,7 @@
    * D. 일지 약점 칩 `수비` → 수비 타이밍 코칭
    * ========================================================= */
 
-  test('v1.72 수비: 약점 칩에 수비가 있고, 고르면 수비 코칭 드릴이 나온다', function () {
+  test('v1.73 수비: 약점 칩에 수비가 있고, 고르면 수비 코칭 드릴이 나온다', function () {
     includes(D.VOCAB.weakness, '수비', '약점 목록');
     eq(D.VOCAB.weakness.length, 9, '9종');
     var an = BM.ai.analyze({ draft: { weakness: ['수비'], cond: 7, intensity: 6, minutes: 60 }, records: [], level: 'B조', discipline: '복식' });
@@ -503,7 +503,7 @@
     eq(an.drills.drills.length, 3, '드릴 3개');
   });
 
-  test('v1.72 수비: 일지 화면 약점 칩이 VOCAB 목록을 그대로 쓴다', function () {
+  test('v1.73 수비: 일지 화면 약점 칩이 VOCAB 목록을 그대로 쓴다', function () {
     var log = readRoot('js/views/log.js');
     includes(log, "UI.chips('weakness', D.VOCAB.weakness", '일지 약점 칩');
     includes(readRoot('js/ai.js'), "'수비': [", '수비 드릴 묶음');
@@ -514,7 +514,7 @@
    * E. 스티커 글씨 색 3종 — 흰색 · 라임 · 골드
    * ========================================================= */
 
-  test('v1.72 스티커: 글씨 색은 흰색·라임·골드 3종, 모르는 값은 흰색', function () {
+  test('v1.73 스티커: 글씨 색은 흰색·라임·골드 3종, 모르는 값은 흰색', function () {
     var SC = BM.sharecard;
     eq(SC.STICKER_INKS.length, 3, '3색');
     eq(SC.STICKER_INKS.map(function (k) { return k.id; }).join(','), 'white,lime,gold', '순서·이름');
@@ -525,7 +525,7 @@
     eq(SC.inkById(null).id, 'white', '빈 값도 흰색');
   });
 
-  test('v1.72 스티커: 고른 색이 스펙·캔버스·시트 칩에 그대로 간다', function () {
+  test('v1.73 스티커: 고른 색이 스펙·캔버스·시트 칩에 그대로 간다', function () {
     var SC = BM.sharecard;
     var spec = {
       mode: 'today', design: 'sticker', ratio: 'feed', shade: 'original', palette: 'night', bg: '',
@@ -564,7 +564,7 @@
     includes(body, 'data-sc-ink="gold"', '골드 칩');
   });
 
-  test('v1.72 스티커: 색은 스티커에서만, 기기에 기억된다', function () {
+  test('v1.73 스티커: 색은 스티커에서만, 기기에 기억된다', function () {
     var src = readRoot('js/sharecard.js');
     includes(src, 'inkPicks()', '칸을 그린다');
     includes(src, 'sticker ? \'\' : \' hidden\'', '스티커가 아니면 숨김');
@@ -577,7 +577,7 @@
    * F. 기존 기능 보호 · 안전 · 버전
    * ========================================================= */
 
-  test('v1.72 보호: 하트 규칙(5회·30초·2개·1개)과 보상 값은 그대로', function () {
+  test('v1.73 보호: 하트 규칙(5회·30초·2개·1개)과 보상 값은 그대로', function () {
     eq(D.HEART_RULES.AD_PER_DAY, 5, '하루 5회');
     eq(D.HEART_RULES.AD_COOLDOWN_SEC, 30, '30초');
     eq(D.HEART_RULES.MATCH_COST, 2, '매칭 2개');
@@ -589,7 +589,7 @@
     eq(D.decoPrice('card:champ'), 2, '챔피언 카드 프레임 2개');
   });
 
-  test('v1.72 보호: 기존 대화 기능(말풍선·링크·매너 태그·신고)은 그대로', function () {
+  test('v1.73 보호: 기존 대화 기능(말풍선·링크·매너 태그·신고)은 그대로', function () {
     var chat = readRoot('js/views/chat.js');
     includes(chat, 'D.linkify(m.text)', '링크 말풍선');
     includes(chat, 'data-dm-safety', '신고·차단');
@@ -599,7 +599,7 @@
     includes(readRoot('js/store.js'), 'sendChat: function', 'store sendChat');
   });
 
-  test('v1.72 안전: 실존 선수 이름·민감값·서버 전송이 없다', function () {
+  test('v1.73 안전: 실존 선수 이름·민감값·서버 전송이 없다', function () {
     var files = ['js/domain.js', 'js/ads.js', 'js/store.js', 'js/views/my.js', 'js/views/chat.js', 'js/sharecard.js'];
     var names = ['김원호', '안세영', '서승재', '이용대'];
     files.forEach(function (f) {
@@ -614,21 +614,21 @@
     excludes(dom, "'약속카드'", '새 행 유형을 만들지 않음');
   });
 
-  test('v1.72 버전: sw · app · 스타일 캐시 · TWA · README · 테스트 목록이 함께', function () {
+  test('v1.73 버전: sw · app · 스타일 캐시 · TWA · README · 테스트 목록이 함께', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.72.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.72.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261125-1', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.73.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.73.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261125-2', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.72.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.72.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 66, 'TWA 버전 코드');
-    includes(readRoot('README.md'), 'bm-v1.72.0', 'README 변경 이력');
-    includes(readRoot('test/run.js'), 'test/v172.test.js', '테스트 목록');
-    includes(readRoot('sw.js'), 'bm-v1.72.0', swIconCheck(readRoot('sw.js')));
+    eq(twa.appVersionName, '1.73.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.73.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 67, 'TWA 버전 코드');
+    includes(readRoot('README.md'), 'bm-v1.73.0', 'README 변경 이력');
+    includes(readRoot('test/run.js'), 'test/v173.test.js', '테스트 목록');
+    includes(readRoot('sw.js'), 'bm-v1.73.0', swIconCheck(readRoot('sw.js')));
   });
 
   function swIconCheck(sw) {
-    return sw.indexOf('bm-v1.72.0') >= 0 ? '버전 캐시 키' : '버전 없음';
+    return sw.indexOf('bm-v1.73.0') >= 0 ? '버전 캐시 키' : '버전 없음';
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

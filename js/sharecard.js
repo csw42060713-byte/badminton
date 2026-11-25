@@ -1660,6 +1660,22 @@
     return out;
   }
 
+  /* 완료한 훈련 이름 — '풋워크' / '풋워크 · 스트록' / '풋워크 · 스트록 외 2' (bm-v1.72.0)
+   * 운동 시간·점수가 없는 일지(예: 11/21 · 풋워크)도 영수증에서 무엇을 했는지 보이게 합니다. */
+  function doneLine(rec) {
+    var done = (rec && rec.done) || [];
+    done = done.filter(function (x) { return String(x || '').trim(); });
+    if (!done.length) return '';
+    if (done.length <= 2) return done.join(' · ');
+    return done.slice(0, 2).join(' · ') + ' 외 ' + (done.length - 2);
+  }
+
+  /* 일지에 적은 한 줄 메모 — 영수증에는 18자까지만 */
+  function noteLineOf(rec) {
+    var t = String((rec && (rec.text || rec.note)) || '').replace(/\s+/g, ' ').trim();
+    return t ? U.truncate(t, 18) : '';
+  }
+
   /* 영수증 줄 — 일지·대회 값 그대로. 값이 없으면 화면 글(날짜·장소)에서 나눕니다. */
   function receiptRows(spec) {
     var rows = [];
@@ -1683,9 +1699,12 @@
     }
     add('날짜', day);
     add('운동시간', spec.minutes ? spec.minutes + '분' : '');
+    /* 시간·점수가 없어도 완료한 훈련과 한 줄 메모는 영수증에 남깁니다 (bm-v1.72.0) */
+    add('훈련', spec.doneText || '');
     add('체육관', gym);
     add('경기', spec.recordText || '');
     add('컨디션', spec.condText || '');
+    add('한 줄', spec.noteText || '');
     add('함께', spec.partnerName || '');
     add('상대', spec.rivalName || '');
     return rows;
@@ -1806,7 +1825,9 @@
     centered('TOTAL', y, 17, 700, MONO, PAPER.ink3, 5);
     y += 128;
     var bitext = String((spec.big && spec.big.value) || '') + String((spec.big && spec.big.unit) || '');
-    var bigFit = fitText(g, bitext || '—', iw, spec.mode === 'comp' ? 94 : 108, 900, FONT, 38);
+    /* 숫자 대신 훈련 이름이 들어온 카드는 조금 작게 — 종이 위에서 눈에 편하게 (bm-v1.72.0) */
+    var bigMax = spec.mode === 'comp' ? 94 : (spec.big && spec.big.textOnly ? 78 : 108);
+    var bigFit = fitText(g, bitext || '—', iw, bigMax, 900, FONT, 38);
     centered(bigFit.text, y, bigFit.size, 900, FONT, PAPER.ink, -2);
 
     /* 전적 한 줄 — 메달 색이면 그 색으로 */
@@ -2367,7 +2388,7 @@
    * 스티커 — 배경 투명 · 얇은 글씨 + 큰 숫자 + 셔틀콕 라인
    * ============================================================ */
 
-  /* 스티커 글씨 색 — 흰색(기본) · 라임 · 골드 3색 (bm-v1.72.0)
+  /* 스티커 글씨 색 — 흰색(기본) · 라임 · 골드 3색 (bm-v1.73.0)
    *  · 내 사진 톤(어두운 코트·따뜻한 조명)에 맞춰 고르라고 넣었습니다.
    *  · 색은 기기(localStorage)에 기억하고, 투명 PNG에 그 색 그대로 그립니다. */
   var STICKER_INKS = [
@@ -2852,7 +2873,7 @@
        * 사진이 없어도 바로 화보 같은 카드가 보입니다 (bm-v1.71.0) */
       bg: bgById(prefs.bg).id || BGS[0].id,
       frame: frameOptionById(prefs.frame).id,
-      /* 스티커 글씨 색 — 마지막에 고른 색을 기억 (기본 흰색, bm-v1.72.0) */
+      /* 스티커 글씨 색 — 마지막에 고른 색을 기억 (기본 흰색, bm-v1.73.0) */
       ink: inkById(prefs.ink).id,
       phrase: phraseText(prefs.phrase) || DEFAULT_PHRASE,
       phraseComp: phraseText(prefs.phraseComp) || DEFAULT_PHRASE,
@@ -2903,7 +2924,7 @@
       textPos: textPosById(ui.textPos).id,
       /* 카드 프레임은 대회 인증 카드에만 (bm-v1.64.0) */
       frame: ui.mode === 'comp' ? frameOptionById(ui.frame).id : 'none',
-      /* 스티커 글씨 색 3종 (bm-v1.72.0) — 스티커에서만 그립니다 */
+      /* 스티커 글씨 색 3종 (bm-v1.73.0) — 스티커에서만 그립니다 */
       ink: inkById(ui.ink).id,
       /* 사진 필터 (bm-v1.67.0) — 사진이 없으면 그릴 때 쓰지 않습니다 */
       filter: filterById(ui.filter).id,
@@ -2944,6 +2965,12 @@
     var meta = (rec && dom().logMeta) ? dom().logMeta(rec) : {};
     var bigs = todayBigs(rec, { streak: stats.streak, aiScore: an ? an.score : (rec && rec.score) });
     var primary = bigs[0] || null;
+    /* 시간·점수가 없는 일지도 카드 가운데가 비지 않게 — 완료한 훈련 → 한 줄 메모 순서 (bm-v1.72.0) */
+    var doneText = doneLine(rec);
+    var noteText = noteLineOf(rec);
+    var fallbackBig = !primary && doneText
+      ? { value: doneText, unit: '', label: '오늘의 훈련', textOnly: true }
+      : (!primary && noteText ? { value: noteText, unit: '', label: '오늘의 한 줄', textOnly: true } : null);
     var day = dateLine(rec && rec.date);
     var gym = ui.gym || '';
     var topBits = [];
@@ -2975,19 +3002,27 @@
     if (ui.win !== false && tally.count && tally.wins > tally.losses) winText = tally.losses === 0 ? 'GG' : 'WIN';
     /* 자랑 하이라이트 — 오늘 전승 · 이번 달 N시간 · N일 연속 (끄기 가능) */
     var hl = (ui.badge === false) ? [] : highlightsOf(records, stats, rec, { ymd: U.ymd() });
+    var condText = (function () {
+      if (!rec || rec.cond == null || rec.cond === '') return '';
+      var band = (dom() && dom().condBandOf) ? dom().condBandOf(rec.cond) : null;
+      return band ? band.short : String(rec.cond);
+    })();
+    /* 숫자가 없는 일지는 큰 글씨(훈련 이름) 아래 한 줄을 날짜 대신 컨디션으로 */
+    var underLine = labelBits.join(' · ');
+    if (!primary) underLine = condText ? '컨디션 ' + condText : (day || '');
 
     return mix(base, {
       mode: 'today', title: '오늘 운동',
       phrase: phrase,
       top: topBits.join(' · '),
-      kicker: primary ? primary.label : '',
+      kicker: primary ? primary.label : (fallbackBig ? fallbackBig.label : ''),
       big: primary ? { value: String(primary.value), unit: primary.unit || '', label: primary.label }
-        : { value: '', unit: '', label: '' },
+        : (fallbackBig || { value: '', unit: '', label: '' }),
       bigLine: primary ? (primary.value + (primary.unit ? primary.unit : '') + (bigs[1] ? ' · ' + bigs[1].value + (bigs[1].unit || '') : '')) : '',
       stats: rest,
       meta: people.join(' · '),
       metaLine: [people.join(' · '), tagLine].filter(Boolean).join(' · '),
-      label: labelBits.join(' · '),
+      label: underLine,
       /* 스탬프·배지·태그 (bm-v1.67.0) */
       stamp: winText, hasStamp: !!winText,
       badge: hl[0] ? hl[0].text : '',
@@ -2997,15 +3032,13 @@
       /* 영수증 줄 — 일지에 적힌 값 그대로 (영수증 카드가 이 값으로 표를 그립니다) */
       gymName: gym,
       minutes: (rec && rec.minutes) ? rec.minutes : null,
+      doneText: doneText,
+      noteText: noteText,
       recordText: tally.count
         ? [tally.wins ? tally.wins + '승' : '', tally.losses ? tally.losses + '패' : '',
            tally.draws ? tally.draws + '무' : ''].filter(Boolean).join(' ')
         : '',
-      condText: (function () {
-        if (!rec || rec.cond == null || rec.cond === '') return '';
-        var band = (dom() && dom().condBandOf) ? dom().condBandOf(rec.cond) : null;
-        return band ? band.short : String(rec.cond);
-      })(),
+      condText: condText,
       partnerName: partner,
       rivalName: rival
     });
@@ -3025,6 +3058,17 @@
       '<input type="text" data-sc-field="' + name + '" maxlength="' + (opts.max || 24) + '" ' +
       'placeholder="' + U.esc(opts.placeholder || '') + '" value="' + U.esc(value || '') + '"' +
       (opts.inputmode ? ' inputmode="' + opts.inputmode + '"' : '') + '></label>';
+  }
+
+  /* 날짜 입력 — 대회 인증 날짜를 직접 고릅니다 (bm-v1.72.0) */
+  function dateField(label, name, value, opts) {
+    opts = opts || {};
+    var ymd = String(value || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) ymd = U.ymd();
+    return '<label class="flabel sc__datefield"><span>' + U.esc(label) + '</span>' +
+      '<input type="date" data-sc-field="' + name + '" value="' + U.esc(ymd) + '"' +
+      ' aria-label="' + U.esc(label) + '">' +
+      (opts.hint ? '<small class="hint">' + U.esc(opts.hint) + '</small>' : '') + '</label>';
   }
 
   /* 카드 문구 — 1탭 프리셋 5종 + '직접 쓰기'(입력칸으로) — bm-v1.61.0 */
@@ -3049,7 +3093,7 @@
       '</div>';
   }
 
-  /* 스티커 글씨 색 3종 — 스티커(투명) 디자인에서만 (bm-v1.72.0) */
+  /* 스티커 글씨 색 3종 — 스티커(투명) 디자인에서만 (bm-v1.73.0) */
   function inkPicks() {
     var sticker = ui.design === 'sticker';
     var cur = inkById(ui.ink).id;
@@ -3318,9 +3362,11 @@
       '</div>' +
       field('상대(라이벌)', 'rival', ui.rival, { max: 12, placeholder: '비워도 돼요' });
 
-    /* 대회 인증 — 대회명·종목·성적·파트너는 접지 않고 바로 입력 */
+    /* 대회 인증 — 대회 날짜·대회명·종목·성적·파트너는 접지 않고 바로 입력
+     * 날짜는 오늘로 고정하지 않고 지난 대회 날짜로 바꿀 수 있게 합니다 (bm-v1.72.0) */
     var compFields = '<div class="sc__compbox">' +
       '<div class="field__label"><span>대회 정보</span><small>카드에 그대로 들어가요</small></div>' +
+      dateField('대회 날짜', 'date', ui.date, { hint: '지난 대회 날짜로 바꿀 수 있어요' }) +
       field('대회명', 'contest', ui.contest, { max: 24, placeholder: '예: ○○시 오픈 배드민턴 대회' }) +
       field('급수 · 종목', 'event', ui.event, { max: 20, placeholder: '예: B조 복식' }) +
       '<div class="field"><div class="field__label"><span>성적</span></div>' +
@@ -3828,7 +3874,7 @@
             repaint();
             return;
           }
-          /* 스티커 글씨 색 3종 (bm-v1.72.0) */
+          /* 스티커 글씨 색 3종 (bm-v1.73.0) */
           var ik = ev.target.closest('[data-sc-ink]');
           if (ik) {
             ev.preventDefault();
@@ -4052,7 +4098,7 @@
     phraseById: phraseById, phraseText: phraseText, isPresetPhrase: isPresetPhrase,
     dimsOf: dimsOf,
     TEXT_POS: TEXT_POS, textPosById: textPosById,
-    /* bm-v1.72.0 — 스티커 글씨 색 3종 */
+    /* bm-v1.73.0 — 스티커 글씨 색 3종 */
     STICKER_INKS: STICKER_INKS, inkById: inkById,
     ZOOM_MIN: ZOOM_MIN, ZOOM_MAX: ZOOM_MAX, ZOOM_STEP: ZOOM_STEP,
     zoomOf: zoomOf, zoomLabel: zoomLabel,

@@ -1,4 +1,4 @@
-"""bm-v1.72.0 로컬 점검 (390×844) — 30일 출석 · 오늘의 하트 부스트 · 📅 코트 약속 카드 · 스티커 3색 · 수비 칩
+"""bm-v1.73.0 로컬 점검 (390×844) — 30일 출석 · 오늘의 하트 부스트 · 📅 코트 약속 카드 · 스티커 3색 · 수비 칩
 
 · 127.0.0.1 로 띄운 저장소를 그대로 봅니다(Supabase·구글·지도 타일·CDN 요청은 막습니다).
 · 진짜 앱(index.html)을 local 모드로 열고 실제 버튼을 눌러 확인합니다.
@@ -21,11 +21,11 @@ from functools import partial
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-PORT = int(os.environ.get('V172_PORT', '8872'))
+PORT = int(os.environ.get('V173_PORT', '8873'))
 BASE = 'http://127.0.0.1:%d/' % PORT
 EXE = '/workspace/tmp/chrome159/chrome-headless-shell-linux64/chrome-headless-shell'
-OUT = os.environ.get('V172_OUT', '/workspace/downloads')
-SHOTS = os.environ.get('V172_SHOTS', '/workspace/check-shots')
+OUT = os.environ.get('V173_OUT', '/workspace/downloads')
+SHOTS = os.environ.get('V173_SHOTS', '/workspace/check-shots')
 
 checks, errs, csp, blocked = [], [], [], []
 
@@ -78,7 +78,7 @@ with sync_playwright() as p:
     page.on('dialog', lambda d: (errs.append('DIALOG: ' + d.message), d.dismiss()))
 
     def shot(name):
-        path = SHOTS + '/v172_' + name + '.png'
+        path = SHOTS + '/v173_' + name + '.png'
         page.screenshot(path=path)
         print('  saved ' + path, flush=True)
         return path
@@ -120,13 +120,13 @@ with sync_playwright() as p:
         page.wait_for_timeout(2600)
 
     # ── A. 파일 · 버전 ──
-    check('A sw.js bm-v1.72.0', "var VERSION = 'bm-v1.72.0'" in read('sw.js'))
-    check('A index styles.css?v=20261125-1', 'styles.css?v=20261125-1' in read('index.html'))
+    check('A sw.js bm-v1.73.0', "var VERSION = 'bm-v1.73.0'" in read('sw.js'))
+    check('A index styles.css?v=20261125-2', 'styles.css?v=20261125-2' in read('index.html'))
     twa = read('twa-manifest.json')
-    check('A TWA 1.72.0 · 코드 66', '"appVersionName": "1.72.0"' in twa and '"appVersionCode": 66' in twa)
+    check('A TWA 1.73.0 · 코드 67', '"appVersionName": "1.73.0"' in twa and '"appVersionCode": 67' in twa)
 
     login('승우')
-    check('A 앱 버전 v1.72.0', page.evaluate("() => BM.app.version") == 'v1.72.0',
+    check('A 앱 버전 v1.73.0', page.evaluate("() => BM.app.version") == 'v1.73.0',
           page.evaluate("() => BM.app.version"))
     tabs = page.evaluate("() => BM.app.TABS.map(t => t.id)")
     check('A 5개 탭 그대로', tabs == ['log', 'matching', 'community', 'coach', 'my'], tabs)
@@ -309,7 +309,7 @@ with sync_playwright() as p:
     cv = page.locator('#sheet .sc__canvas')
     cv.scroll_into_view_if_needed()
     page.wait_for_timeout(300)
-    cv.screenshot(path=OUT + '/v172_local_sticker_gold.png')
+    cv.screenshot(path=OUT + '/v173_local_sticker_gold.png')
     check('F 골드 글씨가 캔버스에 있다', page.evaluate("""() => {
       const c = document.querySelector('#sheet .sc__canvas');
       const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;

@@ -213,7 +213,7 @@
     var me = (state.me && state.me.key) || '';
     var mine = m.userKey === me;
     var p = UI.person(state, mine ? me : (group ? m.userKey : otherKey));
-    /* 코트 약속 카드 · 1탭 응답 — 1:1 방에서만 카드로 그립니다 (bm-v1.72.0) */
+    /* 코트 약속 카드 · 1탭 응답 — 1:1 방에서만 카드로 그립니다 (bm-v1.73.0) */
     var ap = group ? null : D.apptParse(m.text);
     var rp = (group || ap) ? null : D.apptReplyParse(m.text);
     var body;
@@ -337,7 +337,7 @@
         : '<div class="dm__locked">' + UI.icon('clock') + '로그인하고, 글쓴이가 수락하면 단체방에서 대화할 수 있어요</div>');
   }
 
-  /* ---------- 코트 약속 카드 (bm-v1.72.0) ----------
+  /* ---------- 코트 약속 카드 (bm-v1.73.0) ----------
    * 1:1 대화방에서 체육관·날짜·시간을 구조화해 보내고, 받는 사람이
    * `좋아요` / `시간 조정`을 1탭으로 고릅니다. 카드 글은 domain.apptText 형식이고
    * 여기서는 그리기만 합니다(모르는 형식은 예전처럼 글자로). */
@@ -595,7 +595,7 @@
         if (key && BM.views.profile) BM.views.profile.open(key, ctx);
         return;
       }
-      /* 📅 코트 약속 — 입력창 옆 빠른 버튼 (bm-v1.72.0) */
+      /* 📅 코트 약속 — 입력창 옆 빠른 버튼 (bm-v1.73.0) */
       var aptBtn = ev.target.closest('[data-dm-appt]');
       if (aptBtn) {
         ev.preventDefault();

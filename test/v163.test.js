@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v163.test.js — bm-v1.72.0
+ * test/v163.test.js — bm-v1.73.0
  *   📸 인스타 공유 시트 단순화 · 사진 버튼 상단 + 기본 감성 배경 4종
  *
  *  사용자 피드백: "어 잘안보여 그리고 어떡게 하는건지 복잡해"
@@ -450,16 +450,16 @@
     includes(ui, 'tune:', '접기 아이콘');
   });
 
-  test('v1.63 버전: sw · app · index · TWA가 함께 bm-v1.72.0', function () {
+  test('v1.63 버전: sw · app · index · TWA가 함께 bm-v1.73.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.72.0'", 'sw.js');
-    includes(sw, 'bm-v1.72.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.72.0'", 'app.js');
+    includes(sw, "var VERSION = 'bm-v1.73.0'", 'sw.js');
+    includes(sw, 'bm-v1.73.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.73.0'", 'app.js');
     ok(/styles\.css\?v=20261125-\d+/.test(index), 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.72.0', 'TWA 이름');
-    eq(twa.appVersion, '1.72.0', 'TWA 버전');
-    eq(twa.appVersionCode, 66, 'TWA 코드');
+    eq(twa.appVersionName, '1.73.0', 'TWA 이름');
+    eq(twa.appVersion, '1.73.0', 'TWA 버전');
+    eq(twa.appVersionCode, 67, 'TWA 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

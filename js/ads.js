@@ -175,7 +175,7 @@
       freeHeartsLeft: (canCheckIn ? checkinReward : 0) + remaining * adReward + dailyBoostLeft,
       freeChancesLeft: (canCheckIn ? 1 : 0) + remaining,
 
-      /* 오늘의 하트 부스트 — 오늘 첫 광고 한 편에 +1 (bm-v1.72.0) */
+      /* 오늘의 하트 부스트 — 오늘 첫 광고 한 편에 +1 (bm-v1.73.0) */
       dailyBoost: h.dailyBoost || null,
       dailyBoostAmount: dailyBoostAmount,
       dailyBoostLeft: dailyBoostLeft,
@@ -207,7 +207,7 @@
     return head + left + '일 더 하면 보너스 하트 +' + amount;
   }
 
-  /* 오늘의 하트 부스트 안내 한 줄 — MY 하트 카드·충전 시트 공용 (bm-v1.72.0)
+  /* 오늘의 하트 부스트 안내 한 줄 — MY 하트 카드·충전 시트 공용 (bm-v1.73.0)
    *  · 하트 부스트(영구 +1)를 열지 않은 사람도 광고를 볼 이유가 되도록,
    *    그날 첫 광고에 +1을 더 줍니다. */
   function dailyBoostText(s) {
@@ -296,7 +296,7 @@
       var store = BM.app && BM.app.ctx && BM.app.ctx.store;
       var h = store && store.state && store.state.data && store.state.data.hearts;
       if (h && numVal(h.adReward, 0) > 0) {
-        /* 오늘의 하트 부스트가 남아 있으면 그날 첫 광고 보상에 함께 붙습니다 (bm-v1.72.0) */
+        /* 오늘의 하트 부스트가 남아 있으면 그날 첫 광고 보상에 함께 붙습니다 (bm-v1.73.0) */
         return numVal(h.adReward, 1) + numVal(h.dailyBoostLeft, 0);
       }
     } catch (e) { /* 화면이 없는 환경(테스트)에서는 기본값 */ }

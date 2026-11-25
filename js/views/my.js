@@ -99,7 +99,7 @@
 
   /* 연속 출석 안내 — 하트 카드 · 꾸미기 패널이 함께 씁니다
    *  왼쪽 줄: 꾸미기 무료 해금(3·7·14일 + 30일 챔피언 배지)까지,
-   *  아래 줄: 하트 보너스(3·7·14·30일)까지 (bm-v1.72.0) */
+   *  아래 줄: 하트 보너스(3·7·14·30일)까지 (bm-v1.73.0) */
   function streakLine(hearts) {
     var days = hearts.checkinStreak || 0;
     var next = hearts.streakNext;
@@ -109,7 +109,7 @@
     return days + '일 연속 출석 중 · ' + next.days + '일까지 ' + next.left + '일 (' + gift + ' 무료)';
   }
 
-  /* 3·7·14·30일 연속 출석 보너스 한 줄 (bm-v1.72.0) — 공용 충전 시트와 같은 문구를 씁니다 */
+  /* 3·7·14·30일 연속 출석 보너스 한 줄 (bm-v1.73.0) — 공용 충전 시트와 같은 문구를 씁니다 */
   function streakBonusLine(hearts) {
     var live = liveHearts(hearts);
     if (BM.ads && typeof BM.ads.streakText === 'function') return BM.ads.streakText(live);
@@ -118,7 +118,7 @@
     return b.left + '일 더 하면 보너스 하트 +' + b.amount;
   }
 
-  /* 오늘의 하트 부스트 한 줄 (bm-v1.72.0) — 하트 부스트를 아직 열지 않은 사람도
+  /* 오늘의 하트 부스트 한 줄 (bm-v1.73.0) — 하트 부스트를 아직 열지 않은 사람도
    * 오늘 첫 리워드 광고 한 편에 하트 +1을 더 받습니다. */
   function dailyBoostLine(hearts) {
     var live = liveHearts(hearts);

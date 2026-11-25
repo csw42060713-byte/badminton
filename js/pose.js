@@ -1029,14 +1029,21 @@
   }
 
   function demoJump() {
-    return ['good', 'late'].map(function (kind, si) {
-      var frames = jumpFrames(kind);
-      var span = round1(frames[frames.length - 1].t);
-      return {
-        seg: { index: si, start: 0, end: span, span: span, label: (si + 1) + '구간' },
+    var out = [], at = 0;
+    ['good', 'late'].forEach(function (kind, si) {
+      /* 두 예시는 따로 찍은 영상이 아니라 한 흐름의 앞뒤입니다.
+       * 시간을 이어 붙여 '1구간 0.0~1.5초 · 2구간 1.5~3.0초'로 구분합니다 (bm-v1.72.0) */
+      var frames = jumpFrames(kind).map(function (f) {
+        return { t: round1(f.t + at), lm: f.lm };
+      });
+      var span = round1(frames[frames.length - 1].t - at);
+      out.push({
+        seg: { index: si, start: at, end: round1(at + span), span: span, label: (si + 1) + '구간' },
         frames: frames
-      };
+      });
+      at = round1(at + span);
     });
+    return out;
   }
 
   /* ============================================================
@@ -1280,6 +1287,19 @@
       }).join('') + '</div>';
   }
 
+  /* 예시 버튼 3종 — 한 예시를 본 뒤에도 다른 예시로 바로 바꿀 수 있게 늘 함께 보여 줍니다 (bm-v1.72.0) */
+  function demoLinksHtml(current) {
+    var cur = current === 'one' ? '' : (current || '');
+    var items = [{ kind: '', name: '기본 예시' }];
+    if (state.mode === 'smash') items.push({ kind: 'jump', name: '점프 스매시 예시' });
+    items.push({ kind: 'duo', name: '복식(2명) 예시' });
+    return items.map(function (it) {
+      var on = cur === it.kind;
+      return '<button type="button" class="linkbtn' + (on ? ' is-on' : '') + '" data-pose-demo="' + it.kind + '"' +
+        (on ? ' aria-current="true"' : '') + '>' + U.esc(it.name) + '</button>';
+    }).join('');
+  }
+
   function statusHtml() {
     if (state.error) {
       return '<div class="pose__status pose__status--err" data-pose-status>' +
@@ -1293,12 +1313,14 @@
     }
     if (!state.segs.length) {
       return '<div class="pose__status" data-pose-status>' +
-        '<p>영상을 고르면 <b>이 기기 안에서만</b> 5~10초 구간으로 나눠 모두 분석할게요. 15초 안쪽 영상이 가장 정확해요.</p>' +
-        '<div class="row gap8 mt8 wrap"><button type="button" class="linkbtn" data-pose-demo>영상 없이 예시로 먼저 보기</button>' +
-        (state.mode === 'smash'
-          ? '<button type="button" class="linkbtn" data-pose-demo="jump">점프 스매시 예시(최고점 타점)</button>'
-          : '') +
-        '<button type="button" class="linkbtn" data-pose-demo="duo">복식(2명) 예시</button></div></div>';
+        '<p>영상을 고르면 <b>이 기기 안에서만</b> 5~10초 구간으로 나눠 모두 분석할게요. 15초 안쪽 영상이 가장 정확해요.<br><b>영상 없이 예시로 먼저 보기</b> — 아래에서 바로 고를 수 있어요.</p>' +
+        '<div class="row gap8 mt8 wrap">' + demoLinksHtml('') + '</div></div>';
+    }
+    /* 예시를 본 뒤에도 다른 예시로 바꿀 수 있게 전환 줄을 남깁니다 */
+    if (state.demo) {
+      return '<div class="pose__status pose__demo" data-pose-status>' +
+        '<p>예시로 보고 있어요. 다른 예시로 바로 바꿀 수 있어요.</p>' +
+        '<div class="row gap8 mt8 wrap">' + demoLinksHtml(state.demo) + '</div></div>';
     }
     return '';
   }

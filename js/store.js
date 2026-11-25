@@ -1529,7 +1529,7 @@
         return { ok: true, group: group };
       },
 
-      /* 1:1 대화방 `📅 코트 약속` 카드 (bm-v1.72.0)
+      /* 1:1 대화방 `📅 코트 약속` 카드 (bm-v1.73.0)
        *  · 체육관·날짜·시간을 구조화해 그대로 보냅니다. 화면은 이 글을 카드로 그립니다.
        *  · 새 칸 없이 `매칭채팅` 행의 글(text)에 표시([[APT]]{…})만 남깁니다. */
       sendAppt: function (roomId, otherKey, appt) {
@@ -1800,7 +1800,7 @@
           return { ok: false, reason: 'cooldown', retryAfter: status.nextAdInSec };
         }
         var boost = me ? D.heartBoost(state.idx, me, state.me && state.me.theme) : { bonus: 0 };
-        /* 오늘의 하트 부스트 — 그날 첫 광고 한 편에 +1 (bm-v1.72.0, 하루 1회)
+        /* 오늘의 하트 부스트 — 그날 첫 광고 한 편에 +1 (bm-v1.73.0, 하루 1회)
          *  · 행(likes)에는 예전처럼 광고값(1 + 부스트)만 적고, 하루 부스트는
          *    원장(heartLedger)이 '그날 첫 광고 행'에서 한 줄로 더합니다 — 두 번 들어가지 않게. */
         var firstToday = !(status.adUsedToday > 0);

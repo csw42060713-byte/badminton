@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v164.test.js — bm-v1.72.0
+ * test/v164.test.js — bm-v1.73.0
  *   ideas.md 2026-11-24 아침 구상 → 오전 9시 코드 수정
  *
  *   1) [수익화 × 리텐션] 하트 연속 출석 보너스 3·7·14일 + 하트 부스트 실보상
@@ -14,7 +14,7 @@
  *      · 같은 txId 는 한 번만 적립 · 웹에서는 기존 미리보기/쿨타임 가드 그대로
  *   3) [버그] 일지 저장·수정·삭제 직후 히어로 요약(이번 달 N분·승률·최근 2주) 즉시 갱신
  *   4) [여력] 대회 인증 카드 챔피언 골드 프레임 — 하트 2개로 영구 해금
- *   5) 버전(bm-v1.72.0) · 캐시 · 테스트 목록 · 보호
+ *   5) 버전(bm-v1.73.0) · 캐시 · 테스트 목록 · 보호
  *
  *   실행: node test/run.js
  * ============================================================ */
@@ -614,17 +614,17 @@
    * 6. 버전 · 캐시 · 보호
    * ========================================================= */
 
-  test('v1.64 버전: sw · app · index · TWA가 함께 bm-v1.72.0', function () {
+  test('v1.64 버전: sw · app · index · TWA가 함께 bm-v1.73.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
-    includes(sw, "var VERSION = 'bm-v1.72.0'", 'sw.js');
-    includes(sw, 'bm-v1.72.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.72.0'", 'app.js');
-    includes(index, 'styles.css?v=20261125-1', 'styles.css 캐시');
+    includes(sw, "var VERSION = 'bm-v1.73.0'", 'sw.js');
+    includes(sw, 'bm-v1.73.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.73.0'", 'app.js');
+    includes(index, 'styles.css?v=20261125-2', 'styles.css 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.72.0', 'TWA 이름');
-    eq(twa.appVersion, '1.72.0', 'TWA 버전');
-    eq(twa.appVersionCode, 66, 'TWA 코드');
+    eq(twa.appVersionName, '1.73.0', 'TWA 이름');
+    eq(twa.appVersion, '1.73.0', 'TWA 버전');
+    eq(twa.appVersionCode, 67, 'TWA 코드');
   });
 
   test('v1.64 배선: 새 파일 없이 화면 코드만 · 테스트 목록에 v164', function () {

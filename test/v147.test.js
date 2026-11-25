@@ -144,7 +144,7 @@
       var before = store.state.data.hearts.balance;
       var r1 = store.actions.watchAd({ verified: true, adUnit: 'heart_boost', txId: 'tx-v147-dup' });
       ok(r1.ok, '첫 적립');
-      /* 오늘 첫 광고라 오늘의 하트 부스트 +1이 함께 붙습니다 (bm-v1.72.0) */
+      /* 오늘 첫 광고라 오늘의 하트 부스트 +1이 함께 붙습니다 (bm-v1.73.0) */
       eq(r1.gained, 2, '+1 + 오늘 부스트 1');
       eq(r1.dailyBoost, 1, '오늘 부스트');
       var r2 = store.actions.watchAd({ verified: true, adUnit: 'heart_boost', txId: 'tx-v147-dup' });
@@ -444,11 +444,11 @@
 
   test('v1.47 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.72.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.72.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261125-1', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.72.0"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 66', '앱 버전 코드');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.73.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.73.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261125-2', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.73.0"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 67', '앱 버전 코드');
   });
 
   test('v1.47 배선: 새 파일 없이 기존 파일만 바뀐다 (서비스워커·테스트 목록)', function () {

@@ -664,7 +664,7 @@
       eq(store.state.data.hearts.checkedInToday, false, '시작');
       var r = store.actions.checkIn();
       ok(r.ok, '출석 성공');
-      /* bm-v1.72.0 — 픽스처는 어제까지 2일 연속이라 오늘이 3일째, 연속 보너스 +1이 함께 붙습니다 */
+      /* bm-v1.73.0 — 픽스처는 어제까지 2일 연속이라 오늘이 3일째, 연속 보너스 +1이 함께 붙습니다 */
       eq(r.base, 1, '출석 보상 1');
       eq(r.gained, 2, '1 + 3일 연속 보너스 1');
       eq(store.state.data.hearts.balance, 10, '잔액 +2');
