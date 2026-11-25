@@ -1,6 +1,6 @@
 # PLAY_STORE_GUIDE.md — 플레이 스토어 출시 가이드 (TWA · Bubblewrap)
 
-배드민턴 분석 앱을 **구글 플레이 스토어**에 올리기까지의 순서입니다.
+셔틀릭스(`Shuttlix`) 앱을 **구글 플레이 스토어**에 올리기까지의 순서입니다.
 웹 앱(PWA)을 그대로 안드로이드 앱으로 감싸는 **TWA(Trusted Web Activity)** 방식이라
 앱 코드는 웹사이트 한 벌만 관리하면 됩니다.
 
@@ -159,8 +159,8 @@ bubblewrap build
 
 | 질문 | 넣을 값 |
 |---|---|
-| Application name | 배드민턴 분석 |
-| Short name | 배드민턴 |
+| Application name | 셔틀릭스 (Shuttlix) |
+| Short name | 셔틀릭스 |
 | Application ID | `io.github.csw42060713_byte.badminton` (**한 번 정하면 변경 불가**) |
 | Display mode | `standalone` |
 | Status bar / navigation color | `#F6F8F6` (나이트 테마는 `#080B0A`) |
@@ -180,7 +180,7 @@ bubblewrap build
 ## 4. Play Console 등록
 
 1. **Play Console → 앱 만들기**
-   - 앱 이름: `배드민턴 분석` (30자 이내)
+   - 앱 이름: `셔틀릭스` (30자 이내 — 스토어 등록 이름)
    - 기본 언어: 한국어
    - 앱 또는 게임: 앱 / 무료
    - 선언: 개발자 프로그램 정책 동의
@@ -195,7 +195,7 @@ bubblewrap build
 | 앱 아이콘 | 512×512 PNG (32bit) | `store-assets/icon-512.png` |
 | 대표 그래픽 | 1024×500 PNG/JPG | `store-assets/feature-graphic-1024x500.png` |
 | 휴대전화 스크린샷 | 2~8장, 320~3840px, 16:9~9:16 | `store-assets/screenshot-1-matching.png` … `-4-my.png` (1080×1920) |
-| 앱 이름 | 30자 | 배드민턴 분석 |
+| 앱 이름 | 30자 | 셔틀릭스 (Shuttlix) |
 | 간단한 설명 | 80자 | 아래 문구 사용 |
 | 자세한 설명 | 4000자 | 아래 문구 사용 |
 
