@@ -95,7 +95,7 @@
   test('하트: 요청을 보낼 때는 빼지 않고, 상대가 수락하면 보낸 사람 하트 2개가 빠진다', function () {
     return freshStore().then(function (store) {
       var before = store.state.data.hearts.balance;
-      eq(before, 6, '시작 잔액');
+      eq(before, 8, '시작 잔액');
       var res = store.actions.requestMatch('demo_chi', '토요일 오전 어때요?');
       ok(res.ok, '요청 보내기');
       eq(store.state.data.hearts.balance, before, '보낼 때는 차감 없음');
@@ -153,15 +153,15 @@
       ok(store.actions.respondMatch(incoming.id, '수락').ok, '수락');
       eq(D.heartStatus(store.state.idx, incoming.userKey).balance, senderBefore,
         '이미 낸 요청이라 보낸 사람 원장이 그대로');
-      eq(store.state.data.hearts.balance, 6, '내 잔액도 그대로');
+      eq(store.state.data.hearts.balance, 8, '내 잔액도 그대로');
     });
   });
 
   test('하트: 수락할 때 보낸 사람 하트가 모자라면 있는 만큼만 차감한다', function () {
     return freshStore().then(function (store) {
-      store.actions.requestMatch('demo_chi', '한 게임 해요');   /* 6개 보유 상태에서 요청 */
+      store.actions.requestMatch('demo_chi', '한 게임 해요');   /* 8개 보유 상태에서 요청 */
       var req = mineSent(store, 'demo_chi');
-      for (var i = 0; i < 5; i++) {                               /* 그 사이 하트를 써서 1개만 남김 */
+      for (var i = 0; i < 7; i++) {                               /* 그 사이 하트를 써서 1개만 남김 */
         store.state.locks = {};
         ok(store.actions.giftHeart('demo_koala').ok, '하트 선물 ' + (i + 1));
       }
@@ -425,7 +425,7 @@
     var sw = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf8');
     var css = fs.readFileSync(path.join(rootDir, 'styles.css'), 'utf8');
     includes(app, 'pendingMatch', '상단 채팅 배지에 매칭 요청 포함');
-    ok(/var VERSION = 'bm-v1.71.0'/.test(sw), 'sw.js');
+    ok(/var VERSION = 'bm-v1.72.0'/.test(sw), 'sw.js');
     includes(css, '.letter {', '편지지 스타일');
     includes(css, '.dmgroupav', '단체방 아이콘 스타일');
   });

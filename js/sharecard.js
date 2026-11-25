@@ -756,6 +756,7 @@
     }
     var extra = [designById(s.design).name, ratioById(s.ratio).name];
     if (s.photo) extra.push(shadeById(s.shade).name);
+    if (designById(s.design).id === 'sticker') extra.push('글씨 ' + inkById(s.ink).name);
     extra.push(paletteById(s.palette).name);
     return text + ' / ' + extra.join(' · ');
   }
@@ -2365,8 +2366,28 @@
   /* ============================================================
    * 스티커 — 배경 투명 · 얇은 글씨 + 큰 숫자 + 셔틀콕 라인
    * ============================================================ */
+
+  /* 스티커 글씨 색 — 흰색(기본) · 라임 · 골드 3색 (bm-v1.72.0)
+   *  · 내 사진 톤(어두운 코트·따뜻한 조명)에 맞춰 고르라고 넣었습니다.
+   *  · 색은 기기(localStorage)에 기억하고, 투명 PNG에 그 색 그대로 그립니다. */
+  var STICKER_INKS = [
+    { id: 'white', name: '흰색', fill: '#ffffff' },
+    { id: 'lime', name: '라임', fill: '#ccff4d' },
+    { id: 'gold', name: '골드', fill: '#ffd166' }
+  ];
+
+  function inkById(id) {
+    var v = String(id || '');
+    for (var i = 0; i < STICKER_INKS.length; i++) if (STICKER_INKS[i].id === v) return STICKER_INKS[i];
+    return STICKER_INKS[0];
+  }
+
   function paintSticker(g, spec, p, F) {
     if (spec.showNums === false) { paintStickerMood(g, spec, p, F); return; }
+    var ink = inkById(spec.ink);
+    var inkFill = ink.fill;
+    /* 흰색일 때는 예전 그대로(단위·포인트는 카드 색), 색을 고르면 글씨 전체가 그 색 */
+    var inkOn = ink.id !== 'white';
     var pad = F.pad;
     var maxW = F.W - pad * 2;
     var labelY = F.bottom - 46;
@@ -2401,7 +2422,7 @@
     g.strokeStyle = 'rgba(0,0,0,0.26)';
     g.lineWidth = Math.max(3, bigSize * 0.022);
     outlineText(g, fitted.text, pad, bigBase);
-    g.fillStyle = '#ffffff';
+    g.fillStyle = inkFill;
     g.font = font(bigSize, 900, FONT);
     g.shadowColor = 'rgba(0,0,0,0.5)';
     g.shadowBlur = 26;
@@ -2413,7 +2434,7 @@
       g.strokeStyle = 'rgba(0,0,0,0.22)';
       g.lineWidth = 3;
       outlineText(g, unit, pad + valueW + 14, bigBase - Math.round(bigSize * 0.05));
-      g.fillStyle = p.accent;
+      g.fillStyle = inkOn ? inkFill : p.accent;
       g.shadowColor = 'rgba(0,0,0,0.42)';
       g.shadowBlur = 18;
       g.fillText(unit, pad + valueW + 14, bigBase - Math.round(bigSize * 0.05));
@@ -2427,7 +2448,7 @@
       g.strokeStyle = 'rgba(0,0,0,0.22)';
       g.lineWidth = 3;
       outlineText(g, l.text, pad, labelY);
-      g.fillStyle = 'rgba(255,255,255,0.92)';
+      g.fillStyle = inkOn ? inkFill : 'rgba(255,255,255,0.92)';
       g.shadowColor = 'rgba(0,0,0,0.5)';
       g.shadowBlur = 20;
       g.fillText(l.text, pad, labelY);
@@ -2443,7 +2464,7 @@
       g.strokeStyle = 'rgba(0,0,0,0.24)';
       g.lineWidth = 3;
       outlineText(g, pt.text, pad + 62, stampY + 10);
-      g.fillStyle = '#ffffff';
+      g.fillStyle = inkFill;
       g.shadowColor = 'rgba(0,0,0,0.5)';
       g.shadowBlur = 20;
       g.fillText(pt.text, pad + 62, stampY + 10);
@@ -2453,6 +2474,8 @@
 
   /* 스티커 무드 — 숫자 없이 문구·날짜만 (땀샷·라켓샷 스토리용) */
   function paintStickerMood(g, spec, p, F) {
+    var ink = inkById(spec.ink);
+    var inkOn = ink.id !== 'white';
     var pad = F.pad, maxW = F.W - pad * 2;
     var pos = textPosById(spec.textPos).id;
     var pf = fitText(g, spec.phrase || '', maxW - 66, 48, 800, FONT, 22);
@@ -2482,15 +2505,15 @@
     g.textAlign = 'left';
     g.lineJoin = 'round';
     paintShuttle(g, pad + 20, top + pf.size * 0.5, 40, p.accent);
-    stickerText(pf.text, pad + 58, top + pf.size * 0.82, pf.size, 800, '#ffffff', 1);
+    stickerText(pf.text, pad + 58, top + pf.size * 0.82, pf.size, 800, ink.fill, 1);
     var y = top + pf.size + 18;
     if (stamp) {
       tracking(g, 1);
-      stickerText(stamp, pad + 58, y + 10, 21, 600, 'rgba(255,255,255,0.9)', 0.92);
+      stickerText(stamp, pad + 58, y + 10, 21, 600, inkOn ? ink.fill : 'rgba(255,255,255,0.9)', 0.92);
       tracking(g, 0);
     }
     if (tag) {
-      stickerText(tag, pad + 58, y + (stamp ? 44 : 10), 21, 700, p.accent, 0.96);
+      stickerText(tag, pad + 58, y + (stamp ? 44 : 10), 21, 700, inkOn ? ink.fill : p.accent, 0.96);
     }
   }
 
@@ -2829,6 +2852,8 @@
        * 사진이 없어도 바로 화보 같은 카드가 보입니다 (bm-v1.71.0) */
       bg: bgById(prefs.bg).id || BGS[0].id,
       frame: frameOptionById(prefs.frame).id,
+      /* 스티커 글씨 색 — 마지막에 고른 색을 기억 (기본 흰색, bm-v1.72.0) */
+      ink: inkById(prefs.ink).id,
       phrase: phraseText(prefs.phrase) || DEFAULT_PHRASE,
       phraseComp: phraseText(prefs.phraseComp) || DEFAULT_PHRASE,
       /* 글씨 위치는 마지막에 고른 값을 기억합니다 (기본 '아래' = 예전과 같음) */
@@ -2878,6 +2903,8 @@
       textPos: textPosById(ui.textPos).id,
       /* 카드 프레임은 대회 인증 카드에만 (bm-v1.64.0) */
       frame: ui.mode === 'comp' ? frameOptionById(ui.frame).id : 'none',
+      /* 스티커 글씨 색 3종 (bm-v1.72.0) — 스티커에서만 그립니다 */
+      ink: inkById(ui.ink).id,
       /* 사진 필터 (bm-v1.67.0) — 사진이 없으면 그릴 때 쓰지 않습니다 */
       filter: filterById(ui.filter).id,
       /* 숫자 표시 — 끄면 시간·승패 없이 문구·날짜만 (bm-v1.67.0) */
@@ -3020,6 +3047,22 @@
       'maxlength="' + PHRASE_MAX + '" placeholder="카드에 넣을 문구 (24자까지)" ' +
       'aria-label="카드 문구 직접 입력" value="' + U.esc(cur) + '">' +
       '</div>';
+  }
+
+  /* 스티커 글씨 색 3종 — 스티커(투명) 디자인에서만 (bm-v1.72.0) */
+  function inkPicks() {
+    var sticker = ui.design === 'sticker';
+    var cur = inkById(ui.ink).id;
+    return '<div class="field sc__inkbox" data-sc-inkbox' + (sticker ? '' : ' hidden') + '>' +
+      '<div class="field__label"><span>스티커 글씨 색</span><small>내 사진 톤에 맞춰</small></div>' +
+      '<div class="chips chips--wrap sc__inks" role="group" aria-label="스티커 글씨 색">' +
+      STICKER_INKS.map(function (k) {
+        var on = cur === k.id;
+        return '<button type="button" class="chip sc__ink sc__ink--' + k.id + (on ? ' is-on' : '') + '"' +
+          ' data-sc-ink="' + k.id + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+          '<i aria-hidden="true" style="background:' + k.fill + '"></i>' + U.esc(k.name) + '</button>';
+      }).join('') + '</div>' +
+      '<p class="hint">투명 PNG에 이 색으로 글씨가 그려져요.</p></div>';
   }
 
   /* 사진 필터 5종 — 사진이 들어갔을 때만 (bm-v1.67.0) */
@@ -3379,7 +3422,7 @@
 
     return modeTabs + guide + emptyNote + preview + photoBox +
       (ui.mode === 'comp' ? compFields : '') +
-      designPicks + lookPicks() + ratioPicks + textPosPicks + shadePicks + more + saveBar;
+      designPicks + inkPicks() + lookPicks() + ratioPicks + textPosPicks + shadePicks + more + saveBar;
   }
 
   function paintPreview(wrap, ctx) {
@@ -3427,6 +3470,10 @@
     /* 사진 필터 — 사진이 들어갔을 때만 */
     var fb = node.querySelector('.sc__filterbox');
     if (fb) fb.hidden = !ui.photo || sticker;
+    /* 스티커 글씨 색 — 스티커 디자인에서만 */
+    var ib = node.querySelector('[data-sc-inkbox]');
+    if (ib) ib.hidden = !sticker;
+    syncInk(node);
     syncTextPos(node);
     syncLook(node);
     /* 기본 배경 4종 — 내 사진이 있으면 배경은 꺼진 상태 */
@@ -3471,6 +3518,17 @@
       wt.setAttribute('aria-pressed', wOn ? 'true' : 'false');
       wt.textContent = 'WIN 스탬프 ' + (wOn ? '켜짐' : '꺼짐');
     }
+  }
+
+  /* 스티커 글씨 색 3종 — 고른 색만 켜 보입니다 */
+  function syncInk(node) {
+    if (!node) return;
+    var cur = inkById(ui.ink).id;
+    Array.prototype.forEach.call(node.querySelectorAll('[data-sc-ink]'), function (b) {
+      var on = b.getAttribute('data-sc-ink') === cur;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
   }
 
   /* 글씨 위치 3단 — 고른 자리만 켜 보입니다 */
@@ -3770,6 +3828,17 @@
             repaint();
             return;
           }
+          /* 스티커 글씨 색 3종 (bm-v1.72.0) */
+          var ik = ev.target.closest('[data-sc-ink]');
+          if (ik) {
+            ev.preventDefault();
+            ui.ink = inkById(ik.getAttribute('data-sc-ink')).id;
+            BM.ui.haptic(6);
+            syncInk(node);
+            writePrefs({ ink: ui.ink });
+            repaint();
+            return;
+          }
           var rt = ev.target.closest('[data-sc-ratio]');
           if (rt) {
             ev.preventDefault();
@@ -3983,6 +4052,8 @@
     phraseById: phraseById, phraseText: phraseText, isPresetPhrase: isPresetPhrase,
     dimsOf: dimsOf,
     TEXT_POS: TEXT_POS, textPosById: textPosById,
+    /* bm-v1.72.0 — 스티커 글씨 색 3종 */
+    STICKER_INKS: STICKER_INKS, inkById: inkById,
     ZOOM_MIN: ZOOM_MIN, ZOOM_MAX: ZOOM_MAX, ZOOM_STEP: ZOOM_STEP,
     zoomOf: zoomOf, zoomLabel: zoomLabel,
     photoViewOf: photoViewOf, coverBox: coverBox, photoFrameOf: photoFrameOf, movePhotoBy: movePhotoBy,

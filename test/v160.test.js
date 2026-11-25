@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v160.test.js — bm-v1.71.0
+ * test/v160.test.js — bm-v1.72.0
  *   ✨ 인스타 공유 카드 감성 리디자인 (매거진 · 필름 · 스티커)
  *
  *  사용자가 요청한 그대로를 검증합니다.
@@ -400,9 +400,15 @@
   test('v1.60 모델: 오늘 운동 스펙 — 큰 숫자 1개 + 스탯 2개 · 날짜·체육관·상대', function () {
     if (!hasNode) return;
     var sc = SC();
-    var state = stateOf([rec(),
-      rec({ id: 'r_v160b', date: '2026-11-22' }), rec({ id: 'r_v160c', date: '2026-11-21' })]);
-    sc._setState(uiState({ recordId: 'r_v160', gym: '나래울체육관', partner: '민호', rival: '지호' }));
+    /* 날짜는 '오늘' 기준으로 만듭니다 — 연속 일수는 오늘과의 간격으로 세므로,
+     * 고정 날짜(2026-11-23)를 쓰면 그날이 지난 뒤 이 테스트가 깨집니다. */
+    var today = U.ymd();
+    var y1 = U.ymd(U.addDays(new Date(), -1));
+    var y2 = U.ymd(U.addDays(new Date(), -2));
+    var md = Number(today.slice(5, 7)) + '/' + Number(today.slice(8, 10));
+    var state = stateOf([rec({ date: today }),
+      rec({ id: 'r_v160b', date: y1 }), rec({ id: 'r_v160c', date: y2 })]);
+    sc._setState(uiState({ recordId: 'r_v160', gym: '나래울체육관', partner: '민호', rival: '지호', date: today }));
     var spec = sc._specOf(ctxOf(state));
     eq(spec.design, 'magazine', '기본 매거진');
     eq(spec.ratio, 'feed', '기본 피드');
@@ -412,7 +418,7 @@
     eq(spec.stats.length, 2, '나머지 스탯 2개');
     eq(spec.stats[0].value, '2승 1패', '승패');
     eq(spec.stats[1].value, '3일', '연속');
-    includes(spec.top, '11/23', '위 줄 날짜');
+    includes(spec.top, md, '위 줄 날짜');
     includes(spec.top, '나래울체육관', '위 줄 체육관');
     includes(spec.meta, '민호와 함께', '파트너');
     includes(spec.meta, 'vs 지호', '라이벌');
@@ -602,17 +608,17 @@
     excludes(SC()._sheetBody(ctxOf(stateOf([rec()]))), '김원호', '시트 예시도 가명만');
   });
 
-  test('v1.60 버전: sw · app · index · TWA가 함께 bm-v1.71.0', function () {
+  test('v1.60 버전: sw · app · index · TWA가 함께 bm-v1.72.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.71.0'", 'sw.js');
-    includes(sw, 'bm-v1.71.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.71.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-9', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.71.0', 'TWA 이름');
-    eq(twa.appVersion, '1.71.0', 'TWA 버전');
-    eq(twa.appVersionCode, 65, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.72.0'", 'sw.js');
+    includes(sw, 'bm-v1.72.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.72.0'", 'app.js');
+    includes(index, 'styles.css?v=20261125-1', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.72.0', 'TWA 이름');
+    eq(twa.appVersion, '1.72.0', 'TWA 버전');
+    eq(twa.appVersionCode, 66, 'TWA 코드');
     includes(index, 'js/sharecard.js', 'index 스크립트');
   });
 

@@ -338,7 +338,7 @@
 
   test('v1.41 유지: 4유형 · 게스트 모집 · 친구 코드 같은 기존 기능은 그대로', function () {
     eq(D.ROLES.length, 4, '4유형');
-    eq(D.VOCAB.weakness.length, 8, '약점 8종');
+    eq(D.VOCAB.weakness.length, 9, '약점 9종(수비 포함, bm-v1.72.0)');
     eq(D.VOCAB.pain.length, 8, '통증 8종');
     var comm = readRoot('js/views/community.js');
     includes(comm, '게스트 모집', '게스트 모집 말머리');
@@ -352,11 +352,11 @@
   test('v1.41 버전: sw.js · app.js · twa-manifest.json이 1.41.1으로 맞는다', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.71.0'", 'sw.js');
-    includes(app, "version: 'v1.71.0'", 'app.js');
-    eq(twa.appVersionName, '1.71.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.71.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 65, '코드 38 유지');
+    includes(sw, "var VERSION = 'bm-v1.72.0'", 'sw.js');
+    includes(app, "version: 'v1.72.0'", 'app.js');
+    eq(twa.appVersionName, '1.72.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.72.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 66, '코드 38 유지');
   });
 
   test('v1.41 로드: index.html · sw.js 캐시에 js/report.js가 들어 있다', function () {
@@ -364,7 +364,7 @@
     includes(index, 'js/report.js', 'index.html');
     includes(sw, "./js/report.js", 'sw.js SHELL');
     ok(index.indexOf('js/report.js') < index.indexOf('app.js'), 'app.js보다 먼저');
-    includes(index, 'styles.css?v=20261124-9', '스타일 캐시');
+    includes(index, 'styles.css?v=20261125-1', '스타일 캐시');
     var css = readRoot('styles.css');
     includes(css, '.rptbtn', '입구 스타일');
     includes(css, '.rpt__bar', '막대 스타일');

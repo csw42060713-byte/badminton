@@ -7111,3 +7111,96 @@ body {
 .share-entry__s { font-size: 11.5px; font-weight: 700; color: var(--text-2); letter-spacing: -0.15px; }
 .share-entry__h { font-size: 10.5px; font-weight: 600; color: var(--muted); }
 .share-entry__car { flex: none; width: 16px; height: 16px; color: var(--accent); }
+
+/* ============================================================
+ * bm-v1.72.0 — 30일 출석 · 오늘의 하트 부스트 · 코트 약속 카드 · 스티커 글씨 색
+ * ============================================================ */
+
+/* 오늘의 하트 부스트 한 줄 — 하트 카드·충전 시트 공용 */
+.dailyline {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 6px; padding: 7px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--good) 10%, transparent);
+  color: var(--text-2); font-size: 11.5px; font-weight: 800; letter-spacing: -0.1px;
+}
+.dailyline::before { content: '⚡'; flex: none; font-size: 12px; line-height: 1; }
+.hint.dailyline { margin: 8px 0 0; }
+
+/* 1:1 대화방 — 입력창 옆 📅 약속 잡기 */
+.dm__composer--apt { gap: 7px; }
+.dm__apptbtn {
+  flex: none; display: inline-flex; align-items: center; gap: 3px;
+  min-height: 40px; padding: 0 10px;
+  border-radius: 13px; border: 1px solid var(--accent-line);
+  background: color-mix(in srgb, var(--accent) 10%, var(--card));
+  color: var(--text); font: inherit; font-size: 12px; font-weight: 900;
+  letter-spacing: -0.2px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.dm__apptbtn:active { transform: scale(0.96); }
+.dm__apptbtn span { white-space: nowrap; }
+
+/* 코트 약속 카드 */
+.dmsg--apt { max-width: 92%; }
+.aptcard {
+  width: 232px; max-width: 100%;
+  display: grid; gap: 2px;
+  padding: 12px 13px 11px;
+  border-radius: 16px 16px 16px 6px;
+  border: 1px solid var(--accent-line);
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--accent) 16%, transparent) 0%, transparent 68%),
+    var(--card);
+  box-shadow: var(--shadow-soft);
+}
+.dmsg--me .aptcard { border-radius: 16px 16px 6px 16px; }
+.aptcard__k {
+  margin: 0; font-size: 10.5px; font-weight: 900; letter-spacing: 0.3px;
+  color: var(--accent);
+}
+.aptcard__gym {
+  margin: 4px 0 0; font-size: 15px; font-weight: 900; letter-spacing: -0.35px;
+  color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.aptcard__when {
+  margin: 0; font-size: 13px; font-weight: 800; color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.aptcard__note {
+  margin: 6px 0 0; padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  font-size: 11.8px; font-weight: 600; color: var(--text-2);
+  white-space: pre-wrap; word-break: break-word;
+}
+.aptcard__st {
+  display: flex; align-items: center; gap: 5px;
+  margin: 8px 0 0; font-size: 11.5px; font-weight: 900; color: var(--text-2);
+}
+.aptcard__st span { font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.aptcard__st.is-ok { color: var(--good); }
+.aptcard__acts { display: flex; gap: 6px; margin-top: 9px; }
+.aptcard__acts .btn { flex: 1; min-height: 36px; font-size: 12.5px; }
+.dbubble--apt {
+  background: color-mix(in srgb, var(--good) 12%, var(--card));
+  color: var(--text);
+  font-weight: 800; font-size: 12.5px;
+}
+.dmsg--me .dbubble--apt { background: color-mix(in srgb, var(--good) 18%, var(--card)); color: var(--text); }
+/* 대화 목록 미리보기 — 약속 카드 표시가 길게 늘지 않게 */
+.dmroom__mid p { min-width: 0; }
+
+/* 스티커 글씨 색 3종 */
+.sc__inkbox { margin-top: 12px; }
+.sc__inkbox[hidden] { display: none; }
+.sc__inks { gap: 6px; }
+.sc__ink {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 34px; padding: 0 11px; font-size: 12.2px; font-weight: 800;
+}
+.sc__ink i {
+  flex: none; width: 12px; height: 12px; border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.28);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+}
+.sc__ink.is-on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }

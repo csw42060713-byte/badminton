@@ -253,7 +253,7 @@
       { id: 'grape', name: '그레이프', hint: '퍼플' },
       { id: 'lime', name: '라임', hint: '셔틀콕 포인트' }
     ],
-    badges: ['', '🏸', '🔥', '⭐', '🥇', '👑', '🦋'],
+    badges: ['', '🏸', '🔥', '⭐', '🥇', '👑', '🦋', '🏆'],
     emojis: ['🏸', '🦋', '🐻', '🦊', '🐧', '🐰', '🦉', '🐯', '🐨', '🦌', '🔥', '🌟', '🥇', '⚡', '🐳', '🐍'],
     maxPhotoChars: 60000     /* 시트 한 칸·localStorage를 지키는 상한 (base64 글자 수) */
   };
@@ -311,16 +311,20 @@
     /* bm-v1.64.0 — 하트 부스트: 한 번 열면 계속 쓰는 출석·광고 +1 (소유는 꾸미기구매 행) */
     'boost:heart': 3,
     /* bm-v1.64.0 — 인스타 대회 인증 카드의 챔피언 골드 프레임(하트 2개, 한 번 열면 계속) */
-    'card:champ': 2
+    'card:champ': 2,
+    /* bm-v1.72.0 — 30일 연속 출석 챔피언 배지(연속 30일이면 무료 해금, 그 전에는 하트 3개) */
+    'badge:champ': 3
   };
-  var BADGE_IDS = { '': '', '🏸': 'racket', '🦋': 'butterfly', '🔥': 'fire', '⭐': 'star', '🥇': 'medal', '👑': 'crown' };
-  var BADGE_BY_ID = { racket: '🏸', butterfly: '🦋', fire: '🔥', star: '⭐', medal: '🥇', crown: '👑' };
+  var BADGE_IDS = { '': '', '🏸': 'racket', '🦋': 'butterfly', '🔥': 'fire', '⭐': 'star', '🥇': 'medal', '👑': 'crown', '🏆': 'champ' };
+  var BADGE_BY_ID = { racket: '🏸', butterfly: '🦋', fire: '🔥', star: '⭐', medal: '🥇', crown: '👑', champ: '🏆' };
 
   /* 연속 출석으로 무료 해금되는 꾸미기 — 매일 돌아올 이유(하트를 쓰지 않아도 됨) */
   var STREAK_UNLOCKS = [
     { days: 3, id: 'badge:star', label: '3일 연속 출석 배지' },
     { days: 7, id: 'badge:medal', label: '7일 연속 출석 배지' },
-    { days: 14, id: 'frame:gold', label: '14일 연속 금빛 프레임' }
+    { days: 14, id: 'frame:gold', label: '14일 연속 금빛 프레임' },
+    /* bm-v1.72.0 — 30일을 채운 사람에게만 열리는 챔피언 배지(🏆) */
+    { days: 30, id: 'badge:champ', label: '30일 연속 출석 챔피언 배지' }
   ];
 
   function frameById(id) {
@@ -355,7 +359,7 @@
   }
 
   function badgeLabel(id) {
-    var names = { racket: '라켓', butterfly: '나비', fire: '불꽃', star: '별', medal: '메달', crown: '왕관' };
+    var names = { racket: '라켓', butterfly: '나비', fire: '불꽃', star: '별', medal: '메달', crown: '왕관', champ: '챔피언' };
     return names[String(id || '')] || '';
   }
 
@@ -444,7 +448,7 @@
     disciplines: ['복식', '단식', '혼합복식'],
     done: ['스트록', '벽치기', '런닝', '코어', '풋워크', '스매시', '게임', '웨이트'],
     gameModes: [21, 25],            /* 게임 점수 입력의 점수제 */
-    weakness: ['드라이브', '헤어핀', '드롭', '클리어', '스매시', '풋워크', '서브', '리시브'],
+    weakness: ['드라이브', '헤어핀', '드롭', '클리어', '스매시', '풋워크', '서브', '리시브', '수비'],
     pain: ['목', '어깨', '허리', '팔꿈치', '무릎', '손목', '아킬레스건', '발목'],
     regions: ['서울', '경기', '인천', '부산', '대구', '광주', '대전', '기타'],
     genderFilter: ['전체'].concat(GENDERS.slice(0, 2)),
@@ -474,6 +478,17 @@
     THEME_PRICES: { th_def: 0, th_night: 0, th_court: 0, th_sakura: 0 }
   };
 
+  /* 오늘의 하트 부스트 (bm-v1.72.0) — 하루 첫 광고 한 편에 +1 (하루 1회)
+   *  · 하트 부스트(영구 +1)와 달리 무료이고 매일 새로 생깁니다.
+   *  · 중복 방지 키는 '그날' 하나: 그날 첫 광고 행에서만 원장이 한 줄을 더합니다. */
+  var DAILY_BOOST = { amount: 1, label: '오늘의 하트 부스트' };
+
+  function adDailyBoost(idx, userKey, nowMs) {
+    var today = U.ymd(new Date(nowMs || Date.now()));
+    var used = listOf(idx, '광고하트', userKey).some(function (h) { return dateKeyOf(h) === today; });
+    return { amount: DAILY_BOOST.amount, label: DAILY_BOOST.label, usedToday: used, available: !used };
+  }
+
   /* 연속 출석 보너스를 주는 주기(일) — 예전 7일 규칙(구버전 호환용 이름) */
   var STREAK_BONUS_DAYS = 7;
 
@@ -482,12 +497,24 @@
    *  · 지급은 원장(heartLedger)이 출석 날짜의 연속을 매번 다시 세어 한 번만 더합니다(멱등).
    *  · 같은 구간이 두 번 들어가지 않게 '그 보너스를 받은 날짜'를 키로 씁니다
    *    (streakClaimKey). 하루에 보너스는 한 번뿐이라 달력 날짜가 곧 중복 방지 키입니다. */
+  /* 연속 출석 보너스 (bm-v1.72.0 — 3·7·14·30일, 그 뒤 14일마다 +3)
+   *  · 30일은 하트 +5 — 한 달을 채운 사람에게 가장 큰 보상.
+   *  · 30일 뒤로는 예전처럼 14일마다(42·56…) +3을 한 번씩 더 줍니다. */
   var STREAK_BONUSES = [
     { days: 3, amount: 1 },
     { days: 7, amount: 2 },
-    { days: 14, amount: 3 }
+    { days: 14, amount: 3 },
+    { days: 30, amount: 5 }
   ];
   var STREAK_BONUS_REPEAT_DAYS = 14;
+
+  /* 14일마다 반복되는 보너스의 값 — 30일 칸이 생겨도 반복은 14일 값(+3) 그대로 */
+  function streakRepeatAmount() {
+    for (var i = 0; i < STREAK_BONUSES.length; i++) {
+      if (STREAK_BONUSES[i].days === STREAK_BONUS_REPEAT_DAYS) return STREAK_BONUSES[i].amount;
+    }
+    return STREAK_BONUSES[0].amount;
+  }
 
   /* bm-v1.57.0 — 테마 4종 모두 무료. 나이트·기본 코트·사쿠라·라임 코트를
    * 하트 없이 MY › 테마·시작 화면에서 바로 고릅니다. */
@@ -1752,10 +1779,10 @@
     var R = HEART_RULES;
     var earned = 0, spent = 0, history = [];
 
-    function add(kind, label, delta, row, note) {
+    function add(kind, label, delta, row, note, idSuffix) {
       if (delta > 0) earned += delta; else spent += -delta;
       history.push({
-        id: row.id, at: row.createdAt, atMs: atMsOf(row), date: dateKeyOf(row),
+        id: (row.id || '') + (idSuffix || ''), at: row.createdAt, atMs: atMsOf(row), date: dateKeyOf(row),
         delta: delta, kind: kind, label: label, note: note || '', target: row.target || ''
       });
     }
@@ -1791,6 +1818,22 @@
     });
     listOf(idx, '광고하트', userKey).forEach(function (h) {
       add('ad', '광고 보고 받기', h.likes || R.AD_REWARD, h);
+    });
+    /* 오늘의 하트 부스트 (bm-v1.72.0)
+     *  · 하트 부스트(영구 +1)를 아직 열지 않은 사람도 광고를 볼 이유를 만들기 위해,
+     *    **그날 첫 광고 한 편**에 하트 +1을 한 번 더 줍니다(하루 1회).
+     *  · 보너스 행을 따로 저장하지 않고 '그날 첫 광고 행'에서 매번 세므로(멱등)
+     *    앱을 다시 열거나 기기를 바꿔도 잔액이 같고, 같은 날 두 번 불지 않습니다.
+     *  · 하트 부스트(영구 +1)와는 별개라 함께 받을 수 있습니다(첫 광고 = 1 + 부스트 1 + 오늘 부스트 1). */
+    var adByDay = {};
+    listOf(idx, '광고하트', userKey).forEach(function (h) {
+      var day = dateKeyOf(h);
+      if (!day) return;
+      var cur = adByDay[day];
+      if (!cur || atMsOf(h) < atMsOf(cur)) adByDay[day] = h;
+    });
+    Object.keys(adByDay).forEach(function (day) {
+      add('ad-boost', DAILY_BOOST.label, DAILY_BOOST.amount, adByDay[day], '하루 1회', ':daily');
     });
     listOf(idx, '하트합치기', userKey).forEach(function (h) {
       add('merge', '하트 합치기', h.likes || 1, h);
@@ -1893,7 +1936,7 @@
     }
     if (d > STREAK_BONUS_REPEAT_DAYS && d % STREAK_BONUS_REPEAT_DAYS === 0) {
       return {
-        key: 'streak:' + d, days: d, amount: STREAK_BONUSES[STREAK_BONUSES.length - 1].amount,
+        key: 'streak:' + d, days: d, amount: streakRepeatAmount(),
         label: d + '일 연속 출석 보너스'
       };
     }
@@ -1914,7 +1957,7 @@
     var n = (Math.floor(d / STREAK_BONUS_REPEAT_DAYS) + 1) * STREAK_BONUS_REPEAT_DAYS;
     return {
       days: n, left: n - d,
-      amount: STREAK_BONUSES[STREAK_BONUSES.length - 1].amount, label: n + '일 연속 출석 보너스'
+      amount: streakRepeatAmount(), label: n + '일 연속 출석 보너스'
     };
   }
 
@@ -1944,6 +1987,7 @@
     var streak = checkinStreak(idx, userKey, now);
     var boost = heartBoost(idx, userKey, theme);
     var nextBonus = nextStreakBonus(streak);
+    var dailyBoost = adDailyBoost(idx, userKey, now);
 
     return {
       base: ledger.base,
@@ -1957,6 +2001,10 @@
       canCheckIn: !checkedInToday,
 
       adReward: R.AD_REWARD + boost.bonus,
+      /* 오늘의 하트 부스트 — 오늘 첫 광고에 +1 (하루 1회, 무료) */
+      dailyBoost: dailyBoost,
+      dailyBoostAmount: dailyBoost.amount,
+      dailyBoostLeft: dailyBoost.available ? dailyBoost.amount : 0,
       adLimit: R.AD_PER_DAY,
       adUsedToday: adToday,
       adRemaining: Math.max(0, R.AD_PER_DAY - adToday),
@@ -2902,6 +2950,110 @@
     return U.dayLabel(U.ymd(d));
   }
 
+  /* ---------- 코트 약속 카드 (bm-v1.72.0) ----------
+   * 1:1 대화방에서 체육관·날짜·시간을 구조화해 보내고, 받는 사람이
+   * `좋아요` / `시간 조정`을 한 번에 고릅니다.
+   *  · 새 시트 칸·새 DB 컬럼 없이 기존 `매칭채팅` 행의 글(text)에만 표시를 남깁니다.
+   *    `[[APT]]{…}` = 약속 제안, `[[APT-OK]]{…}` / `[[APT-ADJ]]{…}` = 상대의 1탭 응답.
+   *  · JSON은 앱이 파싱해 카드로 그리고, 모르는 형식·깨진 값은 그대로 글자로 떨어뜨립니다. */
+  var APPT = {
+    card: '[[APT]]', ok: '[[APT-OK]]', adjust: '[[APT-ADJ]]',
+    maxGym: 30, maxNote: 40, maxCards: 200
+  };
+
+  function apptSafe(v, max) {
+    return String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max || 40);
+  }
+
+  function apptDateOk(v) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(v || ''));
+  }
+
+  function apptTimeOk(v) {
+    return /^\d{2}:\d{2}$/.test(String(v || ''));
+  }
+
+  /* 약속 제안 → 메시지 글 */
+  function apptText(o) {
+    o = o || {};
+    var gym = apptSafe(o.gym, APPT.maxGym);
+    var date = apptSafe(o.date, 10);
+    var time = apptSafe(o.time, 5);
+    if (!gym || !apptDateOk(date) || !apptTimeOk(time)) return '';
+    return APPT.card + JSON.stringify({
+      id: apptSafe(o.id, 40) || U.uid(), gym: gym, date: date, time: time, note: apptSafe(o.note, APPT.maxNote)
+    });
+  }
+
+  /* 약속 제안 읽기 — 형식이 아니면 null */
+  function apptParse(text) {
+    var s = String(text || '');
+    if (s.indexOf(APPT.card) !== 0) return null;
+    var o;
+    try { o = JSON.parse(s.slice(APPT.card.length)); } catch (e) { return null; }
+    if (!o || typeof o !== 'object') return null;
+    var gym = apptSafe(o.gym, APPT.maxGym), date = apptSafe(o.date, 10), time = apptSafe(o.time, 5);
+    if (!gym || !apptDateOk(date) || !apptTimeOk(time)) return null;
+    return { id: apptSafe(o.id, 40), gym: gym, date: date, time: time, note: apptSafe(o.note, APPT.maxNote) };
+  }
+
+  /* 1탭 응답 → 메시지 글 (kind: 'ok' | 'adjust') */
+  function apptReplyText(cardId, kind) {
+    var id = apptSafe(cardId, 40);
+    if (!id) return '';
+    return (kind === 'adjust' ? APPT.adjust : APPT.ok) + JSON.stringify({ id: id });
+  }
+
+  function apptReplyParse(text) {
+    var s = String(text || '');
+    var kind = s.indexOf(APPT.ok) === 0 ? 'ok' : (s.indexOf(APPT.adjust) === 0 ? 'adjust' : '');
+    if (!kind) return null;
+    var o;
+    try { o = JSON.parse(s.slice((kind === 'ok' ? APPT.ok : APPT.adjust).length)); } catch (e) { return null; }
+    var id = apptSafe(o && o.id, 40);
+    return id ? { id: id, kind: kind } : null;
+  }
+
+  /* 그 약속 카드에 온 마지막 응답 — { kind, by, at } 또는 null */
+  function apptAnswer(messages, cardId) {
+    var id = apptSafe(cardId, 40);
+    if (!id) return null;
+    var hit = null;
+    (messages || []).forEach(function (m) {
+      var r = apptReplyParse(m && m.text);
+      if (r && r.id === id) hit = { kind: r.kind, by: m.userKey || '', at: m.createdAt || '' };
+    });
+    return hit;
+  }
+
+  /* 말풍선·목록에 보여 줄 사람 말 — 약속 카드는 긴 숫자 대신 한 줄로 */
+  function chatTextPreview(text) {
+    var a = apptParse(text);
+    if (a) return '📅 코트 약속 · ' + a.gym + ' ' + apptWhen(a.date, a.time);
+    var r = apptReplyParse(text);
+    if (r) return r.kind === 'ok' ? '👍 약속 좋아요' : '🕗 약속 시간 조정';
+    return String(text == null ? '' : text);
+  }
+
+  /* '11월 27일 (금) 19:00' — 약속 카드·말풍선 공통 표기 */
+  function apptWhen(date, time) {
+    var key = String(date || '').slice(0, 10);
+    var label = key;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(key)) {
+      var d = new Date(key + 'T00:00:00');
+      var wd = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+      label = (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + wd + ')';
+    }
+    return label + (apptTimeOk(time) ? ' ' + String(time) : '');
+  }
+
+  /* 내가 보낸 약속이 아직 답이 없을 때 화면에 쓰는 한 줄 */
+  function apptStatusLabel(kind) {
+    if (kind === 'ok') return '약속 확정 · 상대가 좋아요를 눌렀어요';
+    if (kind === 'adjust') return '상대가 시간 조정을 제안했어요';
+    return '답을 기다리는 중';
+  }
+
   /* ---------- 2) 활동 상태 ----------
    * 기준: 5분 이내 '활동 중' · 15분 이내 '방금 전 활동' · 1시간 이내 'N분 전 활동'
    *       오늘 '오늘 활동' · 7일 이내 'N일 전 활동' · 그 뒤 '오래전' · 기록 없음 '활동 정보 없음'
@@ -3405,6 +3557,8 @@
     STREAK_BONUSES: STREAK_BONUSES, STREAK_BONUS_REPEAT_DAYS: STREAK_BONUS_REPEAT_DAYS,
     streakBonusFor: streakBonusFor, nextStreakBonus: nextStreakBonus, streakClaimKey: streakClaimKey,
     BOOST_ID: BOOST_ID, BOOST_BONUS: BOOST_BONUS, heartBoost: heartBoost,
+    /* bm-v1.72.0 — 오늘의 하트 부스트(하루 첫 광고 +1) */
+    DAILY_BOOST: DAILY_BOOST, adDailyBoost: adDailyBoost,
     searchText: searchText, matchesQuery: matchesQuery, filterPlayers: filterPlayers, activeFilters: activeFilters,
     matchSearchActive: matchSearchActive,
     HEART_RULES: HEART_RULES,
@@ -3483,6 +3637,10 @@
     /* v1.20 */
     chatTime: chatTime, chatStamp: chatStamp, chatListTime: chatListTime,
     chatDayKey: chatDayKey, chatDayLabel: chatDayLabel,
+    /* bm-v1.72.0 — 코트 약속 카드 */
+    APPT: APPT, apptText: apptText, apptParse: apptParse, apptReplyText: apptReplyText,
+    apptReplyParse: apptReplyParse, apptAnswer: apptAnswer, apptWhen: apptWhen,
+    apptStatusLabel: apptStatusLabel, chatTextPreview: chatTextPreview,
     presenceFromAt: presenceFromAt, lastActiveAt: lastActiveAt, presenceOf: presenceOf,
     INACTIVE_HIDE_DAYS: INACTIVE_HIDE_DAYS, INACTIVE_HIDE_MS: INACTIVE_HIDE_MS,
     activityAtOf: activityAtOf, isInactiveProfile: isInactiveProfile, activityTimes: activityTimes,

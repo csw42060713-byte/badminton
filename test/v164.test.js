@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v164.test.js — bm-v1.71.0
+ * test/v164.test.js — bm-v1.72.0
  *   ideas.md 2026-11-24 아침 구상 → 오전 9시 코드 수정
  *
  *   1) [수익화 × 리텐션] 하트 연속 출석 보너스 3·7·14일 + 하트 부스트 실보상
@@ -14,7 +14,7 @@
  *      · 같은 txId 는 한 번만 적립 · 웹에서는 기존 미리보기/쿨타임 가드 그대로
  *   3) [버그] 일지 저장·수정·삭제 직후 히어로 요약(이번 달 N분·승률·최근 2주) 즉시 갱신
  *   4) [여력] 대회 인증 카드 챔피언 골드 프레임 — 하트 2개로 영구 해금
- *   5) 버전(bm-v1.71.0) · 캐시 · 테스트 목록 · 보호
+ *   5) 버전(bm-v1.72.0) · 캐시 · 테스트 목록 · 보호
  *
  *   실행: node test/run.js
  * ============================================================ */
@@ -81,11 +81,12 @@
    * 1. 연속 출석 보너스 3 · 7 · 14일
    * ========================================================= */
 
-  test('v1.64 연속 보너스 규칙: 3일 +1 · 7일 +2 · 14일 +3, 그 뒤 14일마다', function () {
-    eq(D.STREAK_BONUSES.length, 3, '구간 3개');
+  test('v1.64 연속 보너스 규칙: 3일 +1 · 7일 +2 · 14일 +3 · 30일 +5, 그 뒤 14일마다', function () {
+    eq(D.STREAK_BONUSES.length, 4, '구간 4개');
     eq(D.STREAK_BONUSES[0].days + '/' + D.STREAK_BONUSES[0].amount, '3/1', '3일 +1');
     eq(D.STREAK_BONUSES[1].days + '/' + D.STREAK_BONUSES[1].amount, '7/2', '7일 +2');
     eq(D.STREAK_BONUSES[2].days + '/' + D.STREAK_BONUSES[2].amount, '14/3', '14일 +3');
+    eq(D.STREAK_BONUSES[3].days + '/' + D.STREAK_BONUSES[3].amount, '30/5', '30일 +5');
     eq(D.STREAK_BONUS_REPEAT_DAYS, 14, '반복 주기 14일');
 
     eq(D.streakBonusFor(2), null, '2일은 없음');
@@ -94,6 +95,7 @@
     eq(D.streakBonusFor(14).amount, 3, '14일');
     eq(D.streakBonusFor(21), null, '21일은 없음(14일마다)');
     eq(D.streakBonusFor(28).amount, 3, '28일 +3');
+    eq(D.streakBonusFor(30).amount, 5, '30일 +5');
   });
 
   test('v1.64 연속 보너스 안내: 다음 보너스까지 남은 날', function () {
@@ -104,8 +106,10 @@
     eq(D.nextStreakBonus(3).days, 7, '3일을 받으면 다음은 7일');
     eq(D.nextStreakBonus(6).left, 1, '6일째 → 7일까지 1일');
     eq(D.nextStreakBonus(7).days, 14, '7일을 받으면 다음은 14일');
-    eq(D.nextStreakBonus(14).days, 28, '14일을 받으면 다음은 28일');
-    eq(D.nextStreakBonus(27).left, 1, '27일째 → 28일까지 1일');
+    eq(D.nextStreakBonus(14).days, 30, '14일을 받으면 다음은 30일(챔피언)');
+    eq(D.nextStreakBonus(29).left, 1, '29일째 → 30일까지 1일');
+    eq(D.nextStreakBonus(30).days, 42, '30일을 받으면 그 뒤는 14일마다(42일)');
+    eq(D.nextStreakBonus(30).amount, 3, '42일은 14일 반복값 +3');
   });
 
   test('v1.64 연속 보너스 원장: 3·7·14일째에 한 줄씩 더해진다', function () {
@@ -213,8 +217,9 @@
       store.state.locks = {};
       var ad = store.actions.watchAd({ verified: true, adUnit: 'heart_reward' });
       ok(ad.ok, '광고');
-      eq(ad.gained, 2, '광고도 +2');
+      eq(ad.gained, 3, '광고 +2 + 오늘의 부스트 1');
       eq(ad.boost, 1, '부스트 표시');
+      eq(ad.dailyBoost, 1, '오늘의 부스트 표시');
     });
   });
 
@@ -346,7 +351,7 @@
       try {
         var first = BM.ads.onRewardAdResult(true, 'heart_reward', 'tx-v164-dup');
         ok(first.apply && first.apply.ok, '적립');
-        eq(first.apply.gained, 1, '+1');
+        eq(first.apply.gained, 2, '+1 + 오늘의 하트 부스트 1');
         var again = BM.ads.onRewardAdResult(true, 'heart_reward', 'tx-v164-dup');
         ok(!again.apply.ok, '두 번째는 막힘');
         eq(again.apply.reason, 'duplicate', '중복');
@@ -609,17 +614,17 @@
    * 6. 버전 · 캐시 · 보호
    * ========================================================= */
 
-  test('v1.64 버전: sw · app · index · TWA가 함께 bm-v1.71.0', function () {
+  test('v1.64 버전: sw · app · index · TWA가 함께 bm-v1.72.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
-    includes(sw, "var VERSION = 'bm-v1.71.0'", 'sw.js');
-    includes(sw, 'bm-v1.71.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.71.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-9', 'styles.css 캐시');
+    includes(sw, "var VERSION = 'bm-v1.72.0'", 'sw.js');
+    includes(sw, 'bm-v1.72.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.72.0'", 'app.js');
+    includes(index, 'styles.css?v=20261125-1', 'styles.css 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.71.0', 'TWA 이름');
-    eq(twa.appVersion, '1.71.0', 'TWA 버전');
-    eq(twa.appVersionCode, 65, 'TWA 코드');
+    eq(twa.appVersionName, '1.72.0', 'TWA 이름');
+    eq(twa.appVersion, '1.72.0', 'TWA 버전');
+    eq(twa.appVersionCode, 66, 'TWA 코드');
   });
 
   test('v1.64 배선: 새 파일 없이 화면 코드만 · 테스트 목록에 v164', function () {

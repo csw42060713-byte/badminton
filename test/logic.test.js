@@ -225,12 +225,12 @@
     var idx = D.index(rows.map(D.fromRow));
     var ledger = D.heartLedger(idx, BM.seed.ME);
     eq(ledger.base, 3, '기본 하트');
-    eq(ledger.earned, 6, '적립: 출석2 + 광고2 + 선물받음1 + 합치기1');
+    eq(ledger.earned, 8, '적립: 출석2 + 광고2 + 오늘 부스트2 + 선물받음1 + 합치기1');
     eq(ledger.spent, 3, '사용: 매칭2 + 선물보냄1');
-    eq(ledger.balance, 6, '잔액');
+    eq(ledger.balance, 8, '잔액');
     var kinds = {};
     ledger.history.forEach(function (h) { kinds[h.kind] = true; });
-    ['checkin', 'ad', 'gift-in', 'gift-out', 'merge', 'match'].forEach(function (k) {
+    ['checkin', 'ad', 'ad-boost', 'gift-in', 'gift-out', 'merge', 'match'].forEach(function (k) {
       ok(kinds[k], '원장 종류: ' + k);
     });
     ledger.history.forEach(function (h) {
@@ -249,7 +249,7 @@
     eq(st.canWatchAd, true, '광고 가능');
     eq(st.matchCost, 2, '매칭 비용');
     eq(st.giftCost, 1, '선물 비용');
-    eq(st.balance, 6, '잔액');
+    eq(st.balance, 8, '잔액');
   });
 
   /* ================= 4. 통계 ================= */
@@ -515,18 +515,18 @@
 
   test('매칭: 요청을 보낼 때는 하트를 빼지 않고, 2개 이상인지만 확인한다', function () {
     return freshStore().then(function (store) {
-      eq(store.state.data.hearts.balance, 6, '시작 잔액');
+      eq(store.state.data.hearts.balance, 8, '시작 잔액');
       var targets = ['demo_chi', 'demo_suttle', 'demo_foot'];
       targets.forEach(function (t) {
         store.state.locks = {};
         ok(store.actions.requestMatch(t, '같이 쳐요').ok, t + ' 신청');
       });
-      eq(store.state.data.hearts.balance, 6, '보낼 때는 차감 없음(수락 시 차감)');
+      eq(store.state.data.hearts.balance, 8, '보낼 때는 차감 없음(수락 시 차감)');
       eq((store.state.idx.byType['내하트사용'] || []).filter(function (h) {
         return h.userKey === BM.seed.ME;
       }).length, 1, '새 내하트사용 행은 만들지 않음(예전 성사 건 1건 그대로)');
       /* 보유 하트가 2개보다 적으면 요청 자체를 막는다 (받아도 낼 수 없으므로) */
-      for (var gi = 0; gi < 5; gi++) {     /* 선물 1개씩 다섯 번 → 6개에서 1개 */
+      for (var gi = 0; gi < 7; gi++) {     /* 선물 1개씩 일곱 번 → 8개에서 1개 */
         store.state.locks = {};
         ok(store.actions.giftHeart('demo_koala').ok, '하트 선물 ' + (gi + 1));
       }
@@ -664,10 +664,10 @@
       eq(store.state.data.hearts.checkedInToday, false, '시작');
       var r = store.actions.checkIn();
       ok(r.ok, '출석 성공');
-      /* bm-v1.71.0 — 픽스처는 어제까지 2일 연속이라 오늘이 3일째, 연속 보너스 +1이 함께 붙습니다 */
+      /* bm-v1.72.0 — 픽스처는 어제까지 2일 연속이라 오늘이 3일째, 연속 보너스 +1이 함께 붙습니다 */
       eq(r.base, 1, '출석 보상 1');
       eq(r.gained, 2, '1 + 3일 연속 보너스 1');
-      eq(store.state.data.hearts.balance, 8, '잔액 +2');
+      eq(store.state.data.hearts.balance, 10, '잔액 +2');
       eq(store.state.data.hearts.checkedInToday, true, '완료 표시');
       store.state.locks = {};
       var again = store.actions.checkIn();
@@ -1933,12 +1933,16 @@
         store.state.locks = {};
         ok(store.actions.buyDeco('frame', id).ok, '해금: ' + id);
       });
-      eq(store.state.data.hearts.balance, 0, '잔액 0');
+      eq(store.state.data.hearts.balance, 2, '잔액 2');
       store.state.locks = {};
       var r3 = store.actions.buyDeco('badge', '🔥');
-      eq(r3.ok, false, '하트가 모자라면 막힌다');
-      eq(r3.reason, 'hearts', '이유: 하트 부족');
-      eq(r3.need, 1, '부족한 개수');
+      ok(r3.ok, '남은 1개로 배지 해금');
+      eq(store.state.data.hearts.balance, 1, '잔액 1');
+      store.state.locks = {};
+      var r4 = store.actions.buyDeco('badge', '👑');
+      eq(r4.ok, false, '하트가 모자라면 막힌다');
+      eq(r4.reason, 'hearts', '이유: 하트 부족');
+      eq(r4.need, 1, '부족한 개수');
     });
   });
 

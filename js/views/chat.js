@@ -109,7 +109,7 @@
     var mineGroup = !!(isGroup && gpost && String(gpost.userKey || '') === String(me));
     var confirming = mineGroup && String(listConfirm.roomId) === String(t.roomId);
     var preview = t.last
-      ? (t.last.userKey === me ? '나: ' : (isGroup ? (t.last.nick || '') + ': ' : '')) + t.last.text
+      ? (t.last.userKey === me ? '나: ' : (isGroup ? (t.last.nick || '') + ': ' : '')) + D.chatTextPreview(t.last.text)
       : '대화를 시작해 보세요';
     return '<li class="dmroom' + (isGroup ? ' dmroom--group' : '') + '" data-thread="' + U.esc(t.roomId) + '" data-other="' + U.esc(t.other) + '">' +
       (isGroup
@@ -209,15 +209,23 @@
 
   /* ---------- 대화방 ---------- */
   /* run: 바로 앞 말풍선과 같은 사람이 이어서 보낸 경우 (아바타·닉네임을 한 번만) */
-  function messageHtml(m, state, otherKey, group, run) {
+  function messageHtml(m, state, otherKey, group, run, answers) {
     var me = (state.me && state.me.key) || '';
     var mine = m.userKey === me;
     var p = UI.person(state, mine ? me : (group ? m.userKey : otherKey));
-    return '<div class="dmsg' + (mine ? ' dmsg--me' : '') + (run ? ' is-run' : '') + '">' +
+    /* 코트 약속 카드 · 1탭 응답 — 1:1 방에서만 카드로 그립니다 (bm-v1.72.0) */
+    var ap = group ? null : D.apptParse(m.text);
+    var rp = (group || ap) ? null : D.apptReplyParse(m.text);
+    var body;
+    if (ap) body = apptCardHtml(m, ap, mine, answers, otherKey);
+    else if (rp) body = '<div class="dbubble dbubble--apt">' +
+      (rp.kind === 'ok' ? '👍 약속 좋아요' : '🕗 시간 조정을 제안했어요') + '</div>';
+    else body = '<div class="dbubble">' + D.linkify(m.text) + '</div>';
+    return '<div class="dmsg' + (mine ? ' dmsg--me' : '') + (run ? ' is-run' : '') + (ap ? ' dmsg--apt' : '') + '">' +
       (mine ? '' : '<span class="dmsg__av">' + UI.avatar(p, 28) + '</span>') +
       '<div class="dmsg__col">' +
       (group && !mine && !run ? '<span class="dmsg__nick">' + U.esc(m.nick || p.nick || '회원') + '</span>' : '') +
-      '<div class="dbubble">' + D.linkify(m.text) + '</div>' +
+      body +
       '<time>' + U.esc(D.chatStamp(m.createdAt)) + '</time>' +
       '</div></div>';
   }
@@ -227,6 +235,7 @@
    *  구분선을 못 보는 곳에서도 언제 보낸 글인지 알 수 있습니다) */
   function messagesHtml(messages, state, otherKey, group) {
     var html = '', lastDay = '', lastFrom = '';
+    var answers = group ? null : apptAnswers(messages, (state.me && state.me.key) || '');
     (messages || []).forEach(function (m) {
       var day = D.chatDayKey(m.createdAt);
       if (day && day !== lastDay) {
@@ -236,7 +245,7 @@
       }
       var fromKey = String(m.userKey || '');
       var run = !!fromKey && fromKey === lastFrom;
-      html += messageHtml(m, state, otherKey, group, run);
+      html += messageHtml(m, state, otherKey, group, run, answers);
       lastFrom = fromKey;
     });
     return html;
@@ -328,6 +337,115 @@
         : '<div class="dm__locked">' + UI.icon('clock') + '로그인하고, 글쓴이가 수락하면 단체방에서 대화할 수 있어요</div>');
   }
 
+  /* ---------- 코트 약속 카드 (bm-v1.72.0) ----------
+   * 1:1 대화방에서 체육관·날짜·시간을 구조화해 보내고, 받는 사람이
+   * `좋아요` / `시간 조정`을 1탭으로 고릅니다. 카드 글은 domain.apptText 형식이고
+   * 여기서는 그리기만 합니다(모르는 형식은 예전처럼 글자로). */
+  function apptCardHtml(m, ap, mine, answers, otherKey) {
+    var ans = (answers && answers[ap.id]) || null;
+    var when = D.apptWhen(ap.date, ap.time);
+    var footer;
+    if (ans) {
+      var who = String(ans.by) === String((answers && answers.__me) || '') ? '내가' : '상대가';
+      footer = '<p class="aptcard__st' + (ans.kind === 'ok' ? ' is-ok' : '') + '">' +
+        (ans.kind === 'ok' ? '✅ 약속 확정' : '🕗 시간 조정 제안') +
+        '<span>' + U.esc(who + (ans.kind === 'ok' ? ' 좋아요' : ' 조정 제안')) + '</span></p>';
+    } else if (mine) {
+      footer = '<p class="aptcard__st">답을 기다리는 중</p>';
+    } else {
+      footer = '<div class="aptcard__acts">' +
+        '<button type="button" class="btn btn--primary btn--sm" data-apt-ok="' + U.esc(ap.id) + '">좋아요</button>' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-apt-adjust="' + U.esc(ap.id) + '"' +
+        ' data-apt-gym="' + U.esc(ap.gym) + '" data-apt-date="' + U.esc(ap.date) + '" data-apt-time="' + U.esc(ap.time) + '">시간 조정</button>' +
+        '</div>';
+    }
+    return '<div class="aptcard' + (mine ? ' is-me' : '') + '" data-apt-card="' + U.esc(ap.id) + '">' +
+      '<p class="aptcard__k">📅 코트 약속</p>' +
+      '<p class="aptcard__gym">' + U.esc(ap.gym) + '</p>' +
+      '<p class="aptcard__when">' + U.esc(when) + '</p>' +
+      (ap.note ? '<p class="aptcard__note">' + U.esc(ap.note) + '</p>' : '') +
+      footer + '</div>';
+  }
+
+  /* 약속 카드에 온 답을 id별로 — 상대가 고른 것이 내 화면에 바로 보이게 */
+  function apptAnswers(messages, me) {
+    var out = { __me: String(me || '') };
+    (messages || []).forEach(function (m) {
+      var r = D.apptReplyParse(m && m.text);
+      if (r) out[r.id] = { kind: r.kind, by: String(m.userKey || '') };
+    });
+    return out;
+  }
+
+  /* 다음에 열 약속 시트의 기본값 — 마지막으로 보낸 약속이나 상대 체육관에서 */
+  function apptDefaults(state, otherKey) {
+    var me = state.me || {};
+    var p = otherKey ? UI.person(state, otherKey) : {};
+    var room = findThread(state, state.ui.chatRoom);
+    var last = null;
+    ((room && room.messages) || []).forEach(function (m) {
+      var ap = D.apptParse(m.text);
+      if (ap) last = ap;
+    });
+    return {
+      gym: (last && last.gym) || me.club || p.club || '',
+      date: U.ymd(),
+      time: (last && last.time) || '19:00',
+      note: ''
+    };
+  }
+
+  /* `📅 약속 잡기` 시트 — 체육관·날짜·시간 입력 → 약속 카드 메시지 */
+  function openApptSheet(ctx, otherKey, prefill, roomId) {
+    var state = ctx.store.state;
+    var d = apptDefaults(state, otherKey);
+    var v = { gym: (prefill && prefill.gym) || d.gym, date: (prefill && prefill.date) || d.date,
+      time: (prefill && prefill.time) || d.time };
+    var nick = otherKey ? (UI.person(state, otherKey).nick || '상대') : '상대';
+    UI.openSheet({
+      title: '📅 코트 약속 잡기',
+      body: '<p class="sheet__text">' + U.esc(nick) + '님에게 <b>체육관·날짜·시간</b>을 카드로 보내요. 받으면 좋아요 / 시간 조정을 1탭으로 고를 수 있어요.</p>' +
+        '<label class="flabel">체육관' +
+        '<input type="text" data-apt-field="gym" maxlength="' + D.APPT.maxGym + '" placeholder="예: ○○체육관" value="' + U.esc(v.gym) + '"></label>' +
+        '<div class="row gap8">' +
+        '<label class="flabel grow">날짜<input type="date" data-apt-field="date" value="' + U.esc(v.date) + '"></label>' +
+        '<label class="flabel grow">시간<input type="time" data-apt-field="time" value="' + U.esc(v.time) + '"></label>' +
+        '</div>' +
+        '<label class="flabel">한마디 <span class="muted">(선택 · ' + D.APPT.maxNote + '자)</span>' +
+        '<input type="text" data-apt-field="note" maxlength="' + D.APPT.maxNote + '" placeholder="첫 게임은 같이 워밍업해요"></label>' +
+        '<p class="hint" data-apt-hint>보내면 대화방에 카드로 남아요.</p>' +
+        '<button type="button" class="btn btn--primary btn--big mt8" data-apt-send>약속 카드 보내기</button>' +
+        (prefill ? '<p class="hint">상대가 제안한 시간을 바꿔 새 카드로 보냅니다.</p>' : ''),
+      onMount: function (wrap) {
+        wrap.addEventListener('click', function (ev) {
+          var send = ev.target.closest('[data-apt-send]');
+          if (!send) return;
+          ev.preventDefault();
+          var val = function (k) {
+            var n = wrap.querySelector('[data-apt-field="' + k + '"]');
+            return n ? String(n.value || '').trim() : '';
+          };
+          var ap = { gym: val('gym'), date: val('date'), time: val('time'), note: val('note') };
+          var hint = wrap.querySelector('[data-apt-hint]');
+          if (!ap.gym) { if (hint) hint.textContent = '체육관 이름을 적어 주세요.'; return; }
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(ap.date)) { if (hint) hint.textContent = '날짜를 골라 주세요.'; return; }
+          if (!/^\d{2}:\d{2}$/.test(ap.time)) { if (hint) hint.textContent = '시간을 골라 주세요.'; return; }
+          var rid = roomId || state.ui.chatRoom;
+          var res = ctx.actions.sendAppt(rid, otherKey, ap);
+          if (res && res.ok) {
+            UI.closeSheet();
+            UI.haptic(12);
+            UI.toast('📅 약속 카드를 보냈어요');
+            return;
+          }
+          if (res && res.reason === 'not_allowed') UI.toast('친구이거나 매칭이 성사된 상대와만 약속을 잡을 수 있어요', 'error');
+          else if (res && res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+          else UI.toast('약속 카드를 보내지 못했어요', 'error');
+        });
+      }
+    });
+  }
+
   /* ---------- 매너 한 줄 태그 (bm-v1.29.0) ----------
    * 매칭이 성사된 1:1 방 상단에서 경기 후 한 번 남깁니다. 정해진 4종만 보여 주고
    * (자유 입력 없음), 오늘 이미 남겼으면 조용한 한 줄로 바뀝니다.
@@ -385,7 +503,8 @@
           '<p class="dm__start-s">' + (canChat ? '첫 메시지를 보내 보세요.' : '친구가 되거나 매칭이 성사되면 대화할 수 있어요.') + '</p></div>') +
       '</div>' +
       (canChat
-        ? '<form class="dm__composer" data-dm-form>' +
+        ? '<form class="dm__composer dm__composer--apt" data-dm-form>' +
+          '<button type="button" class="dm__apptbtn" data-dm-appt aria-label="코트 약속 잡기" title="체육관·날짜·시간을 카드로 보내기">📅 <span>약속 잡기</span></button>' +
           '<input type="text" autocomplete="off" enterkeyhint="send" maxlength="300" data-dm-input' +
           ' value="' + U.esc(state.ui.chatDraft || '') + '"' +
           ' placeholder="메시지를 입력하세요" aria-label="메시지 입력">' +
@@ -474,6 +593,45 @@
         ev.preventDefault();
         var key = prof.getAttribute('data-dm-profile');
         if (key && BM.views.profile) BM.views.profile.open(key, ctx);
+        return;
+      }
+      /* 📅 코트 약속 — 입력창 옆 빠른 버튼 (bm-v1.72.0) */
+      var aptBtn = ev.target.closest('[data-dm-appt]');
+      if (aptBtn) {
+        ev.preventDefault();
+        var astate = ctx.store.state;
+        var aroom = findThread(astate, astate.ui.chatRoom);
+        var aother = (aroom && aroom.other) || astate.ui.chatOther || '';
+        if (!aother) { UI.toast('약속을 잡을 상대를 먼저 골라 주세요'); return; }
+        UI.haptic(8);
+        openApptSheet(ctx, aother, null, astate.ui.chatRoom);
+        return;
+      }
+      /* 약속 카드 1탭 응답 — 좋아요 / 시간 조정 */
+      var aptOk = ev.target.closest('[data-apt-ok]');
+      if (aptOk) {
+        ev.preventDefault();
+        var okState = ctx.store.state;
+        var okRoom = findThread(okState, okState.ui.chatRoom);
+        var okOther = (okRoom && okRoom.other) || okState.ui.chatOther || '';
+        var okRes = ctx.actions.respondAppt(okState.ui.chatRoom, okOther, aptOk.getAttribute('data-apt-ok'), 'ok');
+        if (okRes && okRes.ok) { UI.haptic(12); UI.toast('👍 약속 좋아요를 보냈어요'); }
+        else if (okRes && okRes.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+        else UI.toast('답을 보내지 못했어요', 'error');
+        return;
+      }
+      var aptAdj = ev.target.closest('[data-apt-adjust]');
+      if (aptAdj) {
+        ev.preventDefault();
+        var adjState = ctx.store.state;
+        var adjRoom = findThread(adjState, adjState.ui.chatRoom);
+        var adjOther = (adjRoom && adjRoom.other) || adjState.ui.chatOther || '';
+        UI.haptic(8);
+        openApptSheet(ctx, adjOther, {
+          gym: aptAdj.getAttribute('data-apt-gym') || '',
+          date: aptAdj.getAttribute('data-apt-date') || '',
+          time: aptAdj.getAttribute('data-apt-time') || ''
+        }, adjState.ui.chatRoom);
         return;
       }
       /* 매너 한 줄 태그 — 한 번 누르면 그 자리에서 남기고 화면이 바뀝니다 */
@@ -714,6 +872,7 @@
     render: render, bind: bind,
     listHtml: listHtml, roomHtml: roomHtml, messageHtml: messageHtml, messagesHtml: messagesHtml,
     mannerHtml: mannerHtml,
+    openApptSheet: openApptSheet, apptCardHtml: apptCardHtml, apptDefaults: apptDefaults,
     simpleRequest: simpleRequest,
     findThread: findThread, hhmm: hhmm
   };

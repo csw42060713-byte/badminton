@@ -132,7 +132,7 @@
     includes(sheet.body, 'data-charge="checkin"', '출석 버튼');
     includes(sheet.body, 'data-charge="ad"', '광고 버튼');
     includes(sheet.body, '다음 광고까지', '실시간 쿨타임');
-    includes(sheet.body, '오늘 받을 수 있는 무료 하트 4개 남음', '남은 무료 하트');
+    includes(sheet.body, '오늘 받을 수 있는 무료 하트 5개 남음', '남은 무료 하트');
     includes(sheet.body, 'MY에서 잔액 보기', '모자랄 때 MY 안내');
     excludes(sheet.body, 'data-charge="continue"', '모자랄 때는 이어서 버튼이 없다');
   });
@@ -193,7 +193,7 @@
     });
     var html = BM.views.my.render(st);
     includes(html, 'data-free-line', '무료 하트 줄');
-    includes(html, '오늘 받을 수 있는 무료 하트 4개 남음', '남은 무료 하트 개수');
+    includes(html, '오늘 받을 수 있는 무료 하트 5개 남음', '남은 무료 하트 개수');
     includes(html, '다음 광고까지', '쿨다운 카운트다운 문구');
     includes(html, 'data-ad-btn', '광고 버튼');
   });
@@ -227,9 +227,9 @@
   test('v1.15 버전: sw·app·화면 캐시가 함께 올라간다', function () {
     if (!hasNode()) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
-    includes(sw, "var VERSION = 'bm-v1.71.0'", 'sw.js');
-    includes(app, "version: 'v1.71.0'", 'app.js');
-    includes(index, 'styles.css?v=20261124-9', '스타일 캐시');
+    includes(sw, "var VERSION = 'bm-v1.72.0'", 'sw.js');
+    includes(app, "version: 'v1.72.0'", 'app.js');
+    includes(index, 'styles.css?v=20261125-1', '스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
