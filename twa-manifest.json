@@ -16,6 +16,7 @@
   "splashScreenFadeOutDuration": 300,
   "appVersionName": "1.78.0",
   "appVersionCode": 72,
+  "minSdkVersion": 24,
   "shortcuts": [
     {
       "name": "오늘 일지 쓰기",
