@@ -3113,28 +3113,7 @@ summary { display: list-item; }
 .letter--compact .letter__rule { font-size: 10.5px; }
 .dmletters { display: grid; gap: 8px; }
 
-/* 조건을 고르기 전 첫 화면 — 목록 대신 짧은 안내 카드 */
-.matchintro {
-  display: grid; justify-items: center; gap: 2px;
-  margin-top: 14px; padding: 24px 18px 22px;
-  border: 1px dashed var(--line-2);
-  border-radius: var(--r);
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
-  text-align: center;
-}
-.matchintro__ico {
-  display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 6px;
-  border-radius: 50%; color: var(--accent);
-  background: var(--accent-soft); border: 1px solid var(--accent-line);
-}
-.matchintro__ico .ico { width: 20px; height: 20px; }
-.matchintro__art { display: block; margin-bottom: 4px; }
-.matchintro__art .empty__art { height: 66px; margin: 0 auto; }
-.matchintro__t { font-size: 14px; font-weight: 800; color: var(--text); line-height: 1.45; letter-spacing: -0.3px; word-break: keep-all; }
-.matchintro__t b { color: var(--accent); }
-.matchintro__d { margin-top: 5px; font-size: 11.5px; line-height: 1.65; color: var(--muted); word-break: keep-all; }
-.matchintro__btn { margin-top: 14px; min-height: 38px; gap: 4px; }
-.matchintro__btn .ico { width: 13px; height: 13px; }
+/* bm-v1.79.0 — 첫 화면이 추천 목록으로 바뀌어 .matchintro 안내 카드 스타일은 걷어냈습니다 */
 
 /* 편지지 카드 — 어디를 눌러도 상세 편지지로 (내부 버튼과 충돌하지 않게 처리) */
 .letter:active { transform: scale(0.995); }

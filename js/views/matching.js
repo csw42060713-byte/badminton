@@ -270,17 +270,6 @@
       (state.me && state.me.nick) || '', (state.me && state.me.theme && state.me.theme.avatar) || ''].join('|');
   }
 
-  /* 조건을 고르기 전에 보여 주는 첫 화면 — 목록 대신 짧은 안내 카드
-   *  v1.35: 바로 위 필터 칩과 같은 말을 되풀이하던 설명 한 줄을 뺐습니다
-   *  (제목이 '전체'를 누르라고, 칩이 무엇을 고르는지 이미 말합니다). */
-  function introHtml() {
-    return '<div class="matchintro">' +
-      '<span class="matchintro__art">' + (BM.art ? BM.art.empty('search') : UI.icon('search')) + '</span>' +
-      '<p class="matchintro__t">원하는 급수·조건이나 <b>전체</b>를 눌러 선수를 찾아보세요</p>' +
-      '<button type="button" class="btn btn--primary btn--sm matchintro__btn" data-act="show-all">' +
-      UI.icon('check') + '전체 선수 보기</button></div>';
-  }
-
   /* bm-v1.79.0 — 조건을 고르기 전 첫 화면에도 선수를 바로 보여 줍니다.
    *  · 예전에는 '전체를 누르세요' 안내 카드만 있어 빈 화면처럼 보였습니다.
    *  · 내 동네(지역) → 비슷한 급수 → 궁합 점수 순으로 6명을 먼저 추립니다. */
