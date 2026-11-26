@@ -153,13 +153,66 @@ with sync_playwright() as p:
     check('B 라켓이 하트 옆(오른쪽)', box and box['x'] >= box['heart'], box)
     shot('header', keep=True)
 
-    tap('#hdrRacket', 600)
+    tap('#hdrRacket', 700)
     check('B 꾸미기 시트가 열린다', has('.rksheet'))
     check('B 파츠 5칸', count('.rkgroup') == 5, count('.rkgroup'))
     check('B 파츠 25개', count('.rkpart') == 25, count('.rkpart'))
     check('B 잠긴 파츠 가격 표시', 'P' in text_of('.rkpart.is-lock'))
     check('B 라켓 포인트 표시', '라켓 포인트' in text_of('.rkpoints'))
-    shot('sheet_parts', keep=True)
+
+    # ── B2. 3D 라켓 — 360° 돌려보기 · 부위 직접 탭 ──
+    check('B2 3D 캔버스', has('.rk3d__cv'))
+    check('B2 부위 탭 5개', count('.rk3d__tab') == 5, count('.rk3d__tab'))
+    painted3d = page.evaluate("""() => {
+      const c = document.querySelector('.rk3d__cv'); if (!c) return 0;
+      const g = c.getContext('2d');
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4000) { if (d[i] + d[i+1] + d[i+2] > 120) n++; }
+      return n;
+    }""")
+    check('B2 3D 라켓이 그려졌다', painted3d > 80, painted3d)
+    shot('rk3d_open', keep=True)
+
+    box = page.evaluate("""() => { const r = document.querySelector('.rk3d__cv').getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width, h: r.height }; }""")
+    yaw0 = page.evaluate("() => BM.racketcustom._last3d.view.yaw")
+    page.mouse.move(box['x'] + box['w'] / 2, box['y'] + box['h'] / 2)
+    page.mouse.down()
+    page.mouse.move(box['x'] + box['w'] / 2 + 110, box['y'] + box['h'] / 2 - 20, steps=8)
+    page.mouse.up()
+    page.wait_for_timeout(300)
+    yaw1 = page.evaluate("() => BM.racketcustom._last3d.view.yaw")
+    check('B2 끌면 라켓이 돌아간다', abs(yaw1 - yaw0) > 0.4, (round(yaw0, 2), round(yaw1, 2)))
+    shot('rk3d_rotated', keep=True)
+    # 돌린 각도에서 그립을 직접 누른다
+    page.evaluate("""() => { BM.racketcustom._last3d.view.pitch = 0.14; BM.racketcustom._last3d.redraw(); }""")
+    pt = page.evaluate("""() => {
+      const v = BM.racketcustom._last3d.view;
+      const p = BM.racketcustom.project3({ x: 0, y: 240, z: 0 }, v);
+      const r = document.querySelector('.rk3d__cv').getBoundingClientRect();
+      return { x: r.x + p.x, y: r.y + p.y, hit: BM.racketcustom.hitSlot(p.x, p.y, v) };
+    }""")
+    check('B2 그립 위치가 그립으로 잡힌다', pt['hit'] == 'grip', pt)
+    page.mouse.click(pt['x'], pt['y'])
+    page.wait_for_timeout(700)
+    check('B2 그립 탭이 바로 열린다', (text_of('.rk3d__tab.is-on') or '').strip() == '그립', text_of('.rk3d__tab.is-on'))
+    vis = page.evaluate("() => [...document.querySelectorAll('.rkgroup')].filter(g => !g.hidden).map(g => g.dataset.rkGroup)")
+    check('B2 그립 파츠만 보인다', vis == ['grip'], vis)
+    shot('rk3d_griptab', keep=True)
+    # 거트(스트링 면) 직접 탭
+    page.evaluate("""() => { BM.racketcustom._last3d.view.yaw = -0.2; BM.racketcustom._last3d.view.pitch = 0.1; BM.racketcustom._last3d.redraw(); }""")
+    page.wait_for_timeout(200)
+    hp = page.evaluate("""() => {
+      const v = BM.racketcustom._last3d.view;
+      const p = BM.racketcustom.project3({ x: 0, y: 0, z: 0 }, v);
+      const r = document.querySelector('.rk3d__cv').getBoundingClientRect();
+      return { x: r.x + p.x, y: r.y + p.y, hit: BM.racketcustom.hitSlot(p.x, p.y, v) };
+    }""")
+    check('B2 헤드 가운데가 거트로 잡힌다', hp['hit'] == 'string', hp)
+    page.mouse.click(hp['x'], hp['y'])
+    page.wait_for_timeout(600)
+    check('B2 거트 탭이 열린다', (text_of('.rk3d__tab.is-on') or '').strip() == '거트', text_of('.rk3d__tab.is-on'))
     page.evaluate("() => BM.ui.closeSheet()")
     page.wait_for_timeout(350)
 
@@ -179,13 +232,18 @@ with sync_playwright() as p:
     points = page.evaluate("() => BM.racketcustom.pointsBalance(BM.app.ctx.store.state)")
     check('C 일지 10개 → 100P (기존 기록 자동 지급)', points >= 100, points)
 
-    tap('#hdrRacket', 600)
+    tap('#hdrRacket', 700)
+    tap('.rk3d__tab[data-rk-slot="string"]', 500)
     page.evaluate("""() => {
       const b = [...document.querySelectorAll('[data-rk-part]')].find(x => x.getAttribute('data-rk-part') === 'string:white');
       if (b) b.scrollIntoView({ block: 'center' });
     }""")
     page.wait_for_timeout(250)
-    tap('[data-rk-part="string:white"]', 600)
+    yaw_before = page.evaluate("() => BM.racketcustom._last3d.view.yaw")
+    tap('[data-rk-part="string:white"]', 700)
+    yaw_after = page.evaluate("() => BM.racketcustom._last3d.view.yaw")
+    check('C 색을 바꿔도 보던 각도가 유지된다', abs(yaw_after - yaw_before) < 0.25,
+          (round(yaw_before, 2), round(yaw_after, 2)))
     st = page.evaluate("() => BM.racketcustom.customOf(BM.app.ctx.store.state.me)")
     check('C 스트링 화이트를 한 번에 열어 입었다', st.get('string') == 'white' and 'string:white' in st.get('unlocked', []), st)
     check('C 잠금 표시가 풀린 파츠가 있다', count('.rkpart.is-lock') < 20, count('.rkpart.is-lock'))

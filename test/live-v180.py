@@ -122,7 +122,41 @@ with sync_playwright() as p:
     tap('#hdrRacket', 700)
     check('B 꾸미기 시트', has('.rksheet'))
     check('B 파츠 25개', count('.rkpart') == 25, count('.rkpart'))
-    shot('sheet', keep=True)
+    check('B 3D 캔버스', has('.rk3d__cv'))
+    painted3d = page.evaluate("""() => {
+      const c = document.querySelector('.rk3d__cv'); if (!c) return 0;
+      const g = c.getContext('2d');
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4000) { if (d[i] + d[i+1] + d[i+2] > 120) n++; }
+      return n;
+    }""")
+    check('B 3D 라켓이 그려졌다', painted3d > 80, painted3d)
+    shot('rk3d', keep=True)
+    box = page.evaluate("""() => { const r = document.querySelector('.rk3d__cv').getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width, h: r.height }; }""")
+    yaw0 = page.evaluate("() => BM.racketcustom._last3d.view.yaw")
+    page.mouse.move(box['x'] + box['w'] / 2, box['y'] + box['h'] / 2)
+    page.mouse.down()
+    page.mouse.move(box['x'] + box['w'] / 2 + 110, box['y'] + box['h'] / 2, steps=8)
+    page.mouse.up()
+    page.wait_for_timeout(300)
+    yaw1 = page.evaluate("() => BM.racketcustom._last3d.view.yaw")
+    check('B 끌면 돌아간다', abs(yaw1 - yaw0) > 0.4, (round(yaw0, 2), round(yaw1, 2)))
+    page.evaluate("""() => { const v = BM.racketcustom._last3d.view; v.yaw = -0.3; v.pitch = 0.12; BM.racketcustom._last3d.redraw(); }""")
+    page.wait_for_timeout(200)
+    hp = page.evaluate("""() => {
+      const v = BM.racketcustom._last3d.view;
+      const p = BM.racketcustom.project3({ x: 0, y: 240, z: 0 }, v);
+      const r = document.querySelector('.rk3d__cv').getBoundingClientRect();
+      return { x: r.x + p.x, y: r.y + p.y, hit: BM.racketcustom.hitSlot(p.x, p.y, v) };
+    }""")
+    page.mouse.click(hp['x'], hp['y'])
+    page.wait_for_timeout(700)
+    check('B 그립을 누르면 그립 탭', (text_of('.rk3d__tab.is-on') or '').strip() == '그립', text_of('.rk3d__tab.is-on'))
+    vis = page.evaluate("() => [...document.querySelectorAll('.rkgroup')].filter(g => !g.hidden).map(g => g.dataset.rkGroup)")
+    check('B 그립 파츠만 보인다', vis == ['grip'], vis)
+    shot('rk3d_grip', keep=True)
     page.evaluate("() => BM.ui.closeSheet()")
     page.wait_for_timeout(300)
 

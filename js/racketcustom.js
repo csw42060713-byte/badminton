@@ -580,6 +580,436 @@
     btn.setAttribute('aria-label', '내 커스텀 라켓 · ' + cond.title + ' · 눌러서 꾸미기');
   }
 
+  /* ============================================================
+   * 3D 라켓 뷰 — 라이브러리 없이 캔버스 투영 (bm-v1.80.0)
+   *   · 손가락으로 끌면 좌우 360° · 위아래 기울기, 잠시 두면 살짝 숨 쉬듯 돕니다.
+   *   · 거트(문자열 면) · 테두리(프레임) · 그립을 직접 눌러 그 파츠를 바로 고릅니다.
+   *   · 프레임 두께 · 빛 반사 · 스트링 격자 · 스텐실 · 그립 테이핑 · 참까지 입체로.
+   * ============================================================ */
+  var G3 = {
+    rx: 100, ry: 126, hoop: 11,
+    throat: 126, shaft: 186,
+    gripY0: 186, gripY1: 292, gripR: 15,
+    mid: 84
+  };
+  var CAM_Z = 640, FOCUS = 840;
+
+  function rot3(p, yaw, pitch) {
+    var cy = Math.cos(yaw), sy = Math.sin(yaw);
+    var x1 = p.x * cy + p.z * sy;
+    var z1 = -p.x * sy + p.z * cy;
+    var cp = Math.cos(pitch), sp = Math.sin(pitch);
+    return { x: x1, y: p.y * cp - z1 * sp, z: p.y * sp + z1 * cp };
+  }
+
+  function project3(p, v) {
+    var r = rot3({ x: p.x, y: p.y - G3.mid, z: p.z }, v.yaw, v.pitch);
+    var s = FOCUS / (FOCUS + CAM_Z - r.z);
+    return { x: v.cx + r.x * s * v.k, y: v.cy + r.y * s * v.k, z: r.z, s: s };
+  }
+
+  function shade(hex, amt) {
+    var h = String(hex || '#333').replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var n = parseInt(h, 16);
+    if (isNaN(n)) return hex;
+    var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    var f = amt < 0 ? 0 : 255, p = Math.abs(amt);
+    r = Math.round(r + (f - r) * p); g = Math.round(g + (f - g) * p); b = Math.round(b + (f - b) * p);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function poly(g, pts, fill, stroke, lw, alpha) {
+    if (!pts.length) return;
+    g.beginPath();
+    g.moveTo(pts[0].x, pts[0].y);
+    for (var i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+    g.closePath();
+    if (fill) {
+      g.globalAlpha = alpha == null ? 1 : alpha;
+      g.fillStyle = fill;
+      g.fill();
+      g.globalAlpha = 1;
+    }
+    if (stroke) {
+      g.strokeStyle = stroke;
+      g.lineWidth = lw || 1;
+      g.stroke();
+    }
+  }
+
+  function line3(g, a, b, color, lw, alpha) {
+    g.beginPath();
+    g.moveTo(a.x, a.y);
+    g.lineTo(b.x, b.y);
+    g.globalAlpha = alpha == null ? 1 : alpha;
+    g.strokeStyle = color;
+    g.lineWidth = lw || 1;
+    g.stroke();
+    g.globalAlpha = 1;
+  }
+
+  /* 스트링 격자 — 안쪽 타원의 현(chord)들 */
+  function stringChords(level) {
+    var out = [], i, x, y, half;
+    var rx = G3.rx - G3.hoop, ry = G3.ry - G3.hoop * 0.9;
+    for (i = -2; i <= 2; i++) {
+      x = i * (rx / 2.6);
+      half = ry * Math.sqrt(Math.max(0, 1 - Math.pow(x / rx, 2)));
+      out.push({ a: { x: x, y: -half, z: 0 }, b: { x: x, y: half, z: 0 }, sag: level === 'worn' ? 5 : 0 });
+    }
+    for (i = -3; i <= 3; i++) {
+      y = i * (ry / 3.5);
+      half = rx * Math.sqrt(Math.max(0, 1 - Math.pow(y / ry, 2)));
+      if (level === 'broken' && i === 0) {
+        out.push({ a: { x: -half, y: y, z: 0 }, b: { x: -half * 0.26, y: y + 2, z: 0 }, sag: 0 });
+        out.push({ a: { x: half * 0.26, y: y - 2, z: 0 }, b: { x: half, y: y, z: 0 }, sag: 0 });
+        continue;
+      }
+      out.push({ a: { x: -half, y: y, z: 0 }, b: { x: half, y: y, z: 0 }, sag: level === 'worn' ? 5 : 0 });
+    }
+    return out;
+  }
+
+  /* 스텐실 — 헤드 안쪽 좌표(2D)를 그대로 3D 평면에 얹습니다 */
+  function stencil3(c) {
+    var id = c.stencil;
+    if (!id || id === 'none') return [];
+    var col = colorOf('stencil', id);
+    var seg = [];
+    if (id === 'x') {
+      seg = [[[-34, -16], [34, 16]], [[34, -16], [-34, 16]]];
+    } else if (id === 'bolt') {
+      seg = [[[10, -40], [-24, 2], [2, 2], [-10, 40], [30, -4], [4, -4], [10, -40]]];
+    } else if (id === 'crown') {
+      seg = [[[-38, 16], [-38, -14], [-16, 2], [0, -26], [16, 2], [38, -14], [38, 16], [-38, 16]]];
+    } else if (id === 'shuttle') {
+      seg = [[[-26, -30], [26, -30], [12, 12], [-12, 12], [-26, -30]], [[0, 26], [0, 18]]];
+    }
+    return seg.map(function (pts) {
+      return { pts: pts.map(function (p) { return { x: p[0], y: p[1], z: 0 }; }), color: col };
+    });
+  }
+
+  /* 한 프레임 그리기 */
+  function draw3d(g, v, custom, level, w, h) {
+    var c = normalizeCustom(custom);
+    var frame = colorOf('frame', c.frame);
+    var grip = colorOf('grip', c.grip);
+    var str = colorOf('string', c.string);
+    var N = 56;
+    var i, a, p, pts;
+
+    g.clearRect(0, 0, w, h);
+
+    /* 바탕 — 코트 조명 */
+    var glow = g.createRadialGradient(w / 2, h * 0.44, 10, w / 2, h * 0.44, Math.max(w, h) * 0.62);
+    glow.addColorStop(0, 'rgba(198,242,78,0.16)');
+    glow.addColorStop(0.55, 'rgba(198,242,78,0.04)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = glow;
+    g.fillRect(0, 0, w, h);
+
+    /* 바닥 그림자 */
+    var sh = project3({ x: 0, y: G3.gripY1 + 16, z: 0 }, v);
+    g.save();
+    g.globalAlpha = 0.34;
+    g.fillStyle = '#000';
+    g.beginPath();
+    g.ellipse ? g.ellipse(sh.x, sh.y, 92 * v.k, 20 * v.k, 0, 0, Math.PI * 2)
+      : g.arc(sh.x, sh.y, 60 * v.k, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+
+    /* 그림자 순서: 뒤(z<0)부터 — 그립 → 샤프트 → 스트링 → 테두리 → 참/스텐실 → 하이라이트 */
+    function faceQuad(y0, y1, sx, sz, col, alpha) {
+      var q = [
+        project3({ x: -sx, y: y0, z: sz }, v), project3({ x: sx, y: y0, z: sz }, v),
+        project3({ x: sx, y: y1, z: sz }, v), project3({ x: -sx, y: y1, z: sz }, v)
+      ];
+      var avgZ = (q[0].z + q[1].z + q[2].z + q[3].z) / 4;
+      poly(g, q, col, null, 0, alpha);
+      return avgZ;
+    }
+
+    var faces = [
+      { y0: G3.gripY0, y1: G3.gripY1, sx: G3.gripR, sz: -G3.gripR, col: shade(grip, -0.34) },
+      { y0: G3.gripY0, y1: G3.gripY1, sx: G3.gripR, sz: G3.gripR, col: shade(grip, 0.06) },
+      { y0: G3.gripY0, y1: G3.gripY1, sx: -G3.gripR, sz: G3.gripR, col: shade(grip, -0.22) },
+      { y0: G3.gripY0, y1: G3.gripY1, sx: G3.gripR, sz: G3.gripR, col: shade(grip, -0.22) },
+      /* 그립 옆면(좌·우) — x=±r 평면 */
+      { y0: G3.gripY0, y1: G3.gripY1, sx: G3.gripR, sz: 0, col: shade(grip, -0.14), side: 'x' }
+    ];
+    /* 좌우 옆면은 따로 그립니다(법선이 x축) */
+    function sideQuad(y0, y1, x, col) {
+      var q = [
+        project3({ x: x, y: y0, z: -G3.gripR }, v), project3({ x: x, y: y0, z: G3.gripR }, v),
+        project3({ x: x, y: y1, z: G3.gripR }, v), project3({ x: x, y: y1, z: -G3.gripR }, v)
+      ];
+      poly(g, q, col, null, 0, 1);
+    }
+    sideQuad(G3.gripY0, G3.gripY1, -G3.gripR, shade(grip, -0.3));
+    sideQuad(G3.gripY0, G3.gripY1, G3.gripR, shade(grip, -0.3));
+    faces.slice(0, 2).forEach(function (f) { faceQuad(f.y0, f.y1, f.sx, f.sz, f.col, 1); });
+
+    /* 그립 테이핑 3줄 */
+    for (var t = 1; t <= 3; t++) {
+      var yy = G3.gripY0 + (G3.gripY1 - G3.gripY0) * (t / 4);
+      line3(g, project3({ x: -G3.gripR, y: yy, z: G3.gripR }, v),
+        project3({ x: G3.gripR, y: yy - 7, z: G3.gripR }, v), 'rgba(255,255,255,0.22)', Math.max(1, 3 * v.k), 1);
+    }
+    /* 그립 캡 */
+    line3(g, project3({ x: -G3.gripR, y: G3.gripY1, z: G3.gripR }, v),
+      project3({ x: G3.gripR, y: G3.gripY1, z: G3.gripR }, v), shade(grip, -0.45), Math.max(2, 5 * v.k), 1);
+
+    /* 샤프트 — 목에서 그립까지 */
+    poly(g, [
+      project3({ x: -5, y: G3.throat, z: 0 }, v), project3({ x: 5, y: G3.throat, z: 0 }, v),
+      project3({ x: 5, y: G3.gripY0 + 4, z: 0 }, v), project3({ x: -5, y: G3.gripY0 + 4, z: 0 }, v)
+    ], frame, null, 0, 1);
+    /* 목 (Y자) */
+    line3(g, project3({ x: -18, y: G3.ry - 8, z: 0 }, v), project3({ x: 0, y: G3.throat - 6, z: 0 }, v), frame, Math.max(2, 7 * v.k), 1);
+    line3(g, project3({ x: 18, y: G3.ry - 8, z: 0 }, v), project3({ x: 0, y: G3.throat - 6, z: 0 }, v), frame, Math.max(2, 7 * v.k), 1);
+
+    /* 스트링 — 뒤쪽 반 먼저, 앞쪽 반 나중 (간단히 모두 그린 뒤 테두리로 덮습니다) */
+    var chords = stringChords(level);
+    chords.forEach(function (ch) {
+      var a1 = project3(ch.a, v), b1 = project3(ch.b, v);
+      if (ch.sag) {
+        var m = project3({ x: (ch.a.x + ch.b.x) / 2, y: (ch.a.y + ch.b.y) / 2 + (ch.a.y === ch.b.y ? ch.sag : 0), z: -ch.sag }, v);
+        g.beginPath(); g.moveTo(a1.x, a1.y); g.quadraticCurveTo(m.x, m.y, b1.x, b1.y);
+        g.globalAlpha = 0.82; g.strokeStyle = str; g.lineWidth = Math.max(1, 2.1 * v.k); g.stroke(); g.globalAlpha = 1;
+      } else {
+        line3(g, a1, b1, str, Math.max(1, 2.1 * v.k), 0.9);
+      }
+    });
+    if (level === 'broken') {
+      line3(g, project3({ x: -26, y: 0, z: 0 }, v), project3({ x: -8, y: 4, z: 0 }, v), '#ff6b5e', Math.max(1, 2.4 * v.k), 1);
+      line3(g, project3({ x: 12, y: -4, z: 0 }, v), project3({ x: 30, y: 0, z: 0 }, v), '#ff6b5e', Math.max(1, 2.4 * v.k), 1);
+    }
+
+    /* 스텐실 */
+    stencil3(c).forEach(function (part) {
+      var pp = part.pts.map(function (p2) { return project3(p2, v); });
+      g.beginPath();
+      g.moveTo(pp[0].x, pp[0].y);
+      for (var k = 1; k < pp.length; k++) g.lineTo(pp[k].x, pp[k].y);
+      g.globalAlpha = 0.92;
+      g.strokeStyle = part.color;
+      g.lineWidth = Math.max(1.4, 3.4 * v.k);
+      g.stroke();
+      g.globalAlpha = 1;
+    });
+
+    /* 테두리(프레임) — 앞/뒤 두 겹 + 두께 */
+    function band(z, colFront, alpha) {
+      for (var i2 = 0; i2 < N; i2++) {
+        var a0 = i2 / N * Math.PI * 2, a1 = (i2 + 1) / N * Math.PI * 2;
+        var o0 = { x: Math.cos(a0) * G3.rx, y: Math.sin(a0) * G3.ry, z: z };
+        var o1 = { x: Math.cos(a1) * G3.rx, y: Math.sin(a1) * G3.ry, z: z };
+        var i0 = { x: Math.cos(a0) * (G3.rx - G3.hoop), y: Math.sin(a0) * (G3.ry - G3.hoop * 0.9), z: z };
+        var i1 = { x: Math.cos(a1) * (G3.rx - G3.hoop), y: Math.sin(a1) * (G3.ry - G3.hoop * 0.9), z: z };
+        var q = [project3(o0, v), project3(o1, v), project3(i1, v), project3(i0, v)];
+        var depth = (q[0].z + q[1].z + q[2].z + q[3].z) / 4;
+        var lit = depth < 0 ? -0.3 : 0.12;
+        poly(g, q, shade(colFront, lit + (depth > 30 ? 0.06 : -0.04)), null, 0, alpha);
+      }
+    }
+    band(-G3.hoop * 0.5, frame, 0.92);
+    band(G3.hoop * 0.5, frame, 1);
+    /* 테두리 바깥면 — 두 겹 사이를 이어 두께를 보여 줍니다 */
+    for (var s2 = 0; s2 < N; s2 += 2) {
+      var b0 = s2 / N * Math.PI * 2, b1 = (s2 + 2) / N * Math.PI * 2;
+      var e0f = project3({ x: Math.cos(b0) * G3.rx, y: Math.sin(b0) * G3.ry, z: G3.hoop * 0.5 }, v);
+      var e1f = project3({ x: Math.cos(b1) * G3.rx, y: Math.sin(b1) * G3.ry, z: G3.hoop * 0.5 }, v);
+      var e0b = project3({ x: Math.cos(b0) * G3.rx, y: Math.sin(b0) * G3.ry, z: -G3.hoop * 0.5 }, v);
+      var e1b = project3({ x: Math.cos(b1) * G3.rx, y: Math.sin(b1) * G3.ry, z: -G3.hoop * 0.5 }, v);
+      poly(g, [e0f, e1f, e1b, e0b], shade(frame, -0.45), null, 0, 0.9);
+    }
+
+    /* 빛 반사 — 앞쪽 위 테두리에 하이라이트 */
+    g.save();
+    g.beginPath();
+    for (var h2 = 0; h2 <= 20; h2++) {
+      var aH = (-2.55 + (h2 / 20) * 1.5);
+      var pH = project3({ x: Math.cos(aH) * (G3.rx - G3.hoop / 2), y: Math.sin(aH) * (G3.ry - G3.hoop / 2), z: G3.hoop * 0.5 }, v);
+      if (h2 === 0) g.moveTo(pH.x, pH.y); else g.lineTo(pH.x, pH.y);
+    }
+    g.strokeStyle = 'rgba(255,255,255,0.62)';
+    g.lineWidth = Math.max(1.4, 3.6 * v.k);
+    g.lineCap = 'round';
+    g.stroke();
+    g.restore();
+
+    /* 참 — 그립 목에 매단 열쇠고리 */
+    if (c.charm && c.charm !== 'none') {
+      var cc = colorOf('charm', c.charm);
+      var top = project3({ x: G3.gripR - 4, y: G3.gripY0 + 6, z: 2 }, v);
+      var end = project3({ x: G3.gripR + 18, y: G3.gripY0 + 40, z: 6 }, v);
+      line3(g, top, end, 'rgba(247,255,223,0.55)', Math.max(1, 1.8 * v.k), 1);
+      var r = Math.max(3, 9 * end.s * v.k);
+      g.beginPath();
+      g.arc(end.x, end.y, r, 0, Math.PI * 2);
+      g.fillStyle = cc; g.fill();
+      g.strokeStyle = shade(cc, -0.3); g.lineWidth = 1; g.stroke();
+    }
+  }
+
+  /* 화면 좌표 → 파츠 (거트 · 테두리 · 그립) */
+  function hitSlot(px, py, v) {
+    var i, q, best;
+    /* 그립 */
+    var g0 = project3({ x: 0, y: G3.gripY0, z: 0 }, v);
+    var g1 = project3({ x: 0, y: G3.gripY1, z: 0 }, v);
+    if (distToSeg(px, py, g0, g1) < Math.max(14, G3.gripR * 1.7 * g0.s * v.k)) return 'grip';
+    /* 테두리 — 바깥 고리 선 */
+    best = 1e9;
+    for (i = 0; i < 72; i++) {
+      var a0 = i / 72 * Math.PI * 2;
+      var pt = project3({ x: Math.cos(a0) * (G3.rx - G3.hoop / 2), y: Math.sin(a0) * (G3.ry - G3.hoop / 2), z: 0 }, v);
+      var d = Math.sqrt((pt.x - px) * (pt.x - px) + (pt.y - py) * (pt.y - py));
+      if (d < best) best = d;
+    }
+    if (best < Math.max(12, G3.hoop * 1.5 * v.k)) return 'frame';
+    /* 안쪽(거트) */
+    var polyPts = [];
+    for (i = 0; i < 24; i++) {
+      var a1 = i / 24 * Math.PI * 2;
+      polyPts.push(project3({ x: Math.cos(a1) * (G3.rx - G3.hoop), y: Math.sin(a1) * (G3.ry - G3.hoop), z: 0 }, v));
+    }
+    if (inPoly(px, py, polyPts)) return 'string';
+    /* 목·샤프트도 테두리로 */
+    var s0 = project3({ x: 0, y: G3.throat, z: 0 }, v);
+    var s1 = project3({ x: 0, y: G3.gripY0, z: 0 }, v);
+    if (distToSeg(px, py, s0, s1) < 12) return 'frame';
+    return '';
+  }
+
+  function distToSeg(px, py, a, b) {
+    var dx = b.x - a.x, dy = b.y - a.y;
+    var len = dx * dx + dy * dy;
+    var t = len ? ((px - a.x) * dx + (py - a.y) * dy) / len : 0;
+    t = Math.max(0, Math.min(1, t));
+    var x = a.x + dx * t, y = a.y + dy * t;
+    return Math.sqrt((px - x) * (px - x) + (py - y) * (py - y));
+  }
+
+  function inPoly(px, py, pts) {
+    var inside = false;
+    for (var i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      var xi = pts[i].x, yi = pts[i].y, xj = pts[j].x, yj = pts[j].y;
+      if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / ((yj - yi) || 1e-6) + xi)) inside = !inside;
+    }
+    return inside;
+  }
+
+  var viewMem = { yaw: -0.42, pitch: 0.14 };
+
+  /* 시트 안의 3D 뷰를 붙입니다 — 드래그 회전 · 탭하면 그 파츠로 */
+  function mount3d(host, ctx) {
+    if (!hasDom) return null;
+    var cv = host.querySelector('.rk3d__cv');
+    if (!cv || !cv.getContext) return null;
+    var g = cv.getContext('2d');
+    if (!g) return null;
+    var state = ctx.store.state;
+    var dpr = Math.min(2, (root.devicePixelRatio || 1));
+    /* 색을 바꿔 다시 그려도 보던 각도 그대로 (시트를 닫았다 열어도) */
+    var v = { yaw: viewMem.yaw, pitch: viewMem.pitch, k: 1, cx: 0, cy: 0 };
+    var drag = null, lastMove = 0, raf = 0, alive = true;
+    var w = 0, h = 0;
+
+    function fit() {
+      var rect = cv.getBoundingClientRect();
+      w = Math.max(160, Math.round(rect.width));
+      h = Math.max(200, Math.round(rect.height));
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      v.k = Math.min(w / 300, h / 430) * 1.46;
+      v.cx = w / 2;
+      v.cy = h / 2 - 4;
+    }
+
+    function paint() {
+      if (!alive) return;
+      var c = customOf(ctx.store.state.me);
+      var lvl = conditionOf(ctx.store.state).level;
+      draw3d(g, v, c, lvl, w, h);
+    }
+
+    function loop() {
+      if (!alive) return;
+      if (!cv.isConnected) { alive = false; return; }
+      var now = Date.now();
+      if (!drag && now - lastMove > 1600) {
+        v.yaw += 0.0042;                     /* 가만히 두면 살짝 숨 쉬듯 돕니다 */
+        viewMem.yaw = v.yaw;
+        paint();
+      }
+      raf = root.requestAnimationFrame(loop);
+    }
+
+    fit();
+    paint();
+    raf = root.requestAnimationFrame(loop);
+
+    cv.addEventListener('pointerdown', function (ev) {
+      if (ev.button && ev.button !== 0) return;
+      drag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, sx: ev.clientX, sy: ev.clientY, moved: 0 };
+      lastMove = Date.now();
+      try { cv.setPointerCapture(ev.pointerId); } catch (e) { /* 무시 */ }
+    });
+    cv.addEventListener('pointermove', function (ev) {
+      if (!drag || ev.pointerId !== drag.id) return;
+      if (ev.preventDefault) ev.preventDefault();
+      var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+      drag.x = ev.clientX; drag.y = ev.clientY;
+      drag.moved += Math.abs(dx) + Math.abs(dy);
+      v.yaw += dx * 0.012;
+      v.pitch = Math.max(-0.9, Math.min(0.9, v.pitch - dy * 0.008));
+      viewMem.yaw = v.yaw; viewMem.pitch = v.pitch;
+      lastMove = Date.now();
+      paint();
+    });
+    function endDrag(ev) {
+      if (!drag || (ev && ev.pointerId !== drag.id)) return;
+      var wasTap = drag.moved < 8;
+      var r = cv.getBoundingClientRect();
+      var px = (ev ? ev.clientX : 0) - r.left, py = (ev ? ev.clientY : 0) - r.top;
+      try { cv.releasePointerCapture(drag.id); } catch (e) { /* 무시 */ }
+      drag = null;
+      lastMove = Date.now();
+      if (!wasTap) return;
+      var slot = hitSlot(px, py, v);
+      if (slot) pickSlot(host, ctx, slot);
+    }
+    cv.addEventListener('pointerup', endDrag);
+    cv.addEventListener('pointercancel', endDrag);
+    cv.addEventListener('pointerleave', endDrag);
+
+    var api = { view: v, paint: paint, redraw: paint };
+    if (BM.racketcustom) BM.racketcustom._last3d = api;
+    return api;
+  }
+
+  /* 부위 탭 → 그 파츠 탭을 바로 열고 살짝 반짝 */
+  function pickSlot(host, ctx, slot) {
+    activeSlot = SLOTS.indexOf(slot) >= 0 ? slot : activeSlot;
+    if (BM.ui) { BM.ui.haptic(8); }
+    refreshSheet(host, ctx);
+    var body = host.querySelector('.sheet__body');
+    if (!body) return;
+    var flashEl = body.querySelector('.rk3d');
+    if (flashEl) {
+      flashEl.classList.add('is-pick');
+      setTimeout(function () { if (flashEl) flashEl.classList.remove('is-pick'); }, 560);
+    }
+    if (BM.ui && BM.ui.toast) {
+      BM.ui.toast(activeSlot === 'string' ? '거트 색을 골라 보세요' : activeSlot === 'grip' ? '그립 색을 골라 보세요' : '테두리 색을 골라 보세요');
+    }
+  }
+
   /* ---------- 꾸미기 시트 ---------- */
   function partHtml(state, slot) {
     var c = customOf(state.me);
@@ -598,9 +1028,24 @@
         (!open ? '<span class="rkpart__lock" aria-hidden="true">🔒</span>' : '') +
         '</button>';
     }).join('');
-    return '<div class="rkgroup" data-rk-group="' + slot + '">' +
-      '<div class="rkhead"><b>' + U.esc(def.label) + '</b><span>' + U.esc(def.note) + '</span></div>' +
+    return '<div class="rkgroup' + (slot === activeSlot ? ' is-active' : '') + '" data-rk-group="' + slot + '"' +
+      (slot === activeSlot ? '' : ' hidden') + '>' +
+      '<div class="rkhead"><b>' + U.esc(def.label) + '</b><span>' + U.esc(def.note) + '</span>' +
+      (slot === activeSlot ? '<i class="rkhead__now">지금 고르는 중</i>' : '') + '</div>' +
       '<div class="rkparts">' + cells + '</div></div>';
+  }
+
+  /* 지금 고르는 파츠 — 3D 라켓에서 부위를 눌러도 여기가 바뀝니다 */
+  var activeSlot = 'frame';
+
+  function tabHtml() {
+    return '<div class="rk3d__tabs" role="tablist" aria-label="바꿀 부위">' +
+      SLOTS.map(function (slot) {
+        var on = slot === activeSlot;
+        var tabName = { frame: '테두리', string: '거트', grip: '그립', stencil: '스텐실', charm: '참' }[slot];
+        return '<button type="button" class="rk3d__tab' + (on ? ' is-on' : '') + '" data-rk-slot="' + slot + '"' +
+          ' role="tab" aria-selected="' + (on ? 'true' : 'false') + '">' + U.esc(tabName) + '</button>';
+      }).join('') + '</div>';
   }
 
   function sheetBody(state) {
@@ -611,9 +1056,14 @@
     var spec = BM.gear ? BM.gear.specText(g) : '';
     var racketLine = [g.racket || '내 라켓', spec].filter(Boolean).join(' · ');
     return '<div class="rksheet">' +
+      /* 3D 라켓 — 끌어서 360°, 부위를 눌러 바로 꾸미기 */
+      '<div class="rk3d" data-rk-3d>' +
+        '<canvas class="rk3d__cv" width="600" height="760" aria-label="내 라켓 3D 보기 · 끌어서 돌리고 거트·테두리·그립을 눌러 꾸미기"></canvas>' +
+        '<p class="rk3d__hint"><span aria-hidden="true">↔</span> 끌어서 360° 돌려보기 · <b>거트 · 테두리 · 그립</b>을 눌러 바로 바꿔요</p>' +
+        tabHtml() +
+      '</div>' +
       /* 지금 상태 */
       '<div class="rkhero rkhero--' + cond.level + '">' +
-        '<div class="rkhero__art">' + svg(c, { level: cond.level }) + '</div>' +
         '<div class="rkhero__txt">' +
           '<p class="rkhero__badge">' + U.esc(cond.level === 'prime' ? '최상 컨디션' : cond.level === 'worn' ? '줄이 느슨해요' : cond.level === 'broken' ? '줄이 끊어졌어요' : '줄 상태 좋아요') + '</p>' +
           '<p class="rkhero__t">' + U.esc(cond.title) + '</p>' +
@@ -647,10 +1097,12 @@
   /* 방금 연 파츠 — 한 번 누르면 바로 열리고, 시트 안 '되돌리기'로 포인트까지 되돌립니다 */
   var lastUnlock = null;
 
-  function refreshSheet(host, state) {
-    if (!host) return;
+  function refreshSheet(host, ctx) {
+    if (!host || !ctx) return;
     var body = host.querySelector('.sheet__body');
-    if (body) body.innerHTML = sheetBody(state);
+    if (!body) return;
+    body.innerHTML = sheetBody(ctx.store.state);
+    mount3d(host, ctx);
   }
 
   function saveCustom(ctx, next, opts) {
@@ -672,6 +1124,7 @@
   function openSheet(ctx) {
     if (!hasDom || !BM.ui) return null;
     lastUnlock = null;
+    activeSlot = 'frame';
     var state = ctx.store.state;
     if (state && state.me && state.me.key) {
       /* 현재 상태로 바로 그려 둡니다(포인트·잠금 표시가 기록에서 계산됨) */
@@ -681,7 +1134,19 @@
       body: sheetBody(state),
       onMount: function (host) {
         if (BM.views && BM.views.friends && BM.views.friends.bindCopy) BM.views.friends.bindCopy(host);
+        mount3d(host, ctx);
         host.addEventListener('click', function (ev) {
+          var tab = ev.target.closest('.rk3d__tab');
+          if (tab) {
+            ev.preventDefault();
+            var slotPick = tab.getAttribute('data-rk-slot');
+            if (SLOTS.indexOf(slotPick) >= 0 && slotPick !== activeSlot) {
+              activeSlot = slotPick;
+              BM.ui.haptic(6);
+              refreshSheet(host, ctx);
+            }
+            return;
+          }
           var part = ev.target.closest('[data-rk-part]');
           if (part) {
             ev.preventDefault();
@@ -705,12 +1170,12 @@
               if (!saveCustom(ctx, next, { unlock: it.name })) return;
               lastUnlock = { slot: slot, id: id, name: it.name, cost: price, prev: prevEquip };
               BM.ui.toast(it.name + ' 파츠를 열었어요 · -' + price + 'P');
-              refreshSheet(host, ctx.store.state);
+              refreshSheet(host, ctx);
               return;
             }
             var next2 = normalizeCustom(cur);
             next2[slot] = id;
-            if (saveCustom(ctx, next2)) refreshSheet(host, ctx.store.state);
+            if (saveCustom(ctx, next2)) refreshSheet(host, ctx);
             return;
           }
           if (ev.target.closest('[data-rk-undo]')) {
@@ -725,7 +1190,7 @@
             lastUnlock = null;
             if (saveCustom(ctx, back, {})) {
               BM.ui.toast(name + ' 파츠를 되돌렸어요 · ' + cost + 'P 돌아왔어요');
-              refreshSheet(host, ctx.store.state);
+              refreshSheet(host, ctx);
             }
             return;
           }
@@ -871,7 +1336,9 @@
     lastLogDate: lastLogDate, conditionOf: conditionOf,
     svg: svg, drawRacket: drawRacket, miniHtml: miniHtml, personHtml: personHtml,
     headerHtml: headerHtml, paintHeader: paintHeader,
-    sheetBody: sheetBody, openSheet: openSheet,
+    sheetBody: sheetBody, openSheet: openSheet, pickSlot: pickSlot, mount3d: mount3d,
+    /* 3D 뷰 (테스트·재사용) */
+    G3: G3, rot3: rot3, project3: project3, hitSlot: hitSlot, draw3d: draw3d, inPoly: inPoly,
     burstChips: burstChips, burst: burst, shareInfo: shareInfo
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

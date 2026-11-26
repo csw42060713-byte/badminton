@@ -545,6 +545,55 @@
   });
 
   /* ============================================================
+   * 9-2. 3D 라켓 뷰 — 돌려보기 · 부위 직접 탭
+   * ============================================================ */
+
+  test('v1.80 3D: 투영 회전이 좌우 360°·상하 기울기를 만든다', function () {
+    var r = RC.rot3({ x: 1, y: 0, z: 0 }, Math.PI / 2, 0);
+    ok(Math.abs(r.x) < 1e-9 && Math.abs(r.z + 1) < 1e-9, 'yaw 90°면 x축이 화면 뒤로');
+    var r2 = RC.rot3({ x: 0, y: 1, z: 0 }, 0, Math.PI / 2);
+    ok(Math.abs(r2.y) < 1e-9 && Math.abs(r2.z - 1) < 1e-9, 'pitch 90°면 y축이 깊이로');
+    var v = { yaw: 0, pitch: 0, k: 1, cx: 0, cy: 0 };
+    var a = RC.project3({ x: 0, y: 0, z: 0 }, v);
+    ok(a.s > 0.3 && a.s < 1.2, '원근 배율: ' + a.s);
+    var front = RC.project3({ x: 0, y: 0, z: 60 }, v);
+    ok(front.s > a.s, '앞으로 나온 점은 더 크게');
+  });
+
+  test('v1.80 3D: 라켓에서 거트·테두리·그립을 직접 누르면 그 파츠가 잡힌다', function () {
+    var v = { yaw: -0.42, pitch: 0.14, k: 1, cx: 150, cy: 190 };
+    var head = RC.project3({ x: 0, y: 0, z: 0 }, v);
+    eq(RC.hitSlot(head.x, head.y, v), 'string', '헤드 가운데 → 거트');
+    var grip = RC.project3({ x: 0, y: 240, z: 0 }, v);
+    eq(RC.hitSlot(grip.x, grip.y, v), 'grip', '손잡이 → 그립');
+    var rim = RC.project3({ x: 100, y: 0, z: 0 }, v);
+    eq(RC.hitSlot(rim.x, rim.y, v), 'frame', '테두리 → 프레임');
+    var throat = RC.project3({ x: 0, y: 150, z: 0 }, v);
+    eq(RC.hitSlot(throat.x, throat.y, v), 'frame', '목 → 프레임');
+    eq(RC.hitSlot(-500, -500, v), '', '라켓 밖은 아무것도 아님');
+  });
+
+  test('v1.80 3D: 꾸미기 시트에 3D 캔버스·부위 탭이 있고, 고른 부위 파츠만 보인다', function () {
+    var html = RC.sheetBody(stateOf());
+    includes(html, 'rk3d__cv', '3D 캔버스');
+    includes(html, '끌어서 360° 돌려보기', '돌려보기 안내');
+    eq((html.match(/class="rk3d__tab[" ]/g) || []).length, 5, '부위 탭 5개');
+    includes(html, 'data-rk-slot="frame"', '테두리 탭');
+    includes(html, 'data-rk-slot="string"', '거트 탭');
+    includes(html, 'data-rk-slot="grip"', '그립 탭');
+    eq((html.match(/data-rk-group=/g) || []).length, 5, '파츠 묶음 5개는 그대로');
+    eq((html.match(/data-rk-group="frame" hidden/g) || []).length, 0, '기본은 테두리가 열려 있음');
+    eq((html.match(/data-rk-group="string" hidden/g) || []).length, 1, '나머지는 숨김');
+    var js = (hasNode ? readRoot('js/racketcustom.js') : '');
+    includes(js, 'function mount3d(', '3D 붙이기');
+    includes(js, 'pointermove', '드래그 회전');
+    includes(js, 'requestAnimationFrame', '숨 쉬듯 자동 회전');
+    includes(js, 'setPointerCapture', '끌기');
+    includes(hasNode ? readRoot('styles.css') : '', '.rk3d__cv', '3D 캔버스 CSS');
+    includes(hasNode ? readRoot('styles.css') : '', 'touch-action: none', '스크롤 대신 회전');
+  });
+
+  /* ============================================================
    * 10. 버전 · 보호
    * ============================================================ */
 
