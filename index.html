@@ -43,7 +43,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=20261126-1">
+<link rel="stylesheet" href="styles.css?v=20261126-2">
 <!-- 지도(Leaflet) 스타일·코드는 저장소에 함께 넣었습니다 — 오프라인에서도 지도 틀이 뜨고, 외부 CDN에 기대지 않습니다 -->
 <link rel="stylesheet" href="js/vendor/leaflet/leaflet.css">
 <link rel="preconnect" href="https://accounts.google.com">
@@ -89,6 +89,10 @@ setTimeout(function () {
       <i id="hdrChatBadge" class="badge hdr__chatbadge" hidden>0</i>
     </button>
     <button id="hdrHearts" class="heartchip" aria-label="하트 잔액, MY로 이동"></button>
+    <!-- bm-v1.80.0 — 내 커스텀 라켓 미니 위젯(운동 상태에 따라 짱짱·느슨·끊어짐). 누르면 꾸미기 시트 -->
+    <button id="hdrRacket" class="hedracket is-ok" aria-label="내 커스텀 라켓 · 눌러서 꾸미기" title="내 라켓 꾸미기">
+      <span class="hedracket__art" aria-hidden="true"></span>
+    </button>
   </div>
 </header>
 
@@ -97,6 +101,9 @@ setTimeout(function () {
 
 <!-- 새 메시지·요청 알림 배너 (v1.20, 알림을 켜 둔 사람에게만) -->
 <div id="notifbar" class="notifbar" role="status" aria-live="polite" hidden></div>
+
+<!-- bm-v1.80.0 — 일지 저장 직후 ‘방금 쓴 오늘 운동 그대로 공유’ 바 (탭바 위에 떠 있음) -->
+<div id="saveShare" class="saveshare" role="status" aria-live="polite" hidden></div>
 
 <main id="main" class="main" role="main">
   <div class="skeleton">
@@ -148,6 +155,7 @@ setTimeout(function () {
 <script defer src="js/auth.js"></script>
 <script defer src="js/store.js"></script>
 <script defer src="js/ui.js"></script>
+<script defer src="js/racketcustom.js"></script>
 <script defer src="js/gear.js"></script>
 <script defer src="js/push.js"></script>
 <script defer src="js/sharecard.js"></script>

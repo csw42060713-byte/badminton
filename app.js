@@ -52,6 +52,8 @@
   function paintChrome(state) {
     var title = el('hdrTitle');
     if (title) title.textContent = tabMeta(state.ui.tab).label;
+    /* bm-v1.80.0 — 오른쪽 미니 라켓(운동 상태 연동) */
+    if (BM.racketcustom && BM.racketcustom.paintHeader) BM.racketcustom.paintHeader(state);
     var hearts = el('hdrHearts');
     if (hearts) hearts.innerHTML = UI.icon('heart') + '<span>' + (state.data.hearts ? state.data.hearts.balance : 0) + '</span>';
     var dot = el('syncDot');
@@ -121,6 +123,39 @@
         coachBadge.hidden = !pendingMentor;
       }
     }
+  }
+
+  /* ---------- 저장 직후 '방금 쓴 오늘 운동 그대로 공유' 바 (bm-v1.80.0) ----------
+   * 일지를 저장하면 분석 카드 맨 아래까지 내려가지 않아도 화면 아래에 바로 뜨니다.
+   * 누르면 스매시 임팩트 공유 카드로 이어지고, 닫으면 이번 일지에 대해 다시 안 띄웁니다. */
+  function paintSaveShare(state) {
+    var bar = el('saveShare');
+    if (!bar) return;
+    var rec = state && state.ui && state.ui.lastSavedLog;
+    var show = !!(rec && state.ui.tab === 'log' && !state.ui.chatOpen && !gated);
+    if (!show) {
+      bar.hidden = true;
+      if (bar.dataset.sig !== '') { bar.innerHTML = ''; bar.dataset.sig = ''; }
+      return;
+    }
+    var sig = String(rec.id || '') + '|' + (rec.minutes || '') + '|' + (rec.cond == null ? '' : rec.cond);
+    if (bar.dataset.sig === sig && !bar.hidden) return;
+    bar.dataset.sig = sig;
+    var rc = BM.racketcustom;
+    var chips = rc ? rc.burstChips(state, rec) : [];
+    var gain = rc ? rc.pointsToday(state) : 0;
+    var bits = chips.filter(function (c) { return c.k !== '라켓 포인트'; }).slice(0, 3)
+      .map(function (c) { return c.v; });
+    if (gain) bits.push('+' + gain + 'P');
+    bar.innerHTML = '<div class="saveshare__card">' +
+      '<span class="saveshare__rk" aria-hidden="true">' + (rc ? rc.svg(rc.customOf(state.me), { level: 'prime' }) : '') + '</span>' +
+      '<div class="saveshare__txt">' +
+      '<p class="saveshare__t">📸 방금 쓴 오늘 운동 그대로 공유하기</p>' +
+      '<p class="saveshare__s">' + U.esc(bits.join(' · ')) + '</p></div>' +
+      '<button type="button" class="saveshare__go" data-act="share-card" data-sc-mode="today" data-sc-design="smash">공유</button>' +
+      '<button type="button" class="saveshare__x" data-act="dismiss-share" aria-label="이번 공유 카드 닫기">✕</button>' +
+      '</div>';
+    bar.hidden = false;
   }
 
   /* ---------- 안드로이드 뒤로 가기 ----------
@@ -512,6 +547,7 @@
     if (!state.ready || gated) { paintNetBar(state); return; }
     paintChrome(state);
     paintNetBar(state);
+    paintSaveShare(state);
     paintDm(state);
     paintNotify(state);
     onIncoming(state);
@@ -569,6 +605,14 @@
     var chBefore = BM.domain.weekChallenge(store.state.data.records || [], {});
     var res = store.actions.saveLog({ keepDraft: true });
     if (res.ok) {
+      /* bm-v1.80.0 — 저장 순간, 라켓이 스매시처럼 터지며 오늘 운동 수치가 퍼지는 짧은 연출(0.88초) */
+      if (!res.updated && BM.racketcustom && BM.racketcustom.burst) {
+        BM.racketcustom.burst({
+          state: store.state,
+          record: (store.state.ui && store.state.ui.lastSavedLog) || null,
+          level: 'prime'
+        });
+      }
       if (label) label.textContent = res.updated ? '수정됨 ✓' : '저장됨 ✓';
       UI.toast((res.updated ? '일지를 수정했어요. 같은 기록이 그대로 갱신됐어요.' : '일지를 저장했어요. AI 분석을 준비했어요.') +
         challengeToast(chBefore, store.state.data.records));
@@ -1012,6 +1056,37 @@
       store.actions.setTab('my');
     });
 
+    /* bm-v1.80.0 — 상단 오른쪽 미니 라켓: 꾸미기 시트 */
+    var racketBtn = el('hdrRacket');
+    if (racketBtn) racketBtn.addEventListener('click', function () {
+      if (!store || gated) return;
+      UI.haptic(6);
+      if (BM.racketcustom) BM.racketcustom.openSheet(ctx);
+    });
+
+    /* 저장 직후 공유 바 — 분석 카드까지 내려가지 않아도 바로 공유 */
+    var saveBar = el('saveShare');
+    if (saveBar) saveBar.addEventListener('click', function (ev) {
+      if (!store || gated) return;
+      if (ev.target.closest('[data-act="dismiss-share"]')) {
+        ev.preventDefault();
+        store.actions.dismissShare();
+        return;
+      }
+      var go = ev.target.closest('[data-act="share-card"]');
+      if (go) {
+        ev.preventDefault();
+        if (!BM.sharecard) { UI.toast('공유 카드를 준비하고 있어요', 'error'); return; }
+        UI.haptic(8);
+        var rec = (store.state.ui && store.state.ui.lastSavedLog) || null;
+        BM.sharecard.open(ctx, {
+          mode: go.getAttribute('data-sc-mode') || 'today',
+          design: go.getAttribute('data-sc-design') || '',
+          record: rec
+        });
+      }
+    });
+
     /* 상단 오른쪽 채팅(DM) 아이콘 */
     var chatBtn = el('hdrChat');
     if (chatBtn) chatBtn.addEventListener('click', function () {
@@ -1118,7 +1193,7 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.79.0' };
+  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.80.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

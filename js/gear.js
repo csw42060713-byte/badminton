@@ -49,12 +49,20 @@
   }
 
   function blank() {
-    return { racket: '', string: '', tension: 0, strungAt: '', cycleDays: 0, memo: '' };
+    return { racket: '', string: '', tension: 0, strungAt: '', cycleDays: 0, memo: '', custom: null };
+  }
+
+  /* bm-v1.80.0 — 커스텀 라켓(프레임·스트링·그립·스텐실·참)은 같은 theme.gear 안 custom 한 칸 */
+  function customOf(o) {
+    if (!BM.racketcustom) return null;
+    return BM.racketcustom.normalizeCustom(o);
   }
 
   function hasGear(g) {
     if (!g) return false;
-    return !!(text(g.racket, 24) || text(g.string, 20) || Number(g.tension));
+    if (text(g.racket, 24) || text(g.string, 20) || Number(g.tension)) return true;
+    /* 색만 골라 둔 사람도 꾸미기 JSON이 지워지지 않게 */
+    return !!(BM.racketcustom && BM.racketcustom.hasCustom(g.custom));
   }
 
   /* 저장·표시에 쓰는 모양으로 정리합니다. 예전에 저장된 값·직접 입력 모두 받습니다. */
@@ -67,7 +75,8 @@
       tension: intOf(o.tension, MIN_TENSION, MAX_TENSION),
       strungAt: ymdOf(o.strungAt),
       cycleDays: intOf(o.cycleDays, MIN_CYCLE, MAX_CYCLE),
-      memo: text(o.memo, 40)
+      memo: text(o.memo, 40),
+      custom: customOf(o.custom)
     };
     if (!g.cycleDays && (g.racket || g.string || g.tension)) g.cycleDays = DEFAULT_CYCLE;
     return g;
@@ -175,6 +184,8 @@
         : '') +
       '<button type="button" class="btn btn--ghost btn--sm' + (st.has && g.strungAt ? '' : ' grow') + '" data-act="gear-sheet">' +
       (st.has ? '수정' : '내 라켓 기록하기') + '</button>' +
+      /* bm-v1.80.0 — 커스텀 라켓(색·참) 입구 */
+      '<button type="button" class="btn btn--ghost btn--sm" data-act="racket-sheet" aria-label="내 커스텀 라켓 꾸미기">🎨</button>' +
       '</div>' +
       '</section>';
   }
@@ -296,6 +307,9 @@
           if (ev.target.closest('[data-gear-save]')) {
             ev.preventDefault();
             var g = readForm(form);
+            /* bm-v1.80.0 — 라켓 기록을 고쳐도 커스텀 색(theme.gear.custom)은 그대로 */
+            var prev = gearOf(me);
+            g.custom = prev.custom || g.custom;
             var res = ctx.actions.setGear ? ctx.actions.setGear(g) : { ok: false };
             if (!res || !res.ok) {
               BM.ui.toast(res && res.reason === 'locked'

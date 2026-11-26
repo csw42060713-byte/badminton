@@ -865,6 +865,13 @@
           if (BM.gear) BM.gear.restung(ctx);
           return;
         }
+        /* bm-v1.80.0 — 내 커스텀 라켓 꾸미기 */
+        if (ev.target.closest('[data-act="racket-sheet"]')) {
+          ev.preventDefault();
+          if (BM.racketcustom) BM.racketcustom.openSheet(ctx);
+          UI.haptic(8);
+          return;
+        }
         var sw = ev.target.closest('.theme[data-theme]');   /* html[data-theme]까지 올라가지 않게 */
         if (sw) {
           ev.preventDefault();
