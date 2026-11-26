@@ -807,6 +807,69 @@
     return recs.length ? recs[0] : null;
   }
 
+  /* ---------- 지난 운동 그대로 채우기 (bm-v1.79.0) ----------
+   * 같은 루틴을 매일 적는 동호인이 칩을 처음부터 다시 누르지 않게,
+   * 직전 일지의 운동 시간 · 컨디션 · 강도 · 약점 칩만 한 번에 채웁니다.
+   *  · 날짜 · 게임 점수 · 파트너 · 메모는 그대로 둡니다(오늘 것은 사람이 적음).
+   *  · 직전 일지가 없거나 채울 값이 없으면 버튼을 그리지 않습니다.
+   *  · 지난 일지를 고치는 중이면 그 일지가 아니라 그 앞 일지에서 가져옵니다. */
+  function lastFillSource(state) {
+    var recs = (state && state.data && state.data.records) || [];
+    var editId = state && state.ui && state.ui.editLogId;
+    for (var i = 0; i < recs.length; i++) {
+      if (!editId || String(recs[i].id) !== String(editId)) return recs[i];
+    }
+    return null;
+  }
+
+  function fillPatchOf(rec) {
+    var patch = {};
+    if (!rec) return patch;
+    if (rec.minutes != null && rec.minutes !== '') patch.minutes = Math.max(0, Math.round(Number(rec.minutes) || 0));
+    if (rec.cond != null && rec.cond !== '') patch.cond = Number(rec.cond);
+    if (rec.intensity != null && rec.intensity !== '') patch.intensity = Number(rec.intensity);
+    var weak = (rec.weakness || []).map(function (w) { return String(w == null ? '' : w).trim(); })
+      .filter(Boolean).slice(0, 5);
+    if (weak.length) patch.weakness = weak;
+    return patch;
+  }
+
+  function fillSummary(rec) {
+    var bits = [];
+    if (rec.date) bits.push(U.shortDay(rec.date) + ' 일지');
+    if (rec.minutes) bits.push(rec.minutes + '분');
+    if (rec.cond != null && rec.cond !== '') bits.push('컨디션 ' + D.condRangeText(rec.cond));
+    if (rec.intensity != null && rec.intensity !== '') bits.push('강도 ' + rec.intensity);
+    var weak = (rec.weakness || []).filter(Boolean);
+    if (weak.length) bits.push(weak.slice(0, 2).join('·'));
+    return bits.join(' · ');
+  }
+
+  function quickFillSig(state) {
+    var rec = lastFillSource(state);
+    return rec ? String(rec.id || '') + '|' + String(rec.date || '') : '';
+  }
+
+  /* 자리(슬롯)는 늘 있고 내용만 바뀍니다 — 첫 일지를 저장하는 순간 그 자리에서 버튼이 나타나고,
+   * 새 일지를 저장하면 안내하는 '지난 운동'도 그 일지로 바뀍니다(화면을 통째로 다시 그리지 않음). */
+  function quickFillSlot(state) {
+    return '<div data-quickfill-slot data-sig="' + U.esc(quickFillSig(state)) + '">' + quickFillBar(state) + '</div>';
+  }
+
+  function quickFillBar(state) {
+    var rec = lastFillSource(state);
+    if (!rec) return '';
+    var patch = fillPatchOf(rec);
+    if (!Object.keys(patch).length) return '';
+    return '<div class="quickfill" data-quickfill>' +
+      '<button type="button" class="quickfill__btn" data-act="quick-fill"' +
+      ' aria-label="지난 운동 그대로 채우기">' +
+      '<span class="quickfill__ico" aria-hidden="true">⚡</span>' +
+      '<span class="quickfill__t"><b>지난 운동 그대로 채우기</b>' +
+      '<small>' + U.esc(fillSummary(rec)) + '</small></span>' +
+      UI.icon('arrow', 'quickfill__car') + '</button></div>';
+  }
+
   function shareRecordOf(state, entry) {
     if (entry === 'log-hero') return latestRecord(state);
     return (state && state.ui && state.ui.lastSavedLog) || null;
@@ -1720,6 +1783,9 @@
             '<div class="row mt8"><button type="button" class="linkbtn" data-act="cancel-edit">수정 취소</button></div></div>'
           : '') +
 
+        /* bm-v1.79.0 — 입력 폼 맨 위 '⚡ 지난 운동 그대로 채우기' (직전 일지가 있을 때만) */
+        quickFillSlot(state) +
+
         /* v1.56 — 컨디션은 5단계 구간 카드(세로 5줄)로 고릅니다. 훈련강도는 그대로 슬라이더 */
         '<div class="field field--cond"><div class="field__label"><span>컨디션</span><b data-out="cond"' + (d.cond == null ? ' class="is-unset"' : '') + '>' + (d.cond == null ? '미입력' : D.condRangeText(d.cond)) + '</b></div>' +
         condBands(d) + '</div>' +
@@ -2051,6 +2117,18 @@
           UI.haptic(6);
           return;
         }
+        if (ev.target.closest('[data-act="quick-fill"]')) {
+          ev.preventDefault();
+          var fillRec = lastFillSource(ctx.store.state);
+          var fillPatch = fillPatchOf(fillRec);
+          if (!fillRec) { UI.toast('지난 일지가 아직 없어요'); return; }
+          if (!Object.keys(fillPatch).length) { UI.toast('지난 일지에 채울 값이 없어요'); return; }
+          ctx.actions.setDraft(fillPatch);
+          if (ctx.repaint) ctx.repaint();   /* 폼 칸(컨디션 카드·슬라이더·칩)이 채워진 값으로 바로 바뀍니다 */
+          UI.haptic(12);
+          UI.toast('지난 운동 그대로 채웠어요 · 고치고 저장만 누르면 돼요');
+          return;
+        }
         if (ev.target.closest('[data-act="save-log"]')) {
           ev.preventDefault();
           ctx.saveLog(ev.target.closest('[data-act="save-log"]'));
@@ -2294,6 +2372,12 @@
       if (heroEl && heroEl.getAttribute('data-sig') !== heroSig(state)) {
         heroEl.outerHTML = heroBlock(state);
       }
+      /* bm-v1.79 — 첫 저장·새 저장으로 '지난 운동'이 바뀌면 그 자리에서 칸만 다시 그립니다 */
+      var qHost = root.querySelector('[data-quickfill-slot]');
+      if (qHost && qHost.getAttribute('data-sig') !== quickFillSig(state)) {
+        qHost.innerHTML = quickFillBar(state);
+        qHost.setAttribute('data-sig', quickFillSig(state));
+      }
       /* v1.55 — 메모·영상: 값이 새로 채워지면 접힌 칸을 저절로 펼치고(점수판·영상 자세 비교),
        * 입력 중이 아닌 칸의 글자는 상태에 맞춥니다(입력 중 커서는 건드리지 않음). */
       var dd = (state && state.drafts && state.drafts.log) || {};
@@ -2455,6 +2539,13 @@
   view.heroBlock = heroBlock;                   /* v1.64: 첫 화면 요약 카드(저장 직후 즉시 갱신) */
   view.heroSig = heroSig;
   view.latestRecord = latestRecord;             /* v1.62: 첫 화면 칩이 여는 최신 일지 */
+  /* v1.79 — '지난 운동 그대로 채우기' (직전 일지의 시간·컨디션·강도·약점) */
+  view.lastFillSource = lastFillSource;
+  view.fillPatchOf = fillPatchOf;
+  view.fillSummary = fillSummary;
+  view.quickFillBar = quickFillBar;
+  view.quickFillSlot = quickFillSlot;
+  view.quickFillSig = quickFillSig;
   view.shareRecordOf = shareRecordOf;           /* v1.62: 입구별로 열 일지 고르기 */
   view.analysisCard = analysisCard;
   view.challengeBlock = challengeBlock;

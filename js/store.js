@@ -48,6 +48,8 @@
       text: p.text, createdAt: p.createdAt, date: p.date, target: p.target || '',
       topic: D.topicOf(p),
       meet: D.meetOf(p),
+      /* bm-v1.79.0 — '체육관 후기'의 네 칸(바닥·조명·주차·샤워)과 체육관 이름 */
+      gym: D.gymReviewOf(p),
       likes: Math.max(likeCount, p.likes || 0),
       likedByMe: !!(likeSets[p.id] && likeSets[p.id][me]),
       likeId: likeSets[p.id] && likeSets[p.id][me],
@@ -179,7 +181,9 @@
         matchSort: 'score',      /* score(궁합순) · recent(최근순) */
         matchFilterOpen: '',     /* 펼친 필터 줄 (level · region · discipline · gender) */
         chatRoom: null, chatOther: '', chatOpen: false, chatDraft: '',
-        coachTab: '', coachPlayer: null, composer: '', composerTopic: '자유', composerMeet: { when: '', place: '', cap: '', fee: '' }, replyTo: null,
+        coachTab: '', coachPlayer: null, composer: '', composerTopic: '자유', composerMeet: { when: '', place: '', cap: '', fee: '' },
+        /* v1.79 — '체육관 후기' 작성 칸(체육관 이름 + 바닥·조명·주차·샤워) */
+        composerGym: { name: '', floor: '', light: '', parking: '', shower: '' }, replyTo: null,
         routineWeek: 0,          /* 초보자 루틴: 보고 있는 주차 (0이면 아직 덜 끝낸 주차) */
         editLogId: null,         /* 수정 중인 일지 ID (있으면 저장은 새 줄이 아니라 갱신) */
         lastSavedLog: null       /* 방금 저장한 일지 → 커뮤니티 원탭 공유 */
@@ -1179,16 +1183,22 @@
        * bm-v1.39.1: 모집 칸(언제·몇 명·어디 체육관)만 채우고 본문 한 줄을 비워도 올라갑니다.
        *  모집 글은 모집 정보만으로도 성립하기 때문입니다(현장에서 급하게 올리는 경우).
        *  본문도 모집 칸도 비어 있으면 지금처럼 empty로 막습니다. */
-      createPost: function (text, topic, meet) {
+      createPost: function (text, topic, meet, gym) {
         /* 화면 입력칸(maxlength) 밖으로 들어온 아주 긴 글도 여기서 자릅니다 (bm-v1.41.1) */
         text = D.clampText(text, 300).trim();
         var tag = D.normalizeTopic(topic || state.ui.composerTopic);
         var mv = (tag === D.MEET.topic) ? D.normalizeMeet(meet || state.ui.composerMeet) : null;
         var hasMeet = D.meetFilled(mv);
+        /* v1.79 — '체육관 후기'는 체육관 이름·네 칸 중 하나만 적어도 올라갑니다.
+         * 본문에는 같은 내용을 사람이 읽는 문장으로 넣어 예전 앱에서도 그대로 보입니다. */
+        var gv = (tag === D.GYM_REVIEW.topic) ? D.normalizeGymReview(gym || state.ui.composerGym) : null;
+        var hasGym = D.gymReviewFilled(gv);
+        if (hasGym) text = D.gymReviewBody(gv, text);
         if (!text && !hasMeet) return { ok: false, reason: 'empty' };
         if (!tryLock('post', 1200)) return { ok: false, reason: 'locked' };
         var plan = { topic: tag };
         if (hasMeet) plan.meet = mv;
+        if (hasGym) plan.gym = gv;
         var entity = meEntity({
           type: '소셜', date: U.ymd(), id: U.uid(), clientId: U.clientId(), text: text,
           plan: plan
@@ -1197,8 +1207,9 @@
         state.ui.composer = '';
         state.ui.composerTopic = '자유';
         state.ui.composerMeet = { when: '', place: '', cap: '', fee: '' };
+        state.ui.composerGym = { name: '', floor: '', light: '', parking: '', shower: '' };
         commit();
-        return { ok: true, topic: tag, meet: plan.meet || null };
+        return { ok: true, topic: tag, meet: plan.meet || null, gym: plan.gym || null, text: text };
       },
 
       /* ---------- 커뮤니티 내 글 삭제(취소) (bm-v1.40.1) ----------
@@ -2283,6 +2294,16 @@
         var next = D.normalizeMeet(cur);
         next[field] = value;
         state.ui.composerMeet = D.normalizeMeet(next);
+      },
+
+      /* v1.79 — '체육관 후기' 작성 칸(체육관 이름·바닥·조명·주차·샤워).
+       * 화면은 여기에만 적고, 올리기는 createPost 가 한 번에 합니다. */
+      setComposerGym: function (field, value) {
+        var keys = ['name'].concat(D.GYM_REVIEW.fields.map(function (f) { return f.key; }));
+        if (keys.indexOf(field) < 0) return;
+        var next = D.normalizeGymReview(state.ui.composerGym || {});
+        next[field] = value;
+        state.ui.composerGym = D.normalizeGymReview(next);
       },
 
       retrySync: function () { return flush(); },

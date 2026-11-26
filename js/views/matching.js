@@ -207,7 +207,11 @@
       gradePill(p) + genderPill(p) +
       (st.friend.state === 'friends' ? '<span class="pill pill--friend">친구</span>' : '') + '</div>' +
       '<p class="pcard__meta">' + (meta || '지역 미입력') + '</p></div>' +
-      '<div class="fit"><strong>' + scored.score + '</strong><span>궁합</span></div></div>' +
+      '<div class="pcard__side"><div class="fit"><strong>' + scored.score + '</strong><span>궁합</span></div>' +
+      /* bm-v1.79.0 — 요청 전에도 부담 없이 건네는 '응원 하트 1개'(카드 안에서 바로) */
+      '<button type="button" class="cheerbtn cheerbtn--sm" data-cheer="' + key + '"' +
+      ' aria-label="' + U.esc(p.nick) + '님에게 응원 하트 ' + D.HEART_RULES.GIFT_COST + '개 보내기">' +
+      '<span class="cheerbtn__ico" aria-hidden="true">💛</span>응원</button></div></div>' +
       (p.discipline || p.style || spec ? '<p class="pcard__spec">' +
         (p.discipline ? '<span class="eventchip is-on">' + U.esc(p.discipline) + '</span>' : '') +
         (p.style ? '<span class="pill pill--style">' + U.esc(p.style) + '</span>' : '') +
@@ -348,8 +352,27 @@
   }
 
   /* ---------- 찾기 탭 ---------- */
+  /* ---------- 친구 코드 초대 칩 (bm-v1.79.0) ----------
+   * 매칭 찾기 맨 위에 내 코드(#XXXX)를 두어, 코트에서 만난 동호인에게 바로 건네게 합니다.
+   * 코드를 아는 사람끼리만 친구가 되고(친구 코드 규칙 그대로), 친구가 되면 1:1 대화가 열립니다.
+   * 복사는 화면 어디서든 [data-code-copy] 하나로 처리합니다(js/views/friends.js bindCopy). */
+  function inviteBar(state) {
+    var F = BM.views && BM.views.friends;
+    if (!F) return '';
+    var code = F.myCode(state);
+    if (!code) return '';
+    return '<section class="invitebar" data-region="invite">' +
+      '<div class="invitebar__l">' +
+      '<span class="invitebar__k">친구 코드 초대</span>' +
+      '<b class="invitebar__v">' + U.esc((state.me && state.me.nick) || '나') + '<i>#' + U.esc(code) + '</i></b>' +
+      '<span class="invitebar__s">코드로 친구가 되면 1:1 대화 · 응원 하트 1개</span>' +
+      '</div>' +
+      '<button type="button" class="btn btn--ghost btn--sm" data-code-copy="' + U.esc(F.myCodeText(state)) + '">복사</button>' +
+      '</section>';
+  }
+
   function findTab(state) {
-    return gymEntry(state) + '<section class="card">' +
+    return gymEntry(state) + inviteBar(state) + '<section class="card">' +
       '<header class="card__head"><h2>플레이어 찾기</h2></header>' +
       searchBar(state) + filterBar(state) +
       '<div data-region="results" data-sig="' + U.esc(resultsSig(state)) + '">' + resultsHtml(state) + '</div>' +
@@ -619,11 +642,19 @@
           : '<button class="btn btn--primary grow" data-send-request="' + key + '">' +
             (letterOn ? UI.icon('mail') : '') + '요청 보내기</button>') +
         '</div>' +
-        (short ? '' : '<button class="linkbtn mt8" data-gift-in-sheet="' + key + '">하트 선물하기 (' + D.HEART_RULES.GIFT_COST + '개)</button>') +
         (short ? '' : '<p class="hint mt8">' + (letterOn
           ? '편지지 형식이 켜져 있어요. 요청 보내기를 누르면 상대에게 갈 편지지를 미리 보고 보낼 수 있어요.'
           : '편지지 형식이 꺼져 있어 요청이 바로 전송돼요. MY > 알림·편지지에서 다시 켤 수 있어요.') + '</p>');
     }
+
+    /* bm-v1.79.0 — 어느 상태(요청 전·보냄·수락·친구)에서든 부담 없이 건네는 '💛 응원 하트 1개'.
+     * 1:1 매칭(수락 시 2하트)보다 가벼운 인사라 확인 창 없이 한 번에 보내고,
+     * 하트가 모자라면 토스트 대신 공용 충전 시트(출석·광고)가 바로 열립니다. */
+    footer += '<button type="button" class="cheerbtn cheerbtn--wide mt8" data-cheer-sheet="' + key + '"' +
+      ' aria-label="' + U.esc(p.nick) + '님에게 응원 하트 ' + D.HEART_RULES.GIFT_COST + '개 보내기">' +
+      '<span class="cheerbtn__ico" aria-hidden="true">💛</span>' +
+      '<span class="cheerbtn__t">응원 하트 ' + D.HEART_RULES.GIFT_COST + '개 보내기</span>' +
+      '<span class="cheerbtn__s">부담 없이 마음만 전해요</span></button>';
 
     return '<div class="pp" data-profile="' + key + '">' +
       '<div class="pp__head">' + UI.avatar(p, 72) +
@@ -777,6 +808,43 @@
     });
   }
 
+  /* ---------- 응원 하트 1개 (bm-v1.79.0) ----------
+   * 1:1 매칭 신청(수락 시 하트 2개)과 달리, 부담 없이 마음만 건네는 1하트 응원입니다.
+   *  · 하트 차감은 기존 store.giftHeart → 서버 RPC(heart_spend 'gift')가 맡습니다(새 RPC 없음).
+   *  · 하트가 모자라면 토스트로 끝내지 않고 공용 충전 시트(출석 · 광고)를 바로 열고,
+   *    채운 뒤 그 자리에서 응원을 이어 보냅니다. */
+  function cheerSend(ctx, p, opts) {
+    opts = opts || {};
+    var need = Math.max(1, Number(D.HEART_RULES.GIFT_COST) || 1);
+    function charge(introText) {
+      openHeartSheet(ctx, p.userKey, {
+        need: need,
+        title: '응원 하트 충전',
+        why: introText || ('응원 하트는 <b>하트 ' + need + '개</b>로 보내요.'),
+        continueLabel: p.nick + '님에게 응원 보내기',
+        onContinue: function () { cheerSend(ctx, p, opts); }
+      });
+    }
+    var hearts = (ctx.store.state.data && ctx.store.state.data.hearts) || {};
+    if ((hearts.balance || 0) < need) { charge(); return null; }
+    var r = ctx.actions.giftHeart(p.userKey);
+    return U.when(r, function (res) {
+      res = res || { ok: false, reason: 'error' };
+      if (res.ok) {
+        UI.haptic(10);
+        UI.toast('💛 ' + p.nick + '님에게 응원 하트를 보냈어요');
+        if (opts.close) UI.closeSheet();
+        return res;
+      }
+      if (res.reason === 'hearts') { charge(); return res; }
+      if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+      else if (res.reason === 'self') UI.toast('나에게는 보낼 수 없어요');
+      else if (res.reason === 'offline' || res.reason === 'login') UI.toast(res.message || '인터넷에 연결되면 보낼 수 있어요', 'error');
+      else UI.toast('응원을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요', 'error');
+      return res;
+    });
+  }
+
   function openProfile(p, ctx) {
     UI.openSheet({
       title: '선수 프로필',
@@ -842,6 +910,12 @@
             ev.preventDefault();
             ev.stopPropagation();
             sendGift(ctx, p);
+            return;
+          }
+          /* 응원 하트 1개 — 프로필 시트를 닫지 않고 그 자리에서 보냅니다 */
+          if (ev.target.closest('[data-cheer-sheet]')) {
+            ev.preventDefault();
+            cheerSend(ctx, p);
             return;
           }
         });
@@ -1230,6 +1304,17 @@
           return;
         }
 
+        /* 응원 하트 1개 — 카드 안 버튼이라 프로필 열기보다 먼저 처리합니다 (bm-v1.79.0) */
+        var cheer = ev.target.closest('[data-cheer]');
+        if (cheer) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          var ck = cheer.getAttribute('data-cheer');
+          var cp = profileOf(ctx.store.state, ck) || personOf(ctx.store.state, ck);
+          if (cp) cheerSend(ctx, cp);
+          return;
+        }
+
         var profileTarget = ev.target.closest('[data-open-profile]');
         if (profileTarget) {
           ev.preventDefault();
@@ -1265,6 +1350,8 @@
         });
       }
       syncFbar(root);
+      /* 친구 코드 복사 칩 — 화면 어디서든 한 번으로 (js/views/friends.js) */
+      if (BM.views && BM.views.friends && BM.views.friends.bindCopy) BM.views.friends.bindCopy(root);
     },
 
     /* 필터·검색·신청 상태가 바뀌면 결과 영역만 다시 그립니다.
@@ -1521,6 +1608,10 @@
   view.openProfile = openProfile;
   view.openHeartSheet = openHeartSheet;
   view.profileBody = profileBody;   /* 테스트·점검용 (프로필 시트 본문) */
+  /* v1.79 — 옹원 하트·친구 코드 초대 칩 (테스트·재사용) */
+  view.playerCard = playerCard;
+  view.cheerSend = cheerSend;
+  view.inviteBar = inviteBar;
 
   /* ---------- 다른 화면(체육관 지도)에서 매칭 흐름으로 이어지는 입구 (2026-11-23)
    *  · 매칭 탭의 프로필 시트·매칭 신청(편지지)·1:1 대화를 그대로 재사용합니다.
