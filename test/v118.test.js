@@ -63,9 +63,9 @@
 
   test('v1.18 버전: sw · app · 스타일 캐시 · README가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.80.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.80.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261126-2', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.81.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.81.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261126-3', '스타일 캐시 키');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

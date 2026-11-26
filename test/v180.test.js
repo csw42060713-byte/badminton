@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v180.test.js — bm-v1.80.0
+ * test/v180.test.js — bm-v1.81.0
  *   🏸 내 커스텀 라켓 — 상태 연동 · 수집(포인트 해금) · 매칭/공유 노출
  *
  *  1) 파츠 — 배드민턴 용품 감성 5칸(프레임·스트링·그립·스텐실·참), 기본 5종 무료
@@ -117,14 +117,15 @@
    * ============================================================ */
 
   test('v1.80 파츠: 프레임·스트링·그립·스텐실·참 5칸에 각 5종, 기본은 무료', function () {
-    eq(RC.SLOTS.join(','), 'frame,string,grip,stencil,charm', '다섯 칸');
+    /* v1.81에서 '효과'(연출) 칸이 더해져 여섯 칸입니다 */
+    eq(RC.SLOTS.join(','), 'frame,string,grip,stencil,charm,effect', '여섯 칸');
     RC.SLOTS.forEach(function (slot) {
       eq(RC.itemsOf(slot).length, 5, slot + ' 5종');
       var free = RC.itemsOf(slot).filter(function (it) { return it.free; });
       eq(free.length, 1, slot + ' 무료 1종');
     });
     var names = RC.SLOTS.map(function (s) { return RC.PARTS[s].label; }).join(',');
-    eq(names, '프레임,스트링,그립,스텐실,라켓 참', '칸 이름');
+    eq(names, '프레임,스트링,그립,스텐실,라켓 참,효과', '칸 이름');
     var frameNames = RC.itemsOf('frame').map(function (i) { return i.name; }).join(',');
     includes(frameNames, '매트 블랙', '프레임 예시');
     includes(frameNames, '스텔스 카본', '프레임 예시');
@@ -564,7 +565,7 @@
     var v = { yaw: -0.42, pitch: 0.14, k: 1, cx: 150, cy: 190 };
     var head = RC.project3({ x: 0, y: 0, z: 0 }, v);
     eq(RC.hitSlot(head.x, head.y, v), 'string', '헤드 가운데 → 거트');
-    var grip = RC.project3({ x: 0, y: 240, z: 0 }, v);
+    var grip = RC.project3({ x: 0, y: RC.G3.gripY0 + 40, z: 0 }, v);
     eq(RC.hitSlot(grip.x, grip.y, v), 'grip', '손잡이 → 그립');
     var rim = RC.project3({ x: 100, y: 0, z: 0 }, v);
     eq(RC.hitSlot(rim.x, rim.y, v), 'frame', '테두리 → 프레임');
@@ -577,11 +578,11 @@
     var html = RC.sheetBody(stateOf());
     includes(html, 'rk3d__cv', '3D 캔버스');
     includes(html, '끌어서 360° 돌려보기', '돌려보기 안내');
-    eq((html.match(/class="rk3d__tab[" ]/g) || []).length, 5, '부위 탭 5개');
+    eq((html.match(/class="rk3d__tab[" ]/g) || []).length, 6, '부위 탭 6개(효과 포함)');
     includes(html, 'data-rk-slot="frame"', '테두리 탭');
     includes(html, 'data-rk-slot="string"', '거트 탭');
     includes(html, 'data-rk-slot="grip"', '그립 탭');
-    eq((html.match(/data-rk-group=/g) || []).length, 5, '파츠 묶음 5개는 그대로');
+    eq((html.match(/data-rk-group=/g) || []).length, 6, '파츠 묶음 6개(효과 포함)');
     eq((html.match(/data-rk-group="frame" hidden/g) || []).length, 0, '기본은 테두리가 열려 있음');
     eq((html.match(/data-rk-group="string" hidden/g) || []).length, 1, '나머지는 숨김');
     var js = (hasNode ? readRoot('js/racketcustom.js') : '');
@@ -599,16 +600,16 @@
 
   test('v1.80 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록이 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.80.0'", 'sw.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.81.0'", 'sw.js');
     includes(readRoot('sw.js'), "'./js/racketcustom.js'", 'sw 캐시에 라켓 모듈');
-    includes(readRoot('app.js'), "version: 'v1.80.0'", 'app.js');
-    includes(readRoot('js/push.js'), "version: 'v1.80.0'", 'push.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261126-2', '스타일 캐시 키');
+    includes(readRoot('app.js'), "version: 'v1.81.0'", 'app.js');
+    includes(readRoot('js/push.js'), "version: 'v1.81.0'", 'push.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261126-3', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.80.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.80.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 74, 'TWA 버전 코드');
-    includes(readRoot('README.md'), 'bm-v1.80.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.81.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.81.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 75, 'TWA 버전 코드');
+    includes(readRoot('README.md'), 'bm-v1.81.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v180.test.js', '테스트 목록 배선');
     includes(readRoot('test/run.js'), 'js/racketcustom.js', '테스트 로드');
   });
