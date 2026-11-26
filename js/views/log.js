@@ -619,12 +619,34 @@
   function guardFold(an) {
     var g = an && an.guard;
     if (!g) return '';
-    var blocks = [g.shoulder, g.lower, g.arm].filter(function (b) { return b && b.on; });
+    var blocks = [g.shoulder, g.lower, g.chain, g.arm].filter(function (b) { return b && b.on; });
     if (!blocks.length) return '';
     return '<details class="fold fold--ai" data-fold="guard">' +
       '<summary class="fold__sum"><span>관절 보호 체크 <small>' + U.esc(g.label) + '</small></span>' +
       '<i class="fold__val">' + blocks.length + '부위</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
       '<div class="fold__body">' + blocks.map(guardBlock).join('') + '</div></details>';
+  }
+
+  /* 피로가 쌓인 날의 점프 스매시 전환 (bm-v1.83.0)
+   *   조건에 맞을 때만 나오는 접기 — 점프 높이↓·착지 충격↑을 쉬운 말로,
+   *   바꿔 할 네트 앞·낮은 스텝 드릴을 같이 보여 줍니다. */
+  function jumpFold(an) {
+    var j = an && an.jump;
+    if (!j || !j.on) return '';
+    var drills = (j.drills || []).map(function (d) {
+      return '<li><b>' + U.esc(d.name) + '</b> ' + U.esc(d.sets) + ' — ' + U.esc(d.method) + '</li>';
+    }).join('');
+    var guides = (j.guides || []).map(function (g) {
+      return '<li><b>' + U.esc(g.name) + '</b> — ' + U.esc(g.how) + '</li>';
+    }).join('');
+    return '<details class="fold fold--ai" data-fold="jump">' +
+      '<summary class="fold__sum"><span>' + U.esc(j.title) + ' <small>피로한 후반 전환</small></span>' +
+      '<i class="fold__val">전환</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body"><div class="planbox">' +
+      '<p class="planbox__v">' + U.esc(j.reason) + '</p>' +
+      (drills ? '<p class="planbox__t mt8">오늘은 이렇게 바꿔 보세요</p><ul class="bullets">' + drills + '</ul>' : '') +
+      (guides ? '<p class="planbox__t mt8">후반 전환 요령</p><ul class="bullets">' + guides + '</ul>' : '') +
+      '<p class="planbox__src">' + U.esc(j.sourceShort || j.source) + '</p></div></div></details>';
   }
 
   /* 실전 선수 오프코트 루틴 — 코트 날 · 웨이트 날 순서 + 코어·허리 보강 3종 + 자전거 40분 */
@@ -738,6 +760,7 @@
       }).join('') + '</ol>' +
       analysisDetails(an, D.partnerStats(((state && state.data && state.data.records) || []), { limit: 3 })) +
       preventFold(an) +
+      jumpFold(an) +
       guardFold(an) +
       proFold(an) +
       '<details class="fold fold--ai" data-fold="week">' +
