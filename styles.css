@@ -7870,3 +7870,47 @@ body {
   background: color-mix(in srgb, var(--accent) 9%, var(--card));
 }
 .rkundo__t { font-size: 11.4px; font-weight: 800; color: var(--text-2); }
+
+/* ============================================================
+ * bm-v1.80.0 — 3D 라켓 뷰 (끌어서 360° · 부위를 눌러 바로 꾸미기)
+ * ============================================================ */
+.rk3d {
+  position: relative; border-radius: 20px; border: 1px solid var(--line);
+  background:
+    radial-gradient(120% 80% at 50% 42%, rgba(198,242,78,0.10) 0%, transparent 62%),
+    linear-gradient(180deg, #0b1410, #070c0a 70%);
+  overflow: hidden;
+  transition: box-shadow 260ms ease, border-color 260ms ease;
+}
+.rk3d.is-pick { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent) inset, 0 0 22px rgba(198,242,78,0.22); }
+.rk3d__cv {
+  display: block; width: 100%; height: 322px;
+  touch-action: none; cursor: grab;
+}
+.rk3d__cv:active { cursor: grabbing; }
+.rk3d__hint {
+  margin: -6px 12px 10px; text-align: center;
+  font-size: 10.6px; font-weight: 700; color: rgba(247,255,223,0.62);
+}
+.rk3d__hint span { color: var(--accent); font-weight: 900; margin-right: 3px; }
+.rk3d__hint b { color: rgba(247,255,223,0.92); font-weight: 900; }
+.rk3d__tabs {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
+  padding: 0 10px 10px;
+}
+.rk3d__tab {
+  min-height: 34px; border-radius: 11px; border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05); color: rgba(247,255,223,0.78);
+  font: inherit; font-size: 11.2px; font-weight: 900; letter-spacing: -0.2px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.rk3d__tab:active { transform: scale(0.96); }
+.rk3d__tab.is-on {
+  background: var(--accent); border-color: var(--accent); color: #08130a;
+}
+.rkgroup[hidden] { display: none; }
+.rkgroup.is-active .rkhead b { color: var(--accent); }
+.rkhead__now {
+  margin-left: auto; font-style: normal; font-size: 9.6px; font-weight: 900;
+  color: #08130a; background: var(--accent); padding: 2px 7px; border-radius: 999px;
+}
