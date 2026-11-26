@@ -98,17 +98,18 @@
   }
 
   /* 연속 출석 안내 — 하트 카드 · 꾸미기 패널이 함께 씁니다
-   *  왼쪽 줄: 꾸미기 무료 해금(3·7·14일)까지, 아래 줄: 하트 보너스(3·7·14일)까지 (bm-v1.64.0) */
+   *  왼쪽 줄: 꾸미기 무료 해금(3·7·14일 + 30일 챔피언 배지)까지,
+   *  아래 줄: 하트 보너스(3·7·14·30일)까지 (bm-v1.73.0) */
   function streakLine(hearts) {
     var days = hearts.checkinStreak || 0;
     var next = hearts.streakNext;
-    if (!days) return '출석을 이어 가면 3일·7일·14일에 꾸미기가 무료로 열려요';
-    if (!next) return days + '일 연속 출석 중 · 해금 가능한 꾸미기를 모두 받았어요';
+    if (!days) return '출석을 이어 가면 3·7·14일 꾸미기와 30일 챔피언 배지가 무료로 열려요';
+    if (!next) return days + '일 연속 출석 중 · 열 수 있는 꾸미기를 모두 받았어요';
     var gift = /배지/.test(next.label || '') ? '배지' : '프레임';
     return days + '일 연속 출석 중 · ' + next.days + '일까지 ' + next.left + '일 (' + gift + ' 무료)';
   }
 
-  /* 3·7·14일 연속 출석 보너스 한 줄 (bm-v1.64.0) — 공용 충전 시트와 같은 문구를 씁니다 */
+  /* 3·7·14·30일 연속 출석 보너스 한 줄 (bm-v1.73.0) — 공용 충전 시트와 같은 문구를 씁니다 */
   function streakBonusLine(hearts) {
     var live = liveHearts(hearts);
     if (BM.ads && typeof BM.ads.streakText === 'function') return BM.ads.streakText(live);
@@ -117,22 +118,34 @@
     return b.left + '일 더 하면 보너스 하트 +' + b.amount;
   }
 
+  /* 오늘의 하트 부스트 한 줄 (bm-v1.73.0) — 하트 부스트를 아직 열지 않은 사람도
+   * 오늘 첫 리워드 광고 한 편에 하트 +1을 더 받습니다. */
+  function dailyBoostLine(hearts) {
+    var live = liveHearts(hearts);
+    if (BM.ads && typeof BM.ads.dailyBoostText === 'function') return BM.ads.dailyBoostText(live);
+    return '';
+  }
+
   /* 하트 부스트 줄 (bm-v1.64.0)
-   *  · 잠김: '하트 3개로 평생 켜기' — 누르면 하트 시트(모자라면 광고)로 이어집니다.
-   *  · 켜짐: '적용 중(+1)' · 끄기 버튼. 상태는 프로필 꾸미기 JSON의 boost 값입니다. */
+   *  · 잠김: '한 번 열면 출석·광고 적립이 계속 +1' + '하트 3개로 열기' — 누르면 하트 시트로.
+   *  · 켜짐: '적용 중(+1)' · 끄기 버튼. 상태는 프로필 꾸미기 JSON의 boost 값입니다.
+   *  · bm-v1.84.0 — 바로 위 '오늘의 하트 부스트'(무료·광고 1회)와 헷갈리지 않게
+   *    이 줄은 '꾸미기'라고 밝히고, 하트 3개로 무엇이 열리는지 한 줄로 적습니다. */
   function boostLine(hearts) {
     var b = (hearts && hearts.boost) || {};
     var price = Math.max(1, Number(b.price) || 3);
     var owned = !!b.owned, on = !!b.equipped;
-    var sub = on ? '적용 중(+' + Math.max(1, Number(b.bonus) || 1) + ') · 출석·광고 +1'
-      : owned ? '켜면 출석·광고가 +1' : '하트 ' + price + '개로 한 번 열면 계속';
+    var sub = on ? '적용 중(+' + Math.max(1, Number(b.bonus) || 1) + ') · 출석·광고 적립이 계속 붙어요'
+      : owned ? '켜면 출석·광고 적립이 계속 +1'
+        : '한 번 열면 출석·광고 적립이 계속 +1';
     var btn = owned
       ? '<button type="button" class="chip chip--sm' + (on ? ' is-on' : '') + '" data-act="boost" data-boost="' + (on ? '0' : '1') + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + (on ? '끄기' : '켜기') + '</button>'
       : '<button type="button" class="chip chip--sm" data-act="boost" data-boost="1">하트 ' + price + '개로 열기</button>';
     return '<div class="boostline' + (on ? ' is-on' : '') + '" data-region="boost">' +
       UI.icon('spark') +
-      '<span class="boostline__t">하트 부스트</span>' +
-      '<span class="boostline__s">' + U.esc(sub) + '</span>' + btn + '</div>';
+      '<span class="boostline__txt">' +
+      '<span class="boostline__t">하트 부스트 · 꾸미기</span>' +
+      '<span class="boostline__s">' + U.esc(sub) + '</span></span>' + btn + '</div>';
   }
 
   /* 하트 부스트 열기/켜기/끄기 (bm-v1.64.0)
@@ -160,29 +173,36 @@
     }
 
     if (want && !bst.owned) {
-      var buyRes = ctx.actions.buyDeco('boost', 'heart');
-      if (buyRes.ok) {
-        UI.toast(buyRes.purchased ? '하트 ' + buyRes.price + '개로 하트 부스트를 열었어요' : '이미 열려 있어요');
-        UI.haptic(12);
-      } else if (buyRes.reason === 'hearts') {
-        openHeartSheet(ctx, {
-          need: price,
-          intro: function (s) {
-            return '<p class="sheet__text">하트 부스트 — <b>하트 ' + price +
-              '개</b>로 한 번 열면 계속 써요. 지금 <b>' + s.balance + '개</b> 있어요.' +
-              (s.balance < price ? ' <span class="warn">' + (price - s.balance) + '개 부족</span>' : '') + '</p>';
-          },
-          continueLabel: '열기',
-          onContinue: function () { runBoost(ctx, true, after); }
-        });
-        return;
-      } else if (buyRes.reason === 'locked') {
-        UI.toast('잠시만요, 처리 중이에요');
-        return;
-      } else {
-        UI.toast('지금은 열 수 없어요. 잠시 뒤 다시 시도해 주세요', 'error');
-        return;
-      }
+      /* bm-v1.75.0 — 하트 구매도 서버가 처리합니다(결과가 Promise 로 올 수 있어 U.when) */
+      U.when(ctx.actions.buyDeco('boost', 'heart'), function (buyRes) {
+        if (buyRes && buyRes.ok) {
+          UI.toast(buyRes.purchased ? '하트 ' + buyRes.price + '개로 하트 부스트를 열었어요' : '이미 열려 있어요');
+          UI.haptic(12);
+        } else if (buyRes && buyRes.reason === 'hearts') {
+          openHeartSheet(ctx, {
+            need: price,
+            intro: function (s) {
+              return '<p class="sheet__text">하트 부스트 — <b>하트 ' + price +
+                '개</b>로 한 번 열면 계속 써요. 지금 <b>' + s.balance + '개</b> 있어요.' +
+                (s.balance < price ? ' <span class="warn">' + (price - s.balance) + '개 부족</span>' : '') + '</p>';
+            },
+            continueLabel: '열기',
+            onContinue: function () { runBoost(ctx, true, after); }
+          });
+          return;
+        } else if (buyRes && buyRes.reason === 'locked') {
+          UI.toast('잠시만요, 처리 중이에요');
+          return;
+        } else if (buyRes && (buyRes.reason === 'offline' || buyRes.reason === 'login')) {
+          UI.toast(buyRes.message || '인터넷에 연결되면 열 수 있어요', 'error');
+          return;
+        } else {
+          UI.toast('지금은 열 수 없어요. 잠시 뒤 다시 시도해 주세요', 'error');
+          return;
+        }
+        equip(true);
+      });
+      return;
     }
     equip(want);
   }
@@ -222,6 +242,9 @@
       '<p class="streakline">' + UI.icon('check') + '<span>' + U.esc(streakLine(hearts)) + '</span></p>' +
       (streakBonusLine(hearts)
         ? '<p class="streakbonus">' + UI.icon('spark') + '<span>' + U.esc(streakBonusLine(hearts)) + '</span></p>'
+        : '') +
+      (dailyBoostLine(hearts)
+        ? '<p class="hint dailyline" data-daily-boost>' + U.esc(dailyBoostLine(hearts)) + '</p>'
         : '') +
       boostLine(hearts) +
 
@@ -404,7 +427,7 @@
    * 키가 들어오면 스위치를 켜 둔 사람부터 그대로 구독됩니다. */
   function pushStatusOf() {
     if (BM.push && BM.push.status) return BM.push.status();
-    return { id: 'ready', label: 'Firebase 연결 준비됨 · 곧 켜져요' };
+    return { id: 'ready', label: 'Firebase 연결 준비됨 · 곧 켜져요', permission: 'default', firebaseReady: false };
   }
 
   function pushRow(state) {
@@ -422,7 +445,36 @@
       '<span class="pushstatus pushstatus--' + U.esc(st.id) + '" data-push-status>' + U.esc(st.label) + '</span></div>' +
       '<button type="button" class="switch' + (on ? ' is-on' : '') + '" role="switch" aria-checked="' + (on ? 'true' : 'false') + '"' +
       ' aria-label="실시간 푸시 알림 ' + (on ? '끄기' : '켜기') + '" data-act="toggle-push">' +
-      '<i aria-hidden="true"></i><span>' + (on ? '켬' : '끔') + '</span></button></div>';
+      '<i aria-hidden="true"></i><span>' + (on ? '켬' : '끔') + '</span></button></div>' +
+      pushSteps(state);
+  }
+
+  /* bm-v1.77.0 — 알림이 어느 길로 오는지 두 줄로 나눠 보여 줍니다.
+   *   1) 실시간 알림 (앱 켜짐) : 앱을 열어 둔 동안 화면 배너·진동·브라우저 알림
+   *   2) 백그라운드 푸시 (앱 닫힘) : 스토어 앱(FCM)이 토큰을 넘겨 주면 폰 알림으로 */
+  function pushSteps(state) {
+    var on = !!(state && state.prefs && state.prefs.push === true);
+    var st = pushStatusOf();
+    var bg = (BM.push && BM.push.background) ? BM.push.background() : { id: 'ready', label: '스토어 앱 연결 준비', detail: '' };
+    var liveOn = on && st.permission === 'granted';
+    var liveLabel = liveOn ? '켜짐' : (on ? '권한 필요' : '꺼짐');
+    var liveHint = liveOn
+      ? '새 채팅·신청이 오면 화면 위 배너·짧은 진동으로 바로 알려 드려요.'
+      : on
+        ? '브라우저 알림을 허용하면 앱을 켜 둔 동안 바로 알려 드려요.'
+        : '스위치를 켜면 앱을 켜 둔 동안 바로 알려 드려요.';
+    var bgHint = String(bg.detail || '앱을 설치하고 알림을 켜면 이 기기가 연결돼요.');
+    return '<div class="pushsteps" data-push-steps>' +
+      step('live', '실시간 알림 (앱 켜짐)', liveLabel, liveHint, liveOn) +
+      step('bg', '백그라운드 푸시 (앱 닫힘)', String(bg.label || ''), bgHint, bg.id === 'linked') +
+      '</div>';
+  }
+
+  function step(id, title, label, hint, on) {
+    return '<div class="pushstep' + (on ? ' is-on' : '') + '" data-push-step="' + id + '">' +
+      '<div class="pushstep__t"><strong>' + U.esc(title) + '</strong>' +
+      '<span class="pushstep__b pushstep__b--' + U.esc(id) + '" data-push-step-label="' + id + '">' + U.esc(label) + '</span></div>' +
+      '<p class="pushstep__s">' + U.esc(hint) + '</p></div>';
   }
 
   function alarmPanel(state) {
@@ -763,6 +815,9 @@
         /* v1.41 — 통계 카드 아래 주간·월간 상세 리포트 입구 */
         (BM.report ? BM.report.entryHtml() : '') +
 
+        /* bm-v1.76.0 — 내 라켓 · 스트링 장력 메모 & 교체 알림 (생활 밀착 카드) */
+        (BM.gear ? BM.gear.cardHtml(state) : '') +
+
         roleCard(state) +
 
         routinePrefCard(state) +
@@ -784,7 +839,7 @@
           blockPanel(state)) +
         group('legal', 'shield', '개인정보 · 계정', '', legalCard(state)) +
 
-        '<p class="version">배드민턴 · ' + U.esc((BM.app && BM.app.version) || 'v1.9.1') + ' · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : (state.mode === 'supabase' ? 'Supabase 서울' : '이 기기 저장')) + '</p>';
+        '<p class="version">셔틀릭스 · ' + U.esc((BM.app && BM.app.version) || 'v1.9.1') + ' · ' + U.esc(state.mode === 'sheets' ? 'Apps Script 연결' : (state.mode === 'supabase' ? 'Supabase 서울' : '이 기기 저장')) + '</p>';
     },
 
     mount: function (root, ctx) {
@@ -800,6 +855,33 @@
         if (codeCopy) {
           ev.preventDefault();
           if (BM.views.friends) BM.views.friends.copyAndTell(codeCopy.getAttribute('data-code-copy'));
+          return;
+        }
+        /* bm-v1.76.0 — 내 라켓 · 스트링: 편집 시트 · 오늘 갈았어요
+         * bm-v1.84.0 — '+ 라켓 한 자루 더'는 시트를 빈 자루가 붙은 채로 엽니다 */
+        if (ev.target.closest('[data-act="gear-sheet"]')) {
+          ev.preventDefault();
+          if (BM.gear) BM.gear.openSheet(ctx);
+          UI.haptic(8);
+          return;
+        }
+        if (ev.target.closest('[data-act="gear-add"]')) {
+          ev.preventDefault();
+          if (BM.gear) BM.gear.openSheet(ctx, { add: true });
+          UI.haptic(8);
+          return;
+        }
+        if (ev.target.closest('[data-act="gear-restung"]')) {
+          ev.preventDefault();
+          var grBtn = ev.target.closest('[data-act="gear-restung"]');
+          if (BM.gear) BM.gear.restung(ctx, grBtn.getAttribute('data-gear-idx'));
+          return;
+        }
+        /* bm-v1.80.0 — 내 커스텀 라켓 꾸미기 */
+        if (ev.target.closest('[data-act="racket-sheet"]')) {
+          ev.preventDefault();
+          if (BM.racketcustom) BM.racketcustom.openSheet(ctx);
+          UI.haptic(8);
           return;
         }
         var sw = ev.target.closest('.theme[data-theme]');   /* html[data-theme]까지 올라가지 않게 */
@@ -839,6 +921,8 @@
           UI.haptic(8);
           if (!pushOn) {
             if (BM.push && BM.push.unsubscribe) BM.push.unsubscribe();
+            /* bm-v1.77.0 — 이 기기 토큰도 서버에서 해제(다시 켜면 새로 등록) */
+            if (BM.push && BM.push.unregisterToken) BM.push.unregisterToken();
             UI.toast('실시간 푸시 알림을 껐어요');
             return;
           }
@@ -850,6 +934,9 @@
             else if (res && res.reason === 'permission') UI.toast('알림을 허용해야 켤 수 있어요', 'error');
             else if (res && res.reason === 'unsupported') UI.toast('이 브라우저는 실시간 푸시를 지원하지 않아요', 'error');
             else UI.toast('푸시 구독을 마치지 못했어요. 잠시 뒤 다시 켜 주세요', 'error');
+            /* bm-v1.77.0 — 스토어 앱이 토큰을 넘겨 줬다면 지금 서버에 다시 맞춥니다 */
+            if (BM.push && BM.push.syncToken) BM.push.syncToken();
+            if (BM.push && BM.push.requestToken) BM.push.requestToken();
             if (ctx.repaint) ctx.repaint();
           });
           return;
@@ -924,16 +1011,21 @@
 
         if (ev.target.closest('[data-act="checkin"]')) {
           ev.preventDefault();
-          var ci = ctx.actions.checkIn();
-          if (ci.ok) {
-            /* 연속 보너스가 붙는 날(3·7·14일)은 토스트도 따로 — 부스트 보너스도 함께 알려 줍니다 */
-            var parts = [];
-            if (ci.bonus) parts.push(ci.streak + '일 연속! 보너스 +' + ci.bonus);
-            if (ci.boost) parts.push('부스트 +' + ci.boost);
-            UI.toast('출석 체크 완료 · 하트 +' + ci.gained + (parts.length ? ' (' + parts.join(' · ') + ')' : ''));
-            UI.haptic(14);
-          } else if (ci.reason === 'done') UI.toast('오늘은 이미 출석했어요');
-          else if (ci.reason === 'locked') UI.toast('잠시만요');
+          /* bm-v1.75.0 — 하트 적립은 서버가 합니다. 결과가 바로 오거나(기기 저장)
+           * 서버 응답으로 올 수 있어(Supabase) U.when 으로 같은 문구를 씁니다. */
+          U.when(ctx.actions.checkIn(), function (ci) {
+            if (ci.ok) {
+              /* 연속 보너스가 붙는 날(3·7·14·30일)은 토스트도 따로 — 부스트 보너스도 함께 알려 줍니다 */
+              var parts = [];
+              if (ci.bonus) parts.push(ci.streak + '일 연속! 보너스 +' + ci.bonus);
+              if (ci.boost) parts.push('부스트 +' + ci.boost);
+              UI.toast('출석 체크 완료 · 하트 +' + ci.gained + (parts.length ? ' (' + parts.join(' · ') + ')' : ''));
+              UI.haptic(14);
+            } else if (ci.reason === 'done') UI.toast('오늘은 이미 출석했어요');
+            else if (ci.reason === 'locked') UI.toast('잠시만요');
+            else if (ci.reason === 'offline') UI.toast('인터넷에 연결되면 출석할 수 있어요', 'error');
+            else if (ci.reason === 'login') UI.toast('로그인이 풀렸어요. MY에서 다시 로그인해 주세요', 'error');
+          });
           return;
         }
         /* 하트 부스트 — 열기(하트 3개) · 켜기 · 끄기 (bm-v1.64.0) */
@@ -956,13 +1048,18 @@
               return;
             }
             var res = ctx.actions.watchAd({ verified: true, adUnit: r.adUnit, txId: r.txId });
-            if (res.ok) {
-              UI.toast('하트 +' + res.gained + ' · 오늘 ' + res.remaining + '회 남음');
-              UI.haptic(16);
-            } else if (res.reason === 'limit') UI.toast('오늘 몫을 모두 받았어요. 내일 다시 만나요!');
-            else if (res.reason === 'cooldown') UI.toast(res.retryAfter + '초 뒤에 다시 시도해 주세요');
-            else if (res.reason === 'duplicate') UI.toast('이미 받은 광고예요');
-            else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+            U.when(res, function (res) {
+              if (res.ok) {
+                UI.toast('하트 +' + res.gained + (res.dailyBoost ? ' (오늘의 부스트 +' + res.dailyBoost + ' 포함)' : '') +
+                  ' · 오늘 ' + res.remaining + '회 남음');
+                UI.haptic(16);
+              } else if (res.reason === 'limit') UI.toast('오늘 몫을 모두 받았어요. 내일 다시 만나요!');
+              else if (res.reason === 'cooldown') UI.toast(res.retryAfter + '초 뒤에 다시 시도해 주세요');
+              else if (res.reason === 'duplicate') UI.toast('이미 받은 광고예요');
+              else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+              else if (res.reason === 'offline') UI.toast('인터넷에 연결되면 하트를 받을 수 있어요', 'error');
+              else if (res.reason === 'login') UI.toast('로그인이 풀렸어요. MY에서 다시 로그인해 주세요', 'error');
+            });
           });
           return;
         }
@@ -1130,10 +1227,17 @@
 
   /* 하트가 모자라면 공용 충전 시트를 열고, 채운 뒤에는 이미 확인한 구매를 바로 이어서 진행합니다 */
   function buyDeco(ctx, kind, value, onDone) {
-    var res = ctx.actions.buyDeco(kind, value);
-    if (res.ok) {
+    /* bm-v1.75.0 — Supabase 모드에서는 서버(RPC)가 잔액을 보고 차감합니다. 결과가 Promise 로 옵니다. */
+    U.when(ctx.actions.buyDeco(kind, value), function (res) {
+    if (res && res.ok) {
       UI.toast(res.purchased ? '하트 ' + res.price + '개로 열었어요' : '이미 열려 있어요');
       UI.haptic(12);
+      onDone(res);
+      return;
+    }
+    res = res || { ok: false, reason: 'error' };
+    if (res.reason === 'offline' || res.reason === 'login') {
+      UI.toast(res.message || '인터넷에 연결되면 열 수 있어요', 'error');
       onDone(res);
       return;
     }
@@ -1159,6 +1263,7 @@
       UI.toast('열지 못했어요', 'error');
     }
     onDone(res);
+    });
   }
 
   function lockTag(d) {
@@ -1497,8 +1602,9 @@
       }).join('') + '</div>' +
 
       /* 하트 부스트 — 출석·광고 적립을 늘리는 꾸미기 (bm-v1.64.0).
-       * 꾸미기 상점과 같은 자리에서 열고 켜고 끕니다(시트는 그 자리에서 다시 그립니다). */
-      '<p class="deco__sub" data-sub="boost">하트 부스트</p>' +
+       * 꾸미기 상점과 같은 자리에서 열고 켜고 끕니다(시트는 그 자리에서 다시 그립니다).
+       * bm-v1.84.0 — MY 하트 카드의 '오늘의 하트 부스트'(무료·광고 1회)와 다름을 이름에 밝힙니다. */
+      '<p class="deco__sub" data-sub="boost">하트 부스트 · 꾸미기 <small>하트로 열면 출석·광고 +1</small></p>' +
       boostLine(state.data && state.data.hearts) +
 
       '<h4 class="avstudio__label" data-sec="level">실력(급수)</h4>' +
@@ -1994,9 +2100,12 @@
   BM.views.my.alarmPanel = alarmPanel;               /* 테스트·점검용 (알림·편지지 설정) */
   BM.views.my.prefRow = prefRow;                     /* 테스트·점검용 */
   BM.views.my.pushRow = pushRow;                     /* 테스트·점검용 (v1.57 푸시 알림 상태) */
+  BM.views.my.pushSteps = pushSteps;                 /* 테스트·점검용 (v1.77 실시간·백그라운드 두 줄) */
   BM.views.my.sharePanel = sharePanel;               /* 테스트·점검용 (v1.57 인스타 공유 카드) */
   BM.views.my.heartCard = heartCard;                 /* 테스트·점검용 (하트 카드·보너스 줄) */
   BM.views.my.decoPreviewBody = decoPreviewBody;     /* 테스트·점검용 (꾸미기 미리보기 본문) */
   BM.views.my.openDecoPreviewSheet = openDecoPreviewSheet;   /* 테스트·점검용 */
   BM.views.my.streakBonusLine = streakBonusLine;     /* 테스트·점검용 (7일 연속 보너스 줄) */
+  BM.views.my.dailyBoostLine = dailyBoostLine;       /* 테스트·점검용 (오늘의 하트 부스트 줄) */
+  BM.views.my.streakLine = streakLine;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

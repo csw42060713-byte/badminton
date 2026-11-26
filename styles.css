@@ -321,6 +321,29 @@ a { color: var(--accent-2); text-decoration: none; }
 .syncdot.is-busy { background: var(--warn); animation: blink 900ms infinite; }
 .syncdot.is-error { background: var(--bad); }
 
+/* bm-v1.82.0 — 상단 '내 상태' 글자 배지 (작은 점 대신)
+ *   · is-on : 매칭 ON(초록) · is-off : 휴식 중(회색)
+ *   · is-busy(저장 중) · is-error(동기화 오류)는 같은 알약으로 계속 알립니다. */
+.matchpill {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 26px; padding: 0 9px 0 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--good) 36%, transparent);
+  background: color-mix(in srgb, var(--good) 14%, transparent);
+  color: color-mix(in srgb, var(--good) 80%, var(--text));
+  font-size: 10.5px; font-weight: 900; letter-spacing: -0.2px;
+  white-space: nowrap; flex: none;
+  transition: background 160ms, border-color 160ms, color 160ms;
+}
+.matchpill b { font-weight: 900; }
+.matchpill__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.matchpill.is-off { border-color: var(--line); background: var(--card); color: var(--muted); }
+.matchpill.is-off .matchpill__dot { background: color-mix(in srgb, var(--muted) 65%, transparent); }
+.matchpill:active { transform: scale(0.96); }
+.matchpill.is-busy { animation: matchPulse 1.1s ease-in-out infinite; }
+.matchpill.is-error { border-color: color-mix(in srgb, var(--bad) 46%, transparent); color: var(--bad); }
+@keyframes matchPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
 .heartchip {
   display: inline-flex; align-items: center; gap: 5px;
   height: 30px; padding: 0 11px;
@@ -2746,6 +2769,15 @@ summary { display: list-item; }
 .fold--ai .insights { margin-top: 4px; }
 .fold--ai .fold__body > .care__col:first-child { margin-top: 10px; }
 
+/* v1.72 — 심화·선수 루틴 묶기: 안쪽 접기는 점선으로만 나눠 한 덩어리로 */
+.fold--pro .fold__body > .fold { margin-top: 10px; border-top: 1px dashed var(--line); }
+.fold--pro .fold__body > .fold:first-child { margin-top: 6px; border-top: 0; }
+.fold--pro .fold__body > .fold .fold__sum { min-height: 46px; }
+/* 통증으로 드릴을 바꿨을 때 한 줄 — 드릴 제목 바로 아래 */
+.drill__swap { display: flex; align-items: flex-start; gap: 6px; padding: 8px 10px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--text-2); }
+.drill__swap .ico { flex: 0 0 auto; width: 14px; height: 14px; margin-top: 1px; color: var(--accent); }
+
 /* 매칭 — 하트 소모 안내를 카드·프로필 상단에서 먼저 보여 줌 */
 .pcard__act { align-items: center; gap: 8px; flex-wrap: wrap; }
 .pcard__cost {
@@ -3081,28 +3113,7 @@ summary { display: list-item; }
 .letter--compact .letter__rule { font-size: 10.5px; }
 .dmletters { display: grid; gap: 8px; }
 
-/* 조건을 고르기 전 첫 화면 — 목록 대신 짧은 안내 카드 */
-.matchintro {
-  display: grid; justify-items: center; gap: 2px;
-  margin-top: 14px; padding: 24px 18px 22px;
-  border: 1px dashed var(--line-2);
-  border-radius: var(--r);
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
-  text-align: center;
-}
-.matchintro__ico {
-  display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 6px;
-  border-radius: 50%; color: var(--accent);
-  background: var(--accent-soft); border: 1px solid var(--accent-line);
-}
-.matchintro__ico .ico { width: 20px; height: 20px; }
-.matchintro__art { display: block; margin-bottom: 4px; }
-.matchintro__art .empty__art { height: 66px; margin: 0 auto; }
-.matchintro__t { font-size: 14px; font-weight: 800; color: var(--text); line-height: 1.45; letter-spacing: -0.3px; word-break: keep-all; }
-.matchintro__t b { color: var(--accent); }
-.matchintro__d { margin-top: 5px; font-size: 11.5px; line-height: 1.65; color: var(--muted); word-break: keep-all; }
-.matchintro__btn { margin-top: 14px; min-height: 38px; gap: 4px; }
-.matchintro__btn .ico { width: 13px; height: 13px; }
+/* bm-v1.84.0 — 첫 화면이 추천 목록으로 바뀌어 .matchintro 안내 카드 스타일은 걷어냈습니다 */
 
 /* 편지지 카드 — 어디를 눌러도 상세 편지지로 (내부 버튼과 충돌하지 않게 처리) */
 .letter:active { transform: scale(0.995); }
@@ -3378,6 +3389,9 @@ body.no-scroll { overflow: hidden; }
 
 /* 동기화 점은 작게, 하트 칩은 흰 알약으로 (빨간 덩어리 대신) */
 .syncdot { width: 6px; height: 6px; box-shadow: none; }
+/* bm-v1.82.0 — 좁은 헤더(390px)에서도 버튼·라켓과 겹치지 않게 배지를 더 납작하게 */
+.matchpill { height: 24px; padding: 0 8px 0 7px; font-size: 10px; gap: 3px; }
+.hdr__right { gap: 7px; }
 .heartchip {
   height: 30px; padding: 0 10px 0 9px;
   gap: 4px;
@@ -4866,8 +4880,9 @@ body.has-notif.has-netbar .main { padding-top: calc(var(--hdr-h) + var(--safe-t)
   font-size: 11.5px; color: var(--text-2);
 }
 .boostline .ico { flex: none; width: 14px; height: 14px; color: var(--muted); }
+.boostline__txt { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .boostline__t { font-weight: 800; color: var(--text); flex: none; }
-.boostline__s { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.boostline__s { min-width: 0; font-size: 11px; line-height: 1.35; color: var(--muted); }
 .boostline .chip { flex: none; }
 .boostline.is-on {
   border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
@@ -5671,7 +5686,7 @@ body {
 /* 타일을 못 받았을 때 — 핀·목록은 그대로 두고 한 줄만 알립니다 */
 .gymmap.is-notiles::after {
   content: "지도 그림을 불러오지 못했어요 · 핀과 목록은 그대로 볼 수 있어요";
-  position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 500;
+  position: absolute; left: 8px; right: 8px; top: 8px; z-index: 500;
   padding: 7px 10px; border-radius: 10px;
   background: color-mix(in srgb, var(--bg) 90%, transparent);
   color: var(--text-2); font-size: 11px; line-height: 1.4;
@@ -5736,6 +5751,113 @@ body {
 .gymgeo__b:active { transform: scale(0.97); }
 .gymgeo__b[disabled] { opacity: 0.6; }
 .gymgeo__n { flex: 1 1 auto; min-width: 0; font-size: 11px; line-height: 1.35; color: var(--muted); overflow-wrap: anywhere; }
+
+/* ---------- 18.7b 진짜 지도 앱처럼: 검색 후보 · 내 위치(GPS) · 길찾기 (bm-v1.82.0) ---------- */
+.gymsug {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: -2px; padding: 6px;
+  border-radius: 14px; border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--text) 16%, transparent);
+  max-height: 268px; overflow-y: auto;
+}
+.gymsug__row {
+  display: grid; grid-template-columns: 22px 1fr auto; align-items: center;
+  gap: 1px 8px; padding: 7px 8px; border-radius: 10px; text-align: left;
+  background: transparent; border: 0; color: var(--text);
+}
+.gymsug__pin { grid-row: 1 / span 2; display: grid; place-items: center; color: var(--accent); }
+.gymsug__pin .ico { width: 15px; height: 15px; }
+.gymsug__row b { grid-column: 2; font-size: 13px; font-weight: 800; letter-spacing: -0.25px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gymsug__row span { grid-column: 2; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gymsug__row em { grid-column: 3; grid-row: 1 / span 2; font-style: normal; font-size: 11px; font-weight: 800; color: var(--accent); }
+.gymsug__row:active { background: var(--accent-soft); }
+.gymsug__hint, .gymsug__none { padding: 5px 8px 1px; font-size: 10.5px; color: var(--muted); line-height: 1.4; }
+.gymsug__more {
+  margin: 5px 6px 2px; align-self: flex-start; padding: 6px 11px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card-2);
+  font-size: 11px; font-weight: 800; color: var(--text-2);
+}
+
+/* 지도 위 '내 위치(GPS)' — 오른쪽 아래 (확대/축소는 위로 옮겼습니다) */
+.gymgps {
+  position: absolute; right: 10px; bottom: 10px; z-index: 900;
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 36px; padding: 0 12px 0 10px;
+  border-radius: 999px; border: 1px solid var(--accent-line);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  color: var(--accent); font-size: 11.5px; font-weight: 900; letter-spacing: -0.2px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--text) 22%, transparent);
+}
+.gymgps .ico { width: 14px; height: 14px; }
+.gymgps.is-on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.gymgps.is-busy { opacity: 0.72; }
+.gymgps:active { transform: scale(0.97); }
+
+/* 오프라인 핀 지도 위 경로선 (Leaflet 이 뜨면 숨김) */
+.gymfroute { position: absolute; inset: 0; pointer-events: none; z-index: 420; }
+.gymmap.is-live .gymfroute { display: none; }
+.gymroute__svg { display: block; width: 100%; height: 100%; }
+.gymroute__svg line { stroke: var(--accent); opacity: 0.92; }
+.gymroute__arrow { position: absolute; color: var(--accent); font-size: 15px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+.gyroute-arrow-wrap { background: none; border: 0; }
+.gyroute-arrow { display: block; text-align: center; color: #3b82f6; font-size: 16px; line-height: 22px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
+
+/* 길찾기 카드 — 방향 · 거리 · 예상 시간 · 원탭 길찾기 */
+.gymroute {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px; border-radius: var(--r-lg);
+  border: 1px solid var(--accent-line);
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
+  box-shadow: var(--shadow-soft);
+}
+.gymroute.is-idle { border-color: var(--line); background: var(--card); }
+.gymroute__idleline { display: flex; align-items: flex-start; gap: 8px; font-size: 11.8px; line-height: 1.45; color: var(--muted); }
+.gymroute__idleline .ico { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--accent); }
+.gymroute__idleline b { color: var(--text-2); }
+.gymroute__top { display: flex; align-items: flex-start; gap: 8px; }
+.gymroute__t { flex: 1; min-width: 0; }
+.gymroute__t .pill { display: inline-flex; align-items: center; gap: 3px; }
+.gymroute__t .pill .ico { width: 12px; height: 12px; }
+.gymroute__t h3 { margin-top: 5px; font-size: 15px; font-weight: 900; letter-spacing: -0.4px; line-height: 1.25; }
+.gymroute__t p { margin-top: 2px; font-size: 11.5px; color: var(--muted); }
+.gymroute__x {
+  flex: none; display: grid; place-items: center; width: 30px; height: 30px;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--muted);
+}
+.gymroute__x .ico { width: 14px; height: 14px; }
+.gymroute__sum {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 12px; border-radius: 13px;
+  background: var(--card-2); border: 1px solid var(--line);
+}
+.gymroute__dir { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 94px; }
+.gymroute__compass { font-style: normal; font-size: 19px; line-height: 1; color: var(--accent); }
+.gymroute__dir b { font-size: 13px; font-weight: 900; letter-spacing: -0.3px; text-align: center; font-variant-numeric: tabular-nums; }
+.gymroute__dir span { font-size: 9.5px; line-height: 1.3; color: var(--muted); text-align: center; }
+.gymroute__times { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gymroute__times li { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
+.gymroute__times i { font-style: normal; font-size: 12px; }
+.gymroute__times span { flex: none; width: 52px; font-weight: 700; color: var(--muted); }
+.gymroute__times b { font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.gymroute__geo { display: flex; align-items: center; gap: 8px; font-size: 11px; line-height: 1.4; color: var(--muted); }
+.gymroute__geo .ico { width: 14px; height: 14px; flex: none; color: var(--accent); }
+.gymroute__geo span { flex: 1; min-width: 0; }
+.gymroute__geo b { color: var(--text-2); }
+.gymroute__go {
+  min-height: 48px; font-size: 14.5px; font-weight: 900;
+  gap: 6px; text-decoration: none; color: var(--accent-ink);
+}
+.gymroute__go .ico { width: 16px; height: 16px; }
+.gymroute__go span { font-size: 12px; opacity: 0.75; }
+.gymroute__apps { display: flex; gap: 6px; }
+.gymroute__apps a {
+  flex: 1; text-align: center; padding: 8px 6px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--card);
+  font-size: 11px; font-weight: 800; color: var(--text-2); text-decoration: none;
+}
+.gymroute__apps a:active { background: var(--accent-soft); }
+.gymroute__hint { font-size: 10px; line-height: 1.4; color: var(--muted); }
 
 /* 내 위치 점 (지도) */
 .gyme { display: grid; place-items: center; width: 20px; height: 20px; }
@@ -6189,6 +6311,8 @@ body {
   background: var(--card-2); border: 1px solid var(--line);
   font-size: 12px; line-height: 1.5; color: var(--text-2);
 }
+/* v1.72 — 예시를 본 뒤 다른 예시로 바꾸는 줄: 지금 본 예시만 색으로 표시 */
+.pose__demo .linkbtn.is-on { color: var(--accent); font-weight: 800; text-decoration: underline; }
 .pose__status p { margin: 0; flex: 1; min-width: 160px; }
 .pose__status--err { border-color: color-mix(in srgb, var(--danger, #e5484d) 35%, var(--line)); }
 .pose__spin {
@@ -6816,6 +6940,17 @@ body {
   content: ''; position: absolute; left: 7px; right: 30%; bottom: 9px; height: 2px;
   background: rgba(255,255,255,0.72); box-shadow: 0 -7px 0 -0.5px rgba(255,255,255,0.38);
 }
+.sc__design--receipt i { background: linear-gradient(165deg, #37504a, #0f1715 84%); }
+.sc__design--receipt i::after {
+  content: ''; position: absolute; left: 7px; right: 7px; top: 6px; bottom: 6px;
+  border-radius: 2px; background: #f8f3e7;
+  box-shadow: inset 0 0 0 1px rgba(29,27,24,0.10), 0 2px 6px rgba(0,0,0,0.34);
+}
+.sc__design--receipt i::before {
+  content: ''; position: absolute; z-index: 1; left: 12px; right: 12px; top: 15px; height: 1.5px;
+  background: repeating-linear-gradient(90deg, rgba(29,27,24,0.55) 0 3px, transparent 3px 6px);
+  box-shadow: 0 6px 0 -0.5px rgba(29,27,24,0.28), 0 12px 0 -0.5px rgba(29,27,24,0.16);
+}
 .sc__design--film i { background: linear-gradient(165deg, #faf8f3, #e9e3d7); }
 .sc__design--glass i { background: linear-gradient(165deg, #2a4a44, #0d1714 82%); }
 .sc__design--glass i::after {
@@ -6974,6 +7109,13 @@ body {
 }
 .sc__compbox > .field__label { padding-top: 10px; }
 .sc__compbox .field { margin-top: 12px; }
+/* 대회 날짜 — 날짜 입력(input[type=date])은 기본 폭이 auto라 한 줄을 다 쓰게 (bm-v1.72.0) */
+.sc__datefield { display: block; }
+.sc__datefield input[type="date"] {
+  display: block; width: 100%; min-height: 44px; margin-top: 7px;
+  padding: 10px 12px; font-size: 14px; font-weight: 700;
+}
+.sc__datefield .hint { display: block; margin-top: 6px; }
 
 /* 저장 — 시트 아래에 붙어 있어 스크롤을 되돌리지 않아도 됩니다.
  * 위쪽은 투명 → 바탕색 그라데이션으로, 지나가는 내용이 잘린 느낌 없이 스며들게. */
@@ -7002,6 +7144,24 @@ body {
 .pushstatus--ready { color: var(--warn); border-color: rgba(242,193,78,0.4); background: rgba(242,193,78,0.1); }
 .pushstatus--unsupported { color: var(--muted); }
 .prefrow--push { align-items: flex-start; }
+
+/* bm-v1.77.0 — 알림이 오는 두 길(실시간·백그라운드) 상태 두 줄 */
+.pushsteps { display: grid; gap: 8px; margin: 10px 0 4px; }
+.pushstep {
+  padding: 11px 13px; border-radius: var(--r-sm);
+  border: 1px solid var(--line); background: var(--card-2);
+}
+.pushstep.is-on { border-color: var(--accent-line); background: var(--accent-soft); }
+.pushstep__t { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pushstep__t strong { font-size: 13px; font-weight: 800; letter-spacing: -0.3px; color: var(--text); }
+.pushstep__b {
+  flex: 0 0 auto; font-size: 10.5px; font-weight: 800; letter-spacing: -0.2px;
+  padding: 3px 8px; border-radius: 999px;
+  color: var(--text-2); background: color-mix(in srgb, var(--text) 6%, transparent);
+  border: 1px solid var(--line);
+}
+.pushstep.is-on .pushstep__b { color: var(--accent); border-color: var(--accent-line); background: var(--card); }
+.pushstep__s { margin: 5px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--muted); letter-spacing: -0.2px; }
 .flabel select {
   width: 100%; margin-top: 7px; min-height: 46px; padding: 10px 13px;
   border-radius: var(--r-sm); border: 1px solid var(--line-2);
@@ -7100,3 +7260,1120 @@ body {
 .share-entry__s { font-size: 11.5px; font-weight: 700; color: var(--text-2); letter-spacing: -0.15px; }
 .share-entry__h { font-size: 10.5px; font-weight: 600; color: var(--muted); }
 .share-entry__car { flex: none; width: 16px; height: 16px; color: var(--accent); }
+
+/* ============================================================
+ * bm-v1.72.0 — 30일 출석 · 오늘의 하트 부스트 · 코트 약속 카드 · 스티커 글씨 색
+ * ============================================================ */
+
+/* 오늘의 하트 부스트 한 줄 — 하트 카드·충전 시트 공용 */
+.dailyline {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 6px; padding: 7px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--good) 10%, transparent);
+  color: var(--text-2); font-size: 11.5px; font-weight: 800; letter-spacing: -0.1px;
+}
+.dailyline::before { content: '⚡'; flex: none; font-size: 12px; line-height: 1; }
+.hint.dailyline { margin: 8px 0 0; }
+
+/* 1:1 대화방 — 입력창 옆 📅 약속 잡기 */
+.dm__composer--apt { gap: 7px; }
+.dm__apptbtn {
+  flex: none; display: inline-flex; align-items: center; gap: 3px;
+  min-height: 40px; padding: 0 10px;
+  border-radius: 13px; border: 1px solid var(--accent-line);
+  background: color-mix(in srgb, var(--accent) 10%, var(--card));
+  color: var(--text); font: inherit; font-size: 12px; font-weight: 900;
+  letter-spacing: -0.2px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.dm__apptbtn:active { transform: scale(0.96); }
+.dm__apptbtn span { white-space: nowrap; }
+
+/* 코트 약속 카드 */
+.dmsg--apt { max-width: 92%; }
+.aptcard {
+  width: 232px; max-width: 100%;
+  display: grid; gap: 2px;
+  padding: 12px 13px 11px;
+  border-radius: 16px 16px 16px 6px;
+  border: 1px solid var(--accent-line);
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--accent) 16%, transparent) 0%, transparent 68%),
+    var(--card);
+  box-shadow: var(--shadow-soft);
+}
+.dmsg--me .aptcard { border-radius: 16px 16px 6px 16px; }
+.aptcard__k {
+  margin: 0; font-size: 10.5px; font-weight: 900; letter-spacing: 0.3px;
+  color: var(--accent);
+}
+.aptcard__gym {
+  margin: 4px 0 0; font-size: 15px; font-weight: 900; letter-spacing: -0.35px;
+  color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.aptcard__when {
+  margin: 0; font-size: 13px; font-weight: 800; color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.aptcard__note {
+  margin: 6px 0 0; padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  font-size: 11.8px; font-weight: 600; color: var(--text-2);
+  white-space: pre-wrap; word-break: break-word;
+}
+.aptcard__st {
+  display: flex; align-items: center; gap: 5px;
+  margin: 8px 0 0; font-size: 11.5px; font-weight: 900; color: var(--text-2);
+}
+.aptcard__st span { font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.aptcard__st.is-ok { color: var(--good); }
+.aptcard__acts { display: flex; gap: 6px; margin-top: 9px; }
+.aptcard__acts .btn { flex: 1; min-height: 36px; font-size: 12.5px; }
+.dbubble--apt {
+  background: color-mix(in srgb, var(--good) 12%, var(--card));
+  color: var(--text);
+  font-weight: 800; font-size: 12.5px;
+}
+.dmsg--me .dbubble--apt { background: color-mix(in srgb, var(--good) 18%, var(--card)); color: var(--text); }
+/* 대화 목록 미리보기 — 약속 카드 표시가 길게 늘지 않게 */
+.dmroom__mid p { min-width: 0; }
+
+/* 스티커 글씨 색 3종 */
+.sc__inkbox { margin-top: 12px; }
+.sc__inkbox[hidden] { display: none; }
+.sc__inks { gap: 6px; }
+.sc__ink {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 34px; padding: 0 11px; font-size: 12.2px; font-weight: 800;
+}
+.sc__ink i {
+  flex: none; width: 12px; height: 12px; border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.28);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+}
+.sc__ink.is-on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+/* ============================================================
+ * bm-v1.76.0 — 🏸 내 라켓 · 스트링 장력 메모 & 교체 알림
+ *  · MY 카드(.gear) · 일지 & AI 위 한 줄 배너(.gearline) · 편집 시트(.gearform)
+ *  · 시기 색만 바꿉니다: ok(기본) · soon(노랑) · due(빨강) · empty/nodate(회색)
+ * ============================================================ */
+.gear .card__head { margin-bottom: 10px; }
+.gear__main { display: grid; gap: 3px; }
+.gear__racket {
+  margin: 0; font-size: 16px; font-weight: 900; letter-spacing: -0.4px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gear__spec {
+  margin: 0; font-size: 13px; font-weight: 800; color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.gear__meta {
+  margin: 4px 0 0; font-size: 12px; font-weight: 700; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.gear__memo {
+  margin: 6px 0 0; font-size: 12px; font-weight: 600; color: var(--text-2);
+  white-space: normal; word-break: keep-all;
+}
+.gear__cycle { margin: 2px 0 0; font-size: 11.3px; font-weight: 700; color: var(--muted); }
+.gear__empty { margin: 0; font-size: 12.4px; font-weight: 600; color: var(--muted); line-height: 1.5; }
+.gear__acts { display: flex; gap: 7px; margin-top: 12px; }
+.gear__acts .btn { min-height: 38px; }
+.gear[data-gear-state="due"] .gear__meta { color: color-mix(in srgb, var(--bad) 82%, var(--text)); }
+.gear[data-gear-state="soon"] .gear__meta { color: color-mix(in srgb, var(--warn) 78%, var(--text)); }
+
+/* 일지 & AI 위 한 줄 배너 — 시기가 됐을 때만, 카드처럼 무겁지 않게 */
+.gearline {
+  width: 100%; display: flex; align-items: center; gap: 9px;
+  margin: 0 0 10px; padding: 10px 12px;
+  border-radius: 14px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  color: var(--text); font: inherit; text-align: left;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.gearline:active { transform: scale(0.995); }
+.gearline--soon { border-color: color-mix(in srgb, var(--warn) 44%, var(--line)); }
+.gearline--due { border-color: color-mix(in srgb, var(--bad) 46%, var(--line)); }
+.gearline__ico {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 10px; font-size: 15px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.gearline--soon .gearline__ico { background: color-mix(in srgb, var(--warn) 16%, transparent); }
+.gearline--due .gearline__ico { background: color-mix(in srgb, var(--bad) 15%, transparent); }
+.gearline__txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.gearline__t {
+  font-size: 12.6px; font-weight: 900; letter-spacing: -0.2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gearline__s {
+  font-size: 11.3px; font-weight: 700; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gearline--due .gearline__t { color: color-mix(in srgb, var(--bad) 82%, var(--text)); }
+.gearline--soon .gearline__t { color: color-mix(in srgb, var(--warn) 76%, var(--text)); }
+.gearline__car { flex: none; width: 15px; height: 15px; color: var(--muted); }
+
+/* 편집 시트 */
+.gearform { display: grid; gap: 13px; }
+.gfield { display: grid; gap: 6px; min-width: 0; }
+.gfield > span.gfield__l, .gfield .gfield__l {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.2px; font-weight: 900; color: var(--text-2); letter-spacing: -0.2px;
+}
+.gfield .gfield__l small { font-size: 10.8px; font-weight: 700; color: var(--muted); }
+.gfield input[type="text"], .gfield input[type="number"], .gfield input[type="date"] {
+  width: 100%; min-height: 42px; padding: 0 12px;
+  border-radius: 12px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text); font: inherit; font-size: 14px; font-weight: 700;
+  -webkit-appearance: none; appearance: none;
+}
+.gfield input[type="number"] { font-variant-numeric: tabular-nums; }
+.gfield input:focus { outline: none; border-color: var(--accent-line); }
+.gfield__row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.gfield__row .gpick { flex: 1 1 auto; min-width: 0; flex-wrap: wrap; gap: 5px; }
+.gfield__row .gpick__b { padding: 0 10px; }
+.gfield .gfield__num {
+  flex: 0 0 72px; width: 72px; min-height: 34px; padding: 0 6px;
+  text-align: center; font-size: 13.5px;
+}
+.grow-row { display: flex; gap: 7px; align-items: center; }
+.grow-row input { flex: 1; min-width: 0; }
+.grow-row .btn { flex: none; min-height: 44px; }
+.gpick {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.gpick__b {
+  min-height: 34px; padding: 0 12px;
+  border-radius: 10px; border: 1px solid var(--line);
+  background: transparent; color: var(--text-2);
+  font: inherit; font-size: 12.4px; font-weight: 800;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.gpick__b.is-on {
+  border-color: var(--accent-line);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+}
+.gpick__b:active { transform: scale(0.97); }
+
+/* ============================================================
+ * 21. bm-v1.79.0 — 💛 응원 하트 · ⚡ 지난 운동 채우기 · 🏟️ 체육관 후기
+ *  · 매칭: 카드·프로필에서 1하트로 마음만 건네는 버튼
+ *  · 일지: 직전 일지의 시간·컨디션·강도·약점을 한 번에 채우는 버튼
+ *  · 커뮤니티: 바닥·조명·주차·샤워 네 칸 후기 (칩 3개 중 하나)
+ * ============================================================ */
+
+/* (1) 매칭 — '💛 응원' 버튼 (카드 안 작은 칩 / 프로필 시트의 넓은 줄) */
+.cheerbtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 36px; padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--card));
+  color: var(--text); font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.cheerbtn:active { transform: scale(0.97); }
+.cheerbtn__ico { font-size: 13px; line-height: 1; }
+.cheerbtn--sm { min-height: 36px; padding: 0 11px; font-size: 12.5px; }
+.cheerbtn--wide {
+  display: flex; width: 100%; justify-content: flex-start; gap: 9px;
+  min-height: 46px; padding: 9px 13px; text-align: left; border-radius: var(--r-sm);
+}
+.cheerbtn--wide .cheerbtn__t { font-size: 13px; font-weight: 800; letter-spacing: -0.2px; }
+.cheerbtn--wide .cheerbtn__s { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--muted); }
+.pcard__act .cheerbtn { flex: none; }
+/* 카드 오른쪽 위: 궁합 아래에 '응원' — 아래 버튼 줄이 줄바꿈되지 않습니다 */
+.pcard__side { flex: none; display: grid; justify-items: end; gap: 6px; }
+.pcard__side .fit { margin: 0; }
+
+/* (2) 매칭 찾기 — 친구 코드 초대 줄 */
+.invitebar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px; border: 1px solid var(--line);
+  background: var(--card);
+}
+.invitebar__l { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.invitebar__k { font-size: 10.5px; font-weight: 800; letter-spacing: 0.4px; color: var(--muted); }
+.invitebar__v { font-size: 14px; font-weight: 900; letter-spacing: -0.2px; }
+.invitebar__v i { font-style: normal; color: var(--accent-2); letter-spacing: 0.8px; }
+.invitebar__s { font-size: 10.5px; line-height: 1.35; color: var(--muted); word-break: keep-all; }
+.invitebar .btn { flex: none; }
+
+/* (3) 일지 — '⚡ 지난 운동 그대로 채우기' */
+.quickfill { margin-top: 10px; }
+.quickfill__btn {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 12px; text-align: left;
+  border-radius: var(--r-sm);
+  border: 1px dashed color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  color: var(--text);
+}
+.quickfill__btn:active { transform: scale(0.995); }
+.quickfill__ico { flex: none; font-size: 15px; line-height: 1; }
+.quickfill__t { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.quickfill__t b { font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px; }
+.quickfill__t small {
+  font-size: 11px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.quickfill__car { flex: none; width: 15px; height: 15px; color: var(--accent); }
+
+/* (4) 커뮤니티 — '🏟️ 체육관 후기' 작성 칸 */
+.gymform {
+  margin-top: 10px; padding: 11px 12px;
+  border: 1px dashed var(--accent-line); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  animation: viewIn 140ms ease-out;
+}
+.gymform[hidden] { display: none; }
+.gymform__t {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  font-size: 11.5px; font-weight: 800; color: var(--text-2); letter-spacing: -0.1px;
+}
+.gymform__t .ico { flex: 0 0 auto; width: 14px; height: 14px; color: var(--accent); }
+.gymform__t small { font-weight: 700; color: var(--muted); }
+.gymform__name { display: grid; gap: 4px; margin-top: 9px; }
+.gymform__name span { font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: -0.1px; }
+.gymform__name input { min-height: 40px; padding: 8px 11px; border-radius: 10px; background: var(--card-2); }
+.gymform__name input::placeholder { color: var(--muted); }
+.gympick { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.gympick__k { flex: none; width: 32px; font-size: 11px; font-weight: 800; color: var(--muted); }
+.gympick__chips { flex: 1; min-width: 0; gap: 6px; flex-wrap: nowrap; overflow-x: auto; }
+.gympick__b { flex: none; min-height: 38px; padding: 0 11px; font-size: 11.5px; }
+.gympick__b--good.is-on { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.gympick__b--bad.is-on { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+
+/* (4-2) 글에 붙는 후기 카드 */
+.gymreview {
+  margin-top: 9px; padding: 10px 11px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-2);
+  background: var(--card-2);
+}
+.gymreview__t { display: flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px; }
+.gymreview__t .ico { flex: none; width: 14px; height: 14px; color: var(--accent); }
+.gymreview__rows { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.gymrow {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card);
+  font-size: 11px; font-weight: 700;
+}
+.gymrow i { font-style: normal; font-weight: 800; color: var(--muted); }
+.gymrow--good b { color: var(--accent-2); }
+.gymrow--ok b { color: var(--text-2); }
+.gymrow--bad b { color: var(--warn); }
+
+/* (5) 일지 첫 화면 살짝 압축 — 390×844에서 '오늘 일지' 입력칸이 더 위에서 시작합니다.
+ *     카드 사이 여백과 카드 안 여백만 줄이고, 블록·셀렉터·기능은 그대로입니다. */
+.view[data-view="log"] { gap: 11px; }
+.view[data-view="log"] > .card { padding: 16px 18px; }
+.view[data-view="log"] > .card--hero { padding-bottom: 14px; }
+.view[data-view="log"] > .card--hero .hero__sub { margin-top: 3px; }
+/* 부가 배너(초보 루틴 시작 카드 · 한 줄 루틴 · 코트 도구)도 여백만 조금 줄여
+ * '오늘 일지' 입력칸이 첫 화면 안에서 시작하게 합니다 (블록·버튼·기능은 그대로) */
+.view[data-view="log"] > .card--rtn-ask { padding: 14px 14px 12px; }
+.view[data-view="log"] .ask__stats { margin-top: 10px; }
+.view[data-view="log"] .ask__btns { margin-top: 10px; }
+.view[data-view="log"] .ask__btns .btn--ghost { min-height: 40px; }
+.view[data-view="log"] .courttools { margin-top: 10px; }
+.view[data-view="log"] .hero__share + .courttools { margin-top: 8px; }
+.view[data-view="log"] > .card--beg-slim .beg-slim { padding: 10px 14px; }
+
+/* bm-v1.79 — 말머리가 6개(체육관 후기 포함)로 늘어 한 줄을 넘을 때
+ *   두 줄로 접히지 않고, 앱의 다른 칩 줄처럼 옆으로 밀어서 고릅니다. */
+.topicbar, .topicpick {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.topicbar::-webkit-scrollbar, .topicpick::-webkit-scrollbar { display: none; }
+.topicbar .chip, .topicpick .chip { flex: none; }
+
+/* ============================================================
+ * bm-v1.80.0 — 🏸 내 커스텀 라켓 (상단 미니 위젯 · 꾸미기 시트 · 매칭/프로필)
+ *   · 운동 상태(최상·보통·느슨·끊어짐)는 색과 작은 점으로만 알립니다.
+ *   · 파츠 칸은 5개씩 한 줄 — 손가락으로 누르기 좋은 68px 높이.
+ * ============================================================ */
+.hdr__right .hedracket {
+  flex: none; width: 34px; height: 34px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 11px; border: 1px solid var(--line);
+  background: var(--card); box-shadow: var(--shadow-soft);
+  position: relative; overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+}
+.hedracket:active { transform: scale(0.95); }
+.hedracket__art { display: block; width: 20px; height: 30px; transform: rotate(-16deg); }
+.hedracket__art .rksvg { width: 100%; height: 100%; display: block; }
+.hedracket::after {
+  content: ''; position: absolute; right: 3px; top: 3px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--good); box-shadow: 0 0 0 2px var(--card);
+}
+.hedracket.is-worn::after { background: var(--warn); }
+.hedracket.is-broken::after { background: var(--bad); }
+.hedracket.is-prime { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.hedracket.is-prime .hedracket__art { filter: drop-shadow(0 0 4px rgba(198,242,78,0.55)); }
+.hedracket.is-broken .hedracket__art { transform: rotate(-24deg); opacity: 0.9; }
+
+/* 다른 사람 카드·프로필의 작은 라켓 */
+.rkmini { display: inline-block; width: 18px; height: 26px; transform: rotate(-14deg); vertical-align: -6px; }
+.rkmini .rksvg { width: 100%; height: 100%; display: block; }
+.rkmini--prime { filter: drop-shadow(0 0 3px rgba(198,242,78,0.5)); }
+.rkperson { display: inline-flex; width: 15px; height: 22px; margin-right: 5px; vertical-align: -5px; transform: rotate(-14deg); }
+.rkperson .rksvg { width: 100%; height: 100%; display: block; }
+.rkperson.is-default { opacity: 0.55; }
+.pcard__rk { display: inline-flex; align-items: center; margin-right: 2px; }
+
+/* 프로필 시트 — 커스텀 라켓 한 줄 */
+.pp__racket {
+  display: flex; align-items: center; gap: 10px;
+  margin: 10px 0 2px; padding: 10px 12px;
+  border-radius: 14px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card-2, var(--card)) 90%, transparent);
+}
+.pp__racketart { flex: none; width: 26px; height: 38px; transform: rotate(-14deg); }
+.pp__racketart .rksvg { width: 100%; height: 100%; display: block; }
+.pp__rackettx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.pp__rackettx b { font-size: 12px; font-weight: 900; color: var(--text); }
+.pp__rackettx span {
+  font-size: 11.6px; font-weight: 700; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pp__invite { flex: none; }
+
+/* 꾸미기 시트 */
+.rksheet { display: grid; gap: 14px; }
+.rkhero {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px; border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%);
+}
+.rkhero--worn { background: linear-gradient(135deg, color-mix(in srgb, var(--warn) 14%, transparent), transparent 70%); }
+.rkhero--broken { background: linear-gradient(135deg, color-mix(in srgb, var(--bad) 14%, transparent), transparent 70%); }
+.rkhero__art { flex: none; width: 58px; height: 84px; transform: rotate(-14deg); }
+.rkhero__art .rksvg { width: 100%; height: 100%; display: block; }
+.rkhero--prime .rkhero__art { filter: drop-shadow(0 0 8px rgba(198,242,78,0.45)); }
+.rkhero__txt { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.rkhero__badge {
+  justify-self: start; margin: 0 0 2px; padding: 3px 9px;
+  border-radius: 999px; font-size: 10.5px; font-weight: 900; letter-spacing: 0.2px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent);
+}
+.rkhero--worn .rkhero__badge { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+.rkhero--broken .rkhero__badge { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+.rkhero__t { margin: 0; font-size: 15px; font-weight: 900; letter-spacing: -0.3px; color: var(--text); }
+.rkhero__s { margin: 0; font-size: 12px; font-weight: 600; color: var(--text-2); line-height: 1.45; }
+.rkhero__r {
+  margin: 2px 0 0; font-size: 11.2px; font-weight: 700; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rkpoints {
+  padding: 13px 14px; border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--card));
+}
+.rkpoints__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.rkpoints__top b { font-size: 13px; font-weight: 900; color: var(--text); }
+.rkpoints__top b i { font-style: normal; color: var(--accent); font-variant-numeric: tabular-nums; }
+.rkpoints__top span { font-size: 10.6px; font-weight: 800; color: var(--muted); }
+.rkpoints__line { margin: 6px 0 0; font-size: 11.6px; font-weight: 700; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.rkpoints__line small { color: var(--muted); font-weight: 700; }
+.rkpoints__hint { margin: 4px 0 0; font-size: 11.2px; font-weight: 600; color: var(--muted); }
+.rkgroup { display: grid; gap: 8px; }
+.rkhead { display: flex; align-items: baseline; gap: 7px; }
+.rkhead b { font-size: 12.6px; font-weight: 900; color: var(--text); }
+.rkhead span { font-size: 10.8px; font-weight: 700; color: var(--muted); }
+.rkparts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.rkpart {
+  position: relative; display: grid; justify-items: center; gap: 4px;
+  padding: 9px 4px 7px; min-height: 76px;
+  border-radius: 13px; border: 1px solid var(--line); background: var(--card);
+  font: inherit; color: var(--text); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.rkpart:active { transform: scale(0.97); }
+.rkpart.is-on { border-color: var(--accent); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent) inset; }
+.rkpart.is-lock { opacity: 0.86; }
+.rkpart__sw {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--c, #333); border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: inset 0 -3px 6px rgba(0,0,0,0.25);
+}
+.rkpart__sw[style*="transparent"] { background: repeating-linear-gradient(45deg, #3a3f3d, #3a3f3d 3px, #2b2f2d 3px, #2b2f2d 6px); }
+.rkpart__n {
+  font-size: 9.4px; font-weight: 800; line-height: 1.15; letter-spacing: -0.2px;
+  text-align: center; word-break: keep-all;
+}
+.rkpart__p { font-size: 9.2px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rkpart__p.is-cost { color: var(--accent); }
+.rkpart__lock { position: absolute; top: 4px; right: 4px; font-size: 8px; opacity: 0.75; }
+.rkactions { display: flex; gap: 8px; }
+.rkactions .btn { min-height: 42px; }
+
+/* 저장 직후 화면 아래 공유 바 */
+.saveshare {
+  position: fixed; left: 12px; right: 12px;
+  /* 일지 탭의 '저장하고 AI 분석' 고정 바(약 66px) 바로 위에 뜨도록 */
+  bottom: calc(var(--nav-h) + var(--safe-b) + 92px);
+  z-index: 46; pointer-events: none;
+}
+.saveshare__card {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 10px 9px 12px; border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+  backdrop-filter: blur(10px);
+  animation: saveshareIn 320ms cubic-bezier(.2,.9,.25,1.05) both;
+}
+@keyframes saveshareIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.saveshare__rk { flex: none; width: 22px; height: 32px; transform: rotate(-14deg); }
+.saveshare__rk .rksvg { width: 100%; height: 100%; display: block; }
+.saveshare__txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.saveshare__t {
+  margin: 0; font-size: 12.2px; font-weight: 900; letter-spacing: -0.2px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.saveshare__s {
+  margin: 0; font-size: 10.8px; font-weight: 700; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.saveshare__go {
+  flex: none; min-height: 36px; padding: 0 14px; border-radius: 12px;
+  border: 0; font: inherit; font-size: 12.5px; font-weight: 900; color: #08130a;
+  background: linear-gradient(135deg, #c6f24e, #a8e63f);
+}
+.saveshare__go:active { transform: scale(0.96); }
+.saveshare__x {
+  flex: none; width: 30px; height: 30px; border-radius: 10px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  font-size: 12px; font-weight: 900;
+}
+
+/* 일지 분석 카드 안의 저장 직후 스트립 */
+.sharebar--now {
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line));
+  border-radius: 16px; padding: 12px; margin-top: 16px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
+}
+.sharebar__top { display: flex; align-items: center; gap: 9px; }
+.sharebar__rk { flex: none; width: 20px; height: 30px; transform: rotate(-14deg); }
+.sharebar__rk .rksvg { width: 100%; height: 100%; display: block; }
+.sharebar__hd { flex: 1; min-width: 0; }
+.sharebar__x {
+  flex: none; width: 28px; height: 28px; border-radius: 9px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  font-size: 11px; font-weight: 900;
+}
+.sharebar--now .sharebar__t { font-size: 13px; }
+.sharebar__hint { margin: 7px 0 0; font-size: 11.4px; font-weight: 600; color: var(--muted); }
+.sharebar__hint b { color: var(--accent); }
+
+/* 공유 시트 — 스매시 임팩트 배너 */
+.sc__smashban {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  margin-top: 10px; padding: 10px 12px;
+  border-radius: 16px; border: 1px dashed color-mix(in srgb, var(--accent) 46%, var(--line));
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
+  font: inherit; color: var(--text); text-align: left; cursor: pointer;
+}
+.sc__smashban.is-on {
+  border-style: solid;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--card));
+}
+.sc__smashart { flex: none; width: 24px; height: 36px; transform: rotate(-18deg); }
+.sc__smashart .rksvg { width: 100%; height: 100%; display: block; }
+.sc__smashtx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.sc__smashtx b { font-size: 12.6px; font-weight: 900; letter-spacing: -0.2px; }
+.sc__smashtx b i {
+  font-style: normal; font-size: 9px; font-weight: 900; letter-spacing: 0.8px;
+  margin-left: 4px; padding: 2px 5px; border-radius: 5px;
+  background: var(--accent); color: #08130a; vertical-align: 1px;
+}
+.sc__smashtx small { font-size: 10.6px; font-weight: 600; color: var(--muted); line-height: 1.3; }
+.sc__smashsw {
+  flex: none; font-size: 10.8px; font-weight: 900; color: var(--accent);
+  padding: 5px 9px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.sc__preview.is-smash { background: #060a09; }
+
+/* ============================================================
+ * 저장 순간의 스매시 임팩트 (0.88초 · 조작을 막지 않음)
+ *  라켓이 갈라지고 충격파 링·빛줄기 파편·오늘 수치가 사방으로 퍼집니다.
+ * ============================================================ */
+.smashburst {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  pointer-events: none; overflow: hidden;
+}
+/* 순간적으로 화면을 살짝 눌러 임팩트가 도드라지게 (0.88초 뒤 사라짐) */
+.smashburst::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 46%, rgba(4,10,7,0.66) 0%, rgba(4,10,7,0.86) 58%, rgba(4,10,7,0.80) 100%);
+  animation: smashDim 880ms ease-out both;
+}
+@keyframes smashDim {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  76% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.smash__stage { position: relative; width: 0; height: 0; }
+.smash__flash {
+  position: absolute; left: -140px; top: -140px; width: 280px; height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(247,255,223,0.55) 38%, rgba(247,255,223,0) 72%);
+  animation: smashFlash 880ms ease-out both;
+}
+@keyframes smashFlash {
+  0% { opacity: 0; transform: scale(0.18); }
+  14% { opacity: 1; transform: scale(1.12); }
+  38% { opacity: 0.85; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(2.3); }
+}
+.smash__ring {
+  position: absolute; border-radius: 50%;
+  border: 4px solid rgba(198,242,78,0.9);
+  animation: smashRing 880ms cubic-bezier(.15,.75,.2,1) both;
+}
+.smash__ring--2 { border-color: rgba(242,193,78,0.85); border-width: 3px; animation-delay: 40ms; }
+.smash__ring--3 { border-color: rgba(255,255,255,0.72); border-width: 2px; animation-delay: 80ms; }
+@keyframes smashRing {
+  0% { width: 24px; height: 24px; margin: -12px 0 0 -12px; opacity: 0.95; }
+  70% { opacity: 0.45; }
+  100% { width: 286px; height: 286px; margin: -143px 0 0 -143px; opacity: 0; }
+}
+.smash__rays {
+  position: absolute; left: -190px; top: -190px; width: 380px; height: 380px;
+  background: conic-gradient(from 0deg,
+    rgba(198,242,78,0.55) 0deg 6deg, transparent 6deg 30deg,
+    rgba(242,193,78,0.42) 30deg 36deg, transparent 36deg 60deg,
+    rgba(247,255,223,0.40) 60deg 65deg, transparent 65deg 90deg,
+    rgba(198,242,78,0.45) 90deg 96deg, transparent 96deg 120deg,
+    rgba(242,193,78,0.40) 120deg 126deg, transparent 126deg 150deg,
+    rgba(247,255,223,0.35) 150deg 155deg, transparent 155deg 180deg,
+    rgba(198,242,78,0.45) 180deg 186deg, transparent 186deg 210deg,
+    rgba(242,193,78,0.40) 210deg 216deg, transparent 216deg 240deg,
+    rgba(247,255,223,0.35) 240deg 245deg, transparent 245deg 270deg,
+    rgba(198,242,78,0.45) 270deg 276deg, transparent 276deg 300deg,
+    rgba(242,193,78,0.40) 300deg 306deg, transparent 306deg 330deg,
+    rgba(247,255,223,0.35) 330deg 335deg, transparent 335deg 360deg);
+  border-radius: 50%; opacity: 0;
+  animation: smashRays 880ms ease-out both;
+}
+@keyframes smashRays {
+  0% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  18% { opacity: 0.9; }
+  100% { opacity: 0; transform: scale(1.35) rotate(22deg); }
+}
+.smash__shards { position: absolute; left: 0; top: 0; }
+.smash__shard {
+  position: absolute; left: -1px; top: 0;
+  width: var(--w, 3px); height: var(--h, 18px);
+  margin-top: 10px;
+  margin-left: calc(var(--w, 3px) / -2);
+  background: var(--c, #c6f24e);
+  transform-origin: 50% 0;
+  border-radius: 1px; opacity: 0;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--c, #c6f24e) 70%, transparent);
+  animation: smashShard 880ms cubic-bezier(.1,.8,.2,1) var(--dl, 0ms) both;
+}
+@keyframes smashShard {
+  0% { opacity: 0; transform: rotate(var(--a)) rotate(var(--tilt, 0deg)) translateY(4px) scaleY(0.25); }
+  12% { opacity: var(--o, 0.9); }
+  66% { opacity: var(--o, 0.9); }
+  100% { opacity: 0; transform: rotate(var(--a)) rotate(var(--tilt, 0deg)) translateY(var(--d)) scaleY(1); }
+}
+.smash__racket {
+  position: absolute; left: 0; top: 0; width: 0; height: 0;
+  animation: smashRacket 880ms cubic-bezier(.2,.85,.2,1) both;
+}
+.smash__half { position: absolute; left: -65px; top: -103px; width: 130px; height: 206px; }
+.smash__half .rksvg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 0 10px rgba(198,242,78,0.45)); }
+.smash__half--l { clip-path: polygon(0 0, 52% 0, 46% 34%, 55% 52%, 47% 70%, 52% 100%, 0 100%); animation: smashHalfL 880ms ease-out both; }
+.smash__half--r { clip-path: polygon(52% 0, 100% 0, 100% 100%, 52% 100%, 47% 70%, 55% 52%, 46% 34%); animation: smashHalfR 880ms ease-out both; }
+@keyframes smashHalfL {
+  0% { opacity: 0; transform: scale(0.55) rotate(-4deg); }
+  18% { opacity: 1; transform: scale(1.08) rotate(0deg); }
+  34% { transform: scale(1.02) rotate(0deg); }
+  100% { opacity: 0; transform: translate(-34px, 16px) rotate(-14deg) scale(1.04); }
+}
+@keyframes smashHalfR {
+  0% { opacity: 0; transform: scale(0.55) rotate(4deg); }
+  18% { opacity: 1; transform: scale(1.08) rotate(0deg); }
+  34% { transform: scale(1.02) rotate(0deg); }
+  100% { opacity: 0; transform: translate(34px, -12px) rotate(14deg) scale(1.04); }
+}
+.smash__streak {
+  position: absolute; left: -170px; top: -2px; width: 340px; height: 4px;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 46%, #c6f24e 54%, rgba(255,255,255,0) 100%);
+  transform: rotate(-32deg);
+  filter: drop-shadow(0 0 10px rgba(198,242,78,0.9));
+  opacity: 0; animation: smashStreak 880ms ease-out both;
+}
+@keyframes smashStreak {
+  0% { opacity: 0; transform: rotate(-32deg) scaleX(0.2); }
+  12% { opacity: 1; transform: rotate(-32deg) scaleX(1); }
+  42% { opacity: 0.85; transform: rotate(-32deg) scaleX(1.15); }
+  100% { opacity: 0; transform: rotate(-32deg) scaleX(1.35); }
+}
+.smash__crack {
+  position: absolute; left: -46px; top: -46px; width: 92px; height: 92px;
+  background: linear-gradient(115deg, transparent 46%, #f7ffdf 49%, #c6f24e 51%, transparent 55%);
+  filter: drop-shadow(0 0 6px rgba(198,242,78,0.8));
+  opacity: 0; animation: smashCrack 880ms ease-out both;
+}
+@keyframes smashCrack {
+  0%, 10% { opacity: 0; transform: scale(0.4) rotate(-10deg); }
+  20% { opacity: 1; transform: scale(1) rotate(0deg); }
+  60% { opacity: 0.85; }
+  100% { opacity: 0; transform: scale(1.35) rotate(6deg); }
+}
+.smash__chips { position: absolute; left: 0; top: 0; }
+.smash__chip {
+  position: absolute; left: 0; top: 0;
+  display: grid; gap: 1px; justify-items: center;
+  padding: 8px 12px; border-radius: 14px;
+  background: rgba(6,11,9,0.82);
+  border: 1.5px solid rgba(198,242,78,0.75);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+  transform-origin: 50% 50%;
+  opacity: 0; white-space: nowrap;
+  animation: smashChip 880ms cubic-bezier(.16,.9,.24,1.02) var(--d, 0ms) both;
+}
+.smash__chip:nth-child(2) { border-color: rgba(242,193,78,0.8); }
+.smash__chip:nth-child(4) { border-color: rgba(247,255,223,0.7); }
+.smash__chip i {
+  font-style: normal; font-size: 9px; font-weight: 900; letter-spacing: 1.2px;
+  color: rgba(198,242,78,0.9);
+}
+.smash__chip b { font-size: 15px; font-weight: 900; color: #f7ffdf; letter-spacing: -0.3px; }
+@keyframes smashChip {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.25) rotate(0deg); }
+  22% { opacity: 1; transform: translate(calc(var(--tx) * 0.55), calc(var(--ty) * 0.55)) scale(1.12) rotate(var(--r)); }
+  46% { transform: translate(var(--tx), var(--ty)) scale(0.96) rotate(var(--r)); }
+  62% { transform: translate(var(--tx), var(--ty)) scale(1.04) rotate(var(--r)); }
+  100% { opacity: 0; transform: translate(calc(var(--tx) * 1.09), calc(var(--ty) * 1.09)) scale(1) rotate(var(--r)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .smashburst { display: none; }
+  .saveshare__card { animation: none; }
+}
+.rkundo {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 9px 12px; border-radius: 13px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 9%, var(--card));
+}
+.rkundo__t { font-size: 11.4px; font-weight: 800; color: var(--text-2); }
+
+/* ============================================================
+ * bm-v1.80.0 — 3D 라켓 뷰 (끌어서 360° · 부위를 눌러 바로 꾸미기)
+ * ============================================================ */
+.rk3d {
+  position: relative; border-radius: 20px; border: 1px solid var(--line);
+  background:
+    radial-gradient(120% 80% at 50% 42%, rgba(198,242,78,0.10) 0%, transparent 62%),
+    linear-gradient(180deg, #0b1410, #070c0a 70%);
+  overflow: hidden;
+  transition: box-shadow 260ms ease, border-color 260ms ease;
+}
+.rk3d.is-pick { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent) inset, 0 0 22px rgba(198,242,78,0.22); }
+.rk3d__cv {
+  display: block; width: 100%; height: 322px;
+  touch-action: none; cursor: grab;
+}
+.rk3d__cv:active { cursor: grabbing; }
+.rk3d__hint {
+  margin: -6px 12px 10px; text-align: center;
+  font-size: 10.6px; font-weight: 700; color: rgba(247,255,223,0.62);
+}
+.rk3d__hint span { color: var(--accent); font-weight: 900; margin-right: 3px; }
+.rk3d__hint b { color: rgba(247,255,223,0.92); font-weight: 900; }
+.rk3d__tabs {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
+  padding: 0 10px 10px;
+}
+.rk3d__tab {
+  min-height: 34px; border-radius: 11px; border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05); color: rgba(247,255,223,0.78);
+  font: inherit; font-size: 11.2px; font-weight: 900; letter-spacing: -0.2px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.rk3d__tab:active { transform: scale(0.96); }
+.rk3d__tab.is-on {
+  background: var(--accent); border-color: var(--accent); color: #08130a;
+}
+.rkgroup[hidden] { display: none; }
+.rkgroup.is-active .rkhead b { color: var(--accent); }
+.rkhead__now {
+  margin-left: auto; font-style: normal; font-size: 9.6px; font-weight: 900;
+  color: #08130a; background: var(--accent); padding: 2px 7px; border-radius: 999px;
+}
+
+/* ============================================================
+ * bm-v1.81.0 — 실제 비율 3D 라켓 · 바디 4종 · 등급 · 효과(연출)
+ * ============================================================ */
+/* bm-v1.82.0 — 3D 위 조작 줄: 스매시/꾸미기 모드 + ⚡ 스매시 테스트 */
+.rkstage { display: flex; align-items: center; gap: 6px; padding: 2px 10px 8px; }
+.rkstage__modes {
+  display: inline-flex; gap: 2px; padding: 3px;
+  border-radius: 999px; background: rgba(255,255,255,0.055);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.rkstage__m {
+  min-height: 30px; padding: 0 10px; border-radius: 999px; border: 0;
+  background: transparent; color: rgba(247,255,223,0.6);
+  font: inherit; font-size: 10.6px; font-weight: 900; letter-spacing: -0.2px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent; white-space: nowrap;
+}
+.rkstage__m.is-on { background: var(--accent); color: var(--accent-ink); }
+.rkstage__m:active { transform: scale(0.96); }
+.rkstage__go {
+  margin-left: auto; flex: none; min-height: 32px; padding: 0 12px;
+  border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: #dfff9a; font: inherit; font-size: 10.6px; font-weight: 900;
+  letter-spacing: -0.2px; cursor: pointer; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.rkstage__go:active { transform: scale(0.96); }
+.rkstage__go.is-big {
+  border-color: rgba(255,150,70,0.6); background: rgba(255,138,47,0.2); color: #ffd6b0;
+}
+
+/* bm-v1.86.0 — 라켓 모션 칩 (🌀 손목 트위스트 · ✨ 쇼케이스 스핀 · ⚡ 공중 360° 플립) */
+.rkmotions { display: flex; gap: 5px; padding: 0 10px 9px; }
+.rkmotion {
+  flex: 1 1 0; min-width: 0; min-height: 31px; padding: 0 5px;
+  display: flex; align-items: center; justify-content: center; gap: 3px;
+  border-radius: 10px; border: 1px solid rgba(255,255,255,0.13);
+  background: rgba(255,255,255,0.05); color: rgba(247,255,223,0.84);
+  font: inherit; font-size: 9.8px; font-weight: 900; letter-spacing: -0.35px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent; white-space: nowrap;
+}
+.rkmotion:active { transform: scale(0.96); }
+.rkmotion b { font-weight: 900; overflow: hidden; text-overflow: ellipsis; }
+.rkmotion__e { font-size: 11px; line-height: 1; }
+.rkmotion__p {
+  font-style: normal; font-size: 8.4px; font-weight: 900; color: #ffc0d2;
+  background: rgba(255,120,160,0.16); border-radius: 999px; padding: 1px 4px;
+}
+.rkmotion.is-lock { color: rgba(247,255,223,0.62); border-style: dashed; }
+.rkmotion.is-ask { border-color: var(--accent); border-style: solid; color: #dfff9a; }
+.rkmotion.is-on {
+  border-color: var(--accent); color: #eaffb0;
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent) inset;
+}
+
+/* 세로로 긴 실제 라켓 비율이 잘리지 않게 */
+.rk3d__cv { height: 356px; }
+.rk3d { box-shadow: inset 0 -30px 40px -30px rgba(0,0,0,0.8); }
+
+/* 바디(모델) 4종 — 고르면 실루엣·데칼이 바로 바뀝니다 */
+.rkbody {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;
+  padding: 0 10px 9px;
+}
+.rkbody__chip {
+  position: relative; display: grid; grid-template-columns: 8px 1fr; grid-template-rows: auto auto;
+  gap: 1px 7px; align-items: center; padding: 8px 9px 7px; min-height: 46px;
+  border-radius: 13px; border: 1px solid rgba(255,255,255,0.13);
+  background: rgba(255,255,255,0.045); color: rgba(247,255,223,0.9);
+  font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.rkbody__chip:active { transform: scale(0.98); }
+.rkbody__chip b { font-size: 11.4px; font-weight: 900; letter-spacing: -0.2px; white-space: nowrap; }
+.rkbody__chip span { grid-column: 2; font-size: 9.2px; font-weight: 700; color: rgba(247,255,223,0.52); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rkbody__sw {
+  grid-row: 1 / span 2; width: 8px; align-self: stretch; border-radius: 4px;
+  background: linear-gradient(180deg, var(--c), color-mix(in srgb, var(--c) 40%, #10161a));
+}
+.rkbody__chip.is-on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.rkbody__chip.is-lock { opacity: 0.74; }
+.rkbody__chip .rkrar { position: absolute; top: 5px; right: 6px; }
+
+/* 등급 — 일반(회색) · 레어(블루) · 에픽(퍼플) · 레전드(골드) */
+.rkpart, .rkbody__chip, .rkrar { --rar: #9aa6b0; --rar-glow: rgba(154,166,176,0.0); }
+.is-r-common { --rar: #9aa6b0; --rar-glow: rgba(154,166,176,0.35); }
+.is-r-rare { --rar: #4aa3ff; --rar-glow: rgba(74,163,255,0.55); }
+.is-r-epic { --rar: #a678ff; --rar-glow: rgba(166,120,255,0.6); }
+.is-r-legend { --rar: #f2c14e; --rar-glow: rgba(242,193,78,0.75); }
+
+.rkparts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.rkpart {
+  min-height: 92px; padding: 9px 6px 7px;
+  border-color: color-mix(in srgb, var(--rar) 40%, var(--line));
+}
+.rkpart.is-on {
+  border-color: var(--rar);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rar) 70%, transparent) inset,
+    0 0 16px var(--rar-glow);
+}
+.is-r-legend { box-shadow: 0 0 14px var(--rar-glow); }
+.rkpart__d {
+  font-style: normal; font-size: 8.6px; font-weight: 700; line-height: 1.2;
+  color: var(--muted); text-align: center; word-break: keep-all;
+}
+.rkrar {
+  position: static; font-style: normal; text-decoration: none;
+  font-size: 8.2px; font-weight: 900; letter-spacing: 0.1px; line-height: 1;
+  padding: 2px 5px; border-radius: 999px;
+  color: var(--rar); border: 1px solid color-mix(in srgb, var(--rar) 55%, transparent);
+  background: color-mix(in srgb, var(--rar) 16%, transparent);
+}
+.rkhero__b {
+  margin: 1px 0 0; font-size: 10.6px; font-weight: 800; color: var(--muted);
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.rkhero__b .rkrar--common { --rar: #9aa6b0; }
+.rkhero__b .rkrar--rare { --rar: #4aa3ff; }
+.rkhero__b .rkrar--epic { --rar: #a678ff; }
+.rkhero__b .rkrar--legend { --rar: #f2c14e; }
+.rk3d__tabs { grid-template-columns: repeat(6, 1fr); }
+.rk3d__tab { font-size: 10.4px; }
+@media (prefers-reduced-motion: reduce) {
+  .rkbody__chip, .rkpart { transition: none; }
+}
+
+/* 줄 갈고 며칠째 — 3D 라켓 바로 아래 한 줄 */
+.rkage { display: flex; align-items: stretch; gap: 6px; padding: 0 10px 10px; }
+.rkage__main {
+  flex: 1; min-width: 0; display: grid; grid-template-columns: 9px 1fr; grid-template-rows: auto auto;
+  gap: 1px 8px; align-items: center; padding: 8px 11px; border-radius: 13px;
+  border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05);
+  color: rgba(247,255,223,0.92); font: inherit; text-align: left; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.rkage__main:active { transform: scale(0.99); }
+.rkage__dot {
+  grid-row: 1 / span 2; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 9px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.rkage__t { font-size: 12.2px; font-weight: 900; letter-spacing: -0.2px; font-variant-numeric: tabular-nums; }
+.rkage__s {
+  grid-column: 2; font-size: 10.2px; font-weight: 700; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rkage--due .rkage__main {
+  border-color: color-mix(in srgb, var(--bad) 55%, transparent);
+  background: color-mix(in srgb, var(--bad) 13%, transparent);
+}
+.rkage--due .rkage__dot { background: var(--bad); box-shadow: 0 0 10px color-mix(in srgb, var(--bad) 70%, transparent); }
+.rkage--due .rkage__t { color: var(--bad); }
+.rkage--soon .rkage__dot { background: var(--warn); box-shadow: 0 0 9px color-mix(in srgb, var(--warn) 65%, transparent); }
+.rkage--soon .rkage__t { color: var(--warn); }
+.rkage--nodate .rkage__dot { background: var(--muted); box-shadow: none; }
+.rkage__fix {
+  flex: none; min-height: 40px; padding: 0 13px; border-radius: 13px;
+  border: 1px solid var(--accent); background: var(--accent); color: #08130a;
+  font: inherit; font-size: 10.8px; font-weight: 900; cursor: pointer; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.rkage__fix:active { transform: scale(0.97); }
+.rkage__fix.is-ghost { background: transparent; color: rgba(247,255,223,0.82); border-color: rgba(255,255,255,0.18); }
+.rkage--due .rkage__fix { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 22%, transparent); color: #ffd9d4; }
+/* ============================================================
+ * 23. 2026-11-25 점심·저녁 사용성 6건 (미리보기 반영)
+ * bm-v1.84.0 — 2026-11-25 점심·저녁 사용성 6건
+ *  1) MY 하트 부스트 문구·무료 하트 합계 정비 (문구만 바뀜)
+ *  2) 게스트 모집 '몇 명' 빠른 칩 (.vitecap)
+ *  3) 1:1 코트 약속 체육관 칩·지도 (.apptchips · .apptmap) · 매너 카드 접기 (.manner__fold)
+ *  4) 1:1 매칭 첫 화면 추천 목록 (.resultbar__rec · .pcards--rec)
+ *  5) 내 라켓 여러 자루 (.gear__list · .gear__row · .gblock)
+ *  6) 코트 점수판 가로 보기 팀 구분 (.sb__tag)
+ * ============================================================ */
+
+/* ---------- 2. 게스트 모집 몇 명 칩 ---------- */
+.vitecap { margin-top: 0; }
+.vitecap .chip { min-width: 46px; }
+
+/* ---------- 3. 코트 약속 — 체육관 칩·지도 버튼 ---------- */
+.apptchips { margin: 6px 0 2px; }
+.apptchips .chip { flex: 0 1 auto; }
+.apptmap { margin: 2px 0 12px; }
+
+/* 매너 카드 — 기본은 한 줄, 눌러서 펼치기 */
+.manner { padding: 0; }
+.manner__fold {
+  width: 100%; display: flex; align-items: center; gap: 6px;
+  min-height: 36px; padding: 8px 14px;
+  background: transparent; border: 0; color: var(--text-2);
+  font: inherit; font-size: 11px; font-weight: 800; letter-spacing: -0.1px;
+  text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.manner__fold .ico { flex: none; width: 13px; height: 13px; color: var(--accent); }
+.manner__fold-t { flex: 1; min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px; }
+.manner__fold-t small { font-weight: 700; color: var(--muted); }
+.manner__fold-go {
+  flex: none; display: inline-flex; align-items: center; gap: 2px;
+  font-size: 10.5px; font-weight: 800; color: var(--accent);
+}
+.manner__fold-go .manner__car { width: 12px; height: 12px; transition: transform .16s ease; }
+.manner.is-open .manner__fold-go .manner__car { transform: rotate(90deg); }
+.manner__body { padding: 0 14px 10px; }
+.manner__body[hidden] { display: none; }
+
+/* ---------- 4. 매칭 첫 화면 추천 ---------- */
+.resultbar__rec {
+  display: inline-flex; align-items: center; margin-right: 2px; padding: 1px 7px;
+  border-radius: 999px; background: var(--accent-soft); color: var(--accent);
+  font-size: 10.5px; font-weight: 900; letter-spacing: -0.1px;
+}
+.pcards--rec { margin-top: 2px; }
+
+/* ---------- 5. 내 라켓 여러 자루 ---------- */
+.gear__list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.gear__row {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 9px 10px; border-radius: 13px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+.gear__row .gear__main { flex: 1; min-width: 0; }
+.gear__row:first-child { border-color: color-mix(in srgb, var(--accent) 24%, var(--line)); }
+.gear__row[data-gear-state="due"] { border-color: color-mix(in srgb, var(--bad) 42%, var(--line)); }
+.gear__row[data-gear-state="soon"] { border-color: color-mix(in srgb, var(--warn) 38%, var(--line)); }
+.gear__row[data-gear-state="due"] .gear__meta { color: color-mix(in srgb, var(--bad) 82%, var(--text)); }
+.gear__row[data-gear-state="soon"] .gear__meta { color: color-mix(in srgb, var(--warn) 78%, var(--text)); }
+.gear__racket { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.gear__tag {
+  flex: none; padding: 1px 6px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 9.5px; font-weight: 900; letter-spacing: -0.1px;
+}
+.gear__row .pill { flex: none; }
+.gear__restung {
+  flex: none; align-self: center;
+  min-height: 32px; padding: 0 9px; border-radius: 999px;
+  border: 1px solid var(--accent-line); background: var(--accent-soft);
+  color: var(--accent); font: inherit; font-size: 10.5px; font-weight: 900;
+  letter-spacing: -0.2px; white-space: nowrap;
+}
+.gear__restung:active { transform: scale(0.96); }
+.gearform .gblock__hint { margin: 0 0 2px; font-size: 11.3px; font-weight: 700; color: var(--muted); line-height: 1.5; }
+.gblocks { display: grid; gap: 12px; }
+.gblock {
+  display: grid; gap: 11px;
+  padding: 12px 12px 13px; border-radius: 15px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+.gblock__h { display: flex; align-items: center; gap: 8px; }
+.gblock__no {
+  flex: 1; min-width: 0;
+  font-size: 11.8px; font-weight: 900; color: var(--accent); letter-spacing: -0.2px;
+}
+.gblock__del {
+  flex: none; min-height: 26px; padding: 0 8px; border-radius: 999px;
+  border: 1px solid var(--line-2); background: transparent;
+  color: var(--muted); font: inherit; font-size: 10.5px; font-weight: 800;
+}
+.gblock__del:active { transform: scale(0.96); }
+.gadd { width: 100%; min-height: 42px; }
+.gadd:disabled { opacity: .5; }
+
+/* ---------- 6. 코트 점수판 가로 보기 팀 구분 ---------- */
+.sbfull { --sb-rvl: #6f9bff; }
+.sb__tag { display: none; }
+.sbfull.is-land .sb__tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-bottom: 1px; padding: 2px 9px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 900; letter-spacing: -0.1px;
+}
+.sbfull.is-land .sb__tag--mine {
+  background: var(--accent-ink); color: var(--accent);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.sbfull.is-land .sb__tag--rvl {
+  background: color-mix(in srgb, var(--sb-rvl) 22%, transparent);
+  color: color-mix(in srgb, var(--sb-rvl) 78%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--sb-rvl) 58%, transparent);
+}
+/* 내 팀 = 라임 코트 색 그대로 + 두꺼운 테두리 / 상대 팀 = 파란 기운 + 테두리 */
+.sbfull.is-land .sb__card { position: relative; overflow: hidden; }
+.sbfull.is-land .sb__card.sb__btn--a {
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--accent) 70%, transparent),
+    0 8px 22px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.sbfull.is-land .sb__card.sb__btn--b {
+  background: color-mix(in srgb, var(--sb-rvl) 15%, var(--card));
+  border: 2px solid color-mix(in srgb, var(--sb-rvl) 55%, transparent);
+  color: var(--text);
+}
+.sbfull.is-land .sb__card.sb__btn--a::before,
+.sbfull.is-land .sb__card.sb__btn--b::before {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 5px;
+}
+.sbfull.is-land .sb__card.sb__btn--a::before { left: 0; background: var(--accent); }
+.sbfull.is-land .sb__card.sb__btn--b::before { left: 0; background: var(--sb-rvl); }
+.sbfull.is-land .sb__card .sb__who { opacity: 1; font-weight: 900; }
+.sbfull.is-land .sb__card .sb__num { letter-spacing: -2px; }
+
+/* ============================================================
+ * bm-v1.84.0 — 라켓 꾸미기: 탭 바로 아래 선택창 · 하트 지갑
+ *   (포인트 폐지: 바디·파츠·효과를 전부 하트로 삽니다)
+ * ============================================================ */
+.rkpick {
+  display: grid; gap: 10px; padding: 10px;
+  border-radius: 20px; border: 1px solid rgba(255,255,255,0.09);
+  background: linear-gradient(180deg, #0b1410, #080d0b 78%);
+}
+.rkpick .rk3d__tabs { padding: 0; }
+.rkhearts {
+  display: grid; gap: 6px; padding: 12px 13px;
+  border-radius: 18px; border: 1px solid var(--line);
+  background: linear-gradient(135deg, rgba(255,122,140,0.14), transparent 68%);
+}
+.rkhearts__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.rkhearts__top b { font-size: 13px; font-weight: 900; color: var(--text); }
+.rkhearts__top b i { font-style: normal; color: #ff7a8c; font-variant-numeric: tabular-nums; }
+.rkhearts__top span { font-size: 10.4px; font-weight: 800; color: var(--muted); }
+.rkhearts__line { margin: 0; font-size: 11.4px; font-weight: 700; color: var(--text-2); }
+.rkhearts__line b { color: #ff7a8c; font-variant-numeric: tabular-nums; }
+.rkhearts__line small { color: var(--muted); font-weight: 700; }
+.rkhearts__acts { display: flex; gap: 6px; margin-top: 2px; }
+.rkhearts.is-admin { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent), transparent 68%); }
+.rkhearts.is-admin .rkhearts__top span { color: var(--accent); font-weight: 900; }
+.rkpart.is-heart .rkpart__p.is-heartp { color: #ff7a8c; }
+/* bm-v1.84.0 — 3D 위 조작 줄: 모드(고정) + 스매시·바닥 강타(남는 폭을 나눔) */
+.rkstage { flex-wrap: nowrap; gap: 5px; }
+.rkstage__modes { flex: 0 0 auto; }
+.rkstage__m { padding: 0 7px; font-size: 10.2px; }
+.rkstage__go { flex: 1 1 0; min-width: 0; margin-left: 0; font-size: 10.4px; padding: 0 6px; white-space: nowrap; }
+.rkstage__go--slam {
+  background: linear-gradient(135deg, rgba(255,122,47,0.22), rgba(255,59,47,0.12));
+  border-color: rgba(255,140,80,0.55); color: #ffd9c2;
+}
+.rkstage__go--slam.is-on, .rkstage__go--slam:active { background: #ff7a2f; color: #1a0c05; }
+
+/* bm-v1.85.0 — 조작 줄이 좁은 화면에서도 눌리게(모드·스매시·바닥 강타), 잠금 표시는 등급 배지와 겹치지 않게 */
+.rkstage { gap: 4px; }
+.rkstage__modes { padding: 2px; gap: 1px; }
+.rkstage__m { padding: 0 6px; font-size: 9.8px; min-height: 26px; }
+.rkstage__go { padding: 0 5px; font-size: 10px; }
+.rkbody__chip .rkpart__lock { top: 2px; right: 3px; font-size: 7.5px; opacity: 0.85; }
+.rkbody__chip .rkrar { margin-right: 9px; }

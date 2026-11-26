@@ -52,13 +52,31 @@
   function paintChrome(state) {
     var title = el('hdrTitle');
     if (title) title.textContent = tabMeta(state.ui.tab).label;
+    /* bm-v1.80.0 — 오른쪽 미니 라켓(운동 상태 연동) */
+    if (BM.racketcustom && BM.racketcustom.paintHeader) BM.racketcustom.paintHeader(state);
     var hearts = el('hdrHearts');
     if (hearts) hearts.innerHTML = UI.icon('heart') + '<span>' + (state.data.hearts ? state.data.hearts.balance : 0) + '</span>';
-    var dot = el('syncDot');
-    if (dot) {
-      dot.className = 'syncdot' +
+    /* bm-v1.82.0 — 상단 '내 상태' 배지: 작은 초록 점 하나 대신 글자로
+     *   매칭 ON(초록) / 휴식 중(회색) — 처음 보는 사람도 바로 뜻을 알게.
+     *   같은 알약이 저장 중(.is-busy)·동기화 오류(.is-error)도 계속 알려 줍니다. */
+    var pill = el('matchPill');
+    if (pill) {
+      var pOn = false, pRange = '';
+      if (BM.nearby) {
+        var pScope = (state.me && state.me.key) || 'guest';
+        var pSt = BM.nearby.myStatus(pScope);
+        var pStatus = BM.nearby.statusOf(BM.nearby.meAsPerson(pSt), new Date());
+        pOn = !!pStatus.lit;
+        pRange = pStatus.range && pStatus.range !== pStatus.label ? pStatus.range : (pStatus.label || '');
+      }
+      pill.className = 'matchpill' + (pOn ? ' is-on' : ' is-off') +
         (state.syncState === 'syncing' ? ' is-busy' : state.syncState === 'error' ? ' is-error' : '');
-      dot.title = state.syncState === 'syncing' ? '저장 중' : state.syncState === 'error' ? '동기화 재시도 대기' : '동기화됨';
+      pill.innerHTML = '<i class="matchpill__dot" aria-hidden="true"></i><b>' + (pOn ? '매칭 ON' : '휴식 중') + '</b>';
+      var pWhy = pOn ? '지금 매칭 가능' : '지금은 휴식 중';
+      var pSync = state.syncState === 'syncing' ? ' · 저장 중' : state.syncState === 'error' ? ' · 동기화 재시도 대기' : '';
+      pill.title = pWhy + (pRange ? ' · ' + pRange : '') + pSync + ' · 눌러서 내 상태 바꾸기';
+      pill.setAttribute('aria-label', '내 상태 ' + (pOn ? '매칭 ON' : '휴식 중') +
+        (pRange ? ', ' + pRange : '') + ' · 눌러서 체육관 지도에서 내 상태 바꾸기');
     }
     var nav = el('tabbar');
     if (nav) {
@@ -121,6 +139,39 @@
         coachBadge.hidden = !pendingMentor;
       }
     }
+  }
+
+  /* ---------- 저장 직후 '방금 쓴 오늘 운동 그대로 공유' 바 (bm-v1.80.0) ----------
+   * 일지를 저장하면 분석 카드 맨 아래까지 내려가지 않아도 화면 아래에 바로 뜨니다.
+   * 누르면 스매시 임팩트 공유 카드로 이어지고, 닫으면 이번 일지에 대해 다시 안 띄웁니다. */
+  function paintSaveShare(state) {
+    var bar = el('saveShare');
+    if (!bar) return;
+    var rec = state && state.ui && state.ui.lastSavedLog;
+    var show = !!(rec && state.ui.tab === 'log' && !state.ui.chatOpen && !gated);
+    if (!show) {
+      bar.hidden = true;
+      if (bar.dataset.sig !== '') { bar.innerHTML = ''; bar.dataset.sig = ''; }
+      return;
+    }
+    var sig = String(rec.id || '') + '|' + (rec.minutes || '') + '|' + (rec.cond == null ? '' : rec.cond);
+    if (bar.dataset.sig === sig && !bar.hidden) return;
+    bar.dataset.sig = sig;
+    var rc = BM.racketcustom;
+    var chips = rc ? rc.burstChips(state, rec) : [];
+    var gain = rc ? rc.pointsToday(state) : 0;
+    var bits = chips.filter(function (c) { return c.k !== '라켓 포인트'; }).slice(0, 3)
+      .map(function (c) { return c.v; });
+    if (gain) bits.push('+' + gain + 'P');
+    bar.innerHTML = '<div class="saveshare__card">' +
+      '<span class="saveshare__rk" aria-hidden="true">' + (rc ? rc.svg(rc.customOf(state.me), { level: 'prime' }) : '') + '</span>' +
+      '<div class="saveshare__txt">' +
+      '<p class="saveshare__t">📸 방금 쓴 오늘 운동 그대로 공유하기</p>' +
+      '<p class="saveshare__s">' + U.esc(bits.join(' · ')) + '</p></div>' +
+      '<button type="button" class="saveshare__go" data-act="share-card" data-sc-mode="today" data-sc-design="smash">공유</button>' +
+      '<button type="button" class="saveshare__x" data-act="dismiss-share" aria-label="이번 공유 카드 닫기">✕</button>' +
+      '</div>';
+    bar.hidden = false;
   }
 
   /* ---------- 안드로이드 뒤로 가기 ----------
@@ -231,7 +282,7 @@
     if (bar.dataset.sig === sig && !bar.hidden) return;
     bar.dataset.sig = sig;
     var sub = item.kind === 'message'
-      ? U.truncate(item.text || '', 40)
+      ? U.truncate((BM.domain && BM.domain.chatTextPreview) ? BM.domain.chatTextPreview(item.text) : (item.text || ''), 40)
       : (item.kind === 'match' ? '눌러서 받은 요청 보기'
         : (item.kind === 'guest' ? '눌러서 신청 편지지 보기' : '눌러서 확인하기'));
     bar.className = 'notifbar notifbar--' + (item.kind === 'message' ? 'msg' : 'req');
@@ -288,9 +339,9 @@
   function browserNotify(item) {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     if (typeof document !== 'undefined' && document.visibilityState === 'visible') return;
-    var title = '배드민턴 · ' + notifText(item);
+    var title = '셔틀릭스 · ' + notifText(item);
     var options = {
-      body: item.kind === 'message' ? U.truncate(item.text || '', 90) : '앱을 열어 확인해 보세요.',
+      body: item.kind === 'message' ? U.truncate((BM.domain && BM.domain.chatTextPreview) ? BM.domain.chatTextPreview(item.text) : (item.text || ''), 90) : '앱을 열어 확인해 보세요.',
       icon: 'icons/icon-192.png',
       badge: 'icons/icon-192.png',
       tag: 'bm-' + (item.roomId || item.id || 'news'),
@@ -512,9 +563,12 @@
     if (!state.ready || gated) { paintNetBar(state); return; }
     paintChrome(state);
     paintNetBar(state);
+    paintSaveShare(state);
     paintDm(state);
     paintNotify(state);
     onIncoming(state);
+    /* bm-v1.76.0 — 줄 교체 시기가 됐을 때 하루 한 번만 브라우저 알림(허용한 사람에게만) */
+    if (BM.gear && BM.gear.notifyIfDue) BM.gear.notifyIfDue(state);
     if (painting) return;
     if (state.ui.tab !== currentTab) {
       mountView(state.ui.tab);
@@ -567,6 +621,14 @@
     var chBefore = BM.domain.weekChallenge(store.state.data.records || [], {});
     var res = store.actions.saveLog({ keepDraft: true });
     if (res.ok) {
+      /* bm-v1.80.0 — 저장 순간, 라켓이 스매시처럼 터지며 오늘 운동 수치가 퍼지는 짧은 연출(0.88초) */
+      if (!res.updated && BM.racketcustom && BM.racketcustom.burst) {
+        BM.racketcustom.burst({
+          state: store.state,
+          record: (store.state.ui && store.state.ui.lastSavedLog) || null,
+          level: 'prime'
+        });
+      }
       if (label) label.textContent = res.updated ? '수정됨 ✓' : '저장됨 ✓';
       UI.toast((res.updated ? '일지를 수정했어요. 같은 기록이 그대로 갱신됐어요.' : '일지를 저장했어요. AI 분석을 준비했어요.') +
         challengeToast(chBefore, store.state.data.records));
@@ -855,6 +917,10 @@
     store.subscribe(onChange);
 
     var startTab = (location.hash || '').replace('#/', '') || 'log';
+    /* bm-v1.77.0 — 푸시 알림이 '#/chat/<방>' 으로 열어 준 경우: 채팅 목록 + 그 방까지 연다 */
+    var startRoom = '';
+    var roomHit = /^chat\/([A-Za-z0-9_-]{1,40})$/.exec(String(startTab));
+    if (roomHit) { startRoom = roomHit[1]; startTab = 'matching'; }
     if (!TABS.some(function (t) { return t.id === startTab; })) startTab = 'log';
     store.state.ui.tab = startTab;
 
@@ -875,6 +941,13 @@
         return;
       }
       mountView(store.state.ui.tab);
+      if (startRoom) {
+        var thread = (store.state.data.threads || []).filter(function (x) { return String(x.roomId) === startRoom; })[0];
+        if (thread) {
+          store.actions.openChats();
+          store.actions.openChat(startRoom, thread.other || '');
+        }
+      }
       paintNetBar(store.state);
       startWatchers();
       resumePush();
@@ -999,6 +1072,45 @@
       store.actions.setTab('my');
     });
 
+    /* bm-v1.82.0 — 상단 '매칭 ON / 휴식 중' 배지: 체육관 지도의 내 상태 카드로 */
+    var matchPill = el('matchPill');
+    if (matchPill) matchPill.addEventListener('click', function () {
+      if (!store || gated) return;
+      UI.haptic(6);
+      if (BM.views && BM.views.gyms) BM.views.gyms.open(ctx);
+    });
+
+    /* bm-v1.80.0 — 상단 오른쪽 미니 라켓: 꾸미기 시트 */
+    var racketBtn = el('hdrRacket');
+    if (racketBtn) racketBtn.addEventListener('click', function () {
+      if (!store || gated) return;
+      UI.haptic(6);
+      if (BM.racketcustom) BM.racketcustom.openSheet(ctx);
+    });
+
+    /* 저장 직후 공유 바 — 분석 카드까지 내려가지 않아도 바로 공유 */
+    var saveBar = el('saveShare');
+    if (saveBar) saveBar.addEventListener('click', function (ev) {
+      if (!store || gated) return;
+      if (ev.target.closest('[data-act="dismiss-share"]')) {
+        ev.preventDefault();
+        store.actions.dismissShare();
+        return;
+      }
+      var go = ev.target.closest('[data-act="share-card"]');
+      if (go) {
+        ev.preventDefault();
+        if (!BM.sharecard) { UI.toast('공유 카드를 준비하고 있어요', 'error'); return; }
+        UI.haptic(8);
+        var rec = (store.state.ui && store.state.ui.lastSavedLog) || null;
+        BM.sharecard.open(ctx, {
+          mode: go.getAttribute('data-sc-mode') || 'today',
+          design: go.getAttribute('data-sc-design') || '',
+          record: rec
+        });
+      }
+    });
+
     /* 상단 오른쪽 채팅(DM) 아이콘 */
     var chatBtn = el('hdrChat');
     if (chatBtn) chatBtn.addEventListener('click', function () {
@@ -1069,7 +1181,12 @@
   }
 
   function resumePush() {
-    if (!store || !BM.push || !BM.push.autoEnable) return;
+    if (!store || !BM.push) return;
+    /* bm-v1.77.0 — 이 기기에 저장된 푸시 토큰을 서버에 다시 맞춥니다(재로그인·계정 변경 대비) */
+    if (BM.push.syncToken) {
+      try { BM.push.syncToken().catch(function () { /* 서버가 아직 없으면 조용히 */ }); } catch (e) { /* 무시 */ }
+    }
+    if (!BM.push.autoEnable) return;
     var prefs = store.state.prefs || {};
     if (prefs.push !== true) return;
     BM.push.autoEnable(prefs).catch(function () { /* 키가 없거나 지원 안 하면 조용히 */ });
@@ -1082,6 +1199,9 @@
     bindKeyboardScroll();
     bindGymLinks();
     bindPushRoute();
+    /* bm-v1.77.0 — 스토어 앱(TWA·웹뷰)이 푸시 토큰을 넘길 통로(window.ShuttlixPush)를
+     * 로그인·온보딩보다 먼저 열어 둡니다. 앱이 언제 토큰을 넘겨도 받을 수 있게. */
+    if (BM.push && BM.push.installBridge) BM.push.installBridge();
     /* 비밀번호 재설정 메일 링크로 돌아온 경우(#access_token=…&type=recovery):
        세션을 먼저 받아 두고 시작화면에서 새 비밀번호를 정하게 합니다. */
     var ready = BM.auth.bootstrapRecovery ? BM.auth.bootstrapRecovery() : Promise.resolve(null);
@@ -1097,7 +1217,10 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.68.0' };
+  /* bm-v1.82.0 — 내 상태(매칭 ON/휴식 중)를 바꾼 화면이 헤더 배지를 바로 다시 그리게 */
+  function paintChromeNow() { if (store && store.state && !gated) paintChrome(store.state); }
+
+  BM.app = { boot: boot, repaint: repaint, paintChrome: paintChromeNow, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.86.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

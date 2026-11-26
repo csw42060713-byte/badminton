@@ -101,12 +101,32 @@
       ]
     }
   };
+  /* ---------- 라켓 모션 (bm-v1.86.0) ----------
+   * 3D 라켓을 눌러 감상하는 트릭 모션. 파츠 탭(SLOTS)에는 넣지 않고 3D 아래 칩으로만 보여 줍니다.
+   *  · 기본 드래그 회전은 그대로 무료, 트릭 모션은 하트로 열고 칩에서 바로 재생합니다.
+   *  · 'motion:id' 는 파츠와 같은 하트·열림 목록(unlocked)을 씁니다(서버 가격도 motion:...). */
+  PARTS.motion = {
+    label: '모션', note: '라켓 회전 연출',
+    items: [
+      { id: 'twist', name: '손목 트위스트', color: '#7fd8ff', heart: 1, rarity: 'rare', note: '8자 스핀 · 손목 기울임' },
+      { id: 'showcase', name: '쇼케이스 스핀', color: '#f2c14e', heart: 2, rarity: 'epic', note: '한 바퀴 훑어 보기' },
+      { id: 'flip', name: '공중 360° 플립', color: '#ff8a2f', heart: 3, rarity: 'legend', note: '공중 백플립 · 착지 반동' }
+    ]
+  };
+  var MOTIONS = ['twist', 'showcase', 'flip'];
+
   var SLOTS = ['frame', 'string', 'grip', 'stencil', 'charm', 'effect'];
   var FX_TAB = { frame: '테두리', string: '거트', grip: '그립', stencil: '스텐실', charm: '참', effect: '효과' };
 
-  /* ---------- 라켓 바디(모델) 4종 (bm-v1.81.0) ----------
+  /* ---------- 라켓 바디(모델) 4종 (bm-v1.81.0 · 실제 규격 비율 bm-v1.86.0) ----------
    * 실존 브랜드·모델 이름은 쓰지 않습니다(상표권) — 특징만 다르게 지은 오리지널 이름.
-   * 헤드:샤프트:그립 ≈ 25:22:20 (전체 약 675mm) 실제 배드민턴 비율을 바디마다 다르게 잡았습니다.
+   *
+   * bm-v1.86.0 — 선수용 라켓 실제 규격(전체 약 675mm)에 맞춰 숫자를 다시 잡았습니다.
+   *   헤드 길이 236~241mm(전체의 35~36%) · 헤드 폭 190~196mm(헤드 길이의 80~82%)
+   *   샤프트+콘 233~240mm(34~36%) · 그립 198~201mm(29~30%)
+   *   샤프트 반지름 3.4~3.8mm(지름 6.8~7.6mm대) · 그립 반지름 13mm대(G5 둘레)
+   * 숫자는 mm 를 그대로 쓴 모델 단위이고, 화면 배율은 geomOf·fit 이 맞춥니다.
+   * (예전 값은 헤드가 37~38% 로 길고 샤프트가 두꺼워 통통해 보였습니다.)
    *
    * bm-v1.84.0 — 헤드 실루엣: 손으로 찍은 12점은 정수리·옆구리가 납작해 '네모'처럼 보였습니다.
    *   이제 달걀(물방울) 곡선 함수로 21점을 만들어 씁니다.
@@ -151,29 +171,29 @@
     power77: {
       id: 'power77', name: '파워 77', note: '헤드헤비 · 공격형',
       accent: '#ff7a2f', decal: 'slash', free: true, cost: 0, heart: 0, rarity: 'common',
-      rx: 100, ry: 126, hoop: 12.6, shaftR: 4.9, gripR: 14.2,
-      shaftLen: 214, gripLen: 200, tJoint: 26, cone: 34,
+      rx: 98, ry: 120.5, hoop: 10.4, shaftR: 3.6, gripR: 13.6,
+      shaftLen: 236, gripLen: 198, tJoint: 24, cone: 26,
       profile: eggProfile({ bot: 0.8, puff: 0.88, crown: 0.07 })
     },
     aero: {
       id: 'aero', name: '스피드 에어로', note: '초경량 · 드라이브형',
       accent: '#7fd8ff', decal: 'ring', free: false, cost: 0, heart: 2, rarity: 'rare',
-      rx: 96, ry: 123, hoop: 8.4, shaftR: 3.8, gripR: 13.4,
-      shaftLen: 222, gripLen: 192, tJoint: 16, cone: 30,
+      rx: 97, ry: 119, hoop: 9.2, shaftR: 3.4, gripR: 13.2,
+      shaftLen: 241, gripLen: 196, tJoint: 18, cone: 22,
       profile: eggProfile({ bot: 0.72, puff: 0.95, crown: 0.05 })
     },
     control: {
       id: 'control', name: '컨트롤 아크', note: '올라운드 · 밸런스형',
       accent: '#f2c14e', decal: 'wing', free: false, cost: 0, heart: 3, rarity: 'epic',
-      rx: 100, ry: 125, hoop: 10.6, shaftR: 4.4, gripR: 14,
-      shaftLen: 202, gripLen: 218, tJoint: 22, cone: 32,
+      rx: 97.5, ry: 120, hoop: 9.9, shaftR: 3.5, gripR: 13.5,
+      shaftLen: 231, gripLen: 204, tJoint: 21, cone: 26,
       profile: eggProfile({ bot: 0.84, puff: 0.9, crown: 0.06 })
     },
     smash: {
       id: 'smash', name: '스매시 맥스', note: '콤팩트 헤드 · 극공격',
       accent: '#cfd8e4', decal: 'block', free: false, cost: 0, heart: 5, rarity: 'legend',
-      rx: 89, ry: 111, hoop: 13.4, shaftR: 5.4, gripR: 14.6,
-      shaftLen: 246, gripLen: 172, tJoint: 34, cone: 36,
+      rx: 95, ry: 118, hoop: 11.2, shaftR: 3.8, gripR: 13.9,
+      shaftLen: 245, gripLen: 194, tJoint: 28, cone: 28,
       profile: eggProfile({ bot: 0.82, puff: 0.86, crown: 0.08 })
     }
   };
@@ -253,7 +273,7 @@
       var cut = s.indexOf(':');
       if (cut < 0) return;
       var slot = s.slice(0, cut), id = s.slice(cut + 1);
-      if (SLOTS.indexOf(slot) < 0 && slot !== 'body') return;
+      if (SLOTS.indexOf(slot) < 0 && slot !== 'body' && slot !== 'motion') return;
       var it = itemOf(slot, id);
       if (!it || it.free) return;
       if (seen[s]) return;
@@ -269,6 +289,12 @@
     });
     if (!isUnlocked(out, 'body', out.body)) out.body = DEFAULT_BODY;
     return out;
+  }
+
+  /* 파츠 슬롯(모션 포함) 판정 — 저장소·서버가 같은 기준을 씁니다 */
+  function isPartSlot(slot) {
+    var s2 = String(slot || '');
+    return s2 === 'body' || s2 === 'motion' || SLOTS.indexOf(s2) >= 0;
   }
 
   function isUnlocked(c, slot, id) {
@@ -1126,39 +1152,46 @@
     return null;
   }
 
-  /* ---------- 테두리 (단면 4면) ---------- */
+  /* ---------- 테두리 (카본 단면 + 그로밋) ---------- */
+  /* 그로밋 하나 — 금속 링 + 어두운 구멍 + 빛 반사 점 */
+  function grommet(prims, v, p, r, z, frame) {
+    var i, a, ring = [], hole = [];
+    for (i = 0; i < 8; i++) {
+      a = i / 8 * TAU;
+      ring.push(pt({ x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r }, z));
+      hole.push(pt({ x: p.x + Math.cos(a) * r * 0.46, y: p.y + Math.sin(a) * r * 0.46 }, z + 0.25));
+    }
+    pushFace(prims, v, ring, shade(frame, 0.34), { tone: 0.06, zBias: 0.55 });
+    pushFace(prims, v, hole, '#0a0e0b', { tone: 0, zBias: 0.6 });
+    /* 금속 하이라이트 — 왼쪽 위 한 점 */
+    pushFace(prims, v, [
+      pt({ x: p.x - r * 0.5, y: p.y - r * 0.62 }, z + 0.3),
+      pt({ x: p.x - r * 0.16, y: p.y - r * 0.7 }, z + 0.3),
+      pt({ x: p.x - r * 0.22, y: p.y - r * 0.4 }, z + 0.3),
+      pt({ x: p.x - r * 0.56, y: p.y - r * 0.34 }, z + 0.3)
+    ], '#ffffff', { tone: 0, alpha: 0.5, zBias: 0.65 });
+  }
+
   function addHead(prims, gm, v, frame) {
-    var loop = headLoop(gm, 3);
+    var loop = headLoop(gm, 2);
     var inner = offsetLoop(loop, gm.hoop);
     var N = loop.length, i, j;
     var zf = gm.hoop * 0.42, zb = -gm.hoop * 0.42;
     for (i = 0; i < N; i++) {
       j = (i + 1) % N;
       var o0 = loop[i], o1 = loop[j], n0 = inner[i], n1 = inner[j];
-      /* 앞면 */
-      pushFace(prims, v, [pt(o0, zf), pt(o1, zf), pt(n1, zf), pt(n0, zf)], frame, { tone: 0.02, gloss: true });
-      /* 뒷면 — 살짝 어둡게 */
-      pushFace(prims, v, [pt(o0, zb), pt(o1, zb), pt(n1, zb), pt(n0, zb)], frame, { tone: -0.2 });
-      /* 바깥 옆면 — 빛을 가장 많이 받는 면 */
-      pushFace(prims, v, [pt(o0, zf), pt(o1, zf), pt(o1, zb), pt(o0, zb)], frame, { tone: 0.14, gloss: true });
+      /* 앞면 — 카본 결: 밝은 띠·어두운 띠가 번갈아 (한 겹씩 쌓인 느낌) */
+      pushFace(prims, v, [pt(o0, zf), pt(o1, zf), pt(n1, zf), pt(n0, zf)], frame,
+        { tone: (i % 2 ? 0.055 : -0.012), gloss: true });
+      /* 바깥 옆면 — 빛을 가장 많이 받는 매끈한 모서리 */
+      pushFace(prims, v, [pt(o0, zf), pt(o1, zf), pt(o1, zb), pt(o0, zb)], frame, { tone: 0.17, gloss: true });
       /* 안쪽 옆면 — 그늘 */
-      pushFace(prims, v, [pt(n0, zf), pt(n1, zf), pt(n1, zb), pt(n0, zb)], frame, { tone: -0.36 });
+      pushFace(prims, v, [pt(n0, zf), pt(n1, zf), pt(n1, zb), pt(n0, zb)], frame, { tone: -0.4 });
+      /* 뒷면은 카메라 반대쪽이라 그리지 않습니다(보이지 않는 면을 매 프레임 그리면 프레임이 떨어짐) */
     }
-    /* 그로밋(아일렛) — 거트가 빠져나오는 구멍 느낌 */
-    var holes = [];
-    var k;
-    for (k = 2; k < N; k += 4) holes.push(loop[k]);
-    var dots = [];
-    for (k = 0; k < holes.length; k++) {
-      var hp = holes[k];
-      var rr = Math.max(1.1, gm.hoop * 0.19);
-      var ring2 = [
-        pt({ x: hp.x - rr, y: hp.y - rr }, zf + 0.6), pt({ x: hp.x + rr, y: hp.y - rr }, zf + 0.6),
-        pt({ x: hp.x + rr, y: hp.y + rr }, zf + 0.6), pt({ x: hp.x - rr, y: hp.y + rr }, zf + 0.6)
-      ];
-      pushFace(prims, v, ring2, '#12160f', { tone: 0.25, zBias: 0.5 });
-      dots.push(ring2);
-    }
+    /* 그로밋(아일렛) — 거트가 빠져나오는 구멍. 실제 라켓처럼 촘촘하게 */
+    var rr = Math.max(0.85, gm.hoop * 0.21);
+    for (i = 1; i < N; i += 2) grommet(prims, v, inner[i], rr, zf + 0.7, frame);
   }
 
   /* 프레임 위 포인트 데칼 — 비스듬한 사선 · 밴드 · 윙 */
@@ -1209,6 +1242,14 @@
     var zo = project3(outer[0], v).z;
     pushLines(prims, v, [outer], 'rgba(255,255,255,0.3)', Math.max(1, 1.5 * v.k * 1.3), 0.7, zo + 0.6);
     pushLines(prims, v, [inn], 'rgba(0,0,0,0.42)', Math.max(1, 1.7 * v.k * 1.3), 0.8, zo + 0.45);
+    /* 빛을 받는 구간만 밝은 림 라이트 — 카본 광택이 각도에 따라 흐릅니다 */
+    var lit = [], i2;
+    for (i2 = 0; i2 < n; i2++) {
+      var q = project3(pt({ x: loop[i2].x * 0.99, y: loop[i2].y * 0.99 }, zf + 0.5), v);
+      var nr = { x: loop[i2].x / (gm.rx || 1), y: loop[i2].y / (gm.ry || 1), z: 0 };
+      if (litOf(nr, v) > 0.62) lit.push(pt({ x: loop[i2].x * 0.995, y: loop[i2].y * 0.995 }, zf + 0.5));
+    }
+    if (lit.length > 2) pushLines(prims, v, [lit], 'rgba(255,255,255,0.5)', Math.max(1, 1.1 * v.k * 1.3), 0.55, zo + 0.7);
   }
 
   /* ---------- 거트 17 × 19 ---------- */
@@ -1228,8 +1269,9 @@
     return lo == null ? null : { a: lo, b: hi };
   }
 
-  function sagLine(a, b, sag, seed) {
-    var out = [], m = 4, i;
+  function sagLine(a, b, sag, seed, m) {
+    var out = [], i;
+    m = m == null ? 4 : m;
     for (i = 0; i <= m; i++) {
       var t = i / m;
       var x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t;
@@ -1242,23 +1284,26 @@
     return out;
   }
 
-  function stringChords(gm, level) {
-    var loop = headLoop(gm, 3);
+  function stringChords(gm, level, wob) {
+    var loop = headLoop(gm, 2);
     var inner = offsetLoop(loop, gm.hoop * 1.12);
     var mains = [], crosses = [], i, ch;
     var X = gm.rx - gm.hoop * 1.5, Y = gm.ry - gm.hoop * 1.3;
     var sag = level === 'worn' ? 3.4 : (level === 'broken' ? 2.2 : 0);
+    var wa = Number(wob) || 0;
     for (i = 0; i < 17; i++) {
       var x = -X * 0.86 + (i / 16) * X * 1.72;
       ch = chordAt(inner, 'v', x);
       if (!ch) continue;
-      mains.push(sagLine({ x: x, y: ch.a - 2 }, { x: x, y: ch.b + 2 }, sag, i));
+      mains.push(sagLine({ x: x, y: ch.a - 2 }, { x: x, y: ch.b + 2 },
+        sag + (wa ? wa * (0.6 + (i % 3) * 0.4) : 0), i, 3));
     }
     for (i = 0; i < 19; i++) {
       var y = -Y * 0.84 + (i / 18) * Y * 1.66;
       ch = chordAt(inner, 'h', y);
       if (!ch) continue;
-      crosses.push(sagLine({ x: ch.a - 2, y: y }, { x: ch.b + 2, y: y }, sag, i));
+      crosses.push(sagLine({ x: ch.a - 2, y: y }, { x: ch.b + 2, y: y },
+        sag + (wa ? -wa * (0.55 + (i % 4) * 0.3) : 0), i, 3));
     }
     if (level === 'broken') {
       /* 가운데 세로 줄이 끊어진 모습 — 가운데를 비우고 좌우로 갈라진 끝을 남깁니다 */
@@ -1271,11 +1316,16 @@
     return { mains: mains, crosses: crosses };
   }
 
-  function addStrings(prims, gm, v, color, level) {
-    var ch = stringChords(gm, level);
+  function addStrings(prims, gm, v, color, level, wob) {
+    var ch = stringChords(gm, level, wob);
     var lw = Math.max(1, 1.5 * v.k * 1.32);
-    pushLines(prims, v, ch.crosses, shade(color, -0.12), lw, 0.62, -0.9);
-    pushLines(prims, v, ch.mains, color, lw, 0.9, 0.9);
+    /* 가로줄은 세로줄 아래로 — 위/아래로 엮인 결이 보이게 z 를 나눕니다 */
+    var oddC = ch.crosses.filter(function (x, i) { return i % 2 === 0; });
+    var evenC = ch.crosses.filter(function (x, i) { return i % 2 === 1; });
+    pushLines(prims, v, oddC, shade(color, -0.16), lw, 0.6, -1.1);
+    pushLines(prims, v, ch.mains, shade(color, -0.45), lw * 1.5, 0.35, 0.2);
+    pushLines(prims, v, ch.mains, color, lw, 0.8, 0.4);
+    pushLines(prims, v, evenC, shade(color, -0.05), lw, 0.68, 1.0);
     if (level === 'broken') {
       /* 끊어진 줄 — 벌어진 끝단이 말려 올라간 모습 */
       pushLines(prims, v, [[
@@ -1361,6 +1411,31 @@
         pt({ x: Math.cos(b0) * cR, y: cy1 }, Math.sin(b0) * cR)
       ], frame, { tone: -0.06, gloss: true });
     }
+    /* 샤프트 광택 — 빛을 가장 많이 받는 면에 가는 하이라이트 */
+    var bestK = 0, bestL = -1;
+    for (k = 0; k < segN; k++) {
+      var an = (k + 0.5) / segN * TAU;
+      var litS = litOf({ x: Math.cos(an), y: 0, z: Math.sin(an) }, v);
+      if (litS > bestL) { bestL = litS; bestK = k; }
+    }
+    var aa0 = bestK / segN * TAU + 0.06, aa1 = (bestK + 1) / segN * TAU - 0.06;
+    pushFace(prims, v, [
+      pt({ x: Math.cos(aa0) * r0 * 1.005, y: sy0 }, Math.sin(aa0) * r0 * 1.005),
+      pt({ x: Math.cos(aa1) * r0 * 1.005, y: sy0 }, Math.sin(aa1) * r0 * 1.005),
+      pt({ x: Math.cos(aa1) * r1 * 1.005, y: sy1 }, Math.sin(aa1) * r1 * 1.005),
+      pt({ x: Math.cos(aa0) * r1 * 1.005, y: sy1 }, Math.sin(aa0) * r1 * 1.005)
+    ], '#ffffff', { tone: 0, alpha: 0.13, zBias: 1.2 });
+    /* 콘 마감 링 — 샤프트가 그립으로 넘어가는 금속 밴드 */
+    for (k = 0; k < segN; k++) {
+      var m0 = k / segN * TAU, m1 = (k + 1) / segN * TAU;
+      var mr = r1 * 1.08;
+      pushFace(prims, v, [
+        pt({ x: Math.cos(m0) * mr, y: cy0 + 1 }, Math.sin(m0) * mr),
+        pt({ x: Math.cos(m1) * mr, y: cy0 + 1 }, Math.sin(m1) * mr),
+        pt({ x: Math.cos(m1) * mr, y: cy0 + 4.5 }, Math.sin(m1) * mr),
+        pt({ x: Math.cos(m0) * mr, y: cy0 + 4.5 }, Math.sin(m0) * mr)
+      ], shade(frame, 0.42), { tone: 0.1, zBias: 0.9 });
+    }
     if (gm.id === 'aero' || gm.id === 'power77') {
       /* 샤프트 하단 얇은 링 데칼 */
       for (k = 0; k < segN; k++) {
@@ -1392,33 +1467,31 @@
         pt({ x: q.c * R, y: y1 }, q.s * R), pt({ x: p.c * R, y: y1 }, p.s * R)
       ], grip, { tone: 0 });
     }
-    /* 비스듬히 겹쳐 감긴 오버그립 테이핑 — 한 바퀴에 조금씩 내려갑니다 */
-    var pitch = 21, step = 12, bw = 25;
-    var nBand = Math.max(3, Math.ceil((y1 - y0 - 4) / step));
-    var b, k, shadow;
-    for (b = 0; b < nBand; b++) {
-      var base = y0 + 2 + b * step;
-      var tone = (b % 2) ? -0.02 : 0.2;
-      shadow = [];
-      var drew = false;
-      for (k = 0; k < 8; k++) {
-        var p1 = verts[k], q1 = verts[(k + 1) % 8];
-        var yA = base + (k / 8) * pitch;
-        var yB = base + ((k + 1) / 8) * pitch;
-        if (yA > y1 || yA + bw < y0) continue;
-        var aTop = Math.max(y0 - 1, yA), aBot = Math.min(y1, yA + bw);
-        var bTop = Math.max(y0 - 1, yB), bBot = Math.min(y1, yB + bw);
-        pushFace(prims, v, [
-          pt({ x: p1.c * R, y: aTop }, p1.s * R), pt({ x: q1.c * R, y: bTop }, q1.s * R),
-          pt({ x: q1.c * R, y: bBot }, q1.s * R), pt({ x: p1.c * R, y: aBot }, p1.s * R)
-        ], grip, { tone: tone, alpha: 1 });
-        drew = true;
-        shadow.push({ x: q1.c * R * 1.012, y: bBot, z: q1.s * R * 1.012 });
-      }
-      if (!drew) continue;
-      shadow.unshift({ x: verts[0].c * R * 1.012, y: Math.min(y1, base + bw), z: verts[0].s * R * 1.012 });
-      pushLines(prims, v, [shadow], 'rgba(0,0,0,0.42)', Math.max(1.1, 2 * v.k), 1);
+    /* 오버그립 감김 — 한 줄로 이어지는 나선 이음매(실제 오버그립을 감은 모습).
+     * 사각형을 겹쳐 찍던 예전 방식은 '사다리'처럼, 한 바퀴마다 선을 그으면 '용수철'처럼
+     * 보여서, 나선 하나만 얇게 얹습니다. */
+    var pitch2 = 24;
+    var seamPts = [], yy2, aa2;
+    for (yy2 = y0 + 4; yy2 <= y1 - 3; yy2 += 3.2) {
+      aa2 = (yy2 - y0) / pitch2 * TAU;
+      var sx2 = Math.cos(aa2) * R * 1.004, sz2 = Math.sin(aa2) * R * 1.004;
+      seamPts.push({ x: sx2, y: yy2, z: sz2 });
     }
+    if (seamPts.length > 2) {
+      pushLines(prims, v, [seamPts], 'rgba(0,0,0,0.34)', Math.max(0.7, 1.05 * v.k * 1.3), 1, 1.3);
+      pushLines(prims, v, [seamPts.map(function (q) { return { x: q.x, y: q.y - 0.8, z: q.z }; })],
+        'rgba(255,255,255,0.12)', Math.max(0.5, 0.6 * v.k * 1.3), 1, 1.4);
+    }
+
+    /* 그립 가장자리 — 원통이 배경과 구분되게 얇은 빛/그늘 선 */
+    var edgeL = [], edgeR = [];
+    for (k = 0; k <= 6; k++) {
+      var yy3 = y0 + 3 + (y1 - y0 - 6) * (k / 6);
+      edgeL.push(pt({ x: Math.cos(Math.PI * 1.05) * R * 1.01, y: yy3 }, Math.sin(Math.PI * 1.05) * R * 1.01));
+      edgeR.push(pt({ x: Math.cos(Math.PI * 1.95) * R * 1.01, y: yy3 }, Math.sin(Math.PI * 1.95) * R * 1.01));
+    }
+    pushLines(prims, v, [edgeL], 'rgba(255,255,255,0.16)', Math.max(0.7, 1.1 * v.k * 1.3), 1, 1.2);
+    pushLines(prims, v, [edgeR], 'rgba(0,0,0,0.5)', Math.max(0.7, 1.2 * v.k * 1.3), 1, 1.2);
 
     /* 빛이 닿는 면의 세로 하이라이트 — 오버그립 광택 */
     for (k = 0; k < 8; k++) {
@@ -1428,7 +1501,7 @@
       pushFace(prims, v, [
         pt({ x: hp.c * R * 1.004, y: y0 + 8 }, hp.s * R * 1.004), pt({ x: hq.c * R * 1.004, y: y0 + 8 }, hq.s * R * 1.004),
         pt({ x: hq.c * R * 1.004, y: y1 - 4 }, hq.s * R * 1.004), pt({ x: hp.c * R * 1.004, y: y1 - 4 }, hp.s * R * 1.004)
-      ], '#ffffff', { tone: 0, gloss: false, alpha: 0.07, zBias: 0.6 });
+      ], '#ffffff', { tone: 0, gloss: false, alpha: 0.14, zBias: 0.6 });
     }
 
     /* 상단 마감 테이프 밴드 */
@@ -1439,6 +1512,16 @@
         pt({ x: t1.c * trimR, y: y0 - 2 }, t1.s * trimR), pt({ x: t2.c * trimR, y: y0 - 2 }, t2.s * trimR),
         pt({ x: t2.c * trimR, y: y0 + 13 }, t2.s * trimR), pt({ x: t1.c * trimR, y: y0 + 13 }, t1.s * trimR)
       ], accent, { tone: 0.02, zBias: 0.5 });
+    }
+    /* 쿠션감 — 빛 반대쪽에 부드러운 그늘 한 줄(오버그립이 눌린 느낌) */
+    for (k = 0; k < 8; k++) {
+      var sp2 = verts[k], sq2 = verts[(k + 1) % 8];
+      var sn = { x: Math.cos((k + 0.5) * Math.PI / 4), y: 0, z: Math.sin((k + 0.5) * Math.PI / 4) };
+      if (litOf(sn, v) > 0.4) continue;
+      pushFace(prims, v, [
+        pt({ x: sp2.c * R * 1.006, y: y0 + 10 }, sp2.s * R * 1.006), pt({ x: sq2.c * R * 1.006, y: y0 + 10 }, sq2.s * R * 1.006),
+        pt({ x: sq2.c * R * 1.006, y: y1 - 6 }, sq2.s * R * 1.006), pt({ x: sp2.c * R * 1.006, y: y1 - 6 }, sp2.s * R * 1.006)
+      ], '#000000', { tone: 0, gloss: false, alpha: 0.12, zBias: 0.55 });
     }
     /* 엔드캡 — 바닥 로고 캡 */
     var capPts = [], capIn = [];
@@ -1808,10 +1891,9 @@
     g.clearRect(0, 0, w, h);
 
     /* 코트 조명 */
-    var glow = g.createRadialGradient(w / 2, h * 0.42, 8, w / 2, h * 0.42, Math.max(w, h) * 0.72);
-    glow.addColorStop(0, 'rgba(198,242,78,0.17)');
-    glow.addColorStop(0.52, 'rgba(198,242,78,0.05)');
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    var glow = gradR(g, 'bg', w / 2, h * 0.42, 8, Math.max(w, h) * 0.72, [
+      [0, 'rgba(198,242,78,0.17)'], [0.52, 'rgba(198,242,78,0.05)'], [1, 'rgba(0,0,0,0)']
+    ]);
     g.fillStyle = glow;
     g.fillRect(0, 0, w, h);
 
@@ -1835,7 +1917,7 @@
       addHead(prims, gm, v, frame);
       addFrameEdge(prims, gm, v);
       addDecals(prims, gm, v);
-      addStrings(prims, gm, v, str, lvl);
+      addStrings(prims, gm, v, str, lvl, opts.wob);
       addStencil(prims, gm, v, c);
     }
     addShaft(prims, gm, v, frame, gm.accent);
@@ -1847,9 +1929,9 @@
     fxFront(g, gm, v, c);
 
     /* 유리 같은 반사 */
-    var sheen = g.createLinearGradient(0, 0, w * 0.9, h);
-    sheen.addColorStop(0, 'rgba(255,255,255,0.07)');
-    sheen.addColorStop(0.42, 'rgba(255,255,255,0)');
+    var sheen = grad1(g, 'sheen', 0, 0, w * 0.9, h, [
+      [0, 'rgba(255,255,255,0.07)'], [0.42, 'rgba(255,255,255,0)']
+    ]);
     g.fillStyle = sheen;
     g.fillRect(0, 0, w, h);
 
@@ -1960,267 +2042,850 @@
    *  · 모든 파티클은 지난 시간(ms)만으로 매 프레임 새로 계산합니다 — 상태를 쌓지 않아
    *    프레임이 밀려도 모양이 같고, 60fps에서 가볍습니다.
    * ============================================================ */
-  var SWING_MS = 260;          /* 팔을 내리치는 시간 */
+  /* ============================================================
+   * 실제 타격 연출 (bm-v1.86.0)
+   *   ① 날아오기·백스윙   0 ~ 250ms  셔틀콕이 멀리서 포물선으로, 라켓은 뒤로 젖힘
+   *   ② 스윙·임팩트     250 ~ 346ms  채찍처럼 휘둘러 정타 (+30ms 히트스톱)
+   *   ③ 폭발·고속 발사  ~ 520ms      타점에서 효과 폭발, 셔틀콕이 화면 앞으로
+   *  · 불·얼음·번개는 오프스크린 캔버스에 **한 번만 구운** 스프라이트를
+   *    'lighter'(가산)로 겹쳐 그립니다 — 매 프레임 그라데이션·shadowBlur 를
+   *    새로 만들지 않아 중급 안드로이드에서도 55~60fps 가 유지됩니다.
+   * ============================================================ */
+  var WIND_MS = 250;                 /* 1단계 — 0.22~0.28s */
+  var SWING_MS = 96;                 /* 2단계 — 0.08~0.12s */
+  var HITSTOP_MS = 30;               /* 타격 순간 프레임 멈춤 20~35ms */
+  var HIT_AT = WIND_MS + SWING_MS;   /* 임팩트 시각 */
+  var BOOM_MS = 520;                 /* 3단계 — 0.45~0.55s */
+  var SHATTER_MS = 470;              /* 바닥 강타 — 헤드가 부서져 있는 시간 */
 
-  /* 그 순간의 라켓 자세 — 바람을 잡았다가 아래로 내려치는 스윙 */
-  function swingOf(el, kind) {
-    var t = Math.max(0, Math.min(1, el / SWING_MS));
-    /* 0 → 위로 들었다가(음수), 1 → 아래로(양수) */
-    var arc = Math.sin(Math.PI * Math.min(1, t * 1.15)) * (1 - t) * 0.5 + t * 1.0;
-    var yaw = (kind === 'slam' ? -0.28 : -0.34) * (1 - t) * (1 - t) + 0.12 * t;
-    var pitch = (kind === 'slam' ? 0.5 : 0.34) * arc;
-    if (el > SWING_MS) {
-      var back = Math.min(1, (el - SWING_MS) / 320);
-      yaw *= (1 - back); pitch *= (1 - back);
-    }
-    var dy = (kind === 'slam' ? 26 : 10) * arc * Math.min(1, el / SWING_MS + 0.15);
-    var roll = yaw * 0.55;
-    return { yaw: yaw, pitch: pitch, dy: dy, roll: roll };
+  function clamp01(p) { return p < 0 ? 0 : (p > 1 ? 1 : p); }
+  function clampN(x, lo, hi) { return x < lo ? lo : (x > hi ? hi : x); }
+  function easeOut3(p) { p = clamp01(p); return 1 - Math.pow(1 - p, 3); }
+  function easeIn3(p) { p = clamp01(p); return p * p * p; }
+  function easeInOut3(p) { p = clamp01(p); return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; }
+
+  /* 히트스톱 — 정타 순간 30ms 동안 화면이 그대로 멈춘 뒤 이어집니다 */
+  function smashClock(ms) {
+    var m = Math.max(0, Number(ms) || 0);
+    if (m <= HIT_AT) return m;
+    if (m <= HIT_AT + HITSTOP_MS) return HIT_AT;
+    return m - HITSTOP_MS;
+  }
+  /* 0 = 날아오기, 1 = 스윙, 2 = 폭발 */
+  function smashPhase(ms) {
+    var c = smashClock(ms);
+    return c < WIND_MS ? 0 : (c < HIT_AT ? 1 : 2);
   }
 
-  /* 깃 16장 + 코르크 — 진짜 셔틀콕 실루엣 (rot 은 라디안) */
-  function drawShuttle(g, x, y, sc, rot, pal, kind, alpha) {
-    var i, len = 30 * sc, spread = 13 * sc;
+  /* ---------- 라켓 자세 (백스윙 · 임팩트 · 팔로스루) ---------- */
+  var POSE_BACK = { yaw: -0.46, pitch: -0.55, dx: 10, dy: -8, roll: -0.14 };
+  var POSE_HIT = { yaw: 0.20, pitch: 0.42, dx: -30, dy: 16, roll: 0.14 };
+  var POSE_FLOW = { yaw: 0.30, pitch: 0.60, dx: -40, dy: 22, roll: 0.10 };
+  var POSE_BACK_SLAM = { yaw: -0.32, pitch: -0.98, dx: 6, dy: -20, roll: -0.08 };
+  var POSE_HIT_SLAM = { yaw: 0.14, pitch: 0.86, dx: -14, dy: 46, roll: 0.04 };
+  var POSE_FLOW_SLAM = { yaw: 0.18, pitch: 1.05, dx: -18, dy: 54, roll: 0.02 };
+
+  function poseLerp(a, b, p) {
+    return {
+      yaw: a.yaw + (b.yaw - a.yaw) * p,
+      pitch: a.pitch + (b.pitch - a.pitch) * p,
+      dx: (a.dx || 0) + ((b.dx || 0) - (a.dx || 0)) * p,
+      dy: a.dy + (b.dy - a.dy) * p,
+      roll: a.roll + (b.roll - a.roll) * p
+    };
+  }
+
+  /* 그 순간의 라켓 자세 — ①뒤로 젖히고 ②채찍처럼 ③따라 흐르며 제자리 */
+  function swingOf(el, kind) {
+    var zero = { yaw: 0, pitch: 0, dx: 0, dy: 0, roll: 0 };
+    var c = smashClock(el);
+    if (c <= 0) return zero;
+    var slam = kind === 'slam';
+    var back = slam ? POSE_BACK_SLAM : POSE_BACK;
+    var hit = slam ? POSE_HIT_SLAM : POSE_HIT;
+    var flow = slam ? POSE_FLOW_SLAM : POSE_FLOW;
+    var pose;
+    if (c < WIND_MS) {
+      /* 뒤로 젖히며 손목을 코킹 — 끝에서 '치기 직전' 자세로 잠깐 머뭇거립니다 */
+      pose = poseLerp(zero, back, easeOut3(c / WIND_MS * 1.05));
+    } else if (c < HIT_AT) {
+      /* 되감기 → 앞으로. 앞쪽에서 확 빨라지는 채찍 궤적 */
+      pose = poseLerp(back, hit, Math.pow(clamp01((c - WIND_MS) / SWING_MS), 1.55));
+    } else {
+      var f = c - HIT_AT;
+      pose = poseLerp(hit, flow, easeOut3(Math.min(1, f / 70)));
+      var home = clamp01((f - 110) / 430);
+      if (home > 0) pose = poseLerp(pose, zero, easeInOut3(home));
+      /* 라켓이 맞은 뒤 떠는 진동 */
+      var vib = Math.exp(-f / 150) * 0.055;
+      pose.pitch += Math.sin(f / 7) * vib;
+      pose.roll += Math.sin(f / 9 + 1) * vib * 0.6;
+    }
+    return pose;
+  }
+
+  /* ============================================================
+   * 라켓 모션 프리셋 (bm-v1.86.0)
+   *  · 3D 라켓 아래 칩을 누르면 바로 재생 — 하트로 열고(관리자는 전체 해금)
+   *    열린 모션은 언제든 다시 감상할 수 있습니다.
+   *  · 파티클·그라데이션 없이 회전 값만 움직이므로 60fps 로 매끄럽습니다.
+   * ============================================================ */
+  var MOTION_MS = { twist: 2400, showcase: 2800, flip: 2000 };
+  function motionPose(kind, el) {
+    var dur = MOTION_MS[kind] || 2200;
+    var p = clamp01((Number(el) || 0) / dur);
+    var out = { yaw: 0, pitch: 0, roll: 0, dy: 0 };
+    var fade;
+    if (kind === 'twist') {
+      /* 손목 트위스트 — 그립을 손가락으로 돌리듯 8자 스핀 + 손목 기울임 */
+      out.yaw = Math.sin(p * TAU * 2) * 0.62;
+      out.pitch = Math.sin(p * TAU) * 0.2;
+      out.roll = Math.sin(p * TAU * 2 + 0.6) * 0.13;
+      out.dy = Math.sin(p * TAU) * 2.4;
+      fade = p > 0.86 ? (p - 0.86) / 0.14 : 0;
+      out.yaw *= 1 - fade; out.pitch *= 1 - fade; out.roll *= 1 - fade; out.dy *= 1 - fade;
+    } else if (kind === 'showcase') {
+      /* 쇼케이스 스핀 — 천천히 한 바퀴 돌며 프레임·거트·스텐실·그립을 훑어 보기 */
+      var t2 = Math.min(1, p / 0.86);
+      out.yaw = -0.95 + 2.05 * easeInOut3(t2);
+      out.pitch = 0.1 + Math.sin(p * TAU) * 0.17;
+      out.roll = Math.sin(p * TAU) * 0.05;
+      out.dy = -9 * Math.sin(p * Math.PI);
+      fade = p > 0.86 ? (p - 0.86) / 0.14 : 0;
+      out.yaw *= 1 - fade; out.pitch *= 1 - fade; out.roll *= 1 - fade; out.dy *= 1 - fade;
+    } else {
+      /* 공중 360° 플립 — 떴다가 백플립 한 바퀴, 착지 반동 */
+      out.dy = -Math.sin(p * Math.PI) * 44;
+      out.yaw = Math.sin(p * Math.PI) * 0.5;
+      out.pitch = -Math.sin(p * Math.PI) * 0.28;
+      out.roll = easeInOut3(Math.min(1, p / 0.84)) * TAU;
+      if (p > 0.88) {
+        var b = (p - 0.88) / 0.12;
+        out.dy += Math.sin(b * Math.PI) * 5.5;
+      }
+    }
+    return out;
+  }
+
+  /* ---------- 셔틀콕 궤적 ---------- */
+  /* ① 멀리(작게)에서 스위트 스팟으로 — 원근이 살아 있는 포물선 */
+  function shuttlePath(imp, w, h, p, slam) {
+    p = clamp01(p);
+    var x0 = Math.max(w * 0.07, imp.x - w * (slam ? 0.30 : 0.33));
+    var y0 = Math.max(h * 0.09, imp.y - h * (slam ? 0.34 : 0.38));
+    /* 멀수록 천천히, 가까워질수록 빨라집니다 */
+    var e = Math.pow(p, 1.45);
+    return {
+      x: x0 + (imp.x - x0) * e + Math.sin(p * Math.PI) * w * 0.035,
+      y: y0 + (imp.y - y0) * e - Math.sin(p * Math.PI) * h * 0.055,
+      sc: 0.30 + 0.70 * Math.pow(p, 1.15)
+    };
+  }
+
+  /* ③ 정타 뒤 — 화면 앞으로 고속 퇴장(에어) · 코트 바닥으로 내려찍힘(강타) */
+  function launchPath(imp, w, h, p, slam) {
+    p = clamp01(p);
+    if (slam) {
+      var floorY = h * 0.9, hitP = 0.15;
+      if (p < hitP) {
+        var q = p / hitP;
+        return { x: imp.x + w * 0.13 * q, y: imp.y + (floorY - 8 - imp.y) * (q * q), sc: 0.95 - 0.34 * q, rot: 1.2 };
+      }
+      var b = (p - hitP) / (1 - hitP);
+      return {
+        x: imp.x + w * 0.13 + w * 0.22 * b,
+        y: floorY - 8 - Math.sin(b * Math.PI) * h * 0.13,
+        sc: 0.61 - 0.26 * b, rot: 1.2 + b * 3.0
+      };
+    }
+    var dir = 0.14;                       /* 오른쪽·살짝 아래 = 화면 밖으로 */
+    var reach = w * 0.78 + 90;
+    var d = reach * (1 - Math.pow(1 - p, 2.4));
+    return {
+      x: imp.x + Math.cos(dir) * d,
+      y: imp.y + Math.sin(dir) * d - h * 0.07 * Math.sin(p * Math.PI),
+      sc: 0.92 + 1.5 * Math.pow(p, 1.7),   /* 앞으로 나오며 커집니다 */
+      rot: dir + Math.sin(p * 6.5) * 0.22
+    };
+  }
+
+  /* ============================================================
+   * 셔틀콕 — 실제 규격 비율 (bm-v1.86.0)
+   *  · 코르크 지름 26mm(반구 앞코 + 짧은 넥 + 색 띠)
+   *  · 깃털 16장 길이 64mm · 스커트 지름 62mm(약 26° 퍼짐) · 2줄 실 스티치
+   *  · 깃대(축)·겹침·반투명 흰 그라데이션까지 그린 뒤, 스프라이트로 한 번 구워
+   *    회전·확대는 drawImage 로만 합니다(매 프레임 다시 그리지 않음).
+   * ============================================================ */
+  var SHUT_L = 64, SHUT_W = 31, SHUT_R = 13;   /* mm 비율 */
+  var shutSprite = {};
+  /* 벡터 본체 — 코르크가 원점(0,0), 깃이 -x 로 뻗습니다 */
+  function paintShuttle(g, sc, pal, kind, dim) {
+    var L = SHUT_L * sc, W = SHUT_W * sc, R = SHUT_R * sc, neck = 5.5 * sc;
+    var i, n = 16, ang, bx, by, tx, ty;
+    dim = clamp01(dim || 0);
+    /* 1) 스커트 바탕 — 반투명 흰 원뿔(속이 비쳐 보이게 낮은 알파) */
+    g.beginPath();
+    g.moveTo(-neck * 0.4, -R * 0.62);
+    g.lineTo(-L, -W);
+    g.lineTo(-L, W);
+    g.lineTo(-neck * 0.4, R * 0.62);
+    g.closePath();
+    var sg = g.createLinearGradient(0, -R, 0, R);
+    sg.addColorStop(0, 'rgba(252,254,255,0.72)');
+    sg.addColorStop(0.4, 'rgba(240,247,253,0.5)');
+    sg.addColorStop(0.72, 'rgba(214,228,240,0.44)');
+    sg.addColorStop(1, 'rgba(188,205,220,0.5)');
+    g.fillStyle = sg;
+    g.fill();
+    /* 2) 깃 16장 — 겹칠수록 밝게(비치는 깃) */
+    for (i = 0; i < n; i++) {
+      var f = i / (n - 1);                     /* 0 = 오른쪽 끝, 1 = 왼쪽 끝 */
+      var side = f * 2 - 1;                    /* -1 ~ 1 */
+      ang = side * Math.asin(Math.min(0.999, W / L)) * 0.94;
+      bx = -neck * 0.4 + Math.sin(i * 2.7) * 0.6 * sc;
+      by = -R * 0.42 + Math.sin(ang) * neck * 0.3;
+      tx = -L * (0.99 - Math.abs(side) * 0.02);
+      ty = Math.sin(ang) * W * 1.02;
+      var wRoot = 1.4 * sc, wTip = 3.2 * sc;
+      g.beginPath();
+      g.moveTo(bx, by - wRoot);
+      g.quadraticCurveTo((bx + tx) * 0.5, (by + ty) * 0.5 - wTip * 1.3, tx, ty - wTip * 0.5);
+      g.lineTo(tx, ty + wTip * 0.5);
+      g.quadraticCurveTo((bx + tx) * 0.5, (by + ty) * 0.5 + wTip * 1.3, bx, by + wRoot);
+      g.closePath();
+      g.fillStyle = i % 4 === 0 ? 'rgba(255,255,255,0.5)'
+        : (i % 4 === 1 ? 'rgba(238,246,252,0.26)'
+          : (i % 4 === 2 ? 'rgba(255,255,255,0.34)' : 'rgba(210,224,238,0.3)'));
+      g.fill();
+      /* 깃대(축) — 가운데를 지나는 가는 선 */
+      g.strokeStyle = 'rgba(176,196,214,' + (0.6 - dim * 0.25).toFixed(2) + ')';
+      g.lineWidth = Math.max(0.35, 0.5 * sc);
+      g.beginPath();
+      g.moveTo(bx, by);
+      g.quadraticCurveTo((bx + tx) * 0.5, (by + ty) * 0.5 - wTip * 0.25, tx, ty);
+      g.stroke();
+    }
+    /* 3) 깃 끝 결 — 살짝 들뜬 깃 끝 */
+    g.strokeStyle = 'rgba(255,255,255,0.72)';
+    g.lineWidth = Math.max(0.45, 0.7 * sc);
+    g.beginPath();
+    g.moveTo(-L * 0.995, -W);
+    g.quadraticCurveTo(-L * 1.02, 0, -L * 0.995, W);
+    g.stroke();
+    /* 4) 2줄 실 스티치 띠 */
+    var bands = [-0.2, -0.45];
+    for (i = 0; i < bands.length; i++) {
+      var xx = L * bands[i];
+      var hh = W * (-bands[i]) * 0.94;
+      g.strokeStyle = i === 0 ? 'rgba(176,192,208,0.95)' : 'rgba(150,170,188,0.8)';
+      g.lineWidth = Math.max(0.45, (i === 0 ? 1.05 : 0.75) * sc);
+      g.beginPath();
+      g.moveTo(xx, -hh);
+      g.quadraticCurveTo(xx - 2 * sc, 0, xx, hh);
+      g.stroke();
+      g.strokeStyle = 'rgba(120,140,160,0.5)';
+      g.lineWidth = Math.max(0.35, 0.5 * sc);
+      for (var k = 0; k < 7; k++) {
+        var ty2 = -hh + (k + 0.5) / 7 * hh * 2;
+        g.beginPath();
+        g.moveTo(xx - 1 * sc, ty2);
+        g.lineTo(xx + 1 * sc, ty2);
+        g.stroke();
+      }
+    }
+    /* 5) 넥(짧은 원통) */
+    g.fillStyle = '#efe9d8';
+    g.beginPath();
+    g.moveTo(-neck, -R * 0.56);
+    g.lineTo(-neck * 0.1, -R * 0.64);
+    g.lineTo(-neck * 0.1, R * 0.64);
+    g.lineTo(-neck, R * 0.56);
+    g.closePath();
+    g.fill();
+    /* 6) 코르크 — 반구 앞코 + 가죽 질감 + 색 띠 */
+    var cg = g.createRadialGradient(R * 0.3, -R * 0.42, R * 0.1, 0, 0, R * 1.02);
+    cg.addColorStop(0, '#fffdf3');
+    cg.addColorStop(0.38, '#f7efd8');
+    cg.addColorStop(0.76, '#ddceac');
+    cg.addColorStop(1, '#ab9670');
+    g.fillStyle = cg;
+    g.beginPath();
+    g.arc(0, 0, R, 0, TAU);
+    g.fill();
+    /* 가죽 결 — 아주 옅은 점 */
+    g.fillStyle = 'rgba(150,132,96,0.2)';
+    for (i = 0; i < 6; i++) {
+      var ra = seedRand(i * 7 + 1) * TAU, rr = R * (0.18 + seedRand(i * 3) * 0.62);
+      g.beginPath();
+      g.arc(Math.cos(ra) * rr, Math.sin(ra) * rr, Math.max(0.28, 0.5 * sc), 0, TAU);
+      g.fill();
+    }
+    /* 코르크 테두리 — 깃과 경계가 살아나게 */
+    g.strokeStyle = 'rgba(126,110,80,0.5)';
+    g.lineWidth = Math.max(0.4, 0.7 * sc);
+    g.beginPath();
+    g.arc(0, 0, R * 0.99, 0, TAU);
+    g.stroke();
+    /* 색 띠(녹색) — 실제 셔틀콕의 코르크 표시 */
+    g.strokeStyle = 'rgba(52,124,82,0.9)';
+    g.lineWidth = Math.max(0.5, 1.1 * sc);
+    g.beginPath();
+    g.arc(-neck * 0.15, 0, R * 0.92, Math.PI * 0.58, Math.PI * 1.42);
+    g.stroke();
+    /* 하이라이트 */
+    g.fillStyle = 'rgba(255,255,255,0.8)';
+    g.beginPath();
+    g.ellipse(R * 0.28, -R * 0.38, R * 0.3, R * 0.17, -0.5, 0, TAU);
+    g.fill();
+  }
+
+  /* 스프라이트 — 코르크 원점 기준으로 한 번만 굽습니다 */
+  function shuttleTex(kind) {
+    if (shutSprite[kind] !== undefined) return shutSprite[kind];
+    var o = offCv(268, 232);
+    if (!o) { shutSprite[kind] = null; return null; }
+    var PX = 3;                            /* 굽는 배율 */
+    o.g.setTransform(PX, 0, 0, PX, SHUT_L + 12, 116);   /* 코르크 원점을 (L+12, 116) 에 */
+    o.g.clearRect(-(SHUT_L + 12) / PX, -116 / PX, 268 / PX, 232 / PX);
+    paintShuttle(o.g, 1, null, kind, 0);
+    o.ox = SHUT_L + 12;                    /* 스프라이트 안 코르크 위치(PX 단위) */
+    o.oy = 116;
+    o.px = 1 / PX;
+    shutSprite[kind] = o;
+    return o;
+  }
+
+  /* 셔틀콕 한 장 — rot 방향으로 코르크가 앞장섭니다 */
+  function drawShuttle(g, x, y, sc, rot, pal, kind, alpha, opts) {
+    opts = opts || {};
+    var dim = clamp01(opts.dim == null ? 0 : opts.dim);
+    var a = clamp01(alpha == null ? 1 : alpha) * (1 - dim * 0.28);
+    if (a <= 0.01) return;
+    var spr = shuttleTex(fxKind(kind));
     g.save();
     g.translate(x, y);
     g.rotate(rot || 0);
-    g.globalAlpha = Math.max(0, Math.min(1, alpha == null ? 1 : alpha));
-    /* 깃 원뿔 — 코르크에서 뒤로 벌어지는 한 덩어리 */
-    g.beginPath();
-    g.moveTo(0, -2.2 * sc);
-    g.lineTo(-len, -spread);
-    g.lineTo(-len, spread);
-    g.lineTo(0, 2.2 * sc);
-    g.closePath();
-    g.fillStyle = 'rgba(246,251,255,0.94)';
-    g.fill();
-    /* 깃 결 — 가는 회색 줄 몇 개 */
-    g.strokeStyle = 'rgba(168,190,208,0.75)';
-    g.lineWidth = Math.max(0.5, 0.7 * sc);
-    for (i = -2; i <= 2; i++) {
-      g.beginPath();
-      g.moveTo(-2 * sc, 0);
-      g.lineTo(-len * 0.98, spread * i / 2.2);
-      g.stroke();
-    }
-    /* 깃 띠 두 줄 */
-    g.strokeStyle = 'rgba(148,172,194,0.9)';
-    g.lineWidth = Math.max(0.7, 1 * sc);
-    [-0.62, -0.9].forEach(function (f) {
-      g.beginPath();
-      g.moveTo(len * f, -spread * (-f));
-      g.lineTo(len * f, spread * (-f));
-      g.stroke();
-    });
-    if (kind === 'fire' || kind === 'ice') {
-      g.strokeStyle = kind === 'fire' ? 'rgba(255,190,110,0.7)' : 'rgba(180,235,255,0.85)';
-      g.lineWidth = Math.max(0.7, 1.1 * sc);
-      g.beginPath();
-      g.moveTo(0, -2.2 * sc);
-      g.lineTo(-len, -spread);
-      g.lineTo(-len, spread);
-      g.lineTo(0, 2.2 * sc);
-      g.stroke();
-    }
-    /* 코르크 — 작고 둥근 머리(앞장섬) */
-    var cg = g.createRadialGradient(1.1 * sc, -1.1 * sc, 0.4 * sc, 0, 0, Math.max(1.2, 4.2 * sc));
-    cg.addColorStop(0, '#ffffff');
-    cg.addColorStop(0.55, '#f6f4ea');
-    cg.addColorStop(1, '#c9cdc6');
-    g.fillStyle = cg;
-    g.beginPath();
-    g.arc(0, 0, Math.max(1.2, 3.9 * sc), 0, TAU);
-    g.fill();
-    if (kind !== 'none') {
-      g.globalAlpha *= 0.65;
-      g.fillStyle = pal.mid;
-      g.beginPath();
-      g.arc(0, 0, Math.max(0.9, 6 * sc), 0, TAU);
-      g.fill();
+    g.globalAlpha = a;
+    if (spr) {
+      var s = sc * spr.px;
+      g.drawImage(spr.cv, -spr.ox * s, -spr.oy * s, spr.w * s, spr.h * s);
+    } else {
+      paintShuttle(g, sc, pal, fxKind(kind), dim);
     }
     g.restore();
   }
 
-  /* 얼음 결정 조각 — 뾰족한 육각 파편 */
+  /* ============================================================
+   * 스프라이트 텍스처 — 한 번만 굽고 drawImage 로 재사용
+   * (매 프레임 createRadialGradient·shadowBlur 를 쓰지 않는 이유)
+   * ============================================================ */
+  var TEX = {};
+  function offCv(w, h) {
+    if (!hasDom || !root.document || !root.document.createElement) return null;
+    var cv = root.document.createElement('canvas');
+    if (!cv || !cv.getContext) return null;
+    cv.width = w; cv.height = h;
+    var ctx = cv.getContext('2d');
+    if (!ctx) return null;
+    return { cv: cv, g: ctx, w: w, h: h };
+  }
+  function blob(g, x, y, r, stops) {
+    var lg = g.createRadialGradient(x, y, Math.max(0.01, r * 0.02), x, y, r);
+    for (var i = 0; i < stops.length; i++) lg.addColorStop(stops[i][0], stops[i][1]);
+    g.fillStyle = lg;
+    g.beginPath();
+    g.arc(x, y, r, 0, TAU);
+    g.fill();
+  }
+
+  /* 스프라이트 가장자리를 부드럽게 지웁니다 — 스프라이트 사각 테두리가 보이지 않게 */
+  function maskEdge(o, kx, ky) {
+    if (!o) return o;
+    var g = o.g;
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = 'destination-in';
+    g.translate(o.w / 2, o.h / 2);
+    g.scale(kx || 1, ky || 1);
+    var r = Math.max(o.w, o.h) * 0.52;
+    var lg = g.createRadialGradient(0, 0, r * 0.42, 0, 0, r);
+    lg.addColorStop(0, 'rgba(0,0,0,1)');
+    lg.addColorStop(0.72, 'rgba(0,0,0,0.92)');
+    lg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = lg;
+    g.beginPath();
+    g.arc(0, 0, r + 2, 0, TAU);
+    g.fill();
+    g.restore();
+    return o;
+  }
+
+  /* 불꽃 — 백열 심 → 노랑 → 주황 → 붉은 혀 → 연기 끝 */
+  function bakeFlame() {
+    var o = offCv(160, 224); if (!o) return null;
+    var g = o.g, t, i, f;
+    g.globalCompositeOperation = 'lighter';
+    /* 혀 10개 — 뿌리는 넓고 뜨겁게, 끝은 가늘게 타들어 가며 주황·붉음으로 */
+    for (t = 0; t < 10; t++) {
+      var bx = 80 + (seedRand(t * 7 + 1) - 0.5) * 46;
+      var tipY = 22 + seedRand(t * 5 + 2) * 64;
+      var baseY = 198;
+      var wd = 13 + seedRand(t * 3 + 4) * 15;
+      var lean = (seedRand(t * 11 + 5) - 0.5) * 26;
+      for (i = 0; i <= 16; i++) {
+        f = i / 16;                            /* 0 = 꼭대기, 1 = 뿌리 */
+        var y = tipY + (baseY - tipY) * f;
+        var sway = lean * (1 - f) * (1 - f) + Math.sin(f * 4 + t) * 6 * (1 - f);
+        var r = wd * (0.26 + 0.92 * f) * (1 - 0.22 * Math.pow(1 - f, 2));
+        var al = 0.13 + 0.34 * Math.pow(f, 1.15);
+        blob(g, bx + sway, y, r, [
+          [0, 'rgba(255,242,200,' + (al * 0.92).toFixed(3) + ')'],
+          [0.3, 'rgba(255,176,56,' + (al * 0.82).toFixed(3) + ')'],
+          [0.64, 'rgba(240,88,18,' + (al * 0.46).toFixed(3) + ')'],
+          [1, 'rgba(140,24,4,0)']
+        ]);
+      }
+    }
+    /* 불덩이 사이의 어두운 틈 — 가산만 하면 하얗게 타서 형태가 사라집니다 */
+    g.globalCompositeOperation = 'destination-out';
+    for (i = 0; i < 10; i++) {
+      var hx = 76 + (seedRand(i * 11 + 6) - 0.5) * 58;
+      var hy = 108 + (seedRand(i * 5 + 3) - 0.5) * 96;
+      blob(g, hx, hy, 6 + seedRand(i * 3 + 2) * 12, [
+        [0, 'rgba(0,0,0,0.6)'], [0.6, 'rgba(0,0,0,0.24)'], [1, 'rgba(0,0,0,0)']
+      ]);
+    }
+    g.globalCompositeOperation = 'source-over';
+    return maskEdge(o, 1, 0.9);
+  }
+
+  /* 얼음 결정 — 반투명 청록 + 흰 테두리 + 굴절 하이라이트 */
+  function bakeIceShard() {
+    var o = offCv(48, 88); if (!o) return null;
+    var g = o.g;
+    var pts = [[24, 3], [41, 27], [35, 68], [24, 84], [13, 68], [7, 27]];
+    g.beginPath();
+    g.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+    g.closePath();
+    var lg = g.createLinearGradient(7, 3, 41, 84);
+    lg.addColorStop(0, 'rgba(255,255,255,0.98)');
+    lg.addColorStop(0.3, 'rgba(214,246,255,0.92)');
+    lg.addColorStop(0.62, 'rgba(130,212,250,0.86)');
+    lg.addColorStop(1, 'rgba(62,142,214,0.7)');
+    g.fillStyle = lg;
+    g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.92)';
+    g.lineWidth = 2;
+    g.stroke();
+    g.globalCompositeOperation = 'lighter';
+    g.strokeStyle = 'rgba(255,255,255,0.6)';
+    g.lineWidth = 2.6;
+    g.beginPath(); g.moveTo(16, 22); g.lineTo(24, 58); g.stroke();
+    g.strokeStyle = 'rgba(180,240,255,0.5)';
+    g.lineWidth = 1.7;
+    g.beginPath(); g.moveTo(31, 17); g.lineTo(22, 68); g.stroke();
+    g.strokeStyle = 'rgba(120,200,255,0.45)';
+    g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(24, 30); g.lineTo(34, 44); g.stroke();
+    return o;
+  }
+
+  /* 얼음 가시 — 길고 날카로운 결정 */
+  function bakeIceSpike() {
+    var o = offCv(36, 108); if (!o) return null;
+    var g = o.g;
+    g.beginPath();
+    g.moveTo(18, 2); g.lineTo(29, 40); g.lineTo(24, 96); g.lineTo(18, 106);
+    g.lineTo(12, 96); g.lineTo(7, 40);
+    g.closePath();
+    var lg = g.createLinearGradient(7, 2, 29, 106);
+    lg.addColorStop(0, 'rgba(255,255,255,1)');
+    lg.addColorStop(0.42, 'rgba(198,240,255,0.9)');
+    lg.addColorStop(1, 'rgba(96,180,238,0.66)');
+    g.fillStyle = lg; g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 1.6; g.stroke();
+    g.globalCompositeOperation = 'lighter';
+    g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(17, 12); g.lineTo(19, 92); g.stroke();
+    return o;
+  }
+
+  function bakeEmber() {
+    var o = offCv(28, 28); if (!o) return null;
+    blob(o.g, 14, 14, 14, [
+      [0, 'rgba(255,255,248,1)'], [0.2, 'rgba(255,232,164,0.96)'],
+      [0.48, 'rgba(255,152,52,0.58)'], [1, 'rgba(255,88,20,0)']
+    ]);
+    return o;
+  }
+
+  function bakeSmoke() {
+    var o = offCv(96, 96); if (!o) return null;
+    var g = o.g, i, a, rr;
+    /* 가운데에 몰린 연기 덩어리 — 테두리에 고리가 생기지 않게 */
+    for (i = 0; i < 16; i++) {
+      a = i / 16 * TAU + seedRand(i) * 0.6;
+      rr = seedRand(i * 3) * 12;
+      blob(g, 48 + Math.cos(a) * rr, 48 + Math.sin(a) * rr * 0.9, 14 + seedRand(i * 7) * 13, [
+        [0, 'rgba(150,146,140,0.22)'], [0.55, 'rgba(118,114,110,0.12)'], [1, 'rgba(90,88,86,0)']
+      ]);
+    }
+    blob(g, 48, 50, 32, [
+      [0, 'rgba(150,146,140,0.2)'], [0.6, 'rgba(120,116,112,0.1)'], [1, 'rgba(96,94,92,0)']
+    ]);
+    return maskEdge(o);
+  }
+
+  function bakeFlash() {
+    var o = offCv(128, 128); if (!o) return null;
+    var g = o.g;
+    blob(g, 64, 64, 62, [
+      [0, 'rgba(255,255,255,1)'], [0.16, 'rgba(255,252,236,0.94)'],
+      [0.4, 'rgba(255,216,128,0.5)'], [0.7, 'rgba(255,148,54,0.18)'], [1, 'rgba(255,96,24,0)']
+    ]);
+    g.globalCompositeOperation = 'lighter';
+    /* 빛줄기 — 원형 블롭을 이어 부드럽게(직선 경계가 보이지 않게) */
+    for (var i = 0; i < 6; i++) {
+      var ang = i / 6 * TAU + 0.32;
+      for (var k = 1; k <= 6; k++) {
+        var d = k * 10, al = 0.34 * (1 - k / 6.6);
+        blob(g, 64 + Math.cos(ang) * d, 64 + Math.sin(ang) * d, 7 - k * 0.7, [
+          [0, 'rgba(255,246,214,' + al.toFixed(3) + ')'],
+          [0.5, 'rgba(255,182,86,' + (al * 0.6).toFixed(3) + ')'],
+          [1, 'rgba(255,140,50,0)']
+        ]);
+      }
+    }
+    return maskEdge(o);
+  }
+
+  function bakeRing() {
+    var o = offCv(128, 128); if (!o) return null;
+    blob(o.g, 64, 64, 63, [
+      [0, 'rgba(255,255,255,0)'], [0.58, 'rgba(255,255,255,0)'],
+      [0.78, 'rgba(255,255,255,0.9)'], [0.89, 'rgba(255,255,255,0.3)'], [1, 'rgba(255,255,255,0)']
+    ]);
+    return o;
+  }
+
+  function bakeFrost() {
+    var o = offCv(128, 128); if (!o) return null;
+    blob(o.g, 64, 64, 62, [
+      [0, 'rgba(230,250,255,0.46)'], [0.42, 'rgba(178,232,255,0.24)'],
+      [0.74, 'rgba(150,212,255,0.1)'], [1, 'rgba(140,200,255,0)']
+    ]);
+    return o;
+  }
+
+  function bakeDust() {
+    var o = offCv(96, 96); if (!o) return null;
+    for (var i = 0; i < 18; i++) {
+      blob(o.g, 48 + (seedRand(i * 3) - 0.5) * 32, 48 + (seedRand(i * 5) - 0.5) * 30, 12 + seedRand(i * 7) * 14, [
+        [0, 'rgba(186,192,186,0.22)'], [0.6, 'rgba(152,160,152,0.1)'], [1, 'rgba(130,138,130,0)']
+      ]);
+    }
+    return maskEdge(o);
+  }
+
+  var BAKERS = { flame: bakeFlame, iceShard: bakeIceShard, iceSpike: bakeIceSpike, ember: bakeEmber,
+    smoke: bakeSmoke, flash: bakeFlash, ring: bakeRing, frost: bakeFrost, dust: bakeDust };
+  function tex(name) {
+    if (TEX[name] === undefined) TEX[name] = hasDom && BAKERS[name] ? BAKERS[name]() : null;
+    return TEX[name];
+  }
+
+  /* 스프라이트 한 장 찍기 — 가산 합성(lighter)으로 빛을 더합니다 */
+  function blit(g, name, cx, cy, w, h, rot, alpha, add) {
+    var spr = tex(name);
+    if (!spr || w <= 0 || h <= 0) return false;
+    if (alpha <= 0.008) return false;
+    g.save();
+    if (add) g.globalCompositeOperation = 'lighter';
+    g.globalAlpha = clamp01(alpha);
+    if (rot) {
+      g.translate(cx, cy);
+      g.rotate(rot);
+      g.drawImage(spr.cv, -w / 2, -h / 2, w, h);
+    } else {
+      g.drawImage(spr.cv, cx - w / 2, cy - h / 2, w, h);
+    }
+    g.restore();
+    return true;
+  }
+
+  /* 스프라이트를 못 굽는 환경(아주 오래된 브라우저·테스트)용 벡터 파편 */
   function drawShards(g, cx, cy, rx, t, pal, kind, unit) {
-    var n = kind === 'ice' ? 16 : 12, i, ang, sp, d, sz, rot;
+    var n = kind === 'ice' ? 14 : 11, i, ang, sp, d, sz, rot;
     for (i = 0; i < n; i++) {
       ang = i / n * TAU + seedRand(i * 7 + 2) * 0.4;
       sp = 0.5 + seedRand(i * 11 + 5) * 0.9;
       d = rx * (0.4 + 2.2 * t) * sp;
-      sz = (5.5 - t * 3.4) * unit * (0.6 + seedRand(i * 3 + 1) * 0.8);
-      if (sz <= 0.6) continue;
+      sz = Math.max(0.8, (6 - t * 3.6) * unit * (0.6 + seedRand(i * 3 + 1) * 0.8));
       rot = ang + t * (1.5 + seedRand(i) * 2.4);
       g.save();
       g.globalAlpha = Math.max(0, (1 - t * 0.95) * 0.95);
       g.translate(cx + Math.cos(ang) * d, cy + Math.sin(ang) * d + 46 * unit * t * t);
       g.rotate(rot);
+      g.beginPath();
       if (kind === 'ice') {
-        g.beginPath();
-        g.moveTo(0, -sz * 1.7);
-        g.lineTo(sz * 0.9, -sz * 0.3);
-        g.lineTo(sz * 0.55, sz * 1.5);
-        g.lineTo(-sz * 0.55, sz * 1.5);
-        g.lineTo(-sz * 0.9, -sz * 0.3);
-        g.closePath();
-        g.fillStyle = i % 3 === 0 ? '#ffffff' : (i % 2 ? '#cdf3ff' : '#8fdcff');
-        g.fill();
-        g.strokeStyle = 'rgba(255,255,255,0.8)';
-        g.lineWidth = Math.max(0.5, 0.8 * unit * 1.4);
-        g.stroke();
-      } else if (kind === 'fire') {
-        g.beginPath();
-        g.moveTo(0, -sz * 1.5);
-        g.lineTo(sz * 0.85, 0);
-        g.lineTo(0, sz * 1.5);
-        g.lineTo(-sz * 0.85, 0);
-        g.closePath();
-        g.fillStyle = i % 4 === 0 ? pal.core : (i % 2 ? pal.mid : pal.deep);
-        g.fill();
+        g.moveTo(0, -sz * 1.9); g.lineTo(sz * 0.95, -sz * 0.35); g.lineTo(sz * 0.6, sz * 1.7);
+        g.lineTo(-sz * 0.6, sz * 1.7); g.lineTo(-sz * 0.95, -sz * 0.35);
       } else {
-        g.fillStyle = i % 3 === 0 ? pal.core : pal.mid;
+        g.moveTo(0, -sz * 1.6); g.lineTo(sz * 0.9, 0); g.lineTo(0, sz * 1.6); g.lineTo(-sz * 0.9, 0);
+      }
+      g.closePath();
+      g.fillStyle = kind === 'ice' ? (i % 3 === 0 ? '#ffffff' : (i % 2 ? '#cdf3ff' : '#8fdcff'))
+        : (i % 3 === 0 ? pal.core : (i % 2 ? pal.mid : pal.deep));
+      g.fill();
+      g.restore();
+    }
+  }
+
+  /* ---------- 불꽃 폭발 — 실제 불처럼 혀·불티·연기·열기 ---------- */
+  function fxFire(g, cx, cy, rx, t, unit) {
+    if (!tex('flame')) { drawShards(g, cx, cy, rx, t, smashPalette('fire'), 'fire', unit); return; }
+    var e = easeOut3(Math.min(1, t * 1.6));
+    var i, a, sp, d, sz, al, x, y;
+    /* 1) 코어 섬광 */
+    if (t < 0.34) {
+      var fr = rx * 1.9 * (0.45 + t * 1.4);
+      blit(g, 'flash', cx, cy, fr, fr, t * 1.4, Math.pow(1 - t / 0.34, 1.6) * 0.5, true);
+    }
+    /* 2) 불꽃 혀 — 타점에서 사방으로 솟구치며 퍼집니다 */
+    for (i = 0; i < 14; i++) {
+      a = -Math.PI / 2 + (seedRand(i * 11 + 3) - 0.5) * 3.4;
+      sp = 0.25 + seedRand(i * 7 + 5) * 1.15;
+      d = rx * (0.05 + 0.95 * e * sp);
+      x = cx + Math.cos(a) * d;
+      y = cy + Math.sin(a) * d * 0.8 - rx * 0.36 * e * t;
+      sz = rx * (0.8 + 0.66 * sp) * (0.62 + 0.72 * Math.min(1, t * 3.6));
+      al = Math.max(0, 1 - t * 1.02) * (0.34 + seedRand(i * 3) * 0.3);
+      blit(g, 'flame', x, y, sz * 0.94, sz * 1.4, a * 0.32 + Math.sin(t * 5 + i) * 0.28, al, true);
+    }
+    /* 2-1) 뜨거운 기운 — 뒤에 깔리는 옅은 주황 광(흰 코어가 하얗게 타지 않게) */
+    if (t < 0.6) {
+      var gw = rx * 3.0 * (0.6 + t);
+      blit(g, 'ember', cx, cy, gw, gw * 0.86, 0, (1 - t / 0.6) * 0.2, true);
+    }
+    /* 3) 불티 — 위로 솟으며 흩날림 */
+    for (i = 0; i < 18; i++) {
+      a = -Math.PI / 2 + (seedRand(i * 5 + 3) - 0.5) * 2.3;
+      sp = 0.5 + seedRand(i * 17 + 9) * 1.25;
+      x = cx + Math.cos(a) * rx * (0.25 + sp * 1.7) * e + Math.sin(t * 9 + i) * 5 * unit;
+      y = cy + Math.sin(a) * rx * (0.25 + sp * 1.5) * e - 48 * unit * t * t * sp;
+      sz = Math.max(1.2, (7.5 - t * 5.2) * unit * (0.6 + seedRand(i * 13 + 1)));
+      al = Math.max(0, 1 - t * 0.92);
+      blit(g, 'ember', x, y, sz, sz, 0, al, true);
+    }
+    /* 4) 연기 — 불티 위로 옅게 피어오르다 금방 사라집니다 */
+    if (t > 0.14) {
+      for (i = 0; i < 4; i++) {
+        var st = clamp01((t - 0.14 - i * 0.06) * 1.9);
+        if (st <= 0 || st >= 1) continue;
+        var sx = cx + (seedRand(i * 9 + 2) - 0.5) * rx * 1.2 + Math.sin(t * 4 + i) * 6 * unit;
+        var sy = cy - rx * (0.55 + 1.35 * st) - i * 4 * unit;
+        var ss = rx * (0.55 + 1.15 * st);
+        blit(g, 'smoke', sx, sy, ss, ss * 0.85, i * 0.6 + t, (1 - st) * st * 0.85, false);
+      }
+    }
+    /* 5) 열기 — 아주 옅은 열 흔들림만 */
+    if (t < 0.5) {
+      var hg = rx * (1.4 + 2.2 * t);
+      blit(g, 'frost', cx, cy, hg, hg * 0.85, 0, (1 - t / 0.5) * 0.16, true);
+    }
+    g.restore();
+    g.globalAlpha = 1;
+  }
+
+  /* ---------- 얼음 폭발 — 갈라진 결정·서리 안개·얼음 가시 ---------- */
+  function fxIce(g, cx, cy, rx, t, unit) {
+    if (!tex('iceShard')) { drawShards(g, cx, cy, rx, t, smashPalette('ice'), 'ice', unit); return; }
+    var e = easeOut3(Math.min(1, t * 1.8));
+    var i, a, sp, d, sz, al, x, y, rot;
+    /* 1) 차가운 섬광 */
+    if (t < 0.3) {
+      var fr = rx * 2.1 * (0.45 + t * 1.5);
+      blit(g, 'flash', cx, cy, fr, fr, 0, Math.pow(1 - t / 0.3, 1.5) * 0.42, true);
+    }
+    /* 2) 얼음 가시 — 방사형으로 튀는 날카로운 결정 */
+    for (i = 0; i < 16; i++) {
+      a = i / 16 * TAU + (seedRand(i * 5 + 1) - 0.5) * 0.5;
+      sp = 0.5 + seedRand(i * 9 + 2) * 1.15;
+      d = rx * (0.08 + 1.5 * e * sp);
+      sz = rx * (0.34 + seedRand(i * 13) * 0.46);
+      al = Math.max(0, 1 - t * 0.95);
+      x = cx + Math.cos(a) * d;
+      y = cy + Math.sin(a) * d * 0.92 + 36 * unit * t * t;
+      rot = a + Math.PI / 2 + Math.sin(t * 6 + i) * 0.25;
+      blit(g, i % 3 === 0 ? 'iceSpike' : 'iceShard', x, y, sz * 0.66, sz * 1.5, rot, al, false);
+      /* 결정 테두리 하이라이트(가산) */
+      blit(g, i % 3 === 0 ? 'iceSpike' : 'iceShard', x, y, sz * 0.66, sz * 1.5, rot, al * 0.3, true);
+    }
+    /* 3) 서리 안개 — 차가운 냉기가 퍼짐 */
+    for (i = 0; i < 4; i++) {
+      var mp = clamp01((t - i * 0.06) * 1.5);
+      if (mp <= 0) continue;
+      var mr = rx * (0.9 + i * 0.5 + 1.9 * mp);
+      blit(g, 'frost', cx, cy, mr * 2, mr * 1.6, 0, (1 - mp) * (0.5 - i * 0.08), true);
+    }
+    /* 4) 얼음 파편 먼지 — 작고 반짝이는 가루 */
+    for (i = 0; i < 20; i++) {
+      a = i / 20 * TAU + seedRand(i * 3) * 0.6;
+      sp = 0.7 + seedRand(i * 7 + 4) * 1.2;
+      d = rx * (0.3 + 2.1 * e * sp);
+      sz = Math.max(1.4, (6.5 - t * 4.6) * unit);
+      blit(g, 'ember', cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.9 + 34 * unit * t * t,
+        sz, sz, 0, Math.max(0, 1 - t) * 0.5, true);
+    }
+    /* 5) 갈라진 금 — 타점에서 뻗는 흰 균열 */
+    if (t < 0.75) {
+      var ca = Math.pow(1 - t / 0.75, 1.2) * 0.85;
+      g.save();
+      g.globalAlpha = ca;
+      g.strokeStyle = 'rgba(240,252,255,0.9)';
+      g.lineWidth = Math.max(1, 1.8 * unit);
+      for (i = 0; i < 7; i++) {
+        var ang0 = i / 7 * TAU + 0.2;
+        var len = rx * (0.5 + 1.5 * e) * (0.7 + seedRand(i * 4) * 0.6);
         g.beginPath();
-        g.arc(0, 0, sz * 0.9, 0, TAU);
-        g.fill();
+        g.moveTo(cx + Math.cos(ang0) * rx * 0.12, cy + Math.sin(ang0) * rx * 0.12);
+        var px2 = cx, py2 = cy;
+        for (var s2 = 1; s2 <= 3; s2++) {
+          var f2 = s2 / 3;
+          px2 = cx + Math.cos(ang0) * len * f2 + (seedRand(i * 7 + s2) - 0.5) * len * 0.16;
+          py2 = cy + Math.sin(ang0) * len * f2 + (seedRand(i * 11 + s2) - 0.5) * len * 0.16;
+          g.lineTo(px2, py2);
+        }
+        g.stroke();
       }
       g.restore();
     }
   }
 
-  /* 불티 — 위로 솟구치며 흩날리는 스파크 (불 전용) */
-  function drawEmbers(g, cx, cy, rx, t, pal, unit) {
-    var i, ang, sp, x, y, sz;
-    for (i = 0; i < 26; i++) {
-      ang = -Math.PI / 2 + (seedRand(i * 5 + 3) - 0.5) * 2.2;
-      sp = 0.5 + seedRand(i * 17 + 9) * 1.1;
-      x = cx + Math.cos(ang) * rx * (0.3 + sp * 1.5) * t + Math.sin(t * 8 + i) * 6 * unit;
-      y = cy + Math.sin(ang) * rx * (0.3 + sp * 1.4) * t - 40 * unit * t * t * sp;
-      sz = Math.max(0.7, (3.6 - t * 2.2) * unit * (0.5 + seedRand(i * 13 + 1)));
-      g.globalAlpha = Math.max(0, (1 - t * 0.9)) * 0.95;
-      g.fillStyle = i % 5 === 0 ? pal.core : (i % 3 === 0 ? pal.hot : pal.mid);
-      g.shadowColor = pal.mid;
-      g.shadowBlur = Math.max(0, 12 * unit * (1 - t) * 0.7);
-      g.beginPath();
-      g.arc(x, y, sz, 0, TAU);
-      g.fill();
+  /* ---------- 번개 — 지그재그 아크 + 전기 잔광 ---------- */
+  function fxThunder(g, cx, cy, rx, t, unit) {
+    if (!tex('flash')) { drawShards(g, cx, cy, rx, t, smashPalette('thunder'), 'thunder', unit); return; }
+    var i, j, seg = 5;
+    if (t < 0.4) {
+      var fr = rx * 2.2 * (0.5 + t * 1.4);
+      blit(g, 'flash', cx, cy, fr, fr, 0, Math.pow(1 - t / 0.4, 1.5) * 0.5, true);
     }
-    g.shadowBlur = 0;
-    g.globalAlpha = 1;
-  }
-
-  /* 서리 안개 — 얼음 전용 냉기 */
-  function drawFrost(g, cx, cy, rx, t, pal, unit) {
-    var i, r, a;
-    for (i = 0; i < 5; i++) {
-      r = rx * (0.5 + i * 0.42 + t * 1.5);
-      a = (1 - t) * (0.22 - i * 0.03);
-      if (a <= 0) continue;
-      var fg = g.createRadialGradient(cx, cy, Math.max(1, r * 0.2), cx, cy, Math.max(2, r));
-      fg.addColorStop(0, pal.mist + (a * 1.6).toFixed(3) + ')');
-      fg.addColorStop(1, pal.mist + '0)');
-      g.fillStyle = fg;
-      g.beginPath();
-      if (g.ellipse) g.ellipse(cx, cy, r, r * 0.72, 0, 0, TAU);
-      else g.arc(cx, cy, r, 0, TAU);
-      g.fill();
-    }
-  }
-
-  /* 스윙 궤적 — 부채꼴 모션 블러 리본 */
-  function drawSwingTrail(g, v, gm, el, pal, kind) {
-    var t = Math.max(0, Math.min(1, el / SWING_MS));
-    if (t >= 1) return;
-    var cxp = project3({ x: 0, y: 0, z: 0 }, v);
-    var R = gm.rx * 1.5 * v.k;
-    var i, a0, a1;
     g.save();
-    for (i = 0; i < 4; i++) {
-      var p = t - i * 0.06;
-      if (p < 0.02) continue;
-      a0 = -0.9 + p * 0.6;
-      a1 = 0.5 + p * 1.1;
-      g.globalAlpha = (1 - t) * (0.20 - i * 0.035);
-      g.strokeStyle = kind === 'fire' ? pal.mid : (kind === 'ice' ? pal.hot : pal.core);
-      g.lineWidth = Math.max(1, (13 - i * 2.4) * v.k * 1.5);
-      g.lineCap = 'round';
+    g.lineCap = 'round';
+    for (i = 0; i < 7; i++) {
+      var a = i / 7 * TAU + seedRand(i * 13 + 3) * 0.8;
+      var len = rx * (1.1 + seedRand(i * 7) * 1.6) * (0.3 + Math.min(1, t * 4) * 0.85);
+      var flick = 0.5 + 0.5 * Math.sin(t * 32 + i * 2.1);
+      var al = Math.pow(1 - t, 1.25) * flick;
+      if (al <= 0.02) continue;
       g.beginPath();
-      g.arc(cxp.x, cxp.y, R * (0.65 + i * 0.08), a0, a1);
+      g.moveTo(cx, cy);
+      var x = cx, y = cy;
+      for (j = 1; j <= seg; j++) {
+        var f = j / seg;
+        var da = a + (seedRand(i * 31 + j * 7) - 0.5) * 0.95;
+        x = cx + Math.cos(a) * len * f + Math.cos(da) * len * 0.17;
+        y = cy + Math.sin(a) * len * f + Math.sin(da) * len * 0.17;
+        g.lineTo(x, y);
+      }
+      g.globalAlpha = al * 0.42;
+      g.strokeStyle = 'rgba(120,190,255,1)';
+      g.lineWidth = Math.max(2, 6 * unit * (1 - t * 0.4));
+      g.stroke();
+      g.globalAlpha = al;
+      g.strokeStyle = 'rgba(255,255,255,0.96)';
+      g.lineWidth = Math.max(1, 1.9 * unit * (1 - t * 0.4));
       g.stroke();
     }
     g.restore();
+    g.globalAlpha = 1;
+    for (i = 0; i < 14; i++) {
+      var sa = i / 14 * TAU + seedRand(i * 5) * 0.5;
+      var sd = rx * (0.2 + 2.0 * easeOut3(Math.min(1, t * 2))) * (0.5 + seedRand(i * 9));
+      var sz2 = Math.max(1.4, (6.5 - t * 4.8) * unit);
+      blit(g, 'ember', cx + Math.cos(sa) * sd, cy + Math.sin(sa) * sd, sz2, sz2, 0, Math.max(0, 1 - t) * 0.55, true);
+    }
   }
 
-  /* 바닥 강타 — 코트 바닥 충격 링 · 금 간 판 · 튀는 파편 */
-  function drawFloor(g, v, gm, el, pal, kind, w, h, unit) {
-    var t = Math.max(0, Math.min(1, (el - SWING_MS * 0.72) / (SMASH_MS - SWING_MS * 0.72)));
-    if (el < SWING_MS * 0.72) return;
+  /* ---------- 바닥 강타 — 충격 링 · 균열 · 파편 · 먼지 ---------- */
+  function drawFloor(g, v, gm, t, pal, kind, w, h, unit, cxp) {
+    if (t <= 0) return;
     var floorY = h * 0.9;
-    var cxp = w * 0.5;
-    var i, a;
-    /* 바닥 선 */
+    cxp = cxp == null ? w * 0.5 : cxp;
+    var i;
+    /* 코트 바닥 선 */
     g.save();
     g.globalAlpha = 0.5 * Math.min(1, t * 3);
-    var lg = g.createLinearGradient(0, floorY, w, floorY);
-    lg.addColorStop(0, 'rgba(198,242,78,0)');
-    lg.addColorStop(0.5, 'rgba(198,242,78,0.55)');
-    lg.addColorStop(1, 'rgba(198,242,78,0)');
+    var lg = grad1(g, 'floor', 0, floorY, w, floorY, [
+      [0, 'rgba(198,242,78,0)'], [0.5, 'rgba(198,242,78,0.6)'], [1, 'rgba(198,242,78,0)']
+    ]);
     g.strokeStyle = lg;
     g.lineWidth = Math.max(1, 2 * unit);
     g.beginPath();
-    g.moveTo(0, floorY);
-    g.lineTo(w, floorY);
+    g.moveTo(0, floorY); g.lineTo(w, floorY);
     g.stroke();
-    /* 충격 링 — 납작한 타원 */
+    /* 충격 링 — 납작한 타원 3장 */
     for (i = 0; i < 3; i++) {
-      var p = t - i * 0.12;
+      var p = t - i * 0.11;
       if (p <= 0) continue;
-      g.globalAlpha = Math.max(0, (1 - p) * (0.9 - i * 0.2));
-      g.strokeStyle = i === 0 ? pal.core : pal.ring;
-      g.lineWidth = Math.max(1, (6 - i * 1.6 - p * 3) * unit * 1.5);
+      var rr = Math.min(1.15, p);
+      g.globalAlpha = Math.max(0, (1 - rr) * (0.95 - i * 0.18));
+      g.strokeStyle = i === 0 ? '#ffffff' : pal.ring;
+      g.lineWidth = Math.max(1, (7 - i * 1.8 - rr * 4) * unit * 1.5);
       g.beginPath();
-      if (g.ellipse) g.ellipse(cxp, floorY, gm.rx * (0.5 + 2.6 * p) * v.k, gm.rx * (0.16 + 0.66 * p) * v.k, 0, 0, TAU);
-      else g.arc(cxp, floorY, gm.rx * (0.5 + 2 * p) * v.k, 0, TAU);
+      if (g.ellipse) g.ellipse(cxp, floorY, gm.rx * (0.4 + 2.7 * rr) * v.k, gm.rx * (0.13 + 0.62 * rr) * v.k, 0, 0, TAU);
+      else g.arc(cxp, floorY, gm.rx * (0.4 + 2 * rr) * v.k, 0, TAU);
       g.stroke();
     }
-    /* 금 간 판 — 바닥에서 뻗는 균열 */
-    g.globalAlpha = Math.min(1, t * 2) * 0.85;
+    /* 균열 — 바닥에서 뻗는 금 + 잔가지 */
+    g.globalAlpha = Math.min(1, t * 2.2) * 0.9;
     g.strokeStyle = kind === 'ice' ? '#bfefff' : (kind === 'fire' ? '#ffc27a' : '#eaffb0');
-    g.lineWidth = Math.max(1, 1.6 * unit);
-    for (i = 0; i < 7; i++) {
-      a = Math.PI + (i + 0.5) / 7 * Math.PI * 0.94;
-      var len = gm.rx * (0.7 + seedRand(i * 9 + 4) * 1.5) * Math.min(1, t * 2.4) * v.k;
-      var x0 = cxp + Math.cos(a) * gm.rx * 0.1 * v.k;
+    g.lineWidth = Math.max(1, 1.7 * unit);
+    for (i = 0; i < 8; i++) {
+      var a = Math.PI + (i + 0.5) / 8 * Math.PI * 0.96;
+      var len = gm.rx * (0.7 + seedRand(i * 9 + 4) * 1.6) * Math.min(1, t * 2.4) * v.k;
+      var x0 = cxp + Math.cos(a) * gm.rx * 0.08 * v.k;
+      var x1 = x0 + Math.cos(a) * len, y1 = floorY + Math.sin(a) * len * 0.3;
       g.beginPath();
       g.moveTo(x0, floorY);
-      var x1 = x0 + Math.cos(a) * len, y1 = floorY + Math.sin(a) * len * 0.3;
-      g.lineTo((x0 + x1) / 2 + (seedRand(i * 3) - 0.5) * 12 * unit, (floorY + y1) / 2);
+      g.lineTo((x0 + x1) / 2 + (seedRand(i * 3) - 0.5) * 14 * unit, (floorY + y1) / 2);
       g.lineTo(x1, y1);
+      var bx2 = (x0 + x1) / 2, by2 = (floorY + y1) / 2;
+      g.lineTo(bx2 + Math.cos(a + 0.7) * len * 0.22, by2 + Math.sin(a + 0.7) * len * 0.16);
       g.stroke();
     }
+    g.restore();
+    /* 먼지 — 링과 함께 피어오르는 회색 연기 */
+    for (i = 0; i < 5; i++) {
+      var dt2 = clamp01((t - i * 0.05) * 1.5);
+      if (dt2 <= 0) continue;
+      var dxp = cxp + (seedRand(i * 7 + 3) - 0.5) * gm.rx * 2.4 * v.k;
+      blit(g, 'dust', dxp, floorY - 10 * unit - 26 * unit * dt2, gm.rx * (1.1 + 1.4 * dt2) * v.k,
+        gm.rx * (0.55 + 0.7 * dt2) * v.k, 0, (1 - dt2) * 0.75, false);
+    }
     /* 튀는 파편 */
-    g.globalAlpha = 1;
-    for (i = 0; i < 14; i++) {
+    for (i = 0; i < 16; i++) {
       var spp = 0.5 + seedRand(i * 13 + 7);
       var ang = -Math.PI / 2 + (seedRand(i * 5 + 2) - 0.5) * 2.6;
-      var dd = gm.rx * 1.9 * t * spp * v.k;
-      var yy = floorY + Math.sin(ang) * dd * 0.6 - 60 * unit * t * t;
+      var dd = gm.rx * 1.9 * Math.min(1, t * 1.4) * spp * v.k;
+      var yy = floorY + Math.sin(ang) * dd * 0.62 - 66 * unit * t * t;
       var xx = cxp + Math.cos(ang) * dd;
-      var sz = Math.max(1, (4.6 - t * 3) * unit);
+      var sz = Math.max(1, (5 - t * 3.6) * unit);
       g.globalAlpha = Math.max(0, 1 - t * 0.9);
       g.fillStyle = i % 3 === 0 ? pal.core : (i % 2 ? pal.mid : '#d9e7de');
       g.beginPath();
       g.arc(xx, yy, sz, 0, TAU);
       g.fill();
     }
-    g.restore();
+    g.globalAlpha = 1;
   }
 
-  /* 헤드가 부서진 조각 — 바닥 강타 순간에만 (draw3d 가 헤드를 숨긴 자리에) */
-  function drawHeadShards(g, v, gm, el, pal, kind, unit) {
-    var t = Math.max(0, Math.min(1, (el - SWING_MS * 0.72) / 420));
+  /* 헤드가 부서진 조각 — 강타 순간에만 (draw3d 가 헤드를 숨긴 자리에) */
+  function drawHeadShards(g, v, gm, t, pal, kind, unit) {
     if (t <= 0 || t >= 1) return;
     var cxp = project3({ x: 0, y: 0, z: 0 }, v);
-    var loop = headLoop(gm, 3), n = loop.length;
+    var loop = headLoop(gm, 2), n = loop.length;
     var pieces = 9, i, j;
     for (i = 0; i < pieces; i++) {
       var i0 = Math.floor(i / pieces * n), i1 = Math.floor((i + 1) / pieces * n);
@@ -2229,11 +2894,10 @@
         var p = loop[j % n];
         pts.push(project3({ x: p.x, y: p.y, z: 0 }, v));
       }
-      /* 조각이 밖으로 흩어지며 떨어집니다 */
       var dir = i / pieces * TAU + 0.4;
-      var ox = Math.cos(dir) * 88 * t * t * v.k;
-      var oy = Math.sin(dir) * 34 * t * t * v.k + 110 * t * t * v.k;
-      var rot = (seedRand(i * 3) - 0.5) * 3 * t;
+      var ox = Math.cos(dir) * 92 * t * t * v.k;
+      var oy = Math.sin(dir) * 34 * t * t * v.k + 118 * t * t * v.k;
+      var rot = (seedRand(i * 3) - 0.5) * 3.2 * t;
       g.save();
       g.globalAlpha = Math.max(0, 1 - t * 1.05);
       g.translate(cxp.x + ox, cxp.y + oy);
@@ -2251,169 +2915,182 @@
     }
   }
 
+  /* 스윙 중 라켓 테두리 잔상 — 지나온 자세를 몇 장 겹쳐 모션 블러 */
+  function drawRacketGhosts(g, base, gm, custom, el, kind, w, h) {
+    var cl = smashClock(el);
+    if (cl < WIND_MS + 8) return;
+    var frame = colorOf('frame', normalizeCustom(custom).frame);
+    var loop = headLoop(gm, 2), n = loop.length;
+    var dyK = Math.min(1, w / 390);
+    var k, i;
+    for (k = 3; k >= 1; k--) {
+      var past = swingOf(el - k * 13, kind);
+      var vg = {
+        yaw: base.yaw + past.yaw,
+        pitch: clampN(base.pitch + past.pitch, -1.25, 1.25),
+        k: base.k, cx: base.cx + past.dx * dyK, cy: base.cy + past.dy * dyK, mid: base.mid, phase: base.phase
+      };
+      g.save();
+      g.globalAlpha = 0.2 - k * 0.045;
+      g.strokeStyle = frame;
+      g.lineWidth = Math.max(1, 1.8 * vg.k);
+      g.beginPath();
+      for (i = 0; i < n; i += 2) {
+        var p = project3({ x: loop[i].x, y: loop[i].y, z: 0 }, vg);
+        if (i === 0) g.moveTo(p.x, p.y); else g.lineTo(p.x, p.y);
+      }
+      g.closePath();
+      g.stroke();
+      g.restore();
+    }
+  }
+
   /* 스매시 임팩트 — draw3d 위에 한 장 더 그립니다 (ms = 시작 후 지난 시간)
    *  fx = 연출 id('fire' · 'ice' · 'thunder' · ''), opts.kind = 'air' | 'slam' */
   function drawSmash(g, v, gm, fx, ms, w, h, opts) {
     opts = opts || {};
     var slam = opts.kind === 'slam';
-    var t = Math.max(0, Math.min(1, ms / SMASH_MS));
     var fxId = fxKind(fx);
     var pal = smashPalette(fxId);
     var unit = Math.min(w, h) / 360;
-    var imp = project3({ x: 0, y: 0, z: 0 }, v);
-    if (slam) { imp.y = Math.min(Math.max(imp.y, h * 0.32), h * 0.66); }
-    imp.x = Math.min(Math.max(imp.x, w * 0.26), w * 0.74);
-    var rx = Math.max(20, gm.rx * v.k);
+    var cl = smashClock(ms);
+    var after = Math.max(0, cl - HIT_AT);
+    var boom = clamp01(after / BOOM_MS);
+    var rx = Math.max(20, gm.rx * v.k) * 0.95;
     var i, a, len;
 
-    /* 0) 스윙 궤적 — 때리기 전후 짧게 */
-    drawSwingTrail(g, v, gm, ms, pal, fxId);
+    /* 타점 — 라켓 스위트 스팟(임팩트 자세 기준) */
+    var ip0 = opts.imp || { x: v.cx, y: v.cy };
+    var imp = { x: clampN(ip0.x, w * 0.26, w * 0.74), y: clampN(ip0.y, h * 0.24, h * 0.64) };
+    var accSc = Math.max(0.30, unit * 0.62);       /* 셔틀콕 화면 배율 */
 
-    /* 1) 맞는 순간 — 화면 어둡게 + 섬광 */
-    var hit = Math.min(1, Math.max(0, (ms - SWING_MS * 0.55) / 260));   /* 0~1 */
-    var after = Math.max(0, (ms - SWING_MS * 0.55) / (SMASH_MS - SWING_MS * 0.55));
-    if (hit > 0 && after < 0.34) {
+    /* ① 날아오는 셔틀콕 — 멀리서 포물선 */
+    if (cl < HIT_AT + 1) {
+      var p = clamp01(cl / HIT_AT);        /* 임팩트 순간에 스위트 스팟 도착 */
+      var s0 = shuttlePath(imp, w, h, p, slam);
+      var s1 = shuttlePath(imp, w, h, Math.min(1, p + 0.05), slam);
+      var travel = Math.atan2(s1.y - s0.y, s1.x - s0.x);
+      /* 빠를수록 길게 — 잔상 */
+      var spd = p > 0.4 ? (p - 0.4) / 0.6 : 0;
+      for (var kk = 4; kk >= 1; kk--) {
+        var q = shuttlePath(imp, w, h, Math.max(0, p - kk * 0.035), slam);
+        g.globalAlpha = 0.18 * spd * (1 - kk / 6);
+        g.fillStyle = 'rgba(228,242,255,0.9)';
+        g.beginPath();
+        g.arc(q.x, q.y, Math.max(1, 4 * q.sc * unit), 0, TAU);
+        g.fill();
+      }
+      g.globalAlpha = 1;
+      drawShuttle(g, s0.x, s0.y, s0.sc * accSc * 1.15, travel + Math.sin(p * 7) * 0.05,
+        pal, fxId, clamp01(cl / 80), { dim: 1 - p });
+    }
+
+    /* ② 정타 — 섬광 · 충격 링 · 방사 빛 (맞기 전에는 그리지 않습니다) */
+    if (cl >= HIT_AT) {
+      /* 히트스톱 동안에는 완전히 멈춘 한 장 */
+      var ha = Math.pow(1 - clamp01(after / 190), 1.4);
+      if (ha > 0.01) {
+        g.save();
+        g.globalAlpha = 0.26 * ha;
+        g.fillStyle = '#04080a';
+        g.fillRect(0, 0, w, h);
+        g.restore();
+        var fr = rx * 2.6 * (0.5 + Math.min(1, after / 150) * 1.0);
+        blit(g, 'flash', imp.x, imp.y, fr, fr, after * 0.004, ha * 0.7, true);
+      }
+      /* 충격 링 — 한 장만, 얇고 빠르게(여러 장 겹치면 과녁처럼 보입니다) */
       g.save();
-      var fa = Math.pow(1 - after / 0.34, 1.2);
-      g.globalAlpha = 0.3 * fa;
-      g.fillStyle = '#04080a';
-      g.fillRect(0, 0, w, h);
-      var fg = g.createRadialGradient(imp.x, imp.y, 2, imp.x, imp.y, rx * (0.75 + after * 1.2));
-      fg.addColorStop(0, 'rgba(255,255,255,' + Math.min(1, 0.95 * fa).toFixed(3) + ')');
-      fg.addColorStop(0.3, pal.core);
-      fg.addColorStop(0.62, pal.hot);
-      fg.addColorStop(1, 'rgba(255,255,255,0)');
-      g.globalAlpha = Math.min(1, 0.6 * fa);
-      g.fillStyle = fg;
-      g.beginPath();
-      g.arc(imp.x, imp.y, rx * (0.7 + after * 1.2), 0, TAU);
-      g.fill();
+      var rp0 = clamp01(boom / 0.34);
+      if (rp0 > 0 && rp0 < 1) {
+        g.globalAlpha = Math.pow(1 - rp0, 1.8) * 0.85;
+        g.strokeStyle = '#ffffff';
+        g.lineWidth = Math.max(0.9, (3.4 - rp0 * 3) * unit * 1.3);
+        g.beginPath();
+        g.arc(imp.x, imp.y, rx * (0.5 + 1.6 * rp0), 0, TAU);
+        g.stroke();
+      }
       g.restore();
-    }
-
-    /* 2) 충격 링 3장 */
-    for (i = 0; i < 3; i++) {
-      var d = i * 0.1, p2 = (after - d) / (1 - d);
-      if (p2 <= 0) continue;
-      g.globalAlpha = Math.max(0, (1 - p2) * (1 - i * 0.18));
-      g.strokeStyle = i === 0 ? pal.core : pal.ring;
-      g.lineWidth = Math.max(1, (4.2 - i * 0.9 - p2 * 3) * unit * 1.3);
-      g.beginPath();
-      g.arc(imp.x, imp.y, rx * (0.24 + 1.75 * p2), 0, TAU);
-      g.stroke();
-    }
-    g.globalAlpha = 1;
-
-    /* 3) 강타선 — 빠르게 지나가는 밝은 줄 */
-    if (after < 0.2) {
-      var tr = Math.pow(1 - after / 0.2, 1.2);
-      var tl = rx * 1.15;
-      g.globalAlpha = tr;
-      g.strokeStyle = pal.core;
-      g.lineWidth = Math.max(1.4, 6 * unit * tr);
-      g.lineCap = 'round';
-      g.beginPath();
-      g.moveTo(imp.x - tl * 0.9, imp.y + tl * 0.16);
-      g.lineTo(imp.x + tl * 0.9, imp.y - tl * 0.22);
-      g.stroke();
-      g.lineWidth = Math.max(1, 2 * unit * tr);
-      g.beginPath();
-      g.moveTo(imp.x - tl * 0.7, imp.y + tl * 0.05);
-      g.lineTo(imp.x + tl * 0.8, imp.y - tl * 0.35);
-      g.stroke();
+      /* 방사형 빛줄기 */
+      g.save();
+      g.globalAlpha = 1;
+      for (i = 0; i < 14; i++) {
+        a = i / 14 * TAU + 0.2;
+        len = (14 + 30 * seedRand(i * 31 + 7)) * unit * (0.3 + Math.min(1, boom * 3.4) * 1.4) * (1 - boom * 0.35);
+        g.globalAlpha = Math.max(0, (0.8 - i * 0.03) * Math.pow(1 - boom, 1.2));
+        g.strokeStyle = i % 3 === 0 ? pal.core : pal.mid;
+        g.lineWidth = Math.max(1, 2.4 * unit * (1 - boom * 0.5));
+        g.lineCap = 'round';
+        g.beginPath();
+        g.moveTo(imp.x + Math.cos(a) * len * 0.32, imp.y + Math.sin(a) * len * 0.32);
+        g.lineTo(imp.x + Math.cos(a) * len, imp.y + Math.sin(a) * len);
+        g.stroke();
+      }
+      g.restore();
       g.globalAlpha = 1;
     }
 
-    /* 4) 방사형 빛줄기 */
-    for (i = 0; i < 16; i++) {
-      a = i / 16 * TAU + 0.2;
-      len = (12 + 26 * seedRand(i * 31 + 7)) * unit * (0.3 + Math.min(1, after * 3.2) * 1.35) * (1 - after * 0.4);
-      g.globalAlpha = Math.max(0, (0.8 - i * 0.028) * Math.pow(1 - after, 1.1));
-      g.strokeStyle = i % 3 === 0 ? pal.core : pal.mid;
-      g.lineWidth = Math.max(1, 2.4 * unit * (1 - after * 0.5));
-      g.lineCap = 'round';
-      g.beginPath();
-      g.moveTo(imp.x + Math.cos(a) * len * 0.3, imp.y + Math.sin(a) * len * 0.3);
-      g.lineTo(imp.x + Math.cos(a) * len, imp.y + Math.sin(a) * len);
-      g.stroke();
-    }
-    g.globalAlpha = 1;
-
-    /* 5) 종류별 파편 — 얼음 결정 / 불티 / 스파크 */
-    if (fxId === 'fire') {
-      drawEmbers(g, imp.x, imp.y, rx, after, pal, unit);
-      /* 불꽃 다층 글로우 */
-      for (i = 0; i < 3; i++) {
-        var r = rx * (0.45 + i * 0.3) * (0.7 + Math.min(1, after * 2.2));
-        var ag = Math.pow(1 - Math.min(1, after * 1.7), 1.6) * (0.24 - i * 0.06);
-        if (ag <= 0) continue;
-        var pg = g.createRadialGradient(imp.x, imp.y - rx * 0.08, 1, imp.x, imp.y - rx * 0.08, Math.max(2, r));
-        pg.addColorStop(0, 'rgba(255,240,190,' + (ag * 1.7).toFixed(3) + ')');
-        pg.addColorStop(0.5, 'rgba(255,150,60,' + ag.toFixed(3) + ')');
-        pg.addColorStop(1, 'rgba(255,80,20,0)');
-        g.fillStyle = pg;
-        g.beginPath();
-        g.arc(imp.x, imp.y - rx * 0.08, Math.max(2, r), 0, TAU);
-        g.fill();
+    /* ③ 효과 폭발 — 불·얼음·번개(가산 합성 스프라이트) */
+    if (after > 0 && boom < 1) {
+      if (fxId === 'fire') fxFire(g, imp.x, imp.y, rx, boom, unit);
+      else if (fxId === 'ice') fxIce(g, imp.x, imp.y, rx, boom, unit);
+      else if (fxId === 'thunder') fxThunder(g, imp.x, imp.y, rx, boom, unit);
+      else {
+        /* 기본(효과 없음)도 민짜는 아니게 — 옅은 백열 링만 */
+        for (i = 0; i < 2; i++) {
+          var bp = clamp01((boom - i * 0.08) / 0.7);
+          if (bp <= 0 || bp >= 1) continue;
+          blit(g, 'ember', imp.x + (i ? 8 : -6) * unit, imp.y, 10 * unit, 10 * unit, 0, (1 - bp) * 0.4, true);
+        }
+        for (i = 0; i < 10; i++) {
+          a = i / 10 * TAU + 0.3;
+          var dd2 = rx * (0.3 + 1.7 * easeOut3(Math.min(1, boom * 2))) * (0.6 + seedRand(i * 5));
+          blit(g, 'ember', imp.x + Math.cos(a) * dd2, imp.y + Math.sin(a) * dd2, 5 * unit, 5 * unit, 0, (1 - boom) * 0.5, true);
+        }
       }
-    } else if (fxId === 'ice') {
-      drawShards(g, imp.x, imp.y, rx, after, pal, 'ice', unit);
-      drawFrost(g, imp.x, imp.y, rx, after, pal, unit);
-    } else {
-      drawShards(g, imp.x, imp.y, rx, after, pal, fxId, unit);
     }
 
-    /* 6) 바닥 강타 — 충격 링·금·파편은 바닥에 */
+    /* ④ 바닥 강타 — 바닥 충격·균열·파편, 헤드 파손 */
     if (slam) {
-      drawFloor(g, v, gm, ms, pal, fxId, w, h, unit);
-      drawHeadShards(g, v, gm, ms, pal, fxId, unit);
+      var floorT = clamp01((cl - HIT_AT) / (BOOM_MS * 0.9));
+      drawFloor(g, v, gm, floorT, pal, fxId, w, h, unit, clampN(ip0.x, w * 0.3, w * 0.7));
+      drawHeadShards(g, v, gm, clamp01((cl - HIT_AT) / SHATTER_MS), pal, fxId, unit);
+      /* 다시 맞춰지는 순간의 반짝임 */
+      var re = clamp01((cl - (HIT_AT + SHATTER_MS)) / 220);
+      if (re > 0 && re < 1) blit(g, 'flash', ip0.x, ip0.y - 40 * unit, rx * 2.2 * (0.6 + re * 0.8),
+        rx * 2.2 * (0.6 + re * 0.8), 0, (1 - re) * 0.35, true);
     }
 
-    /* 7) 날아가는 셔틀콕 — 손목 궤적을 따라 대각선으로, 꼬리를 끌며 */
-    var flyStart = SWING_MS * 0.55;
-    var fly = Math.max(0, Math.min(1, (ms - flyStart) / (SMASH_MS - flyStart - 140)));
-    if (fly > 0) {
-      var dir = slam ? -0.5 : -0.68;
-      var reach = rx * (slam ? 1.9 : 2.05);
-      var dist = reach * (1 - Math.pow(1 - fly, 2.1));
-      var sx = imp.x + Math.cos(dir) * dist;
-      var sy = imp.y + Math.sin(dir) * dist - (slam ? 8 : 18) * unit * fly;
-      /* 화면 밖으로 완전히 나가지 않게 */
-      sx = Math.max(w * 0.12, Math.min(w * 0.9, sx));
-      sy = Math.max(h * 0.12, Math.min(h * 0.8, sy));
-      var sc = (1 - fly * 0.32) * Math.max(0.62, unit * 1.5);
-      /* 꼬리 — 색이 있는 잔상(불꽃 꼬리·냉기 꼬리) */
-      for (i = 8; i >= 1; i--) {
-        var back = i * 0.035;
-        var fb = Math.max(0, fly - back);
-        var dd = reach * (1 - Math.pow(1 - fb, 2.1));
-        var dx = Math.max(w * 0.12, Math.min(w * 0.9, imp.x + Math.cos(dir) * dd));
-        var dy2 = Math.max(h * 0.12, Math.min(h * 0.8, imp.y + Math.sin(dir) * dd - (slam ? 8 : 18) * unit * fb));
-        g.globalAlpha = Math.max(0, (1 - fly) * 0.42 * (1 - i / 10));
-        g.fillStyle = pal.tail + '0.9)';
+    /* ⑤ 발사된 셔틀콕 — 회전하며 화면 앞으로 */
+    if (after > 0) {
+      var lp = launchPath(imp, w, h, boom, slam);
+      var sp = Math.max(0.2, lp.sc * accSc * 1.2);
+      /* 꼬리 — 같은 색 잔상 */
+      for (i = 6; i >= 1; i--) {
+        var q2 = launchPath(imp, w, h, clamp01(boom - i * 0.045), slam);
+        g.globalAlpha = Math.max(0, (1 - boom) * 0.3 * (1 - i / 8));
+        g.fillStyle = pal.tail + '0.85)';
         g.beginPath();
-        g.arc(dx, dy2, Math.max(1, (9 - i) * sc * 0.9), 0, TAU);
+        g.arc(q2.x, q2.y, Math.max(1, (7 - i) * q2.sc * accSc * 0.55), 0, TAU);
         g.fill();
       }
       g.globalAlpha = 1;
-      /* 코르크가 앞장서고 깃이 뒤로 끌립니다(살짝 흔들리며) */
-      drawShuttle(g, sx, sy, sc, dir + Math.sin(fly * 9) * 0.18, pal, fxId, Math.max(0, 1 - Math.pow(fly, 2.6)));
+      drawShuttle(g, lp.x, lp.y, sp, lp.rot, pal, fxId, Math.max(0, 1 - Math.pow(boom, 2.8)));
     }
 
-    /* 8) 효과 이름 — 맞는 순간 톡 (바닥 강타는 '바닥 강타') */
-    if (after < 0.8) {
-      var na = Math.max(0, Math.min(1, (0.8 - after) / 0.3));
-      var pop = 0.88 + 0.24 * Math.min(1, after / 0.14);
-      var fs = Math.round(23 * unit * pop);
+    /* ⑥ 효과 이름 — 정타 뒤 톡 (바닥 강타는 '바닥 강타') */
+    if (after > 40 && boom < 0.72) {
+      var na = Math.max(0, Math.min(1, (0.72 - boom) / 0.28));
+      var pop = 0.9 + 0.2 * Math.min(1, (after - 40) / 130);
+      var fs = Math.round(22 * unit * pop);
       var label = slam ? (smashLabel(fxId) + ' · 바닥 강타') : smashLabel(fxId);
       g.globalAlpha = Math.min(1, na * 1.1);
       g.font = '900 ' + fs + 'px system-ui, -apple-system, sans-serif';
       g.textAlign = 'center';
       g.textBaseline = 'middle';
       var labW = (g.measureText ? g.measureText(label).width : fs * label.length) + fs * 0.9;
-      var labelY = Math.max(fs + 10, Math.min(h - fs - 12, imp.y + rx * 1.28));
-      g.globalAlpha = Math.min(1, na * 0.7);
-      g.fillStyle = 'rgba(6,12,9,0.55)';
+      var labelY = clampN(imp.y + rx * 1.55, fs + 12, h - fs - 14);
+      g.globalAlpha = Math.min(1, na * 0.86);
+      g.fillStyle = 'rgba(6,12,9,0.78)';
       if (g.roundRect) {
         g.beginPath();
         g.roundRect(imp.x - labW / 2, labelY - fs * 0.82, labW, fs * 1.64, fs * 0.8);
@@ -2431,6 +3108,48 @@
     g.globalAlpha = 1;
   }
 
+  /* 캔버스 그라데이션 캐시 — 같은 자리·같은 색이면 다시 만들지 않습니다 */
+  var GRAD = {};
+  function gradR(g, key, x, y, r0, r1, stops) {
+    var k2 = key + '|' + Math.round(x) + ',' + Math.round(y) + ',' + Math.round(r0) + ',' + Math.round(r1);
+    var rg = GRAD[k2];
+    if (!rg) {
+      rg = g.createRadialGradient(x, y, Math.max(0.01, r0), x, y, Math.max(r0 + 1, r1));
+      for (var i = 0; i < stops.length; i++) rg.addColorStop(stops[i][0], stops[i][1]);
+      GRAD[k2] = rg;
+    }
+    return rg;
+  }
+  function grad1(g, key, x0, y0, x1, y1, stops) {
+    var k2 = key + '|' + Math.round(x0) + ',' + Math.round(y0) + ',' + Math.round(x1) + ',' + Math.round(y1);
+    var lg = GRAD[k2];
+    if (!lg) {
+      lg = g.createLinearGradient(x0, y0, x1, y1);
+      for (var i = 0; i < stops.length; i++) lg.addColorStop(stops[i][0], stops[i][1]);
+      GRAD[k2] = lg;
+    }
+    return lg;
+  }
+
+  /* 스프라이트 예열 — 한 번에 다 구우면 시트가 잠깐 멈추므로 60ms 간격으로 나눠 굽습니다 */
+  var WARM_LIST = ['ember', 'flash', 'smoke', 'frost', 'flame', 'iceShard', 'iceSpike', 'dust'];
+  var warmBusy = false;
+  function warmTextures() {
+    if (warmBusy || !hasDom || !root.setTimeout) return;
+    warmBusy = true;
+    var i = 0;
+    function step() {
+      if (i < WARM_LIST.length) {
+        tex(WARM_LIST[i++]);
+        root.setTimeout(step, 60);
+        return;
+      }
+      /* 셔틀콕 스프라이트(연출별 색)도 미리 */
+      shuttleTex('none'); shuttleTex('fire'); shuttleTex('ice'); shuttleTex('thunder');
+    }
+    root.setTimeout(step, 500);
+  }
+
   /* 시트 안의 3D 뷰를 붙입니다 — 드래그 회전 · 짧은 탭은 스매시(꾸미기 모드에선 부위 선택) */
   function mount3d(host, ctx) {
     if (!hasDom) return null;
@@ -2439,7 +3158,7 @@
     var g = cv.getContext('2d');
     if (!g) return null;
     var state = ctx.store.state;
-    var dpr = Math.min(2, (root.devicePixelRatio || 1));
+    var dpr = Math.min(1.5, (root.devicePixelRatio || 1));   /* 3D는 저해상도로도 충분 — 필레이트 절약 */
     /* 색을 바꿔 다시 그려도 보던 각도 그대로 (시트를 닫았다 열어도) */
     var v = { yaw: viewMem.yaw, pitch: viewMem.pitch, k: 1, cx: 0, cy: 0, mid: 0, phase: 0 };
     var drag = null, lastMove = 0, lastPaint = 0, raf = 0, alive = true;
@@ -2448,10 +3167,15 @@
     var vel = { yaw: 0, pitch: 0 }, roll = 0, lastDragAt = 0;
     /* 터치 스매시 상태 — smashAt(시작 시각) · smashFx(그때 입은 효과) · smashKind('air'|'slam') */
     var smashAt = 0, smashFx = '', smashOn = false, smashKind = 'air';
+    /* 모션 프리셋 상태 — motionKind('twist'|'showcase'|'flip') · motionAt(시작 시각) */
+    var motionKind = '', motionAt = 0, motionOn = false;
     var holdAt = null;      /* 캡처·검사용: 이 시간(ms)에 연출을 멈춰 둡니다 */
     var api = { view: v, paint: paint, redraw: paint, fit: function () { fit(); paint(); }, body: '',
       smash: smash, slam: slam, mode: function () { return stageMode; }, smashing: function () { return smashOn; },
       kind: function () { return smashKind; },
+      /* 라켓 모션 프리셋 재생 (bm-v1.86.0) */
+      motion: motion, motioning: function () { return motionOn; },
+      motionKind: function () { return motionKind; },
       /* 연출을 원하는 순간에 멈춰 두기(화면 캡처·자동 점검) — 사용자 동작과는 무관합니다 */
       hold: function (ms, kind) {
         holdAt = Math.max(0, Number(ms) || 0);
@@ -2465,10 +3189,36 @@
       return (root.performance && root.performance.now) ? root.performance.now() : Date.now();
     }
 
+    /* 지금 모션 자세 — 끝나면 스스로 멈춥니다 */
+    function motionNow() {
+      if (!motionOn) return null;
+      var dur = MOTION_MS[motionKind] || 2200;
+      if (holdAt != null) return motionPose(motionKind, Math.min(dur - 1, holdAt));
+      var e = nowMs() - motionAt;
+      if (e >= dur) { motionOn = false; return null; }
+      return motionPose(motionKind, e);
+    }
+
+    /* 모션 한 번 — 칩을 누르면 여기로 옵니다 */
+    function motion(kind) {
+      var k2 = String(kind || '');
+      if (MOTIONS.indexOf(k2) < 0) return false;
+      motionKind = k2;
+      motionAt = nowMs();
+      motionOn = true;
+      smashOn = false;
+      vel.yaw = 0; vel.pitch = 0; roll = 0;
+      lastMove = Date.now();
+      if (BM.ui) BM.ui.haptic(12);
+      paint();
+      return true;
+    }
+
     /* 스매시 한 번 — 짧은 탭·⚡ 버튼·미리보기가 모두 이 함수를 씁니다 */
     function smash(fxId, kind) {
       smashFx = (fxId === undefined || fxId === null) ? customOf(ctx.store.state.me).effect : String(fxId);
       smashKind = kind === 'slam' ? 'slam' : 'air';
+      motionOn = false;
       smashAt = nowMs();
       smashOn = true;
       vel.yaw = 0; vel.pitch = 0;
@@ -2499,39 +3249,67 @@
 
     function paint() {
       if (!alive) return;
+      var t0 = nowMs();
       var c = customOf(ctx.store.state.me);
       var gm = geomOf(c);
       var lvl = conditionOf(ctx.store.state).level;
       var el = smashOn ? (holdAt != null ? holdAt : nowMs() - smashAt) : 0;
       if (smashOn && el >= SMASH_MS) { smashOn = false; el = 0; }
+      var cl = smashOn ? smashClock(el) : 0;
       /* 스윙 — 라켓이 실제로 내려치듯 자세가 바뀝니다 */
-      var sw = (smashOn && el > 0) ? swingOf(el, smashKind) : null;
+      var sw = (smashOn && cl > 0) ? swingOf(el, smashKind) : null;
       var vv = v;
       if (sw) {
-        vv = { yaw: v.yaw + sw.yaw, pitch: Math.max(-1.2, Math.min(1.2, v.pitch + sw.pitch)),
+        vv = { yaw: v.yaw + sw.yaw, pitch: clampN(v.pitch + sw.pitch, -1.25, 1.25),
           k: v.k, cx: v.cx, cy: v.cy, mid: v.mid, phase: v.phase };
       }
-      /* 맞는 순간의 화면 흔들림 + 살짝 기울기 */
-      var shake = 0, tilt = roll;
+      /* 정타 순간의 화면 흔들림 + 기울기 — 짧고 묵직하게 */
+      var shake = 0, shakeY = 0, tilt = roll;
       if (smashOn) {
-        var k2 = Math.max(0, 1 - el / SMASH_MS);
-        var hitAt = SWING_MS * 0.55;
-        var boom = el > hitAt ? Math.max(0, 1 - (el - hitAt) / 260) : 0;
-        shake = Math.sin(el / 20) * (smashKind === 'slam' ? 8 : 6) * boom * Math.min(1, w / 360);
-        tilt += Math.sin(el / 26) * 0.035 * boom;
+        var ah = cl - HIT_AT;
+        var boom = ah > 0 ? Math.max(0, 1 - ah / 300) : 0;
+        var amp = (smashKind === 'slam' ? 11 : 8) * Math.min(1, w / 360);
+        shake = Math.sin(ah / 9) * amp * boom;
+        shakeY = Math.cos(ah / 12) * amp * 0.55 * boom;
+        tilt += Math.sin(ah / 14) * 0.04 * boom;
       }
+      /* 모션 프리셋 — 눌러서 감상하는 트릭 회전 */
+      var mo = motionNow();
+      if (mo) {
+        vv = { yaw: vv.yaw + mo.yaw, pitch: clampN(vv.pitch + mo.pitch, -1.3, 1.3),
+          k: vv.k, cx: vv.cx, cy: vv.cy, mid: vv.mid, phase: vv.phase };
+        tilt += mo.roll;
+      }
+      var dyK = Math.min(1, w / 390);
       /* 헤드가 부서지는 구간 — 부서진 조각만 보이게 */
-      var shatterFrom = SWING_MS * 0.72, shatterTo = shatterFrom + 420;
-      var noHead = smashOn && smashKind === 'slam' && el >= shatterFrom && el <= shatterTo;
+      var noHead = smashOn && smashKind === 'slam' && cl >= HIT_AT && cl <= HIT_AT + SHATTER_MS;
+      /* 거트 탄성 — 맞은 뒤 줄이 떨립니다 */
+      var wob = 0;
+      if (smashOn && cl >= HIT_AT && cl < HIT_AT + 260) {
+        var wt = cl - HIT_AT;
+        wob = Math.sin(wt / 7.5) * 5.5 * Math.exp(-wt / 95);
+      }
       g.save();
-      if (shake) g.translate(shake, Math.cos(el / 31) * shake * 0.55);
+      if (shake) g.translate(shake, shakeY);
       if (tilt) { g.translate(v.cx, v.cy); g.rotate(tilt); g.translate(-v.cx, -v.cy); }
-      if (sw && sw.dy) g.translate(0, sw.dy * Math.min(1, w / 390));
-      draw3d(g, vv, c, lvl, w, h, { noHead: noHead });
-      if (smashOn) drawSmash(g, vv, gm, smashFx, el, w, h, { kind: smashKind });
+      if (mo && mo.dy) g.translate(0, mo.dy * dyK);
+      /* 스윙 잔상 — 라켓 뒤에 깔립니다 */
+      if (sw && smashPhase(el) === 1) drawRacketGhosts(g, v, gm, c, el, smashKind, w, h);
+      if (sw && (sw.dx || sw.dy)) g.translate(sw.dx * dyK, sw.dy * dyK);
+      draw3d(g, vv, c, lvl, w, h, { noHead: noHead, wob: wob });
+      if (smashOn) {
+        /* 타점은 '임팩트 자세'의 스위트 스팟에 고정 — 효과가 라켓을 따라 흔들리지 않습니다 */
+        var hp = swingOf(HIT_AT, smashKind);
+        var vHit = { yaw: v.yaw + hp.yaw, pitch: clampN(v.pitch + hp.pitch, -1.25, 1.25),
+          k: v.k, cx: v.cx, cy: v.cy, mid: v.mid, phase: v.phase };
+        var ip = project3({ x: 0, y: -gm.ry * 0.16, z: 0 }, vHit);
+        ip.y += hp.dy * dyK;
+        drawSmash(g, vv, gm, smashFx, el, w, h, { kind: smashKind, imp: ip });
+      }
       g.restore();
       lastPaint = Date.now();
       api.body = c.body;
+      api.paintMs = nowMs() - t0;
       if (BM.racketcustom) BM.racketcustom._last3d = api;
     }
 
@@ -2562,10 +3340,12 @@
       }
       /* 캡처용으로 멈춰 둔 동안에는 다시 그리지 않습니다 */
       if (holdAt != null) { raf = root.requestAnimationFrame(loop); return; }
-      /* 스매시 동안에는 60fps로 부드럽게 — 끝나면 평소 주기로 돌아갑니다 */
+      /* 스매시·모션 동안에는 60fps로 부드럽게 — 끝나면 평소 주기로 돌아갑니다 */
       if (smashOn && nowMs() - smashAt < SMASH_MS) {
         paint();
-      } else if (now - lastPaint > (animate ? 44 : 34)) {
+      } else if (motionOn && nowMs() - motionAt < (MOTION_MS[motionKind] || 2200)) {
+        paint();
+      } else if (now - lastPaint > (animate ? 50 : 42)) {
         if (animate) v.phase = (v.phase || 0) + 0.06;
         paint();
       }
@@ -2574,6 +3354,8 @@
 
     fit();
     paint();
+    /* 스프라이트 미리 굽기 — 첫 스매시 순간에 굽느라 멈추지 않게, 시트를 연 뒤 조용히 하나씩 */
+    warmTextures();
     raf = root.requestAnimationFrame(loop);
 
     cv.addEventListener('pointerdown', function (ev) {
@@ -2786,6 +3568,34 @@
         ' aria-label="' + U.esc(smashLabel(c.effect) + ' 연출 쳐보기') + '">⚡ 스매시</button>' +
       '<button type="button" class="rkstage__go rkstage__go--slam" data-rk-slam="1"' +
         ' aria-label="바닥 강타 연출 · 라켓이 코트를 내려찍고 부서져요">💥 바닥 강타</button>' +
+      '</div>' +
+      motionChipsHtml(state);
+  }
+
+  /* 라켓 모션 칩 — 3D 아래에서 눌러 바로 감상 (bm-v1.86.0)
+   *  · 열린 모션은 바로 재생, 잠긴 모션은 첫 탭 = 미리보기 · 두 번째 탭 = 하트로 열기 */
+  var MOTION_EMOJI = { twist: '🌀', showcase: '✨', flip: '⚡' };
+  function motionChipsHtml(state) {
+    var c = customOf(state && state.me);
+    var admin = isAdminUser(state);
+    var playing = BM.racketcustom && BM.racketcustom._last3d && BM.racketcustom._last3d.motioning &&
+      BM.racketcustom._last3d.motionKind ? BM.racketcustom._last3d.motionKind() : '';
+    return '<div class="rkmotions" role="group" aria-label="라켓 모션">' +
+      MOTIONS.map(function (id) {
+        var it = itemOf('motion', id) || { name: id };
+        var open = isUnlocked(c, 'motion', id) || admin;
+        var ask = !open && pendingBuy === 'motion:' + id;
+        var price = open ? '' : (ask ? '다시 눌러 열기' : '❤ ' + priceOf('motion', id));
+        return '<button type="button" class="rkmotion' + (open ? '' : ' is-lock') + (ask ? ' is-ask' : '') +
+          (playing === id ? ' is-on' : '') + '"' +
+          ' data-rk-motion="' + id + '" data-rk-open="' + (open ? '1' : '0') + '"' +
+          ' aria-pressed="' + (playing === id ? 'true' : 'false') + '"' +
+          ' aria-label="' + U.esc(it.name + (open ? ' 모션 재생' : ' · 하트 ' + priceOf('motion', id) + '개로 열기')) + '">' +
+          '<span class="rkmotion__e" aria-hidden="true">' + (MOTION_EMOJI[id] || '🌀') + '</span>' +
+          '<b>' + U.esc(it.name) + '</b>' +
+          (price ? '<i class="rkmotion__p">' + U.esc(price) + '</i>' : '') +
+          '</button>';
+      }).join('') +
       '</div>';
   }
 
@@ -3011,6 +3821,39 @@
             if (BM.racketcustom && BM.racketcustom._last3d && BM.racketcustom._last3d.smash) {
               BM.racketcustom._last3d.smash();
             }
+            return;
+          }
+          /* ---- 라켓 모션 칩 (bm-v1.86.0) ---- */
+          var moBtn = ev.target.closest('[data-rk-motion]');
+          if (moBtn) {
+            ev.preventDefault();
+            var mid = moBtn.getAttribute('data-rk-motion');
+            var mst = ctx.store.state;
+            var mcur = customOf(mst.me);
+            var mitem = itemOf('motion', mid) || { name: '모션' };
+            var openMo = isUnlocked(mcur, 'motion', mid) || isAdminUser(mst);
+            var api3 = BM.racketcustom._last3d;
+            if (!openMo) {
+              /* 첫 탭 = 미리보기(잠겨 있어도 한 번 보여 줍니다) */
+              if (api3 && api3.motion) api3.motion(mid);
+              BM.racketcustom._lastNeed = priceOf('motion', mid);
+              if (pendingBuy !== 'motion:' + mid) {
+                pendingBuy = 'motion:' + mid;
+                BM.ui.haptic(8);
+                BM.ui.toast(mitem.name + ' 미리보기 · ❤ ' + priceOf('motion', mid) + '개 · 한 번 더 누르면 열려요');
+                return;
+              }
+              /* 두 번째 탭 = 하트로 열기 */
+              pendingBuy = '';
+              Promise.resolve(buyPart(host, ctx, 'motion', mid, mitem.name)).then(function (res) {
+                if (res && res.ok && BM.racketcustom._last3d && BM.racketcustom._last3d.motion) {
+                  BM.racketcustom._last3d.motion(mid);
+                }
+              });
+              return;
+            }
+            if (api3 && api3.motion) api3.motion(mid);
+            BM.ui.haptic(10);
             return;
           }
           if (ev.target.closest('[data-rk-slam]')) {
@@ -3293,6 +4136,12 @@
     itemsOf: itemsOf, itemOf: itemOf, freeId: freeId, colorOf: colorOf, costOf: costOf,
     heartCostOf: heartCostOf, isHeartItem: isHeartItem, smashLabel: smashLabel, smashPalette: smashPalette,
     SMASH_MS: SMASH_MS, drawSmash: drawSmash,
+    WIND_MS: WIND_MS, SWING_MS: SWING_MS, HIT_AT: HIT_AT, BOOM_MS: BOOM_MS, HITSTOP_MS: HITSTOP_MS,
+    smashClock: smashClock, smashPhase: smashPhase, swingOf: swingOf, shuttlePath: shuttlePath,
+    launchPath: launchPath, motionPose: motionPose, MOTION_MS: MOTION_MS, MOTIONS: MOTIONS,
+    MOTION_EMOJI: MOTION_EMOJI, motionChipsHtml: motionChipsHtml,
+    SHUTTLE_MM: { L: SHUT_L, W: SHUT_W, R: SHUT_R },
+    isPartSlot: isPartSlot, tex: tex, _tex: tex,
     blankCustom: blankCustom, normalizeCustom: normalizeCustom, isUnlocked: isUnlocked,
     hasCustom: hasCustom, customOf: customOf, customFor: customFor, specText: specText,
     priceOf: priceOf, heartNow: heartNow, ownedCount: ownedCount, isAdminUser: isAdminUser,

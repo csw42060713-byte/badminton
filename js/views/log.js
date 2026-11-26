@@ -552,15 +552,101 @@
       '</div></details>';
   }
 
+  /* 시합 당일 준비 (bm-v1.70.0)
+   *   시합 직전 3단계(가볍게 조깅 → 스트레칭으로 관절 풀기 → 코트에서 시합)와
+   *   복식 수비 → 공격 전환(세게 한 번 밀어낸 뒤 코스 틀기·짧게 놓기)을 한 접기에 담습니다. */
+  function matchFold(an) {
+    var m = an && an.match;
+    if (!m || !m.steps || !m.steps.length) return '';
+    var steps = m.steps.map(function (s) {
+      return '<li><b>' + U.esc(s.name) + '</b>' +
+        (s.min > 0 ? ' (' + s.min + '분)' : '') + ' — ' + U.esc(s.how) + '</li>';
+    }).join('');
+    var sw = m.switchBlock;
+    var swSteps = (sw && sw.steps && sw.steps.length)
+      ? '<ul class="bullets">' + sw.steps.map(function (s) {
+        return '<li><b>' + U.esc(s.name) + '</b> — ' + U.esc(s.how) + '</li>';
+      }).join('') + '</ul>'
+      : '';
+    var df = m.defenseBlock;
+    var dfSteps = (df && df.steps && df.steps.length)
+      ? '<ul class="bullets">' + df.steps.map(function (s) {
+        return '<li><b>' + U.esc(s.name) + '</b> — ' + U.esc(s.how) + '</li>';
+      }).join('') + '</ul>'
+      : '';
+    return '<details class="fold fold--ai" data-fold="match">' +
+      '<summary class="fold__sum"><span>' + U.esc(m.title) + ' <small>조깅 → 스트레칭 → 코트</small></span>' +
+      '<i class="fold__val">' + m.steps.length + '단계</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' +
+      '<p class="planbox__v">' + U.esc(m.note) + '</p>' +
+      '<div class="planbox mt8"><p class="planbox__t">시합 직전 워밍업</p>' +
+      '<p class="planbox__v">' + U.esc(m.order) + '</p>' +
+      '<ul class="bullets">' + steps + '</ul></div>' +
+      (sw
+        ? '<div class="planbox mt8"><p class="planbox__t">' + U.esc(sw.title) + '</p>' +
+          '<p class="planbox__v">' + U.esc(sw.note) + '</p>' + swSteps +
+          (sw.partner ? '<p class="planbox__v">' + U.esc(sw.partner) + '</p>' : '') + '</div>'
+        : '') +
+      (df
+        ? '<div class="planbox mt8"><p class="planbox__t">' + U.esc(df.title) + '</p>' +
+          '<p class="planbox__v">' + U.esc(df.note) + '</p>' + dfSteps + '</div>'
+        : '') +
+      '<p class="planbox__src">' + U.esc(m.source) + '</p>' +
+      '</div></details>';
+  }
+
+  /* 심화 · 선수 루틴 묶음 (bm-v1.72.0)
+   * 저장 뒤 접힘 메뉴가 9개씩 이어지면 동호인은 무엇부터 봐야 할지 모릅니다(2026-11-25 06시 점검).
+   * 선수 7대 훈련 균형 · 오프코트 · 실전 감각연습 · 시합 당일 준비는 이 한 접기 안에 묶습니다. */
+  function proFold(an) {
+    var parts = [];
+    var bal = an && an.balance;
+    if (bal && bal.on) parts.push('7대 훈련 균형');
+    var oc = an && an.offcourt;
+    if (oc && oc.days && oc.days.length) parts.push('오프코트');
+    var sn = an && an.sense;
+    if (sn && sn.court && sn.court.blocks && sn.court.blocks.length) parts.push('실전 감각연습');
+    var mt = an && an.match;
+    if (mt && mt.steps && mt.steps.length) parts.push('시합 준비');
+    var inner = balanceFold(an) + offcourtFold(an) + senseFold(an) + matchFold(an);
+    if (!inner) return '';
+    return '<details class="fold fold--ai fold--pro" data-fold="pro">' +
+      '<summary class="fold__sum"><span>심화 · 선수 루틴 더 보기 <small>' + U.esc(parts.join(' · ')) + '</small></span>' +
+      '<i class="fold__val">' + parts.length + '가지</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' + inner + '</div></details>';
+  }
+
   function guardFold(an) {
     var g = an && an.guard;
     if (!g) return '';
-    var blocks = [g.shoulder, g.lower, g.arm].filter(function (b) { return b && b.on; });
+    var blocks = [g.shoulder, g.lower, g.chain, g.arm].filter(function (b) { return b && b.on; });
     if (!blocks.length) return '';
     return '<details class="fold fold--ai" data-fold="guard">' +
       '<summary class="fold__sum"><span>관절 보호 체크 <small>' + U.esc(g.label) + '</small></span>' +
       '<i class="fold__val">' + blocks.length + '부위</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
       '<div class="fold__body">' + blocks.map(guardBlock).join('') + '</div></details>';
+  }
+
+  /* 피로가 쌓인 날의 점프 스매시 전환 (bm-v1.83.0)
+   *   조건에 맞을 때만 나오는 접기 — 점프 높이↓·착지 충격↑을 쉬운 말로,
+   *   바꿔 할 네트 앞·낮은 스텝 드릴을 같이 보여 줍니다. */
+  function jumpFold(an) {
+    var j = an && an.jump;
+    if (!j || !j.on) return '';
+    var drills = (j.drills || []).map(function (d) {
+      return '<li><b>' + U.esc(d.name) + '</b> ' + U.esc(d.sets) + ' — ' + U.esc(d.method) + '</li>';
+    }).join('');
+    var guides = (j.guides || []).map(function (g) {
+      return '<li><b>' + U.esc(g.name) + '</b> — ' + U.esc(g.how) + '</li>';
+    }).join('');
+    return '<details class="fold fold--ai" data-fold="jump">' +
+      '<summary class="fold__sum"><span>' + U.esc(j.title) + ' <small>피로한 후반 전환</small></span>' +
+      '<i class="fold__val">전환</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body"><div class="planbox">' +
+      '<p class="planbox__v">' + U.esc(j.reason) + '</p>' +
+      (drills ? '<p class="planbox__t mt8">오늘은 이렇게 바꿔 보세요</p><ul class="bullets">' + drills + '</ul>' : '') +
+      (guides ? '<p class="planbox__t mt8">후반 전환 요령</p><ul class="bullets">' + guides + '</ul>' : '') +
+      '<p class="planbox__src">' + U.esc(j.sourceShort || j.source) + '</p></div></div></details>';
   }
 
   /* 실전 선수 오프코트 루틴 — 코트 날 · 웨이트 날 순서 + 코어·허리 보강 3종 + 자전거 40분 */
@@ -662,6 +748,9 @@
       (warn ? '<div class="risk risk--' + warn.level + '">' + UI.icon('alert') +
         '<span>' + U.esc(warn.text) + '</span></div>' : '') +
       '<h3 class="sec-title">' + UI.icon('check') + '추천 드릴</h3>' +
+      /* 통증 부위에 부담 큰 드릴을 바꿨으면 왜 바뀌었는지 먼저 한 줄 (bm-v1.72.0) */
+      (an.drills && an.drills.note
+        ? '<p class="hint drill__swap" data-drill-swap>' + UI.icon('alert') + ' ' + U.esc(an.drills.note) + '</p>' : '') +
       easyGuide(an, drills) +
       '<ol class="drills drills--core">' + drills.map(function (d, i) {
         return '<li class="drill drill--core"><div class="drill__no">' + (i + 1) + '</div><div class="drill__body">' +
@@ -671,10 +760,9 @@
       }).join('') + '</ol>' +
       analysisDetails(an, D.partnerStats(((state && state.data && state.data.records) || []), { limit: 3 })) +
       preventFold(an) +
+      jumpFold(an) +
       guardFold(an) +
-      balanceFold(an) +
-      offcourtFold(an) +
-      senseFold(an) +
+      proFold(an) +
       '<details class="fold fold--ai" data-fold="week">' +
       '<summary class="fold__sum"><span>이번 주 루틴 <small>다음 훈련 · 실전</small></span>' +
       '<i class="fold__val">' + an.week.length + '회차</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
@@ -702,16 +790,9 @@
           '</div></details>'
         : '') +
 
-      /* 저장 직후에만 보이는 "커뮤니티에 공유" 스트립 — v1.57 인스타 공유 카드도 바로 */
+      /* 저장 직후에만 보이는 공유 스트립 — bm-v1.80.0: 커스텀 라켓 + 스매시 임팩트 카드로 바로 */
       (state && state.ui && state.ui.lastSavedLog
-        ? '<div class="sharebar" data-region="share">' +
-          '<p class="sharebar__t">오늘 운동을 자랑할까요?</p>' +
-          '<p class="sharebar__s">' + U.esc(sharePreview(state.ui.lastSavedLog)) + '</p>' +
-          '<div class="sharebar__acts">' +
-          '<button type="button" class="btn btn--primary grow" data-act="share-card">' + UI.icon('camera') + '인스타 공유 카드 만들기</button>' +
-          '<button type="button" class="btn btn--ghost" data-act="dismiss-share">나중에</button></div>' +
-          '<div class="sharebar__acts">' +
-          '<button type="button" class="btn btn--ghost grow" data-act="share-log">' + UI.icon('community') + '커뮤니티에 오늘 운동 공유</button></div></div>'
+        ? shareNowHtml(state, state.ui.lastSavedLog)
         : '') +
       '</section>';
   }
@@ -733,6 +814,32 @@
       (sum.count ? sum.count + '경기 ' + sum.wins + '승 ' + sum.losses + '패' : '')].filter(Boolean).join(' · ');
   }
 
+  /* 저장 직후 스트립 (bm-v1.80.0) — 방금 쓴 오늘 운동이 그대로 담긴 스매시 임팩트 공유 카드로 바로.
+   * 화면 아래 떠 있는 바(app.js paintSaveShare)와 같은 내용을, 스크롤해서 내려온 사람에게도 보여 줍니다. */
+  function shareNowHtml(state, rec) {
+    var rc = BM.racketcustom;
+    var cond = (rec && rec.cond != null && D.condBandOf) ? D.condBandOf(rec.cond) : null;
+    var bits = [];
+    if (rec && rec.minutes) bits.push(rec.minutes + '분');
+    if (cond) bits.push(cond.short);
+    if (rec && rec.intensity) bits.push('강도 ' + rec.intensity);
+    var focus = rec && ((rec.weakness || [])[0] || (rec.done || [])[0]);
+    if (focus) bits.push(focus);
+    var gain = rc ? rc.pointsToday(state) : 0;
+    return '<div class="sharebar sharebar--now" data-region="share">' +
+      '<div class="sharebar__top">' +
+        '<span class="sharebar__rk" aria-hidden="true">' + (rc ? rc.miniHtml(rc.customOf(state.me), { level: 'prime' }) : '') + '</span>' +
+        '<div class="sharebar__hd"><p class="sharebar__t">📸 방금 쓴 오늘 운동 그대로 공유하기</p>' +
+        '<p class="sharebar__s">' + U.esc(bits.join(' · ')) + (gain ? ' · +' + gain + 'P' : '') + '</p></div>' +
+        '<button type="button" class="sharebar__x" data-act="dismiss-share" aria-label="이번 공유 카드 닫기">✕</button>' +
+      '</div>' +
+      '<p class="sharebar__hint">내 커스텀 라켓이 터지는 <b>스매시 임팩트</b> 카드로 바로 만들어요</p>' +
+      '<div class="sharebar__acts">' +
+        '<button type="button" class="btn btn--primary grow" data-act="share-card" data-sc-mode="today" data-sc-design="smash">' + UI.icon('camera') + '스매시 임팩트로 공유</button></div>' +
+      '<div class="sharebar__acts">' +
+        '<button type="button" class="btn btn--ghost grow" data-act="share-log">' + UI.icon('community') + '커뮤니티에 오늘 운동 공유</button></div></div>';
+  }
+
   /* ---------- 인스타 공유 입구 (bm-v1.62.0) ----------
    * 첫 화면 히어로 칩(data-share-entry="log-hero")은 **가장 최근 일지**로 카드를 열고,
    * 저장 직후 스트립(v1.57)은 예전처럼 **방금 저장한 일지**로 엽니다.
@@ -740,6 +847,69 @@
   function latestRecord(state) {
     var recs = (state && state.data && state.data.records) || [];
     return recs.length ? recs[0] : null;
+  }
+
+  /* ---------- 지난 운동 그대로 채우기 (bm-v1.79.0) ----------
+   * 같은 루틴을 매일 적는 동호인이 칩을 처음부터 다시 누르지 않게,
+   * 직전 일지의 운동 시간 · 컨디션 · 강도 · 약점 칩만 한 번에 채웁니다.
+   *  · 날짜 · 게임 점수 · 파트너 · 메모는 그대로 둡니다(오늘 것은 사람이 적음).
+   *  · 직전 일지가 없거나 채울 값이 없으면 버튼을 그리지 않습니다.
+   *  · 지난 일지를 고치는 중이면 그 일지가 아니라 그 앞 일지에서 가져옵니다. */
+  function lastFillSource(state) {
+    var recs = (state && state.data && state.data.records) || [];
+    var editId = state && state.ui && state.ui.editLogId;
+    for (var i = 0; i < recs.length; i++) {
+      if (!editId || String(recs[i].id) !== String(editId)) return recs[i];
+    }
+    return null;
+  }
+
+  function fillPatchOf(rec) {
+    var patch = {};
+    if (!rec) return patch;
+    if (rec.minutes != null && rec.minutes !== '') patch.minutes = Math.max(0, Math.round(Number(rec.minutes) || 0));
+    if (rec.cond != null && rec.cond !== '') patch.cond = Number(rec.cond);
+    if (rec.intensity != null && rec.intensity !== '') patch.intensity = Number(rec.intensity);
+    var weak = (rec.weakness || []).map(function (w) { return String(w == null ? '' : w).trim(); })
+      .filter(Boolean).slice(0, 5);
+    if (weak.length) patch.weakness = weak;
+    return patch;
+  }
+
+  function fillSummary(rec) {
+    var bits = [];
+    if (rec.date) bits.push(U.shortDay(rec.date) + ' 일지');
+    if (rec.minutes) bits.push(rec.minutes + '분');
+    if (rec.cond != null && rec.cond !== '') bits.push('컨디션 ' + D.condRangeText(rec.cond));
+    if (rec.intensity != null && rec.intensity !== '') bits.push('강도 ' + rec.intensity);
+    var weak = (rec.weakness || []).filter(Boolean);
+    if (weak.length) bits.push(weak.slice(0, 2).join('·'));
+    return bits.join(' · ');
+  }
+
+  function quickFillSig(state) {
+    var rec = lastFillSource(state);
+    return rec ? String(rec.id || '') + '|' + String(rec.date || '') : '';
+  }
+
+  /* 자리(슬롯)는 늘 있고 내용만 바뀍니다 — 첫 일지를 저장하는 순간 그 자리에서 버튼이 나타나고,
+   * 새 일지를 저장하면 안내하는 '지난 운동'도 그 일지로 바뀍니다(화면을 통째로 다시 그리지 않음). */
+  function quickFillSlot(state) {
+    return '<div data-quickfill-slot data-sig="' + U.esc(quickFillSig(state)) + '">' + quickFillBar(state) + '</div>';
+  }
+
+  function quickFillBar(state) {
+    var rec = lastFillSource(state);
+    if (!rec) return '';
+    var patch = fillPatchOf(rec);
+    if (!Object.keys(patch).length) return '';
+    return '<div class="quickfill" data-quickfill>' +
+      '<button type="button" class="quickfill__btn" data-act="quick-fill"' +
+      ' aria-label="지난 운동 그대로 채우기">' +
+      '<span class="quickfill__ico" aria-hidden="true">⚡</span>' +
+      '<span class="quickfill__t"><b>지난 운동 그대로 채우기</b>' +
+      '<small>' + U.esc(fillSummary(rec)) + '</small></span>' +
+      UI.icon('arrow', 'quickfill__car') + '</button></div>';
   }
 
   function shareRecordOf(state, entry) {
@@ -1266,15 +1436,28 @@
     } catch (e) { return false; }
   }
 
-  function sbCard(st, side) {
-    var who = sbTeam(st, side);
+  function sbCard(st, side, land) {
     var mine = side === 'a';
+    var who = land ? sbShort(st, side) : sbTeam(st, side);
+    /* bm-v1.84.0 — 가로 보기에서는 어느 쪽이 내 점수인지 배지로 한 번 더 알립니다 */
+    var tag = land
+      ? '<span class="sb__tag sb__tag--' + (mine ? 'mine' : 'rvl') + '">' + (mine ? '내 팀' : '상대 팀') + '</span>'
+      : '';
     return '<button type="button" class="sb__btn sb__side sb__card' + (mine ? ' sb__btn--a' : ' sb__btn--b sb__side--b') + '"' +
-      ' data-sb-point="' + side + '" aria-label="' + U.esc(who + ' 1점 올리기') + '">' +
+      ' data-sb-point="' + side + '" aria-label="' + U.esc(who + (mine ? ' · 내 팀' : ' · 상대 팀') + ' 1점 올리기') + '">' +
+      tag +
       '<span class="sb__who">' + U.esc(who) + '</span>' +
       '<b class="sb__num">' + (mine ? st.a : st.b) + '</b>' +
       '<span class="sb__plus">' + UI.icon('plus') + '1점</span>' +
       '</button>';
+  }
+
+  /* 가로 보기 카드 위 이름 — 팀 이름표는 배지가 맡고, 여기엔 상대 이름만 */
+  function sbShort(st, side) {
+    var name = side === 'a' ? (st.type === '단식' ? '' : st.partner) : st.rival;
+    if (name) return name;
+    if (side === 'a') return st.type === '단식' ? '나' : '내 팀';
+    return st.type === '단식' ? '상대' : '상대 팀';
   }
 
   function scoreboardHtml(src, options) {
@@ -1299,7 +1482,7 @@
     var cands = opts.cands || {};
     /* 세로: 상대(위) → 내 팀(아래) / 가로: 내 팀(왼쪽) → 상대(오른쪽). 코트 교대는 그 자리를 바꿉니다 */
     var order = land ? (swap ? ['b', 'a'] : ['a', 'b']) : (swap ? ['a', 'b'] : ['b', 'a']);
-    var cards = sbCard(st, order[0]) + sbCard(st, order[1]);
+    var cards = sbCard(st, order[0], land) + sbCard(st, order[1], land);
     var rotLabel = land ? '세로 보기' : '가로 보기';
     return '<div class="sb sb--full' + (land ? ' is-land' : '') + '" data-sb data-sb-view="' + (land ? 'land' : 'port') + '">' +
       '<header class="sbfull__hdr">' +
@@ -1629,6 +1812,9 @@
       return '' +
         heroBlock(state) +
 
+        /* bm-v1.76.0 — 줄 교체 시기가 됐을 때만 일지 위에 조용한 안내 한 줄 */
+        (BM.gear ? BM.gear.bannerHtml(state) : '') +
+
         routineBlock(state) +
 
         /* 코치 유형이면 피드백 흐름으로 이어지는 짧은 카드 */
@@ -1651,6 +1837,9 @@
             '<span><b>' + U.esc(U.dayLabel(d.date)) + ' 일지를 고치는 중이에요.</b> 저장하면 새 기록이 쌓이지 않고 이 일지만 바뀝니다.</span></div>' +
             '<div class="row mt8"><button type="button" class="linkbtn" data-act="cancel-edit">수정 취소</button></div></div>'
           : '') +
+
+        /* bm-v1.79.0 — 입력 폼 맨 위 '⚡ 지난 운동 그대로 채우기' (직전 일지가 있을 때만) */
+        quickFillSlot(state) +
 
         /* v1.56 — 컨디션은 5단계 구간 카드(세로 5줄)로 고릅니다. 훈련강도는 그대로 슬라이더 */
         '<div class="field field--cond"><div class="field__label"><span>컨디션</span><b data-out="cond"' + (d.cond == null ? ' class="is-unset"' : '') + '>' + (d.cond == null ? '미입력' : D.condRangeText(d.cond)) + '</b></div>' +
@@ -1983,6 +2172,18 @@
           UI.haptic(6);
           return;
         }
+        if (ev.target.closest('[data-act="quick-fill"]')) {
+          ev.preventDefault();
+          var fillRec = lastFillSource(ctx.store.state);
+          var fillPatch = fillPatchOf(fillRec);
+          if (!fillRec) { UI.toast('지난 일지가 아직 없어요'); return; }
+          if (!Object.keys(fillPatch).length) { UI.toast('지난 일지에 채울 값이 없어요'); return; }
+          ctx.actions.setDraft(fillPatch);
+          if (ctx.repaint) ctx.repaint();   /* 폼 칸(컨디션 카드·슬라이더·칩)이 채워진 값으로 바로 바뀍니다 */
+          UI.haptic(12);
+          UI.toast('지난 운동 그대로 채웠어요 · 고치고 저장만 누르면 돼요');
+          return;
+        }
         if (ev.target.closest('[data-act="save-log"]')) {
           ev.preventDefault();
           ctx.saveLog(ev.target.closest('[data-act="save-log"]'));
@@ -1991,6 +2192,13 @@
       });
 
       root.addEventListener('click', function (ev) {
+        /* bm-v1.76.0 — 내 라켓 · 스트링 편집 (위 배너에서 열기) */
+        if (ev.target.closest('[data-act="gear-sheet"]')) {
+          ev.preventDefault();
+          UI.haptic(8);
+          if (BM.gear) BM.gear.openSheet(ctx);
+          return;
+        }
         /* 코치 유형 안내 → 코치 탭 */
         if (ev.target.closest('[data-act="go-coach"]')) {
           ev.preventDefault();
@@ -2106,6 +2314,7 @@
           var scBtn = ev.target.closest('[data-act="share-card"]');
           BM.sharecard.open(ctx, {
             mode: scBtn.getAttribute('data-sc-mode') || 'today',
+            design: scBtn.getAttribute('data-sc-design') || '',
             record: shareRecordOf(ctx.store.state, scBtn.getAttribute('data-share-entry'))
           });
           return;
@@ -2218,6 +2427,12 @@
       var heroEl = root.querySelector('.card--hero');
       if (heroEl && heroEl.getAttribute('data-sig') !== heroSig(state)) {
         heroEl.outerHTML = heroBlock(state);
+      }
+      /* bm-v1.79 — 첫 저장·새 저장으로 '지난 운동'이 바뀌면 그 자리에서 칸만 다시 그립니다 */
+      var qHost = root.querySelector('[data-quickfill-slot]');
+      if (qHost && qHost.getAttribute('data-sig') !== quickFillSig(state)) {
+        qHost.innerHTML = quickFillBar(state);
+        qHost.setAttribute('data-sig', quickFillSig(state));
       }
       /* v1.55 — 메모·영상: 값이 새로 채워지면 접힌 칸을 저절로 펼치고(점수판·영상 자세 비교),
        * 입력 중이 아닌 칸의 글자는 상태에 맞춥니다(입력 중 커서는 건드리지 않음). */
@@ -2380,7 +2595,16 @@
   view.heroBlock = heroBlock;                   /* v1.64: 첫 화면 요약 카드(저장 직후 즉시 갱신) */
   view.heroSig = heroSig;
   view.latestRecord = latestRecord;             /* v1.62: 첫 화면 칩이 여는 최신 일지 */
+  /* v1.79 — '지난 운동 그대로 채우기' (직전 일지의 시간·컨디션·강도·약점) */
+  view.lastFillSource = lastFillSource;
+  view.fillPatchOf = fillPatchOf;
+  view.fillSummary = fillSummary;
+  view.quickFillBar = quickFillBar;
+  view.quickFillSlot = quickFillSlot;
+  view.quickFillSig = quickFillSig;
   view.shareRecordOf = shareRecordOf;           /* v1.62: 입구별로 열 일지 고르기 */
+  view.shareNowHtml = shareNowHtml;             /* v1.80: 저장 직후 공유 스트립 */
+  view.sharePreview = sharePreview;
   view.analysisCard = analysisCard;
   view.challengeBlock = challengeBlock;
   view.challengeHidden = challengeHidden;

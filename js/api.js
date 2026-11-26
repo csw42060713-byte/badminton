@@ -115,8 +115,21 @@
         region: base.region || '',
         club: base.club || '',
         style: D.normalizeStyle((p.theme && p.theme.style) || ''),
-        theme: p.theme || { theme: 'th_night' }
+        theme: themeFor(idx, p)
       };
+    }
+
+    /* 최신 프로필 행의 꾸미기 JSON — 새 행에 gear 칸이 없으면(예전 버전·다른 화면이 만든 행)
+     * 마지막으로 저장된 라켓 기록을 이어받습니다 (bm-v1.84.0, 텐션·라켓 리셋 방지). */
+    function themeFor(idx, p) {
+      var theme = (p && p.theme) ? p.theme : { theme: 'th_night' };
+      if (theme.gear) return theme;
+      var carry = (idx && D.gearCarryFrom) ? D.gearCarryFrom(idx, meKey) : null;
+      if (!carry) return theme;
+      var out = {};
+      Object.keys(theme).forEach(function (k) { out[k] = theme[k]; });
+      out.gear = carry;
+      return out;
     }
 
     function delay(fn) {
@@ -545,7 +558,7 @@
     var identity = opts.me || null;
     var meKey = String(opts.meKey || '');
     var timeout = opts.timeout || 12000;
-    var rt = { ws: null, joined: false, closed: true, ref: 0, beat: null, retry: null, wait: 1000, handler: null, onStatus: null };
+    var rt = { ws: null, open: false, joined: false, closed: true, ref: 0, beat: null, retry: null, wait: 1000, handler: null, onStatus: null, token: '', tokenSeen: '', tokenFailed: false };
 
     function enc(v) { return encodeURIComponent(String(v == null ? '' : v)); }
 
@@ -673,8 +686,20 @@
         region: base0.region || '',
         club: base0.club || '',
         style: D.normalizeStyle((p.theme && p.theme.style) || ''),
-        theme: p.theme || { theme: 'th_night' }
+        theme: themeFor(idx, p)
       };
+    }
+
+    /* Supabase 모드도 같은 규칙 — 최신 프로필 행에 gear 칸이 없으면 마지막 라켓 기록을 이어받습니다 */
+    function themeFor(idx, p) {
+      var theme = (p && p.theme) ? p.theme : { theme: 'th_night' };
+      if (theme.gear) return theme;
+      var carry = (idx && D.gearCarryFrom) ? D.gearCarryFrom(idx, meKey) : null;
+      if (!carry) return theme;
+      var out = {};
+      Object.keys(theme).forEach(function (k) { out[k] = theme[k]; });
+      out.gear = carry;
+      return out;
     }
 
     function ownerFilter() {
@@ -725,26 +750,69 @@
       var wsUrl = base.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:') +
         '/realtime/v1/websocket?apikey=' + enc(activeKey) + '&vsn=1.0.0';
       try { rt.ws = new C(wsUrl); } catch (e) { rtSchedule(); return; }
-      rt.ws.onopen = function () { rt.wait = 1000; rtJoin(); rtBeat(); };
+      rt.ws.onopen = function () { rt.open = true; rt.wait = 1000; rt.tokenFailed = false; rtJoin(); rtBeat(); };
       rt.ws.onmessage = function (ev) { rtReceive(ev && ev.data); };
       rt.ws.onerror = function () { /* onclose 가 뒤따릅니다 */ };
-      rt.ws.onclose = function () { rt.ws = null; rt.joined = false; rtBeatStop(); rtStatus('off'); if (!rt.closed) rtSchedule(); };
+      rt.ws.onclose = function () {
+        rt.ws = null; rt.open = false; rt.joined = false; rt.token = ''; rtBeatStop(); rtStatus('off');
+        if (!rt.closed) rtSchedule();
+      };
+    }
+
+    /* bm-v1.84.0 — Realtime 도 '내 로그인 토큰'으로 붙습니다.
+     *  · 지금까지는 주소에 apikey(공개 키)만 실어 보내 서버가 접속자를 anon 으로 봤습니다.
+     *    그러면 RLS 의 anon SELECT 정책(프로필·소셜·답글·하트·매너)에 없는
+     *    '매칭신청'·'매칭채팅'·'일지' 는 실시간으로 절대 오지 않습니다(상대가 앱을 켜 둬도).
+     *  · 해결: 세션 access_token 을 phx_join payload.access_token 으로 함께 보냅니다.
+     *    (Supabase Realtime 이 이 토큰의 사용자로 RLS 를 확인해 '나에게 온 행'을 보내 줍니다)
+     *  · 로그인 전·체험 모드에서는 토큰이 없으니 예전처럼 공개 키만으로 안전하게 동작합니다.
+     *  · 토큰은 Promise 로 올 수 있어(만료 60초 전 자동 갱신) 값이 도착한 뒤에 join 합니다. */
+    function rtTokenNow(onValue) {
+      var t = tokenNow();
+      if (t && typeof t.then === 'function') {
+        t.then(function (v) { onValue(v && v !== activeKey ? String(v) : ''); },
+          function () { onValue(''); });
+        return;
+      }
+      onValue(t && t !== activeKey ? String(t) : '');
     }
 
     function rtJoin() {
+      rtTokenNow(function (token) { rtJoinWith(token); });
+    }
+
+    function rtJoinWith(token) {
+      if (!rt.open) return;               /* 토큰을 기다리는 사이 연결이 끊겼으면 보내지 않습니다 */
       rt.ref += 1;
+      rt.token = token || '';
+      rt.tokenSeen = rt.token;
+      var payload = {
+        config: {
+          broadcast: { self: true },
+          presence: { self: false },
+          postgres_changes: [{ event: '*', schema: 'public', table: SB.table }]
+        }
+      };
+      if (rt.token) payload.access_token = rt.token;
       rtSend({
         topic: 'realtime:public:' + SB.table,
         event: 'phx_join',
         ref: String(rt.ref),
         join_ref: String(rt.ref),
-        payload: {
-          config: {
-            broadcast: { self: true },
-            presence: { self: false },
-            postgres_changes: [{ event: '*', schema: 'public', table: SB.table }]
-          }
-        }
+        payload: payload
+      });
+    }
+
+    /* 로그인 토큰이 갱신됐으면(만료 전 자동 갱신·재로그인) 채널에도 새 토큰을 알립니다.
+     * Supabase Realtime 은 붙은 채널에 access_token 이벤트로 토큰을 바꿀 수 있습니다. */
+    function rtAuth() {
+      if (!rt.open || !rt.joined) return;
+      rtTokenNow(function (token) {
+        if (!token || token === rt.tokenSeen) return;
+        rt.tokenSeen = token;
+        rt.token = token;
+        rt.ref += 1;
+        rtSend({ topic: 'realtime:public:' + SB.table, event: 'access_token', ref: String(rt.ref), payload: { access_token: token } });
       });
     }
 
@@ -752,6 +820,7 @@
       rtBeatStop();
       if (typeof setInterval !== 'function') return;
       rt.beat = setInterval(function () {
+        rtAuth();
         rt.ref += 1;
         rtSend({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(rt.ref) });
       }, 25000);
@@ -774,10 +843,22 @@
       if (!msg || !msg.event) return;
       var payload = msg.payload || {};
       if (msg.event === 'phx_reply') {
-        if (payload.status === 'ok') { rt.joined = true; rtStatus('live'); }
-        else { rtStatus('off'); rtSchedule(); }
+        if (payload.status === 'ok') { rt.joined = true; rtStatus('live'); rtAuth(); return; }
+        rt.joined = false;
+        /* 토큰을 실어 보낸 join 이 거절되면(만료·무효) 토큰 없이 한 번 더 붙습니다 —
+         * 공개 글 실시간은 예전처럼 살아 있고, 다음 재연결에서 새 토큰으로 다시 시도합니다. */
+        if (rt.token && !rt.tokenFailed) {
+          rt.tokenFailed = true;
+          rtStatus('off');
+          rtJoinWith('');
+          return;
+        }
+        rtStatus('off');
+        rtSchedule();
         return;
       }
+      /* 서버가 토큰을 새로 요구할 때(만료) — 채널을 다시 붙이지 않고 토큰만 갱신 */
+      if (msg.event === 'access_token') { rt.token = String(payload.access_token || rt.token || ''); rt.tokenSeen = rt.token; return; }
       if (msg.event === 'postgres_changes') {
         var data = payload.data || payload;
         if (data && data.record && rt.handler) {
@@ -795,7 +876,11 @@
       rt.retry = null;
       if (rt.ws) { try { rt.ws.close(); } catch (e) {} }
       rt.ws = null;
+      rt.open = false;
       rt.joined = false;
+      rt.token = '';
+      rt.tokenSeen = '';
+      rt.tokenFailed = false;
       rt.handler = null;
       rtStatus('off');
     }
@@ -863,6 +948,20 @@
         });
       },
       resetDemo: function () { return Promise.resolve({ ok: false }); },
+      /* 서버 함수(RPC) — bm-v1.75.0
+       *  하트·광고 보상은 이제 서버(Supabase SECURITY DEFINER 함수)만 적립·차감합니다.
+       *  클라이언트가 app_records 에 '출석하트'·'광고하트'·'꾸미기구매' 행을 직접 넣으면
+       *  RLS 가 42501 로 막습니다(supabase/heart-rpc-v1.75.sql).
+       *  앱은 여기로만 부릅니다: heart_checkin · heart_ad_reward · heart_spend · heart_balance */
+      rpc: function (name, args) {
+        return rest('POST', 'rpc/' + String(name || ''), {
+          body: args || {}, prefer: 'return=representation'
+        }).then(function (data) {
+          var res = Array.isArray(data) ? (data[0] || null) : data;
+          if (typeof res === 'number') return { ok: true, value: res };
+          return res;
+        });
+      },
       /* 계정 삭제(탈퇴)
        *  · 로그인 세션(authenticated)이면 RPC delete_my_account 로
        *    내 기록을 진짜 DELETE 하고 auth.users 계정까지 지웁니다(service_role 키 없이).
@@ -905,9 +1004,10 @@
         if (!WSClass()) return false;
         rt.handler = handler;
         rt.onStatus = onStatus || null;
-        if (!rt.closed && rt.ws) return { close: rtClose };
+        if (!rt.closed && rt.ws) { rtAuth(); return { close: rtClose }; }
         rt.closed = false;
         rt.wait = 1000;
+        rt.tokenFailed = false;
         rtOpen();
         return { close: rtClose };
       },
