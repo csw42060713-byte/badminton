@@ -56,11 +56,27 @@
     if (BM.racketcustom && BM.racketcustom.paintHeader) BM.racketcustom.paintHeader(state);
     var hearts = el('hdrHearts');
     if (hearts) hearts.innerHTML = UI.icon('heart') + '<span>' + (state.data.hearts ? state.data.hearts.balance : 0) + '</span>';
-    var dot = el('syncDot');
-    if (dot) {
-      dot.className = 'syncdot' +
+    /* bm-v1.82.0 — 상단 '내 상태' 배지: 작은 초록 점 하나 대신 글자로
+     *   매칭 ON(초록) / 휴식 중(회색) — 처음 보는 사람도 바로 뜻을 알게.
+     *   같은 알약이 저장 중(.is-busy)·동기화 오류(.is-error)도 계속 알려 줍니다. */
+    var pill = el('matchPill');
+    if (pill) {
+      var pOn = false, pRange = '';
+      if (BM.nearby) {
+        var pScope = (state.me && state.me.key) || 'guest';
+        var pSt = BM.nearby.myStatus(pScope);
+        var pStatus = BM.nearby.statusOf(BM.nearby.meAsPerson(pSt), new Date());
+        pOn = !!pStatus.lit;
+        pRange = pStatus.range && pStatus.range !== pStatus.label ? pStatus.range : (pStatus.label || '');
+      }
+      pill.className = 'matchpill' + (pOn ? ' is-on' : ' is-off') +
         (state.syncState === 'syncing' ? ' is-busy' : state.syncState === 'error' ? ' is-error' : '');
-      dot.title = state.syncState === 'syncing' ? '저장 중' : state.syncState === 'error' ? '동기화 재시도 대기' : '동기화됨';
+      pill.innerHTML = '<i class="matchpill__dot" aria-hidden="true"></i><b>' + (pOn ? '매칭 ON' : '휴식 중') + '</b>';
+      var pWhy = pOn ? '지금 매칭 가능' : '지금은 휴식 중';
+      var pSync = state.syncState === 'syncing' ? ' · 저장 중' : state.syncState === 'error' ? ' · 동기화 재시도 대기' : '';
+      pill.title = pWhy + (pRange ? ' · ' + pRange : '') + pSync + ' · 눌러서 내 상태 바꾸기';
+      pill.setAttribute('aria-label', '내 상태 ' + (pOn ? '매칭 ON' : '휴식 중') +
+        (pRange ? ', ' + pRange : '') + ' · 눌러서 체육관 지도에서 내 상태 바꾸기');
     }
     var nav = el('tabbar');
     if (nav) {
@@ -1056,6 +1072,14 @@
       store.actions.setTab('my');
     });
 
+    /* bm-v1.82.0 — 상단 '매칭 ON / 휴식 중' 배지: 체육관 지도의 내 상태 카드로 */
+    var matchPill = el('matchPill');
+    if (matchPill) matchPill.addEventListener('click', function () {
+      if (!store || gated) return;
+      UI.haptic(6);
+      if (BM.views && BM.views.gyms) BM.views.gyms.open(ctx);
+    });
+
     /* bm-v1.80.0 — 상단 오른쪽 미니 라켓: 꾸미기 시트 */
     var racketBtn = el('hdrRacket');
     if (racketBtn) racketBtn.addEventListener('click', function () {
@@ -1193,7 +1217,10 @@
     registerSW();
   }
 
-  BM.app = { boot: boot, repaint: repaint, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.81.0' };
+  /* bm-v1.82.0 — 내 상태(매칭 ON/휴식 중)를 바꾼 화면이 헤더 배지를 바로 다시 그리게 */
+  function paintChromeNow() { if (store && store.state && !gated) paintChrome(store.state); }
+
+  BM.app = { boot: boot, repaint: repaint, paintChrome: paintChromeNow, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.82.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

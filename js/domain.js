@@ -1938,6 +1938,18 @@
       if (target.indexOf('badge:') === 0) { add('deco-badge', '배지 해금', -price, h, badgeLabel(target.slice(6))); return; }
       if (target === BOOST_ID) { add('deco-boost', '하트 부스트 해금', -price, h, '출석·광고 +1'); return; }
       if (target === 'card:champ') { add('deco-card', '챔피언 프레임 해금', -price, h, '대회 인증 카드'); return; }
+      /* bm-v1.82.0 — 하트로 여는 스페셜 스매시 이펙트(불꽃 스매시·번개 셔틀) */
+      if (target.indexOf('effect:') === 0) {
+        var fxName = '스매시 이펙트';
+        try {
+          if (typeof BM !== 'undefined' && BM.racketcustom) {
+            var fxIt = BM.racketcustom.itemOf('effect', target.slice(7));
+            if (fxIt && fxIt.name) fxName = fxIt.name;
+          }
+        } catch (e) { /* 이름을 못 찾아도 금액은 그대로 셉니다 */ }
+        add('deco-smash', '스매시 이펙트 해금', -price, h, fxName);
+        return;
+      }
       var theme = THEMES.filter(function (t) { return t.id === target; })[0];
       add('theme', '꾸미기 구매', -price, h, theme ? theme.name : target);
     });

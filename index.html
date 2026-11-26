@@ -43,7 +43,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=20261126-3">
+<link rel="stylesheet" href="styles.css?v=20261126-4">
 <!-- 지도(Leaflet) 스타일·코드는 저장소에 함께 넣었습니다 — 오프라인에서도 지도 틀이 뜨고, 외부 CDN에 기대지 않습니다 -->
 <link rel="stylesheet" href="js/vendor/leaflet/leaflet.css">
 <link rel="preconnect" href="https://accounts.google.com">
@@ -83,7 +83,8 @@ setTimeout(function () {
     </div>
   </div>
   <div class="hdr__right">
-    <span id="syncDot" class="syncdot" title="동기화됨"></span>
+    <!-- bm-v1.82.0 — 작은 초록 점 대신 '매칭 ON / 휴식 중' 글자 배지(같은 자리에서 저장 상태도 함께 알림) -->
+    <button id="matchPill" class="matchpill is-on" type="button" aria-label="내 상태 매칭 ON"><i class="matchpill__dot" aria-hidden="true"></i><b>매칭 ON</b></button>
     <button id="hdrChat" class="iconbtn hdr__chat" aria-label="1:1 채팅, 안 읽은 메시지" aria-expanded="false" aria-controls="dm">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 3v-5.6A7.5 7.5 0 0 1 11 4h2.5A7.5 7.5 0 0 1 21 11.5z"/><path d="M9 11h6M9 14h3"/></svg>
       <i id="hdrChatBadge" class="badge hdr__chatbadge" hidden>0</i>

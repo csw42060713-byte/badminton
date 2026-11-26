@@ -82,10 +82,18 @@
     return g;
   }
 
-  /* 내 프로필(state.me · 저장된 프로필 행)에서 gear 를 꺼냅니다 */
+  /* 내 프로필(state.me · 저장된 프로필 행)에서 gear 를 꺼냅니다
+   *  · 저장 자리(진실)는 theme.gear — 화면용 me.gear 는 그 사본입니다.
+   *    bm-v1.82.0 — 사본(me.gear)이 빈 값으로 남아 있어도 theme.gear 에 기록이 있으면
+   *    그쪽을 읽어, 창을 다시 열 때 초기화된 것처럼 보이지 않게 했습니다. */
   function gearOf(me) {
     if (!me) return blank();
-    var raw = me.gear || (me.theme && me.theme.gear) || null;
+    var saved = (me.theme && me.theme.gear) || null;
+    var mirror = me.gear || null;
+    var raw = null;
+    if (saved && hasGear(saved)) raw = saved;
+    else if (mirror && hasGear(mirror)) raw = mirror;
+    else raw = saved || mirror;
     return raw ? normalizeGear(raw) : blank();
   }
 
@@ -266,10 +274,14 @@
 
   function openSheet(ctx) {
     if (!hasDom || !BM.ui) return null;
-    var me = (ctx && ctx.store && ctx.store.state && ctx.store.state.me) || {};
+    /* bm-v1.82.0 — 창을 열 때 적은 값(me)을 오래 들고 있지 않고, 그때그때 지금 상태에서 읽습니다.
+     * (다른 곳에서 저장한 라켓·커스텀 색이 이 창의 예전 값에 덮여 사라지는 일 방지) */
+    function meNow() {
+      return (ctx && ctx.store && ctx.store.state && ctx.store.state.me) || {};
+    }
     var wrap = BM.ui.openSheet({
       title: '🏸 내 라켓 · 스트링',
-      body: sheetBody(me),
+      body: sheetBody(meNow()),
       onMount: function (host) {
         var form = host.querySelector('[data-gear-form]');
         if (!form) return;
@@ -308,7 +320,7 @@
             ev.preventDefault();
             var g = readForm(form);
             /* bm-v1.80.0 — 라켓 기록을 고쳐도 커스텀 색(theme.gear.custom)은 그대로 */
-            var prev = gearOf(me);
+            var prev = gearOf(meNow());
             g.custom = prev.custom || g.custom;
             var res = ctx.actions.setGear ? ctx.actions.setGear(g) : { ok: false };
             if (!res || !res.ok) {

@@ -421,13 +421,13 @@
   test('v1.34 버전: sw.js·app.js·index.html·twa-manifest가 모두 v1.34', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.81.0'", 'sw.js');
-    includes(app, "version: 'v1.81.0'", 'app.js');
-    includes(index, 'styles.css?v=20261126-3', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.81.0', 'twa appVersionName');
-    eq(twa.appVersion, '1.81.0', 'twa appVersion');
-    eq(twa.appVersionCode, 75, 'twa appVersionCode');
-    includes(app, "version: 'v1.81.0'", '화면 아래 버전');
+    includes(sw, "var VERSION = 'bm-v1.82.0'", 'sw.js');
+    includes(app, "version: 'v1.82.0'", 'app.js');
+    includes(index, 'styles.css?v=20261126-4', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.82.0', 'twa appVersionName');
+    eq(twa.appVersion, '1.82.0', 'twa appVersion');
+    eq(twa.appVersionCode, 76, 'twa appVersionCode');
+    includes(app, "version: 'v1.82.0'", '화면 아래 버전');
   });
 
   test('v1.34 캐시: 새 파일 없이 기존 목록 그대로 (도메인·화면 코드만 갱신)', function () {
