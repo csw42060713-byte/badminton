@@ -149,11 +149,15 @@
     if (grade) me.level = grade;
     /* v1.40 — 저장된 유형(꾸미기 JSON의 role)을 화면이 바로 쓰게 me.role로도 꺼내 둡니다 */
     me.role = D.roleOf(me);
-    /* bm-v1.76.0 — 내 라켓·스트링 기록(꾸미기 JSON의 gear)도 화면이 바로 쓰게 꺼내 둡니다 */
+    /* bm-v1.76.0 — 내 라켓·스트링 기록(꾸미기 JSON의 gear)도 화면이 바로 쓰게 꺼내 둡니다.
+     * bm-v1.84.0 — 여러 자루 목록(gears)도 함께 꺼내 둡니다. */
     me.gear = BM.gear ? BM.gear.gearOf(me) : ((me.theme && me.theme.gear) || null);
     /* bm-v1.82.0 — 기록이 theme.gear 에만 있으면 me.gear 로도 채워 두고, 반대도 맞춰 둡니다.
      * (예전에는 서버에서 새로 받은 프로필이 theme.gear 없이 오면 화면만 비어 보였습니다) */
     if (me.gear && me.theme && !me.theme.gear) me.theme.gear = me.gear;
+    /* bm-v1.84.0 — 여러 자루 목록은 theme.gears 가 진실, 화면용으로 me.gears 에 사본을 둡니다. */
+    if (BM.gear && BM.gear.listOf) me.gears = BM.gear.listOf(me);
+    else me.gears = (me.theme && me.theme.gears) || (me.gear ? [me.gear] : []);
     return me;
   }
 
@@ -175,6 +179,9 @@
     if (!t.role) delete t.role;
     var gear = BM.gear ? BM.gear.gearOf(me) : ((me.theme && me.theme.gear) || null);
     if (gear && (!BM.gear || BM.gear.hasGear(gear))) t.gear = gear;
+    /* bm-v1.84.0 — 여러 자루 목록(theme.gears)도 테마를 바꾸면 빠지지 않게 그대로 이어 갑니다. */
+    var gears = BM.gear && BM.gear.listOf ? BM.gear.listOf(me) : ((me.theme && me.theme.gears) || null);
+    if (gears && gears.length) { t.gears = gears; t.gear = gears[0]; }
     if (me.theme && me.theme.boost) t.boost = 1;
     return t;
   }
@@ -792,9 +799,11 @@
 
       /* ---------- bm-v1.76.0: 내 라켓 · 스트링 장력 메모 ----------
        * 새 시트 칸·새 DB 컬럼 없이 프로필 꾸미기 JSON(theme.gear) 한 칸에만 적습니다.
-       * 넘기지 않은 값은 지금 것을 유지하고, 다 지우면 theme.gear 를 없앱니다. */
+       * 넘기지 않은 값은 지금 것을 유지하고, 다 지우면 theme.gear 를 없앱니다.
+       * bm-v1.84.0 — 여러 자루는 theme.gears 배열에 함께 적고, 첫 자루는 theme.gear 에도 남깁니다. */
       setGear: function (patch) {
-        var cur = BM.gear ? BM.gear.gearOf(state.me) : ((state.me && state.me.theme && state.me.theme.gear) || {});
+        var list = BM.gear ? BM.gear.listOf(state.me) : [];
+        var cur = list[0] || (BM.gear ? BM.gear.blank() : ((state.me && state.me.theme && state.me.theme.gear) || {}));
         var next = BM.gear ? BM.gear.normalizeGear({
           racket: patch && patch.racket != null ? patch.racket : cur.racket,
           string: patch && patch.string != null ? patch.string : cur.string,
@@ -805,11 +814,24 @@
           /* bm-v1.80.0 — 커스텀 라켓 색(같은 theme.gear.custom 칸) */
           custom: patch && patch.custom != null ? patch.custom : cur.custom
         }) : cur;
-        var res = actions.saveProfile({ gear: next });
+        var full = (BM.gear && BM.gear.hasGear(next)) ? [next].concat(list.slice(1)) : list.slice(1);
+        var res = actions.saveProfile({ gears: full });
         if (!res || !res.ok) return { ok: false, reason: (res && res.reason) || 'locked' };
-        state.me.gear = next;
+        state.me.gears = full;
+        state.me.gear = full[0] || (BM.gear ? BM.gear.blank() : null);
         emit();
-        return { ok: true, gear: next };
+        return { ok: true, gear: next, gears: full };
+      },
+
+      /* 여러 자루 한 번에 저장 (bm-v1.84.0) — 메인·서브 라켓 목록 */
+      setGears: function (list) {
+        var full = BM.gear ? BM.gear.normalizeGearList(list) : (list || []);
+        var res = actions.saveProfile({ gears: full });
+        if (!res || !res.ok) return { ok: false, reason: (res && res.reason) || 'locked' };
+        state.me.gears = full;
+        state.me.gear = full[0] || (BM.gear ? BM.gear.blank() : null);
+        emit();
+        return { ok: true, gears: full, gear: full[0] || null };
       },
 
       /* ---------- v1.40: 사용자 유형 (초보 · 동호인 · 선수 · 코치) ----------
@@ -1197,6 +1219,8 @@
         });
         state.me.theme = theme;
         if (theme.gear) state.me.gear = theme.gear;
+        state.me.gears = (theme.gears && theme.gears.length) ? theme.gears
+          : (theme.gear ? [theme.gear] : []);
         commit();
         return { ok: true, equipped: !!on, bonus: on ? D.BOOST_BONUS : 0, owned: owned };
       },
@@ -1509,11 +1533,24 @@
           role: merged.role
         };
         if (!theme.role) delete theme.role;
-        /* bm-v1.76.0 — 내 라켓·스트링 기록은 꾸미기 JSON 안 gear 한 칸에만(넘기지 않으면 그대로) */
+        /* bm-v1.76.0 — 내 라켓·스트링 기록은 꾸미기 JSON 안 gear 한 칸에만(넘기지 않으면 그대로)
+         * bm-v1.84.0 — 여러 자루는 theme.gears 배열, 첫 자루는 예전 그대로 theme.gear 에도. */
+        var gearsNext = patch.gears != null
+          ? (BM.gear ? BM.gear.normalizeGearList(patch.gears) : patch.gears)
+          : null;
         var gearNext = patch.gear != null
           ? (BM.gear ? BM.gear.normalizeGear(patch.gear) : patch.gear)
           : ((me.theme && me.theme.gear) || null);
-        if (gearNext && (!BM.gear || BM.gear.hasGear(gearNext))) theme.gear = gearNext;
+        if (gearsNext) {
+          if (gearsNext.length) {
+            theme.gears = gearsNext;
+            theme.gear = gearsNext[0];
+          }
+        } else if (gearNext && (!BM.gear || BM.gear.hasGear(gearNext))) {
+          theme.gear = gearNext;
+          var rest = ((me.theme && me.theme.gears) || []).slice(1);
+          theme.gears = [gearNext].concat(rest);
+        }
         /* 꾸미기를 저장해도 켜 둔 하트 부스트(boost)는 그대로 남습니다 (bm-v1.64.0) */
         if (me.theme && me.theme.boost) theme.boost = 1;
         var entity = {
@@ -1527,7 +1564,8 @@
           bio: merged.bio, region: merged.region, club: merged.club, gender: merged.gender,
           style: merged.style, role: merged.role,
           availability: merged.availability, experience: merged.experience, theme: theme,
-          gear: theme.gear || (BM.gear ? BM.gear.blank() : null)
+          gear: theme.gear || (BM.gear ? BM.gear.blank() : null),
+          gears: theme.gears || (theme.gear ? [theme.gear] : [])
         };
         commit();
         return { ok: true };
@@ -2144,6 +2182,8 @@
         });
         state.me.theme = theme;
         if (theme.gear) state.me.gear = theme.gear;
+        state.me.gears = (theme.gears && theme.gears.length) ? theme.gears
+          : (theme.gear ? [theme.gear] : []);
         commit();
         return { ok: true, purchased: purchased, price: purchased ? price : 0, balance: state.data.hearts.balance };
       },

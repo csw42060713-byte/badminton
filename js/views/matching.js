@@ -270,15 +270,57 @@
       (state.me && state.me.nick) || '', (state.me && state.me.theme && state.me.theme.avatar) || ''].join('|');
   }
 
-  /* 조건을 고르기 전에 보여 주는 첫 화면 — 목록 대신 짧은 안내 카드
-   *  v1.35: 바로 위 필터 칩과 같은 말을 되풀이하던 설명 한 줄을 뺐습니다
-   *  (제목이 '전체'를 누르라고, 칩이 무엇을 고르는지 이미 말합니다). */
-  function introHtml() {
-    return '<div class="matchintro">' +
-      '<span class="matchintro__art">' + (BM.art ? BM.art.empty('search') : UI.icon('search')) + '</span>' +
-      '<p class="matchintro__t">원하는 급수·조건이나 <b>전체</b>를 눌러 선수를 찾아보세요</p>' +
-      '<button type="button" class="btn btn--primary btn--sm matchintro__btn" data-act="show-all">' +
-      UI.icon('check') + '전체 선수 보기</button></div>';
+  /* bm-v1.84.0 — 조건을 고르기 전 첫 화면에도 선수를 바로 보여 줍니다.
+   *  · 예전에는 '전체를 누르세요' 안내 카드만 있어 빈 화면처럼 보였습니다.
+   *  · 내 동네(지역) → 비슷한 급수 → 궁합 점수 순으로 6명을 먼저 추립니다. */
+  function recommendPlayers(state, max) {
+    var mp = myProfile(state);
+    var me = (state && state.me) || {};
+    var f = filterOf(state);
+    var reg = f.region || mp.region || me.region || '';
+    var lvl = D.normalizeGrade(f.level || mp.level || me.level || '');
+    var list = sortedPlayers(state).map(function (x) {
+      var near = 0;
+      if (reg && x.p.region && x.p.region === reg) near += 2;
+      if (lvl && D.normalizeGrade(x.p.level) === lvl) near += 1;
+      return { p: x.p, near: near, s: x.s };
+    });
+    list.sort(function (a, b) {
+      if (a.near !== b.near) return b.near - a.near;
+      return b.s - a.s;
+    });
+    return list.slice(0, Math.max(1, max || 6)).map(function (x) { return x.p; });
+  }
+
+  function recommendBar(state, n) {
+    return '<div class="resultbar resultbar--rec">' +
+      '<p><span class="resultbar__rec">추천</span> <b>' + n + '</b>명 찾음</p>' +
+      '<div class="sortseg" role="group" aria-label="정렬 기준">' +
+      '<button type="button" class="sortseg__b' + (sortOf(state) === 'score' ? ' is-on' : '') + '" data-sort="score">궁합순</button>' +
+      '<button type="button" class="sortseg__b' + (sortOf(state) === 'recent' ? ' is-on' : '') + '" data-sort="recent">최근순</button>' +
+      '</div></div>';
+  }
+
+  /* 조건을 고르기 전 첫 화면 — 추천 선수 목록 (없을 때만 안내) */
+  function defaultHtml(state) {
+    var list = recommendPlayers(state, 6);
+    if (!list.length) {
+      var nobody = !(state.data.matchProfiles || []).some(function (p) { return p.userKey !== meKey(state); });
+      var hidden = D.inactiveHiddenCount(matchedPlayers(state), state.data.idx, meKey(state));
+      return (nobody
+        ? UI.emptyState('search', '아직 등록된 선수가 없어요',
+          '첫 번째 선수가 되어 보세요. 내 카드를 만들면 여기에 상대가 나타나요.',
+          '<button type="button" class="btn btn--primary btn--sm mt8" data-act="edit-match">내 매칭 카드 만들기</button>')
+        : UI.emptyState('search', hidden ? '지금은 다들 잠시 쉬는 중이에요' : '조건에 맞는 플레이어가 없어요',
+          hidden
+            ? '최근 ' + D.INACTIVE_HIDE_DAYS + '일 안에 활동한 분들만 보여 드려요. 상대가 다시 활동하면 여기에 나타나요.'
+            : '급수·지역 조건을 바꿔 보세요.',
+          '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="reset-filter">조건 초기화</button>')) +
+        '<p class="resultbar__quiet">조건을 고르면 그 조건에 맞춰 다시 찾아드려요.</p>';
+    }
+    return recommendBar(state, list.length) + inactiveNote(state) +
+      '<div class="pcards pcards--rec">' + list.map(function (p) { return playerCard(p, state); }).join('') + '</div>' +
+      '<p class="resultbar__quiet">내 동네 · 비슷한 급수를 먼저 보여 드려요 · ‘전체’를 누르면 모든 선수를 볼 수 있어요</p>';
   }
 
   /* bm-v1.59.0 — 14일 미접속으로 숨긴 사람이 있으면 목록 아래에 조용히 알려 줍니다.
@@ -291,7 +333,7 @@
   }
 
   function resultsHtml(state) {
-    if (!searchStarted(state)) return introHtml();
+    if (!searchStarted(state)) return defaultHtml(state);
     var players = visiblePlayers(state);
     var active = D.activeFilters(filterOf(state));
     var q = String(filterOf(state).query || '').trim();
@@ -1484,6 +1526,7 @@
     openLetterSheet: openLetterSheet,
     statusOf: statusOf,
     resultsHtml: resultsHtml,
+    recommendPlayers: recommendPlayers,
     visiblePlayers: visiblePlayers,
     pendingIncoming: pendingIncoming,
     acceptedIncoming: acceptedIncoming,

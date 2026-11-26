@@ -394,8 +394,17 @@
  *             저장은 theme.gear.custom 한 칸(새 시트 칸·DB 컬럼 없음).
  *             js/racketcustom.js 가 새로 생기고 js/gear.js·js/store.js·js/sharecard.js·js/views/*·
  *             app.js·styles.css·index.html 이 바뀌어 캐시를 bm-v1.80.0 으로 올립니다.
+ *
+ * 2026-11-26 (bm-v1.84.0): 2026-11-25 점심·저녁 사용성 6건 —
+ *             ① MY 하트 합계 표기(괄호 안 항의 합) 일치 · '오늘의 부스트(무료)'와 '하트 3개 부스트(꾸미기)' 구분
+ *             ② 게스트 모집 '몇 명' 2·4·6명 빠른 칩 · ③ 1:1 채팅 매너 카드 기본 접힘 · 코트 약속 체육관 칩·지도 고르기
+ *             ④ 1:1 매칭 첫 화면 추천 6명 바로 보기(전체 보기 버튼은 하나로 정리)
+ *             ⑤ 내 라켓·스트링 여러 자루(theme.gears, 첫 자루는 theme.gear 에도) 및 장력 칩 21~28 lbs
+ *             ⑥ 코트 점수판 가로 보기 내 팀·상대 팀 배지 구분.
+ *             js/gear.js·js/store.js·js/ads.js·js/views/*·styles.css·index.html 이 바뀌어
+ *             캐시를 bm-v1.84.0 으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.83.0';
+var VERSION = 'bm-v1.84.0';
 var SHELL = [
   './',
   './index.html',

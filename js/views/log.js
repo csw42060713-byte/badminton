@@ -1436,15 +1436,28 @@
     } catch (e) { return false; }
   }
 
-  function sbCard(st, side) {
-    var who = sbTeam(st, side);
+  function sbCard(st, side, land) {
     var mine = side === 'a';
+    var who = land ? sbShort(st, side) : sbTeam(st, side);
+    /* bm-v1.84.0 — 가로 보기에서는 어느 쪽이 내 점수인지 배지로 한 번 더 알립니다 */
+    var tag = land
+      ? '<span class="sb__tag sb__tag--' + (mine ? 'mine' : 'rvl') + '">' + (mine ? '내 팀' : '상대 팀') + '</span>'
+      : '';
     return '<button type="button" class="sb__btn sb__side sb__card' + (mine ? ' sb__btn--a' : ' sb__btn--b sb__side--b') + '"' +
-      ' data-sb-point="' + side + '" aria-label="' + U.esc(who + ' 1점 올리기') + '">' +
+      ' data-sb-point="' + side + '" aria-label="' + U.esc(who + (mine ? ' · 내 팀' : ' · 상대 팀') + ' 1점 올리기') + '">' +
+      tag +
       '<span class="sb__who">' + U.esc(who) + '</span>' +
       '<b class="sb__num">' + (mine ? st.a : st.b) + '</b>' +
       '<span class="sb__plus">' + UI.icon('plus') + '1점</span>' +
       '</button>';
+  }
+
+  /* 가로 보기 카드 위 이름 — 팀 이름표는 배지가 맡고, 여기엔 상대 이름만 */
+  function sbShort(st, side) {
+    var name = side === 'a' ? (st.type === '단식' ? '' : st.partner) : st.rival;
+    if (name) return name;
+    if (side === 'a') return st.type === '단식' ? '나' : '내 팀';
+    return st.type === '단식' ? '상대' : '상대 팀';
   }
 
   function scoreboardHtml(src, options) {
@@ -1469,7 +1482,7 @@
     var cands = opts.cands || {};
     /* 세로: 상대(위) → 내 팀(아래) / 가로: 내 팀(왼쪽) → 상대(오른쪽). 코트 교대는 그 자리를 바꿉니다 */
     var order = land ? (swap ? ['b', 'a'] : ['a', 'b']) : (swap ? ['a', 'b'] : ['b', 'a']);
-    var cards = sbCard(st, order[0]) + sbCard(st, order[1]);
+    var cards = sbCard(st, order[0], land) + sbCard(st, order[1], land);
     var rotLabel = land ? '세로 보기' : '가로 보기';
     return '<div class="sb sb--full' + (land ? ' is-land' : '') + '" data-sb data-sb-view="' + (land ? 'land' : 'port') + '">' +
       '<header class="sbfull__hdr">' +

@@ -189,11 +189,13 @@
     };
   }
 
-  /* 하트 부스트 안내 한 줄 — MY 카드·충전 시트 공용 (bm-v1.64.0) */
+  /* 하트 부스트 안내 한 줄 — MY 카드·충전 시트 공용 (bm-v1.64.0)
+   *  · bm-v1.84.0 — '오늘의 하트 부스트'(무료·광고 1회)와 헷갈리지 않게
+   *    꾸미기로 여는 쪽은 '꾸미기'라고 밝히고 무엇이 계속 +1 되는지 한 줄로 적습니다. */
   function boostText(s) {
     var b = (s && s.boost) || null;
     if (!b || !b.equipped) return '';
-    return '하트 부스트 적용 중(+' + Math.max(0, numVal(b.bonus, 1)) + ') · 출석·광고 적립에 붙어요';
+    return '하트 부스트(꾸미기) 적용 중(+' + Math.max(0, numVal(b.bonus, 1)) + ') · 출석·광고 적립에 계속 붙어요';
   }
 
   /* 3·7·14일 연속 보너스 안내 한 줄 — MY 하트 카드·충전 시트 공용 */
@@ -209,13 +211,15 @@
 
   /* 오늘의 하트 부스트 안내 한 줄 — MY 하트 카드·충전 시트 공용 (bm-v1.73.0)
    *  · 하트 부스트(영구 +1)를 열지 않은 사람도 광고를 볼 이유가 되도록,
-   *    그날 첫 광고에 +1을 더 줍니다. */
+   *    그날 첫 광고에 +1을 더 줍니다.
+   *  · bm-v1.84.0 — 하트 3개로 여는 '하트 부스트(꾸미기)'와 구분되게
+   *    무료·하루 한 번·첫 광고 한 편이라는 조건을 그 줄에 함께 적습니다. */
   function dailyBoostText(s) {
     var amount = Math.max(0, numVal(s && s.dailyBoostAmount, 0));
     if (!(amount > 0)) return '';
-    if (numVal(s.dailyBoostLeft, 0) > 0) return '오늘의 하트 부스트 · 오늘 첫 광고에 +' + amount + ' 더';
+    if (numVal(s.dailyBoostLeft, 0) > 0) return '오늘의 하트 부스트(무료) · 오늘 첫 광고에 +' + amount + ' 더 · 하루 1회';
     if (s && s.dailyBoost && s.dailyBoost.usedToday) return '오늘의 하트 부스트 받음 · 내일 첫 광고에 +' + amount;
-    return '내일 첫 광고에 하트 +' + amount + ' 더';
+    return '내일 첫 광고에 하트 +' + amount + ' 더 (무료 · 하루 1회)';
   }
 
   /* 광고 줄에 쓰는 한 줄 — 남은 초가 있으면 1초마다 이 문구가 바뀝니다 */
@@ -227,7 +231,9 @@
 
   /* 오늘 남은 횟수(N/5회)와 쿨타임을 한 줄에 (bm-v1.47.0)
    *  · MY 하트 카드·충전 시트가 1초마다 다시 그려 '지금 눌러도 되는지'가 바로 보입니다.
-   *  · 남은 횟수를 먼저, 그다음 쿨타임 초를 둡니다. */
+   *  · 남은 횟수를 먼저, 그다음 쿨타임 초를 둡니다.
+   *  · bm-v1.84.0 — 받을 하트가 '광고 1 + 오늘 첫 광고 보너스 1'처럼 나뉠 때
+   *    합계만 보이면 위의 무료 하트 합계와 안 맞아 보이므로, 나뉨을 괄호로 함께 적습니다. */
   function adMeterText(s) {
     if (!s) return '';
     var limit = Math.max(0, numVal(s.adLimit, 0));
@@ -236,7 +242,10 @@
     var head = '남은 ' + leftCount + '/' + limit + '회';
     if (leftCount <= 0) return head + ' · 오늘 모두 받았어요';
     if (numVal(s.nextAdInSec, 0) > 0) return head + ' · 다음 광고까지 ' + numVal(s.nextAdInSec, 0) + '초';
-    return head + ' · 지금 바로 +' + (numVal(s.adReward, 1) + numVal(s.dailyBoostLeft, 0));
+    var base = numVal(s.adReward, 1);
+    var extra = numVal(s.dailyBoostLeft, 0);
+    return head + ' · 지금 바로 +' + (base + extra) +
+      (extra > 0 ? ' = 광고 ' + base + ' + 보너스 ' + extra : '');
   }
 
   function freeText(s) {
@@ -245,13 +254,18 @@
     return '오늘 받을 수 있는 무료 하트 ' + s.freeHeartsLeft + '개 남음';
   }
 
+  /* 아래 괄호 안은 '하트 개수'로 적어 합계와 바로 맞아떨어지게 (bm-v1.84.0)
+   *  예: (출석 1 + 광고 5 + 첫 광고 보너스 1 = 7개) — 각 항의 합이 앞의 7개가 됩니다. */
   function freeDetail(s) {
     if (!s) return '';
     var parts = [
       s.canCheckIn ? '출석 ' + s.checkinReward : '출석 완료'
     ];
-    if (s.adRemaining > 0) parts.push('광고 ' + s.adRemaining + '회');
+    var adHearts = Math.max(0, numVal(s.adRemaining, 0)) * Math.max(0, numVal(s.adReward, 0));
+    if (s.adRemaining > 0) parts.push('광고 ' + adHearts);
     else if (s.adLimit > 0) parts.push('광고 완료');
+    if (numVal(s.dailyBoostLeft, 0) > 0) parts.push('첫 광고 보너스 ' + numVal(s.dailyBoostLeft, 0));
+    if (s.freeHeartsLeft > 0) return '(' + parts.join(' + ') + ' = ' + s.freeHeartsLeft + '개)';
     return '(' + parts.join(' · ') + ')';
   }
 
@@ -507,7 +521,7 @@
       var short = need - s.balance;
       if (short <= 0) return '지금 바로 이어서 할 수 있어요.';
       if (s.freeHeartsLeft <= 0) return '오늘 무료 하트를 모두 받았어요. 내일 다시 채울 수 있어요.';
-      if (s.freeHeartsLeft >= short) return '무료 하트 ' + s.freeChancesLeft + '번이면 ' + short + '개를 채울 수 있어요.';
+      if (s.freeHeartsLeft >= short) return '오늘 무료 하트 ' + s.freeHeartsLeft + '개로 ' + short + '개를 채울 수 있어요.';
       return '오늘 무료로 더 받을 수 있는 하트는 ' + s.freeHeartsLeft + '개예요. ' + short + '개 중 그만큼만 채워져요.';
     }
 
@@ -519,7 +533,7 @@
         '<button type="button" class="charge__row" data-charge="ad" data-ad-row' + (s.canWatchAd ? '' : ' disabled') + '>' +
         '<span class="charge__t">광고 보고 받기</span>' +
         '<span class="charge__d" data-ad-sub>' + escText(adMeterText(s)) + '</span>' +
-        '<b class="charge__n">+' + s.adReward + '</b></button>';
+        '<b class="charge__n">+' + (s.adReward + numVal(s.dailyBoostLeft, 0)) + '</b></button>';
     }
 
     function bodyHtml(s) {
