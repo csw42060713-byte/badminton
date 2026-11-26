@@ -151,7 +151,32 @@
     me.role = D.roleOf(me);
     /* bm-v1.76.0 — 내 라켓·스트링 기록(꾸미기 JSON의 gear)도 화면이 바로 쓰게 꺼내 둡니다 */
     me.gear = BM.gear ? BM.gear.gearOf(me) : ((me.theme && me.theme.gear) || null);
+    /* bm-v1.82.0 — 기록이 theme.gear 에만 있으면 me.gear 로도 채워 두고, 반대도 맞춰 둡니다.
+     * (예전에는 서버에서 새로 받은 프로필이 theme.gear 없이 오면 화면만 비어 보였습니다) */
+    if (me.gear && me.theme && !me.theme.gear) me.theme.gear = me.gear;
     return me;
+  }
+
+  /* 꾸미기 JSON(theme) 뼈대 — 테마·아바타는 늘 새로 만들지만, 함께 살아야 하는
+   * 라켓·스트링 기록(gear: 라켓·스트링·장력·교체일 + 커스텀 라켓 색)과 하트 부스트는
+   * 이 함수를 거치는 모든 저장에서 그대로 이어집니다 (bm-v1.82.0).
+   *  · 예전 버그: 테마를 바꾸면(setTheme) theme 객체를 새로 만들면서 gear 를 통째로 빠뜨려,
+   *    저장해 둔 라켓 기록이 다음에 창을 열 때(새로고침·서버 동기화 뒤) 빈 값으로 보였습니다. */
+  function themeWith(me, themeId) {
+    me = me || {};
+    var cur = D.avatarOf({ theme: me.theme });
+    var t = {
+      theme: themeId || (me.theme && me.theme.theme) || 'th_night',
+      avatar: cur.emoji, avatarPhoto: cur.photo,
+      avatarFrame: cur.frame, avatarBg: cur.bg, avatarBadge: cur.badge,
+      style: D.normalizeStyle(me.style || (me.theme && me.theme.style)),
+      role: D.roleOf(me)
+    };
+    if (!t.role) delete t.role;
+    var gear = BM.gear ? BM.gear.gearOf(me) : ((me.theme && me.theme.gear) || null);
+    if (gear && (!BM.gear || BM.gear.hasGear(gear))) t.gear = gear;
+    if (me.theme && me.theme.boost) t.boost = 1;
+    return t;
   }
 
   function createStore(options) {
@@ -1075,6 +1100,82 @@
         return { ok: true, purchased: true, price: price, id: id, balance: (state.data.hearts || {}).balance || 0 };
       },
 
+      /* ---------- bm-v1.82.0: 스페셜 스매시 이펙트를 하트로 해금 ----------
+       *  · 라켓 포인트로 여는 파츠와 달리, 스매시 이펙트(불꽃 스매시·번개 셔틀)는 하트로 삽니다.
+       *  · 잔액 검사·차감은 기존 서버 함수 heart_spend('smash', 'effect:fire')가 합니다
+       *    (supabase/heart-rpc-v1.82-smash.sql). 서버가 아직 이 종류를 모르면 'unknown'만
+       *    돌려주므로 하트는 그대로이고 화면은 안내만 합니다.
+       *  · 해금 기록은 기존 '꾸미기구매' 행 그대로(target=effect:fire) — 새 칸·새 DB 컬럼 없음.
+       *  · 차감과 장착을 한 번에: 하트만 빠지고 장착이 안 되는 일이 없도록 이어서 저장합니다. */
+      buySmash: function (slot, id) {
+        var me = state.me || {};
+        if (!me.key) return { ok: false, reason: 'no_login' };
+        if (!BM.racketcustom) return { ok: false, reason: 'unknown' };
+        slot = String(slot || 'effect');
+        var key = slot + ':' + String(id || '');
+        var price = BM.racketcustom.heartCostOf(slot, id);
+        if (!price) return { ok: false, reason: 'unknown' };
+        if (!tryLock('smash:' + key, 1500)) return { ok: false, reason: 'locked' };
+        var cur = BM.racketcustom.customOf(me);
+        if (BM.racketcustom.isUnlocked(cur, slot, id)) {
+          var own = BM.racketcustom.normalizeCustom(cur);
+          own[slot] = id;
+          var g0 = actions.setGear({ custom: own });
+          return g0 && g0.ok ? { ok: true, purchased: false, price: 0, gear: g0.gear } : { ok: false, reason: 'locked' };
+        }
+
+        function unlock(balance) {
+          var next = BM.racketcustom.normalizeCustom(cur);
+          if (next.unlocked.indexOf(key) < 0) next.unlocked.push(key);
+          next[slot] = id;
+          var res = actions.setGear({ custom: next });
+          if (res && res.ok) {
+            return { ok: true, purchased: true, price: price, gear: res.gear, custom: next, balance: balance };
+          }
+          /* 하트는 이미 빠졌는데 프로필 저장이 잠깐 잠겨 있으면(연속 저장),
+           * 잠금이 풀린 뒤 같은 값으로 다시 적습니다 — 추가로 하트를 빼지 않습니다. */
+          if (res && res.reason === 'locked') {
+            var tries = 4;
+            (function retry() {
+              setTimeout(function () {
+                var again = actions.setGear({ custom: next });
+                if (again && again.ok) {
+                  if (BM.ui && BM.ui.toast) BM.ui.toast('스매시 이펙트를 열었어요');
+                  return;
+                }
+                if (--tries > 0) retry();
+              }, 700);
+            })();
+            return { ok: false, reason: 'paid_retry', price: price, balance: balance };
+          }
+          return { ok: false, reason: (res && res.reason) || 'locked', paid: true };
+        }
+
+        /* Supabase 모드: 하트는 서버가 검사하고 뺀다 */
+        var server = heartServer();
+        if (server) {
+          return server.rpc('heart_spend', { p_kind: 'smash', p_target: key }).then(function (res) {
+            res = res || { ok: false, reason: 'error' };
+            if (!res.ok) return res;
+            if (res.row) pushServerRow(res.row);
+            commit();
+            return unlock(res.balance);
+          }, serverFail);
+        }
+
+        /* 기기 저장(체험) 모드: 같은 '꾸미기구매' 행을 이 기기에만 남겨 잔액·기록을 같게 */
+        var status = state.data.hearts || {};
+        if ((status.balance || 0) < price) {
+          return { ok: false, reason: 'hearts', need: price - (status.balance || 0), price: price };
+        }
+        pushRow(meEntity({
+          type: '꾸미기구매', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
+          target: key, likes: price, nick: me.nick
+        }));
+        commit();
+        return unlock((state.data.hearts || {}).balance);
+      },
+
       /* 하트 부스트 켜기/끄기 (bm-v1.64.0)
        *  · 처음 사는 것은 buyDeco('boost','heart') — 소유 기록은 '꾸미기구매' 행입니다.
        *  · 켜고 끄는 상태는 프로필 꾸미기 JSON의 boost(1/0)에 남깁니다(새 칸 없음).
@@ -1086,22 +1187,16 @@
         var streak = D.checkinStreak(state.idx, me.key);
         var owned = D.ownsDeco(state.idx, me.key, D.BOOST_ID, streak);
         if (on && !owned) return { ok: false, reason: 'not_owned', price: D.decoPrice(D.BOOST_ID) };
-        var cur = D.avatarOf({ theme: me.theme });
-        var theme = {
-          theme: (me.theme && me.theme.theme) || 'th_night',
-          avatar: cur.emoji, avatarPhoto: cur.photo,
-          avatarFrame: cur.frame, avatarBg: cur.bg, avatarBadge: cur.badge,
-          style: D.normalizeStyle(me.style || (me.theme && me.theme.style)),
-          role: D.roleOf(me)
-        };
-        if (!theme.role) delete theme.role;
-        if (on) theme.boost = 1;
+        /* bm-v1.82.0 — 테마를 새로 만들 때 라켓·스트링 기록(gear)이 지워지지 않게 themeWith */
+        var theme = themeWith(me);
+        if (on) theme.boost = 1; else delete theme.boost;
         pushRow({
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
           nick: me.nick, level: me.level, discipline: me.discipline, userKey: me.key,
           bio: me.bio, theme: theme
         });
         state.me.theme = theme;
+        if (theme.gear) state.me.gear = theme.gear;
         commit();
         return { ok: true, equipped: !!on, bonus: on ? D.BOOST_BONUS : 0, owned: owned };
       },
@@ -2039,23 +2134,16 @@
           purchased = true;
         }
 
-        /* 테마를 바꿔도 사진·프레임·배지·플레이 스타일은 그대로 남깁니다 */
-        var cur = D.avatarOf({ theme: me.theme });
-        var theme = {
-          theme: themeId, avatar: cur.emoji, avatarPhoto: cur.photo,
-          avatarFrame: cur.frame, avatarBg: cur.bg, avatarBadge: cur.badge,
-          style: D.normalizeStyle(me.style || (me.theme && me.theme.style)),
-          role: D.roleOf(me)
-        };
-        if (!theme.role) delete theme.role;
-        /* 테마를 바꿔도 켜 둔 하트 부스트는 그대로 (bm-v1.64.0) */
-        if (me.theme && me.theme.boost) theme.boost = 1;
+        /* 테마를 바꿔도 사진·프레임·배지·플레이 스타일과
+         * 라켓·스트링 기록(gear)·하트 부스트는 그대로 남깁니다 (bm-v1.82.0) */
+        var theme = themeWith(me, themeId);
         pushRow({
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
           nick: me.nick, level: me.level, discipline: me.discipline, userKey: me.key,
           bio: me.bio, theme: theme
         });
         state.me.theme = theme;
+        if (theme.gear) state.me.gear = theme.gear;
         commit();
         return { ok: true, purchased: purchased, price: purchased ? price : 0, balance: state.data.hearts.balance };
       },

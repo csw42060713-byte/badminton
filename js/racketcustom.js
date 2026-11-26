@@ -93,7 +93,10 @@
         { id: 'speed', name: '스피드 링', color: '#7fd8ff', cost: 50, rarity: 'rare', note: '헤드 주변 회전 궤적' },
         { id: 'spark', name: '스파크 전기', color: '#9fd8ff', cost: 80, rarity: 'epic', note: '톡톡 튀는 전기 스파크' },
         { id: 'blaze', name: '블레이즈 오라', color: '#ff8a2f', cost: 100, rarity: 'epic', note: '헤드를 감싸는 불꽃' },
-        { id: 'prism', name: '챔피언 프리즘', color: '#f2c14e', cost: 150, rarity: 'legend', note: '금빛 홀로그램 광채' }
+        { id: 'prism', name: '챔피언 프리즘', color: '#f2c14e', cost: 150, rarity: 'legend', note: '금빛 홀로그램 광채' },
+        /* bm-v1.82.0 — 하트로 바로 여는 스페셜 스매시(포인트 아니라 하트) */
+        { id: 'fire', name: '불꽃 스매시', color: '#ff7a2f', heart: 2, rarity: 'epic', smash: true, note: '터치하면 불꽃이 활짝' },
+        { id: 'thunder', name: '번개 셔틀', color: '#8fd0ff', heart: 3, rarity: 'legend', smash: true, note: '번개와 함께 셔틀 발사' }
       ]
     }
   };
@@ -165,8 +168,16 @@
   }
   function costOf(slot, id) {
     var it = itemOf(slot, id);
-    return (it && !it.free) ? (it.cost || 50) : 0;
+    return (it && !it.free && !it.heart) ? (it.cost || 50) : 0;
   }
+
+  /* 하트로 사는 파츠(스페셜 스매시) — 포인트와 섞이지 않게 따로 셉니다 */
+  function heartCostOf(slot, id) {
+    var it = itemOf(slot, id);
+    return (it && !it.free && it.heart) ? (it.heart || 0) : 0;
+  }
+
+  function isHeartItem(slot, id) { return heartCostOf(slot, id) > 0; }
 
   /* ---------- 저장 모양 ---------- */
 
@@ -550,6 +561,20 @@
         '<path d="M32 1C36 5 36.6 8.6 32 11C27.4 8.6 28 5 32 1Z" fill="#ffb347"/>' +
         '<path d="M20 8C23 11 23 14 20 16C17 14 17 11 20 8Z" fill="#ff8a2f" opacity="0.8"/>' +
         '<path d="M44 8C47 11 47 14 44 16C41 14 41 11 44 8Z" fill="#ff8a2f" opacity="0.8"/></g>';
+    }
+    /* bm-v1.82.0 — 하트로 여는 스페셜 스매시도 미니 라켓에 표시 */
+    if (id === 'fire') {
+      return '<g opacity="0.95">' +
+        '<path d="M32 0C36.4 4.6 37 8.8 32 11.6C27 8.8 27.6 4.6 32 0Z" fill="#ffd166"/>' +
+        '<path d="M32 3.4C34.2 5.8 34.4 7.6 32 9.2C29.6 7.6 29.8 5.8 32 3.4Z" fill="#ff6a2b"/>' +
+        '<path d="M19 7C21.6 9.8 21.6 12.6 19 14.6C16.4 12.6 16.4 9.8 19 7Z" fill="#ff8a2f" opacity="0.75"/>' +
+        '<path d="M45 7C47.6 9.8 47.6 12.6 45 14.6C42.4 12.6 42.4 9.8 45 7Z" fill="#ff8a2f" opacity="0.75"/></g>';
+    }
+    if (id === 'thunder') {
+      return '<g opacity="0.95">' +
+        '<path d="M35 0L27 13H32L29 24L39 9H33.6L37 0Z" fill="#7fd8ff"/>' +
+        '<path d="M20 14L16 22H19L17.6 28L23 20H20.4L22 14Z" fill="#d6ecff" opacity="0.85"/>' +
+        '<path d="M45 20L42 27H44.6L42.8 33L47 26H44.6L46 20Z" fill="#d6ecff" opacity="0.7"/></g>';
     }
     return '<g fill="#f2c14e" opacity="0.95">' +
       '<path d="M49 8L50.4 12L54 13.4L50.4 14.8L49 18.8L47.6 14.8L44 13.4L47.6 12Z"/>' +
@@ -1568,6 +1593,64 @@
       else g.arc(cxp.x, cxp.y, gm.rx * 1.6 * v.k, 0, TAU);
       g.fill();
       g.restore();
+    } else if (fx === 'fire') {
+      /* 불꽃 스매시 — 헤드 뒤로 은은한 화염 후광 + 떠오르는 불티 */
+      var fbg = g.createRadialGradient(cxp.x, cxp.y, gm.rx * 0.3 * v.k, cxp.x, cxp.y, gm.rx * 1.7 * v.k);
+      fbg.addColorStop(0, 'rgba(255,120,40,0.34)');
+      fbg.addColorStop(0.65, 'rgba(255,72,20,0.12)');
+      fbg.addColorStop(1, 'rgba(255,40,0,0)');
+      g.save();
+      g.fillStyle = fbg;
+      g.beginPath();
+      if (g.ellipse) g.ellipse(cxp.x, cxp.y, gm.rx * 1.3 * v.k, gm.ry * 1.2 * v.k, 0, 0, TAU);
+      else g.arc(cxp.x, cxp.y, gm.rx * 1.1 * v.k, 0, TAU);
+      g.fill();
+      g.restore();
+      for (k = 0; k < 10; k++) {
+        var ff = (k / 10 + ph * 0.05) % 1;
+        var fp = fxLoopPoint(gm, v, ff, 1.06);
+        var rise = ((ph * 22 + k * 31) % 40) / 40;
+        g.save();
+        g.globalAlpha = (1 - rise) * 0.7;
+        g.fillStyle = k % 3 === 0 ? '#ffe6a8' : '#ff8a2f';
+        g.beginPath();
+        g.arc(fp.x + Math.sin(ph * 3 + k) * 3 * v.k, fp.y - rise * 22 * v.k, Math.max(0.9, (2.2 - rise * 1.4) * v.k * 1.8), 0, TAU);
+        g.fill();
+        g.restore();
+      }
+    } else if (fx === 'thunder') {
+      /* 번개 셔틀 — 가끔 헤드 주변에 번쩍이는 번개 */
+      var bt = Math.sin(ph * 1.7);
+      if (bt > 0.55) {
+        g.save();
+        g.globalAlpha = Math.min(0.95, (bt - 0.55) * 2.4);
+        g.strokeStyle = '#d6ecff';
+        g.lineWidth = Math.max(1, 1.6 * v.k * 1.6);
+        g.lineCap = 'round';
+        for (k = 0; k < 3; k++) {
+          var a0 = ph * 0.7 + k * 2.1;
+          var s0 = strokeEllipse(gm, v, 1.22, a0, a0 + 0.16, 2);
+          if (s0.length < 2) continue;
+          var mid = { x: (s0[0].x + s0[s0.length - 1].x) / 2 + Math.sin(ph * 9 + k) * 7 * v.k,
+            y: (s0[0].y + s0[s0.length - 1].y) / 2 + Math.cos(ph * 7 + k) * 7 * v.k };
+          g.beginPath();
+          g.moveTo(s0[0].x, s0[0].y);
+          g.lineTo(mid.x, mid.y);
+          g.lineTo(s0[s0.length - 1].x, s0[s0.length - 1].y);
+          g.stroke();
+        }
+        g.restore();
+      }
+      var tg = g.createRadialGradient(cxp.x, cxp.y, gm.rx * 0.3 * v.k, cxp.x, cxp.y, gm.rx * 1.5 * v.k);
+      tg.addColorStop(0, 'rgba(140,215,255,0.22)');
+      tg.addColorStop(1, 'rgba(70,140,255,0)');
+      g.save();
+      g.fillStyle = tg;
+      g.beginPath();
+      if (g.ellipse) g.ellipse(cxp.x, cxp.y, gm.rx * 1.2 * v.k, gm.ry * 1.15 * v.k, 0, 0, TAU);
+      else g.arc(cxp.x, cxp.y, gm.rx * 1.05 * v.k, 0, TAU);
+      g.fill();
+      g.restore();
     }
   }
 
@@ -1785,7 +1868,259 @@
 
   var viewMem = { yaw: -0.52, pitch: 0.16 };
 
-  /* 시트 안의 3D 뷰를 붙입니다 — 드래그 회전 · 탭하면 그 파츠로 */
+  /* ============================================================
+   * 터치 불꽃 스매시 (bm-v1.82.0)
+   *  · 라켓을 짧게 톡 치거나 ⚡ 스매시 버튼을 누르면 60fps 캔버스로
+   *    불꽃 파티클 + 셔틀콕 발사 + 충격 링이 이어집니다.
+   *  · 드래그(360° 회전)와 부위 탭(꾸미기)은 그대로 함께 삽니다 —
+   *    '꾸미기' 모드에서만 부위 탭이 파츠를 바꿉니다(기본은 스매시).
+   *  · 파티클은 매 프레임 시간(t)에서 다시 계산합니다 — 상태를 쌓지 않아
+   *    프레임이 밀려도 모양이 같고, 캔버스 한 장으로만 그려 CSP 위반이 없습니다.
+   * ============================================================ */
+  var SMASH_MS = 900;
+  var SMASH_PALETTE = {
+    fire: { core: '#fff7dc', hot: '#ffd166', mid: '#ff8a2f', deep: '#ff3b2f', ring: '#ffb347' },
+    thunder: { core: '#ffffff', hot: '#d6ecff', mid: '#7fd8ff', deep: '#3f7cf2', ring: '#9fd8ff' },
+    none: { core: '#ffffff', hot: '#eaffb0', mid: '#c6f24e', deep: '#7fd8ff', ring: '#c6f24e' }
+  };
+  function smashPalette(id) { return SMASH_PALETTE[id] || SMASH_PALETTE.none; }
+
+  /* 지금 입은 효과의 스매시 이름 — 버튼·토스트가 같은 말을 쓰게 */
+  function smashLabel(id) {
+    var it = itemOf('effect', id);
+    return (it && it.smash) ? it.name : '스매시';
+  }
+
+  /* 씨앗으로만 만드는 난수 — 같은 순간이면 언제 다시 그려도 같은 모양 */
+  function seedRand(seed) {
+    var x = Math.sin(seed * 12.9898) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  /* 스매시 임팩트 — draw3d 위에 한 장 더 그립니다 (ms = 시작 후 지난 시간)
+   *  fx = 연출 id('fire' · 'thunder' · '' ). 아직 안 산 효과도 미리보기로 그려야 하므로
+   *  normalizeCustom(잠금 → 기본값으로 되돌림)을 거치지 않고 이름·색만 바로 씁니다. */
+  function drawSmash(g, v, gm, fx, ms, w, h) {
+    var t = Math.max(0, Math.min(1, ms / SMASH_MS));
+    var fxId = String(fx || '');
+    var pal = smashPalette(fxId);
+    var unit = Math.min(w, h) / 360;                  /* 화면 크기에 맞춘 단위 */
+    /* 맞는 자리는 헤드 가운데 — 어느 각도·바디에서도 연출이 화면 안에 들어오게 한 번 더 가둡니다 */
+    var imp = project3({ x: 0, y: 0, z: 0 }, v);
+    imp.y = Math.min(Math.max(imp.y, h * 0.24), h * 0.62);
+    imp.x = Math.min(Math.max(imp.x, w * 0.26), w * 0.74);
+    var ease = 1 - Math.pow(1 - t, 3);
+    var fade = Math.pow(1 - t, 1.4);
+    var rx = Math.max(20, gm.rx * v.k);
+    var i, a, r, len, alpha, d, p2;
+
+    g.save();
+
+    /* 0) 맞는 순간 화면을 살짝 어둡게 — 섬광과 불티가 확실히 보이게 */
+    if (t < 0.55) {
+      g.globalAlpha = 0.42 * Math.pow(1 - t / 0.55, 1.2);
+      g.fillStyle = '#04080a';
+      g.fillRect(0, 0, w, h);
+      g.globalAlpha = 1;
+    }
+
+    /* 1) 번쩍 — 맞는 순간의 섬광 */
+    if (t < 0.38) {
+      var fa = Math.pow(1 - t / 0.38, 0.8);
+      var fg = g.createRadialGradient(imp.x, imp.y, 2, imp.x, imp.y, rx * (1.15 + t * 1.8));
+      fg.addColorStop(0, 'rgba(255,255,255,' + Math.min(1, 1.05 * fa).toFixed(3) + ')');
+      fg.addColorStop(0.3, 'rgba(255,255,255,' + (0.8 * fa).toFixed(3) + ')');
+      fg.addColorStop(0.58, 'rgba(255,236,190,' + (0.42 * fa).toFixed(3) + ')');
+      fg.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = fg;
+      g.beginPath();
+      g.arc(imp.x, imp.y, rx * (1.1 + t * 1.7), 0, TAU);
+      g.fill();
+    }
+
+    /* 1-1) 맞은 자리의 별 모양 폭발 — 한눈에 '때렸다'가 보이게 */
+    if (t < 0.34) {
+      var sp2 = Math.pow(1 - t / 0.34, 1.1);
+      var arms = 12, R0 = rx * (0.3 + 1.25 * ease);
+      g.globalAlpha = Math.min(1, sp2 * 1.25);
+      g.fillStyle = pal.core;
+      g.shadowColor = pal.hot;
+      g.shadowBlur = Math.max(0, 26 * unit * sp2);
+      g.beginPath();
+      for (i = 0; i < arms * 2; i++) {
+        var aa = -Math.PI / 2 + i * Math.PI / arms + t * 0.5;
+        var rr2 = (i % 2 === 0) ? R0 : R0 * 0.32;
+        var xx = imp.x + Math.cos(aa) * rr2, yy = imp.y + Math.sin(aa) * rr2;
+        if (i === 0) g.moveTo(xx, yy); else g.lineTo(xx, yy);
+      }
+      g.closePath();
+      g.fill();
+      g.shadowBlur = 0;
+      g.globalAlpha = 1;
+    }
+
+    /* 2) 충격 링 3장 — 퍼져 나가며 얇아집니다 */
+    for (i = 0; i < 3; i++) {
+      d = i * 0.11;
+      p2 = (t - d) / (1 - d);
+      if (p2 <= 0) continue;
+      r = rx * (0.25 + 2.35 * p2);
+      alpha = (1 - p2) * (1 - i * 0.18);
+      g.globalAlpha = Math.max(0, alpha);
+      g.strokeStyle = i === 0 ? pal.core : pal.ring;
+      g.lineWidth = Math.max(1.4, (5.2 - i * 1.1 - p2 * 3.4) * unit * 1.6);
+      g.beginPath();
+      g.arc(imp.x, imp.y, r, 0, TAU);
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+
+    /* 2-1) 강타 궤적 — 맞은 자리를 가로지르는 밝은 줄 */
+    if (t < 0.3) {
+      var tr = Math.pow(1 - t / 0.3, 1.2);
+      var tl = rx * 1.9;
+      g.globalAlpha = tr;
+      g.strokeStyle = pal.core;
+      g.lineWidth = Math.max(1.4, 5 * unit * tr);
+      g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(imp.x - tl * 0.85, imp.y + tl * 0.2);
+      g.lineTo(imp.x + tl * 0.85, imp.y - tl * 0.2);
+      g.stroke();
+      g.globalAlpha = 1;
+    }
+
+    /* 3) 방사형 빛줄기 */
+    for (i = 0; i < 14; i++) {
+      a = i / 14 * TAU + 0.22 + t * 0.18;
+      len = (18 + 34 * seedRand(i * 31 + 7)) * unit * (0.4 + ease * 1.9) * (1 - t * 0.35);
+      g.globalAlpha = Math.max(0, (0.85 - i * 0.03) * fade);
+      g.strokeStyle = i % 3 === 0 ? pal.core : pal.mid;
+      g.lineWidth = Math.max(1, 2.2 * unit * (1 - t * 0.5));
+      g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(imp.x + Math.cos(a) * len * 0.35, imp.y + Math.sin(a) * len * 0.35);
+      g.lineTo(imp.x + Math.cos(a) * len, imp.y + Math.sin(a) * len);
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+
+    /* 4) 불티 파티클 — 바깥으로 튀고 중력에 떨어지며 타들어 갑니다 */
+    for (i = 0; i < 34; i++) {
+      var ang = i * 2.399963 + (seedRand(i * 13 + 3) - 0.5) * 0.7;
+      var sp = 0.55 + seedRand(i * 17 + 5) * 1.05;
+      var px = imp.x + Math.cos(ang) * rx * 1.75 * sp * ease;
+      var py = imp.y + Math.sin(ang) * rx * 1.75 * sp * ease + 86 * unit * t * t * (0.5 + sp * 0.5);
+      var sz = Math.max(1.1, (4.4 - t * 2.4) * unit * (0.75 + seedRand(i * 7 + 1)));
+      var col = i % 5 === 0 ? pal.core : (i % 3 === 0 ? pal.hot : (i % 2 ? pal.mid : pal.deep));
+      g.globalAlpha = Math.max(0, (1.05 - t * 0.85));
+      g.fillStyle = col;
+      g.shadowColor = col;
+      g.shadowBlur = Math.max(0, 10 * unit * (1 - t));
+      g.beginPath();
+      if (g.ellipse) g.ellipse(px, py, sz * 1.5, sz, ang, 0, TAU);
+      else g.arc(px, py, sz, 0, TAU);
+      g.fill();
+    }
+    g.shadowBlur = 0;
+    g.globalAlpha = 1;
+
+    /* 5) 위로 타오르는 열기 — 불꽃 계열은 크게, 나머지는 짧게 */
+    var plume = fxId === 'fire' ? 9 : 5;
+    for (i = 0; i < plume; i++) {
+      var ph2 = i / plume;
+      var hx = imp.x + Math.sin(ph2 * 6.1 + t * 5) * rx * 0.55;
+      var hy = imp.y - rx * (0.25 + ph2 * 1.15) * (0.5 + ease * 0.9);
+      var hr = rx * (0.34 - ph2 * 0.2) * (0.5 + ease * 0.7);
+      if (hr <= 0) continue;
+      var pg = g.createRadialGradient(hx, hy, 0, hx, hy, Math.max(1, hr));
+      pg.addColorStop(0, i % 2 ? 'rgba(255,214,120,0.5)' : 'rgba(255,140,60,0.42)');
+      pg.addColorStop(1, 'rgba(255,90,20,0)');
+      g.globalAlpha = Math.max(0, fade);
+      g.fillStyle = pg;
+      g.beginPath();
+      g.arc(hx, hy, Math.max(1, hr), 0, TAU);
+      g.fill();
+    }
+    g.globalAlpha = 1;
+
+    /* 6) 날아가는 셔틀콕 — 임팩트에서 오른쪽 위로, 점점 작아지며 돕니다 */
+    var fly = Math.max(0, Math.min(1, (t - 0.06) / 0.94));
+    if (fly > 0) {
+      var dir = -0.62;
+      var dist = rx * 3.1 * (1 - Math.pow(1 - fly, 2));
+      var sx = imp.x + Math.cos(dir) * dist;
+      var sy = imp.y + Math.sin(dir) * dist - 26 * unit * fly;
+      var sc = (1 - fly * 0.55) * Math.max(0.55, unit * 1.2);
+      g.save();
+      g.translate(sx, sy);
+      g.rotate(-0.7 + fly * 2.6);
+      g.globalAlpha = Math.max(0, 1 - Math.pow(fly, 2.2));
+      g.strokeStyle = '#f2f7ff';
+      g.lineWidth = Math.max(1, 1.5 * sc);
+      g.lineCap = 'round';
+      for (i = 0; i < 6; i++) {
+        var fang = -0.55 + i * 0.22;
+        g.beginPath();
+        g.moveTo(-2 * sc, 0);
+        g.lineTo(-2 * sc - Math.cos(fang) * 15 * sc, -Math.sin(fang) * 15 * sc);
+        g.stroke();
+      }
+      g.strokeStyle = 'rgba(200,230,255,0.75)';
+      for (i = 1; i < 6; i++) {
+        var fang2 = -0.55 + i * 0.22;
+        g.beginPath();
+        g.moveTo(-8 * sc, 0);
+        g.lineTo(-8 * sc - Math.cos(fang2) * 8 * sc, -Math.sin(fang2) * 8 * sc);
+        g.stroke();
+      }
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.arc(0, 0, Math.max(1.6, 3.4 * sc), 0, TAU);
+      g.fill();
+      g.globalAlpha *= 0.5;
+      g.fillStyle = pal.hot;
+      g.beginPath();
+      g.arc(0, 0, Math.max(1, 5.2 * sc), 0, TAU);
+      g.fill();
+      g.restore();
+    }
+    g.globalAlpha = 1;
+
+    /* 7) 효과 이름 — 맞는 순간 톡 튀어 올랐다가 사라집니다 */
+    if (t < 0.75) {
+      var na = Math.max(0, Math.min(1, (0.75 - t) / 0.3));
+      var pop = 0.88 + 0.24 * Math.min(1, t / 0.14);
+      var fs = Math.round(24 * unit * pop);
+      var label = smashLabel(fxId);
+      g.globalAlpha = Math.min(1, na * 1.15);
+      g.font = '900 ' + fs + 'px system-ui, -apple-system, sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      var labW = (g.measureText ? g.measureText(label).width : fs * label.length) + fs * 0.9;
+      var labelY = imp.y + rx * 1.32;                       /* 헤드 아래(샤프트 쪽) — 글자가 잘리지 않게 */
+      labelY = Math.max(fs + 8, Math.min(h - fs - 8, labelY));
+      /* 글자 뒤에 어두운 알약 — 어느 배경에서도 읽히게 */
+      g.globalAlpha = Math.min(1, na * 0.72);
+      g.fillStyle = 'rgba(6,12,9,0.55)';
+      if (g.roundRect) {
+        g.beginPath();
+        g.roundRect(imp.x - labW / 2, labelY - fs * 0.82, labW, fs * 1.64, fs * 0.8);
+        g.fill();
+      } else {
+        g.fillRect(imp.x - labW / 2, labelY - fs * 0.8, labW, fs * 1.6);
+      }
+      g.globalAlpha = Math.min(1, na * 1.15);
+      g.lineWidth = Math.max(2, 3 * unit);
+      g.strokeStyle = 'rgba(10,16,12,0.6)';
+      g.strokeText(label, imp.x, labelY);
+      g.fillStyle = pal.core;
+      g.fillText(label, imp.x, labelY);
+    }
+    g.restore();
+  }
+
+  /* 시트 안의 3D 뷰를 붙입니다 — 드래그 회전 · 짧은 탭은 스매시(꾸미기 모드에선 부위 선택) */
   function mount3d(host, ctx) {
     if (!hasDom) return null;
     var cv = host.querySelector('.rk3d__cv');
@@ -1798,7 +2133,29 @@
     var v = { yaw: viewMem.yaw, pitch: viewMem.pitch, k: 1, cx: 0, cy: 0, mid: 0, phase: 0 };
     var drag = null, lastMove = 0, lastPaint = 0, raf = 0, alive = true;
     var w = 0, h = 0;
-    var api = { view: v, paint: paint, redraw: paint, fit: function () { fit(); paint(); }, body: '' };
+    /* 터치 스매시 상태 — smashAt(시작 시각) · smashFx(그때 입은 효과) */
+    var smashAt = 0, smashFx = '', smashOn = false;
+    var holdAt = null;      /* 캡처·검사용: 이 시간(ms)에 연출을 멈춰 둡니다 */
+    var api = { view: v, paint: paint, redraw: paint, fit: function () { fit(); paint(); }, body: '',
+      smash: smash, mode: function () { return stageMode; }, smashing: function () { return smashOn; },
+      /* 연출을 원하는 순간에 멈춰 두기(화면 캡처·자동 점검) — 사용자 동작과는 무관합니다 */
+      hold: function (ms) { holdAt = Math.max(0, Number(ms) || 0); smashOn = true; paint(); return true; },
+      resume: function () { holdAt = null; smashAt = nowMs(); smashOn = true; paint(); return true; } };
+
+    function nowMs() {
+      return (root.performance && root.performance.now) ? root.performance.now() : Date.now();
+    }
+
+    /* 스매시 한 번 — 짧은 탭·⚡ 버튼·미리보기가 모두 이 함수를 씁니다 */
+    function smash(fxId) {
+      smashFx = (fxId === undefined || fxId === null) ? customOf(ctx.store.state.me).effect : String(fxId);
+      smashAt = nowMs();
+      smashOn = true;
+      lastMove = Date.now();          /* 스매시 동안에는 자동 회전을 잠깐 멈춥니다 */
+      if (BM.ui) BM.ui.haptic(14);
+      paint();
+      return true;
+    }
 
     function fit() {
       var rect = cv.getBoundingClientRect();
@@ -1820,7 +2177,19 @@
       if (!alive) return;
       var c = customOf(ctx.store.state.me);
       var lvl = conditionOf(ctx.store.state).level;
+      var el = smashOn ? (holdAt != null ? holdAt : nowMs() - smashAt) : 0;
+      if (smashOn && el >= SMASH_MS) { smashOn = false; el = 0; }
+      /* 맞는 순간의 짧은 화면 흔들림 — 스매시가 살아 있을 때만 */
+      var shake = 0;
+      if (smashOn) {
+        var k2 = Math.max(0, 1 - el / SMASH_MS);
+        shake = Math.sin(el / 22) * 5 * k2 * Math.min(1, w / 360);
+      }
+      g.save();
+      if (shake) g.translate(shake, Math.cos(el / 31) * shake * 0.5);
       draw3d(g, v, c, lvl, w, h);
+      if (smashOn) drawSmash(g, v, geomOf(c), smashFx, el, w, h);
+      g.restore();
       lastPaint = Date.now();
       api.body = c.body;
       if (BM.racketcustom) BM.racketcustom._last3d = api;
@@ -1836,7 +2205,12 @@
         v.yaw += animate ? 0.0014 : 0.0032;    /* 가만히 두면 살짝 숨 쉬듯 돕니다 */
         viewMem.yaw = v.yaw;
       }
-      if (now - lastPaint > (animate ? 44 : 34)) {
+      /* 캡처용으로 멈춰 둔 동안에는 다시 그리지 않습니다 */
+      if (holdAt != null) { raf = root.requestAnimationFrame(loop); return; }
+      /* 스매시 동안에는 60fps로 부드럽게 — 끝나면 평소 주기로 돌아갑니다 */
+      if (smashOn && nowMs() - smashAt < SMASH_MS) {
+        paint();
+      } else if (now - lastPaint > (animate ? 44 : 34)) {
         if (animate) v.phase = (v.phase || 0) + 0.06;
         paint();
       }
@@ -1874,6 +2248,8 @@
       drag = null;
       lastMove = Date.now();
       if (!wasTap) return;
+      /* 짧은 탭 = 스매시 타격, '꾸미기' 모드에서만 부위 탭으로 파츠를 바꿉니다 */
+      if (stageMode !== 'paint') { smash(); return; }
       var slot = hitSlot(px, py, v, customOf(ctx.store.state.me));
       if (slot) pickSlot(host, ctx, slot);
     }
@@ -1909,19 +2285,25 @@
     var cells = itemsOf(slot).map(function (it) {
       var on = c[slot] === it.id;
       var open = isUnlocked(c, slot, it.id);
-      var price = it.free ? '무료' : (open ? '보유' : (it.cost || 50) + 'P');
+      var key = slot + ':' + it.id;
+      var ask = !open && it.heart && pendingBuy === key;      /* 한 번 더 누르면 하트로 열립니다 */
+      var price = it.free ? '무료' : (open ? '보유'
+        : (it.heart ? (ask ? '다시 눌러 열기' : '❤ ' + it.heart) : (it.cost || 50) + 'P'));
       var rar = rarityOf(it.rarity);
-      return '<button type="button" class="rkpart is-r-' + rar.id + (on ? ' is-on' : '') + (!open ? ' is-lock' : '') + '"' +
-        ' data-rk-part="' + slot + ':' + it.id + '" data-rk-slot="' + slot + '" data-rk-id="' + it.id + '"' +
+      return '<button type="button" class="rkpart is-r-' + rar.id + (on ? ' is-on' : '') + (!open ? ' is-lock' : '') +
+        (it.heart ? ' is-heart' : '') + (ask ? ' is-ask' : '') + '"' +
+        ' data-rk-part="' + key + '" data-rk-slot="' + slot + '" data-rk-id="' + it.id + '"' +
         ' data-rk-rarity="' + rar.id + '"' +
         ' aria-pressed="' + (on ? 'true' : 'false') + '"' +
-        ' aria-label="' + U.esc(def.label + ' ' + it.name + ' ' + rar.name + (open ? (on ? ' · 입고 있음' : ' · 입기') : ' · ' + (it.cost || 50) + 'P로 열기')) + '">' +
+        ' aria-label="' + U.esc(def.label + ' ' + it.name + ' ' + rar.name +
+          (open ? (on ? ' · 입고 있음' : ' · 입기')
+            : (it.heart ? ' · 하트 ' + it.heart + '개로 열기' : ' · ' + (it.cost || 50) + 'P로 열기'))) + '">' +
         '<i class="rkpart__sw" style="--c:' + it.color + '"></i>' +
         '<b class="rkpart__n">' + U.esc(it.name) + '</b>' +
         (it.note ? '<em class="rkpart__d">' + U.esc(it.note) + '</em>' : '') +
-        '<span class="rkpart__p' + (!open ? ' is-cost' : '') + '">' + U.esc(price) + '</span>' +
+        '<span class="rkpart__p' + (!open ? ' is-cost' : '') + (it.heart ? ' is-heartp' : '') + '">' + U.esc(price) + '</span>' +
         '<u class="rkrar">' + U.esc(rar.name) + '</u>' +
-        (!open ? '<span class="rkpart__lock" aria-hidden="true">🔒</span>' : '') +
+        (!open ? '<span class="rkpart__lock" aria-hidden="true">' + (it.heart ? '❤' : '🔒') + '</span>' : '') +
         '</button>';
     }).join('');
     return '<div class="rkgroup' + (slot === activeSlot ? ' is-active' : '') + '" data-rk-group="' + slot + '"' +
@@ -1933,6 +2315,12 @@
 
   /* 지금 고르는 파츠 — 3D 라켓에서 부위를 눌러도 여기가 바뀝니다 */
   var activeSlot = 'frame';
+  /* bm-v1.82.0 — 3D에서 짧은 탭이 하는 일
+   *  · smash(기본): 라켓을 톡 치면 불꽃 스매시 연출
+   *  · paint: 부위를 눌러 그 파츠 탭으로 (예전 동작)
+   * 드래그(360° 회전)는 두 모드 모두 그대로입니다. */
+  var stageMode = 'smash';
+  var pendingBuy = '';      /* 하트로 여는 파츠: 첫 탭은 미리보기, 한 번 더 누르면 구매 */
 
   function tabHtml() {
     return '<div class="rk3d__tabs" role="tablist" aria-label="바꿀 부위">' +
@@ -2018,6 +2406,22 @@
       '</div>';
   }
 
+  /* 3D 위 조작 줄 — 스매시 / 꾸미기 모드 + ⚡ 스매시 테스트 버튼 (bm-v1.82.0) */
+  function stageHtml(state) {
+    var c = customOf(state && state.me);
+    var big = c.effect === 'fire' || c.effect === 'thunder';
+    return '<div class="rkstage" data-rk-stage>' +
+      '<div class="rkstage__modes" role="group" aria-label="라켓 터치 동작">' +
+        '<button type="button" class="rkstage__m' + (stageMode === 'smash' ? ' is-on' : '') + '"' +
+          ' data-rk-mode="smash" aria-pressed="' + (stageMode === 'smash' ? 'true' : 'false') + '">⚡ 스매시</button>' +
+        '<button type="button" class="rkstage__m' + (stageMode === 'paint' ? ' is-on' : '') + '"' +
+          ' data-rk-mode="paint" aria-pressed="' + (stageMode === 'paint' ? 'true' : 'false') + '">🎨 꾸미기</button>' +
+      '</div>' +
+      '<button type="button" class="rkstage__go' + (big ? ' is-big' : '') + '" data-rk-smash="1"' +
+        ' aria-label="' + U.esc(smashLabel(c.effect) + ' 연출 쳐보기') + '">⚡ 스매시 테스트</button>' +
+      '</div>';
+  }
+
   function sheetBody(state) {
     var cond = conditionOf(state);
     var c = customOf(state.me);
@@ -2028,10 +2432,14 @@
     var bodyName = bodyOf(c.body).name;
     return '<div class="rksheet">' +
       /* 3D 라켓 — 끌어서 360°, 부위를 눌러 바로 꾸미기 */
-      '<div class="rk3d" data-rk-3d>' +
-        '<canvas class="rk3d__cv" width="600" height="760" aria-label="내 라켓 3D 보기 · 끌어서 돌리고 거트·테두리·그립을 눌러 꾸미기"></canvas>' +
+      '<div class="rk3d' + (stageMode === 'paint' ? ' is-paint' : '') + '" data-rk-3d>' +
+        '<canvas class="rk3d__cv" width="600" height="760" aria-label="내 라켓 3D 보기 · 끌어서 돌리고 톡 치면 불꽃 스매시"></canvas>' +
         bodyHtml(state) +
-        '<p class="rk3d__hint"><span aria-hidden="true">↔</span> 끌어서 360° 돌려보기 · <b>거트 · 테두리 · 그립</b>을 눌러 바로 바꿔요</p>' +
+        stageHtml(state) +
+        '<p class="rk3d__hint"><span aria-hidden="true">↔</span> 끌어서 360° 돌려보기 · ' +
+          (stageMode === 'paint'
+            ? '<b>거트 · 테두리 · 그립</b>을 눌러 바로 바꿔요'
+            : '라켓을 <b>톡</b> 치면 불꽃 스매시!') + '</p>' +
         tabHtml() +
       '</div>' +
       /* 줄 갈고 며칠째인지 — 바로 아래 한 줄 */
@@ -2103,6 +2511,7 @@
   function openSheet(ctx) {
     if (!hasDom || !BM.ui) return null;
     lastUnlock = null;
+    pendingBuy = '';
     activeSlot = 'frame';
     var state = ctx.store.state;
     if (state && state.me && state.me.key) {
@@ -2115,6 +2524,27 @@
         if (BM.views && BM.views.friends && BM.views.friends.bindCopy) BM.views.friends.bindCopy(host);
         mount3d(host, ctx);
         host.addEventListener('click', function (ev) {
+          /* ---- 스매시 / 꾸미기 모드 · ⚡ 스매시 테스트 (bm-v1.82.0) ---- */
+          var modeBtn = ev.target.closest('[data-rk-mode]');
+          if (modeBtn) {
+            ev.preventDefault();
+            var want = modeBtn.getAttribute('data-rk-mode');
+            if (want !== stageMode) {
+              stageMode = want === 'paint' ? 'paint' : 'smash';
+              pendingBuy = '';
+              BM.ui.haptic(6);
+              refreshSheet(host, ctx);
+            }
+            return;
+          }
+          if (ev.target.closest('[data-rk-smash]')) {
+            ev.preventDefault();
+            /* 연출이 이미 효과 이름을 크게 띄우므로 토스트로 가리지 않습니다 */
+            if (BM.racketcustom && BM.racketcustom._last3d && BM.racketcustom._last3d.smash) {
+              BM.racketcustom._last3d.smash();
+            }
+            return;
+          }
           var tab = ev.target.closest('.rk3d__tab');
           if (tab) {
             ev.preventDefault();
@@ -2162,6 +2592,60 @@
             var id = part.getAttribute('data-rk-id');
             var st = ctx.store.state;
             var cur = customOf(st.me);
+            var partIt = itemOf(slot, id) || {};
+            /* 하트로 여는 스페셜 스매시 — 첫 탭은 미리보기, 한 번 더 누르면 결제 */
+            if (isHeartItem(slot, id) && !isUnlocked(cur, slot, id)) {
+              var need = heartCostOf(slot, id);
+              var keyH = slot + ':' + id;
+              if (BM.racketcustom && BM.racketcustom._last3d && BM.racketcustom._last3d.smash) {
+                BM.racketcustom._last3d.smash(id);       /* 어떤 연출인지 먼저 보여 줍니다 */
+              }
+              if (pendingBuy !== keyH) {
+                pendingBuy = keyH;
+                BM.ui.haptic(8);
+                BM.ui.toast(partIt.name + ' · ❤ ' + need + '개 · 한 번 더 누르면 열려요');
+                refreshSheet(host, ctx);
+                return;
+              }
+              pendingBuy = '';
+              var hearts = (st.data && st.data.hearts && st.data.hearts.balance) || 0;
+              if (hearts < need) {
+                BM.ui.toast('하트가 ' + (need - hearts) + '개 부족해요 · 출석·광고로 모아 보세요', 'error');
+                refreshSheet(host, ctx);
+                return;
+              }
+              if (!ctx.actions.buySmash) {
+                BM.ui.toast('지금은 열 수 없어요 · 잠시 뒤 다시 시도해 주세요', 'error');
+                return;
+              }
+              BM.ui.toast(partIt.name + ' 여는 중…');
+              Promise.resolve(ctx.actions.buySmash(slot, id)).then(function (res) {
+                res = res || { ok: false, reason: 'error' };
+                if (res.ok) {
+                  lastUnlock = null;
+                  BM.ui.haptic(16);
+                  BM.ui.toast(res.purchased
+                    ? partIt.name + ' 열었어요 · ❤ ' + res.price + '개 사용'
+                    : partIt.name + ' 입었어요');
+                  paintHeader(ctx.store.state);
+                  if (ctx.repaint) ctx.repaint();
+                } else if (res.reason === 'hearts') {
+                  BM.ui.toast('하트가 ' + (res.need || need) + '개 부족해요 · 출석·광고로 모아 보세요', 'error');
+                } else if (res.reason === 'unknown') {
+                  BM.ui.toast('지금은 하트로 여는 준비 중이에요 · 연출은 그대로 미리 볼 수 있어요', 'error');
+                } else if (res.reason === 'paid_retry') {
+                  BM.ui.toast('하트 ' + (res.price || need) + '개로 열었어요 · 잠시 뒤 자동으로 입어져요');
+                } else if (res.reason === 'locked') {
+                  BM.ui.toast('잠시만요, 저장 중이에요 · 한 번 더 눌러 주세요', 'error');
+                } else if (res.reason === 'auth' || res.reason === 'no_login') {
+                  BM.ui.toast('로그인을 다시 확인해 주세요', 'error');
+                } else {
+                  BM.ui.toast('열지 못했어요 · 잠시 뒤 다시 시도해 주세요', 'error');
+                }
+                refreshSheet(host, ctx);
+              });
+              return;
+            }
             if (!isUnlocked(cur, slot, id)) {
               /* 원하는 파츠를 한 번에 열고 입습니다 — 포인트가 모자라면 미리 막습니다 */
               var price = costOf(slot, id);
@@ -2364,6 +2848,8 @@
     bodyHtml: bodyHtml, headLoop: headLoop,
     TIRED_DAYS: TIRED_DAYS, BROKEN_DAYS: BROKEN_DAYS, BURST_MS: BURST_MS,
     itemsOf: itemsOf, itemOf: itemOf, freeId: freeId, colorOf: colorOf, costOf: costOf,
+    heartCostOf: heartCostOf, isHeartItem: isHeartItem, smashLabel: smashLabel, smashPalette: smashPalette,
+    SMASH_MS: SMASH_MS, drawSmash: drawSmash,
     blankCustom: blankCustom, normalizeCustom: normalizeCustom, isUnlocked: isUnlocked,
     hasCustom: hasCustom, customOf: customOf, customFor: customFor, specText: specText,
     pointsDetail: pointsDetail, pointsBalance: pointsBalance, pointsToday: pointsToday,
@@ -2374,7 +2860,7 @@
       shaft: addShaft, grip: addGrip, charm: addCharm, paint: paintPrims, fxBack: fxBack,
       fxFront: fxFront, draw: draw3d },
     headerHtml: headerHtml, paintHeader: paintHeader,
-    sheetBody: sheetBody, openSheet: openSheet, pickSlot: pickSlot, mount3d: mount3d,
+    sheetBody: sheetBody, stageHtml: stageHtml, openSheet: openSheet, pickSlot: pickSlot, mount3d: mount3d,
     stringAge: stringAge, stringAgeHtml: stringAgeHtml,
     /* 3D 뷰 (테스트·재사용) */
     G3: G3, rot3: rot3, project3: project3, hitSlot: hitSlot, draw3d: draw3d, inPoly: inPoly,
