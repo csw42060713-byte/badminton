@@ -1,6 +1,6 @@
 # PLAY_STORE_GUIDE.md — 플레이 스토어 출시 가이드 (TWA · Bubblewrap)
 
-셔틀릭스(`Shuttlix`) 앱을 **구글 플레이 스토어**에 올리기까지의 순서입니다.
+배드민턴 분석 앱을 **구글 플레이 스토어**에 올리기까지의 순서입니다.
 웹 앱(PWA)을 그대로 안드로이드 앱으로 감싸는 **TWA(Trusted Web Activity)** 방식이라
 앱 코드는 웹사이트 한 벌만 관리하면 됩니다.
 
@@ -21,10 +21,8 @@
 | 대표 그래픽 | `store-assets/feature-graphic-1024x500.png` | ✅ 1024×500 PNG |
 | 스크린샷 4장 | `store-assets/screenshot-1~4-*.png` | ✅ 1080×1920 (405×720 화면, 9:16) |
 | 웹 앱 매니페스트 | `manifest.webmanifest` (+ 호환용 `manifest.json`) | ✅ id/scope/start_url/icons/maskable/screenshots |
-| 디지털 자산 링크 | `.well-known/assetlinks.json` (+ 필요 시 오리진 루트 사본) | ✅ **업로드 키 SHA-256 등록**(2026-11-26) · ⏳ Play 앱 서명 지문 추가 대기 |
-| Bubblewrap 설정 | `twa-manifest.json` | ✅ 지문·alias `shuttlix`·minSdk 24 반영 |
-| 업로드용 `.aab` | `shuttlix-1.78.0.aab` (versionCode 72) | ✅ 빌드·서명·검증 완료 · ⏳ Play Console 업로드 대기 |
-| 빌드 자동화 | `tools/build-aab.js` · `.github/workflows/build-aab.yml` | ✅ 준비됨(시크릿만 넣으면 Actions에서 .aab) |
+| 디지털 자산 링크 | `.well-known/assetlinks.json` | ⚠️ **지문 넣기 필요**(아래 2단계) |
+| Bubblewrap 설정 | `twa-manifest.json` | ⚠️ 지문·키 경로 확인 후 사용 |
 
 그래픽을 다시 만들려면:
 
@@ -66,17 +64,12 @@ TWA는 **앱 서명 지문**과 사이트의 `assetlinks.json`이 일치해야 �
 
 ### 2-1. 업로드 키(keystore) 만들기 — 한 번만, 절대 잃어버리지 마세요
 
-> **2026-11-26 완료.** 업로드 키를 우리 쪽에서 만들어 비공개 보관함에 두었습니다
-> (워크스페이스 `work/keystore/shuttlix-upload.keystore`, alias `shuttlix`, RSA 2048-bit, 10,000일,
-> 비밀번호는 같은 폴더 `KEYSTORE_INFO.txt`). **둘 다 깃에 없습니다** — 공개 저장소에 올리면 안 됩니다.
-> 이미 키가 있으니 아래 명령으로 **다시 만들지 마세요.** 잃어버리면 같은 패키지로 업데이트할 수 없습니다.
-
 ```bash
 keytool -genkeypair -v \
   -keystore android.keystore \
-  -alias shuttlix \
+  -alias android \
   -keyalg RSA -keysize 2048 -validity 10000 \
-  -dname "CN=Shuttlix, OU=Mobile, O=Shuttlix, L=Suwon, ST=Gyeonggi-do, C=KR"
+  -dname "CN=Badminton App, OU=Dev, O=Personal, L=Seoul, S=Seoul, C=KR"
 ```
 
 - 파일(`android.keystore`)과 비밀번호를 **안전한 곳에 백업**하세요.
@@ -86,13 +79,10 @@ keytool -genkeypair -v \
 ### 2-2. 지문(SHA-256) 확인
 
 ```bash
-keytool -list -v -keystore android.keystore -alias shuttlix
+keytool -list -v -keystore android.keystore -alias android
 # → Certificate fingerprints:
-#    SHA256: EB:05:FE:F5:CC:EB:A6:25:9E:8A:DC:39:12:DA:87:1C:C2:20:29:C3:BA:5A:DF:F3:48:09:E8:8F:E6:5E:0F:D0
+#    SHA256: 1A:2B:3C:...   ← 콜론 포함 32쌍
 ```
-
-업로드 키 지문은 **`EB:05:FE:F5:CC:EB:A6:25:9E:8A:DC:39:12:DA:87:1C:C2:20:29:C3:BA:5A:DF:F3:48:09:E8:8F:E6:5E:0F:D0`** 입니다
-(`.well-known/assetlinks.json`·`twa-manifest.json`에 이미 들어가 있습니다).
 
 ### 2-3. `.well-known/assetlinks.json` 채우기
 
@@ -104,23 +94,13 @@ keytool -list -v -keystore android.keystore -alias shuttlix
       "namespace": "android_app",
       "package_name": "io.github.csw42060713_byte.badminton",
       "sha256_cert_fingerprints": [
-        "EB:05:FE:F5:CC:EB:A6:25:9E:8A:DC:39:12:DA:87:1C:C2:20:29:C3:BA:5A:DF:F3:48:09:E8:8F:E6:5E:0F:D0"
+        "1A:2B:3C:...(업로드 키 지문)",
+        "9F:8E:7D:...(Play 앱 서명 키 지문)"
       ]
     }
   }
 ]
 ```
-
-> **남은 일:** 위 배열에 **Play 앱 서명 키 지문**을 한 줄 더 넣으면 스토어에서 받은 앱도 주소창 없이 뜹니다.
-> 지금은 업로드 키만 등록돼 있어, 우리가 서명한 `.aab`/APK로 설치한 테스트 빌드에서는 전체 화면이 됩니다.
-> 지문 형식은 콜론 포함 32쌍(대문자)이어야 하고, 임시 문구(`REPLACE_WITH_...`)를 남겨 두면 안 됩니다.
-
-> **⚠️ 오리진 루트 규칙 (GitHub Pages에서는 여기가 함정)** — 구글 문서와 앱 안의 `asset_statements`는
-> 사이트를 **`https://csw42060713-byte.github.io`(경로 없음)** 로 봅니다. 그래서 Chrome이 실제로 읽는 주소는
-> `https://csw42060713-byte.github.io/.well-known/assetlinks.json` 입니다.
-> 지금 파일은 `.../badminton/.well-known/assetlinks.json` 이라 서빙은 되지만 전체화면 검증에는 쓰이지 않습니다.
-> 해결: 같은 계정에 **`csw42060713-byte.github.io` 이름의 공개 저장소**를 만들어 루트에 같은 `assetlinks.json`을 두고
-> Pages를 켜면 됩니다(2분). 그 전까지는 앱이 커스텀탭처럼 위에 주소창이 보입니다 — Play 출시 자체는 가능합니다.
 
 - **Play 앱 서명 키 지문**은 Play Console → (앱) → 설정 → **앱 무결성 → 앱 서명**에서 확인합니다.
   (앱을 한 번 업로드한 뒤에 보입니다. 두 지문을 모두 넣어 두면 테스트 빌드와 스토어 빌드가 모두 동작합니다.)
@@ -146,38 +126,9 @@ https://developers.google.com/digital-asset-links/tools/generator
 
 ## 3. TWA 빌드 (.aab 만들기)
 
-> **2026-11-26 완료.** JDK 17 · Android SDK(compileSdk 36, build-tools 36) · Gradle 8.11.1을 새로 설치하고
-> Bubblewrap 1.27 템플릿으로 빌드해 **`shuttlix-1.78.0.aab`(2.9MB, versionCode 72)** 를 만들었습니다.
-> 업로드 키로 `jarsigner` 서명 → `jar verified`, `bundletool validate` 통과. 폰 테스트용 유니버설 APK도 같은 키로 만들었습니다.
-> 아래 방법 A·B는 손으로 빌드할 때의 기록이고, **같은 결과를 다시 만드는 길은 방법 0(스크립트)·방법 C(Actions)** 입니다.
+이 저장소의 `twa-manifest.json`을 그대로 쓰거나, 마법사로 새로 만들 수 있습니다.
 
-### 방법 0 — 이 저장소의 스크립트로 다시 빌드 (실제로 쓴 방법)
-
-```bash
-# 준비: JDK 17, Android SDK(ANDROID_HOME)에 platforms;android-36 · build-tools;36.0.0, Node 20
-npm install --no-save @bubblewrap/core@1.27.0
-node tools/build-aab.js --out build-twa            # twa-manifest.json → 안드로이드 프로젝트
-cd build-twa && ./gradlew bundleRelease             # app/build/outputs/bundle/release/app-release.aab
-jarsigner -keystore android.keystore -storepass <비밀번호> -keypass <비밀번호> \
-  -sigalg SHA256withRSA -digestalg SHA-256 app/build/outputs/bundle/release/app-release.aab shuttlix
-```
-
-- 버전만 올려서 다시 빌드하려면: `node tools/build-aab.js --out build-twa --version-name 1.79.0 --version-code 73`
-- `minSdkVersion`은 **24 이상**이어야 합니다(androidbrowserhelper 2.7.4 요구 — 21이면 매니페스트 병합에서 실패).
-
-### 방법 C — GitHub Actions (브라우저에서 버튼 한 번)
-
-워크플로우 파일은 **`tools/build-aab.workflow.yml`** 에 있습니다(앱 권한으로는 `.github/workflows/`에 바로 밀어 넣을 수 없습니다).
-
-1. GitHub 웹 저장소 → **Add file → Create new file** → 이름 `.github/workflows/build-aab.yml`
-   → `tools/build-aab.workflow.yml` 내용을 그대로 붙여 넣고 커밋.
-2. **Settings → Secrets and variables → Actions** 에 두 개를 넣습니다.
-   - `KEYSTORE_BASE64` = 업로드 키스토어를 base64로 인코딩한 값 (`base64 -w0 shuttlix-upload.keystore`)
-   - `KEYSTORE_PASSWORD` = 키스토어·키 비밀번호
-2. **Actions → "셔틀릭스 .aab 빌드" → Run workflow** (versionCode를 비우면 `twa-manifest.json` 값)
-3. **Actions → "셔틀릭스 .aab 빌드" → Run workflow** 로 실행하고, 끝나면 **Artifacts → shuttlix-aab** 에서 서명된 `app-release.aab` 를 받습니다.
-
-### 방법 A — 준비된 설정으로 빌드 (예전 기록)
+### 방법 A — 준비된 설정으로 빌드 (권장)
 
 ```bash
 mkdir -p ~/badminton-android && cd ~/badminton-android
@@ -208,8 +159,8 @@ bubblewrap build
 
 | 질문 | 넣을 값 |
 |---|---|
-| Application name | 셔틀릭스 (Shuttlix) |
-| Short name | 셔틀릭스 |
+| Application name | 배드민턴 분석 |
+| Short name | 배드민턴 |
 | Application ID | `io.github.csw42060713_byte.badminton` (**한 번 정하면 변경 불가**) |
 | Display mode | `standalone` |
 | Status bar / navigation color | `#F6F8F6` (나이트 테마는 `#080B0A`) |
@@ -229,7 +180,7 @@ bubblewrap build
 ## 4. Play Console 등록
 
 1. **Play Console → 앱 만들기**
-   - 앱 이름: `셔틀릭스` (30자 이내 — 스토어 등록 이름)
+   - 앱 이름: `배드민턴 분석` (30자 이내)
    - 기본 언어: 한국어
    - 앱 또는 게임: 앱 / 무료
    - 선언: 개발자 프로그램 정책 동의
@@ -244,7 +195,7 @@ bubblewrap build
 | 앱 아이콘 | 512×512 PNG (32bit) | `store-assets/icon-512.png` |
 | 대표 그래픽 | 1024×500 PNG/JPG | `store-assets/feature-graphic-1024x500.png` |
 | 휴대전화 스크린샷 | 2~8장, 320~3840px, 16:9~9:16 | `store-assets/screenshot-1-matching.png` … `-4-my.png` (1080×1920) |
-| 앱 이름 | 30자 | 셔틀릭스 (Shuttlix) |
+| 앱 이름 | 30자 | 배드민턴 분석 |
 | 간단한 설명 | 80자 | 아래 문구 사용 |
 | 자세한 설명 | 4000자 | 아래 문구 사용 |
 

@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "io.github.csw42060713_byte.badminton",
       "sha256_cert_fingerprints": [
-        "EB:05:FE:F5:CC:EB:A6:25:9E:8A:DC:39:12:DA:87:1C:C2:20:29:C3:BA:5A:DF:F3:48:09:E8:8F:E6:5E:0F:D0"
+        "REPLACE_WITH_UPLOAD_KEY_SHA256",
+        "REPLACE_WITH_PLAY_APP_SIGNING_SHA256"
       ]
     }
   }

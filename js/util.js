@@ -206,17 +206,6 @@
     catch (e) { return false; }
   }
 
-  /* ---------- 결과가 바로 오거나(Promise) 나중에 오는 자리 ----------
-   * bm-v1.75.0 — 하트 적립·차감은 서버(Supabase RPC)가 처리하므로 결과가 Promise 로 옵니다.
-   * 예전(기기 저장·시트 브리지)처럼 바로 돌려주는 결과도 같은 코드로 받도록,
-   * 화면은 when(결과, 함수) 로 감싸기만 하면 됩니다. */
-  function when(res, fn) {
-    if (res && typeof res.then === 'function') {
-      return res.then(fn, function () { return fn({ ok: false, reason: 'error' }); });
-    }
-    return fn(res);
-  }
-
   /* ---------- 햅틱 ---------- */
   function haptic(ms) {
     try {
@@ -232,6 +221,6 @@
     uid: uid, clientId: clientId,
     debounce: debounce, throttle: throttle, sleep: sleep,
     storage: storage, readJSON: readJSON, writeJSON: writeJSON, memoryStorage: memoryStorage,
-    when: when, haptic: haptic
+    haptic: haptic
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

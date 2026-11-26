@@ -1,8 +1,8 @@
 {
   "packageId": "io.github.csw42060713_byte.badminton",
   "host": "csw42060713-byte.github.io",
-  "name": "셔틀릭스",
-  "launcherName": "셔틀릭스",
+  "name": "배드민턴 분석",
+  "launcherName": "배드민턴",
   "display": "standalone",
   "themeColor": "#F6F8F6",
   "themeColorDark": "#080B0A",
@@ -14,9 +14,8 @@
   "iconUrl": "https://csw42060713-byte.github.io/badminton/store-assets/icon-512.png",
   "maskableIconUrl": "https://csw42060713-byte.github.io/badminton/icons/icon-maskable-512.png",
   "splashScreenFadeOutDuration": 300,
-  "appVersionName": "1.85.0",
-  "appVersionCode": 79,
-  "minSdkVersion": 24,
+  "appVersionName": "1.68.0",
+  "appVersionCode": 62,
   "shortcuts": [
     {
       "name": "오늘 일지 쓰기",
@@ -36,14 +35,12 @@
   "fallbackType": "customtabs",
   "features": {},
   "orientation": "portrait",
-  "fingerprints": [
-    "EB:05:FE:F5:CC:EB:A6:25:9E:8A:DC:39:12:DA:87:1C:C2:20:29:C3:BA:5A:DF:F3:48:09:E8:8F:E6:5E:0F:D0"
-  ],
+  "fingerprints": [],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
   "signingKey": {
     "path": "./android.keystore",
-    "alias": "shuttlix"
+    "alias": "android"
   },
-  "appVersion": "1.85.0"
+  "appVersion": "1.68.0"
 }

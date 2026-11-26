@@ -59,15 +59,13 @@
   var model = {
     scope: 'guest', onlyFav: false, query: '', region: 'all', club: '', geo: null, geoState: 'idle', focus: '',
     home: null, posts: [], profiles: [], now: null,
-    onlyLit: false, recruitOpen: false, draft: null, pickHome: false, person: '',
-    suggestOpen: false      /* 검색 후보 목록이 열려 있는지 (bm-v1.82.0) */
+    onlyLit: false, recruitOpen: false, draft: null, pickHome: false, person: ''
   };
   var map = null;              /* Leaflet 지도 */
   var markerLayer = null;
   var meLayer = null;          /* 내 위치 점 */
   var homeLayer = null;        /* 내 집 점 + 반경 5km 원 */
   var peopleLayer = null;      /* 동네 동호인 */
-  var routeLayer = null;       /* 내 위치 → 고른 체육관 경로선 · 방향 화살표 (bm-v1.82.0) */
   var histHeld = false;
   var tileBroken = false;
 
@@ -447,205 +445,6 @@
       '</label>';
   }
 
-  /* ============================================================
-   * 진짜 지도 앱처럼 — 방향 · 거리 · 예상 시간 · 길찾기 (bm-v1.82.0)
-   *  승우 님: "지도 쓰기좀 불편한거 같아 내가 체육관치면 내위치에서 가는뱡향도
-   *           알려주고 하면 좋을거 같아 진짜 지도 앱처럼"
-   *   · 출발점: 위치를 허용했으면 '내 위치', 아니면 '내 집'(기준 위치)을 씁니다.
-   *   · 방위(8방위)는 두 좌표의 대권 방위각으로 계산합니다(북쪽 기준 시계 방향).
-   *   · 예상 시간은 직선거리에 도로 보정(×1.28)을 한 뒤 평균 속도로 나눈 '대략' 값입니다.
-   *     (도보 4.4km/h · 차량 24km/h+2분 · 대중교통 18km/h+6분 — 지도 앱처럼 어림값)
-   *   · 길찾기 버튼은 네이버 지도·카카오맵·구글 지도 길찾기 링크를 그대로 엽니다.
-   * ============================================================ */
-  var DIR8 = ['북쪽', '북동쪽', '동쪽', '남동쪽', '남쪽', '남서쪽', '서쪽', '북서쪽'];
-  var DEFAULT_BASE = { lat: 37.2455, lng: 127.0565, label: '수원 영통 · 망포동' };
-
-  function bearingDeg(from, to) {
-    var a = G().pointOf(from), b = G().pointOf(to);
-    if (!a || !b) return null;
-    var p1 = a.lat * Math.PI / 180, p2 = b.lat * Math.PI / 180;
-    var dl = (b.lng - a.lng) * Math.PI / 180;
-    var y = Math.sin(dl) * Math.cos(p2);
-    var x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
-    var deg = Math.atan2(y, x) * 180 / Math.PI;
-    return (deg + 360) % 360;
-  }
-
-  /* 0°(북) ~ 315° 를 8방위 이름으로 — '북동쪽 1.8km' 처럼 읽습니다 */
-  function dir8(deg) {
-    if (deg == null || !isFinite(deg)) return '';
-    return DIR8[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
-  }
-
-  function metersLabel(km) {
-    var k = Number(km);
-    if (!isFinite(k) || k < 0) return '';
-    if (k < 1) return Math.max(10, Math.round(k * 100) * 10) + ' m';
-    return k.toFixed(1) + ' km';
-  }
-
-  function minLabel(min) {
-    var m = Math.max(1, Math.round(Number(min) || 1));
-    if (m < 60) return m + '분';
-    var h = Math.floor(m / 60), r = m % 60;
-    return h + '시간' + (r ? ' ' + r + '분' : '');
-  }
-
-  /* 출발점 — 위치를 허용했으면 내 위치, 아니면 내 집(기준 위치) */
-  function meStart(m) {
-    if (m && m.geo) return { lat: m.geo.lat, lng: m.geo.lng, label: '내 위치', live: true };
-    var h = homeOf(m);
-    if (h && isFinite(h.lat) && isFinite(h.lng)) {
-      return { lat: h.lat, lng: h.lng, label: '내 집' + (h.label ? ' · ' + h.label : ''), live: false };
-    }
-    return { lat: DEFAULT_BASE.lat, lng: DEFAULT_BASE.lng, label: '기본 기준 · ' + DEFAULT_BASE.label, live: false };
-  }
-
-  /* 두 점 사이 방향·거리·예상 시간 (테스트·화면이 같은 함수를 씁니다) */
-  function routeInfo(from, to) {
-    var a = G().pointOf(from), b = G().pointOf(to);
-    if (!a || !b) return null;
-    var km = G().distanceKm(a, b);
-    if (km == null) return null;
-    var bearing = bearingDeg(a, b);
-    var road = km * 1.28;                                  /* 직선 → 도로 어림값 */
-    var walk = Math.max(1, Math.round(road / 4.4 * 60));
-    var drive = Math.max(3, Math.round(road / 24 * 60) + 2);
-    var transit = Math.max(5, Math.round(road / 18 * 60) + 6);
-    return {
-      km: km, roadKm: Math.round(road * 10) / 10,
-      bearing: bearing, dir: dir8(bearing),
-      distance: metersLabel(km),
-      walk: walk, drive: drive, transit: transit,
-      walkText: '약 ' + minLabel(walk),
-      driveText: '약 ' + minLabel(drive),
-      transitText: '약 ' + minLabel(transit)
-    };
-  }
-
-  /* 길찾기 링크 — 네이버 지도 · 카카오맵 · 구글 지도 (앱에서도 그 브라우저 지도가 열립니다) */
-  function navLinks(from, v) {
-    var s = from || {}, t = v || {};
-    var name = encodeURIComponent(String(t.name || '체육관'));
-    var start = encodeURIComponent(String(s.label || '내 위치').replace(/\s*·\s*/g, ' '));
-    return {
-      naver: 'https://map.naver.com/p/directions/' + s.lng + ',' + s.lat + ',' + t.lng + ',' + t.lat + '/-/walk',
-      kakao: 'https://map.kakao.com/link/from/' + start + ',' + s.lat + ',' + s.lng + '/to/' + name + ',' + t.lat + ',' + t.lng,
-      google: 'https://www.google.com/maps/dir/?api=1&origin=' + s.lat + ',' + s.lng +
-        '&destination=' + t.lat + ',' + t.lng + '&travelmode=transit'
-    };
-  }
-
-  /* 검색 후보 — 한 글자만 쳐도 '체육관 이름 · 동네'로 바로 보여 줍니다 */
-  function suggestHtml(m) {
-    if (!m || !m.suggestOpen) return '';
-    var q = String(m.query || '').trim();
-    if (!q) return '';
-    var from = meStart(m);
-    var list = G().filter(G().all(), { query: q }).slice(0, 6);
-    if (!list.length) {
-      return '<div class="gymsug" data-gymsug role="listbox" aria-label="검색 후보">' +
-        '<p class="gymsug__none">"' + U.esc(q) + '" 로 찾은 체육관이 없어요 · 동네 이름으로도 찾아보세요</p>' +
-        '<button type="button" class="gymsug__more" data-gym-search-clear>검색 지우기</button></div>';
-    }
-    var rows = list.map(function (v) {
-      var d = G().distanceKm(from, v);
-      return '<button type="button" class="gymsug__row" role="option" aria-selected="false"' +
-        ' data-gymsug="' + U.esc(v.id) + '">' +
-        '<i class="gymsug__pin" aria-hidden="true">' + UI.icon('pin') + '</i>' +
-        '<b>' + U.esc(v.name) + '</b>' +
-        '<span>' + U.esc([v.area, v.courts ? '코트 ' + v.courts + '면' : ''].filter(Boolean).join(' · ')) + '</span>' +
-        '<em>' + (d != null ? U.esc(metersLabel(d)) : '') + '</em>' +
-        '</button>';
-    }).join('');
-    return '<div class="gymsug" data-gymsug role="listbox" aria-label="검색 후보">' + rows +
-      '<p class="gymsug__hint">체육관을 누르면 지도가 그 곳으로 이동해요</p></div>';
-  }
-
-  /* 지도 위 경로선 (오프라인 핀 지도용) — 두 점이 모두 보일 때만 */
-  function routeOverlayHtml(m) {
-    var v = m && m.focus ? G().get(m.focus) : null;
-    if (!v) return '';
-    var from = meStart(m);
-    var h = homeOf(m);
-    if (!h) return '';
-    var box = homeBox(h);
-    var p1 = boxPos(box, from.lat, from.lng);
-    var p2 = boxPos(box, v.lat, v.lng);
-    if (!p1 || !p2) return '';
-    var deg = bearingDeg(from, v) || 0;
-    var ax = p1.x + (p2.x - p1.x) * 0.6, ay = p1.y + (p2.y - p1.y) * 0.6;
-    return '<svg class="gymroute__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">' +
-      '<line x1="' + p1.x + '" y1="' + p1.y + '" x2="' + p2.x + '" y2="' + p2.y + '"' +
-      ' vector-effect="non-scaling-stroke" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="6 5"/></svg>' +
-      '<span class="gymroute__arrow" style="left:' + ax.toFixed(2) + '%;top:' + ay.toFixed(2) + '%;transform:translate(-50%,-50%) rotate(' + Math.round(deg) + 'deg)" aria-hidden="true">▲</span>';
-  }
-
-  /* 선택한 체육관까지의 길찾기 카드 — 방향 · 거리 · 예상 시간 · 원탭 길찾기 */
-  function routeCardHtml(m) {
-    var v = m && m.focus ? G().get(m.focus) : null;
-    if (!v) {
-      return '<section class="gymroute is-idle" data-gym-routecard>' +
-        '<p class="gymroute__idleline">' + UI.icon('pin') +
-        '<span>체육관을 <b>검색</b>하거나 지도에서 <b>핀</b>을 누르면 내 위치에서 <b>어느 방향 · 얼마나 걸리는지</b> 바로 알려드려요.</span></p>' +
-        '</section>';
-    }
-    var from = meStart(m);
-    var info = routeInfo(from, v);
-    var links = navLinks(from, v);
-    if (!info) {
-      return '<section class="gymroute" data-gym-routecard="' + U.esc(v.id) + '">' +
-        '<p class="gymroute__idleline">' + UI.icon('pin') + '<span>' + U.esc(v.name) + '</span></p></section>';
-    }
-    var noGeo = !m.geo;
-    return '<section class="gymroute" data-gym-routecard="' + U.esc(v.id) + '" data-gym-route-dir="' + U.esc(info.dir) + '">' +
-      '<div class="gymroute__top">' +
-      '<div class="gymroute__t">' +
-      '<span class="pill pill--ok">' + UI.icon('target') + '여기서 출발</span>' +
-      '<h3>' + U.esc(v.name) + '</h3>' +
-      '<p>' + U.esc([v.area, v.courts ? '코트 ' + v.courts + '면' : ''].filter(Boolean).join(' · ')) + '</p>' +
-      '</div>' +
-      '<button type="button" class="gymroute__x" data-gym-focus-clear aria-label="길찾기 닫기">' + UI.icon('close') + '</button>' +
-      '</div>' +
-      '<div class="gymroute__sum">' +
-      '<div class="gymroute__dir">' +
-      '<i class="gymroute__compass" style="transform:rotate(' + Math.round(info.bearing) + 'deg)" aria-hidden="true">▲</i>' +
-      '<b data-gym-route-dirtext>' + U.esc(info.dir + ' ' + info.distance) + '</b>' +
-      '<span>' + U.esc(from.label + '에서 직선') + '</span>' +
-      '</div>' +
-      '<ul class="gymroute__times">' +
-      '<li><i aria-hidden="true">🚶</i><span>도보</span><b>' + U.esc(info.walkText) + '</b></li>' +
-      '<li><i aria-hidden="true">🚗</i><span>차량</span><b>' + U.esc(info.driveText) + '</b></li>' +
-      '<li><i aria-hidden="true">🚌</i><span>대중교통</span><b>' + U.esc(info.transitText) + '</b></li>' +
-      '</ul>' +
-      '</div>' +
-      (noGeo
-        ? '<p class="gymroute__geo">' + UI.icon('target') +
-          '<span>' + (m.geoState === 'off'
-            ? '위치를 허용하면 <b>지금 내 자리</b>에서 방향·거리를 알려드려요.'
-            : '<b>내 집</b> 기준으로 계산했어요 · 위치를 허용하면 지금 내 자리에서 알려드려요.') + '</span>' +
-          '<button type="button" class="btn btn--ghost btn--sm" data-gym-gps>내 위치</button></p>'
-        : '') +
-      '<a class="btn btn--primary gymroute__go" href="' + U.esc(links.naver) + '" target="_blank" rel="noopener"' +
-      ' data-gym-nav="' + U.esc(v.id) + '" aria-label="' + U.esc(v.name + '까지 길찾기 열기') + '">' +
-      UI.icon('pin') + '길찾기<span aria-hidden="true">↗</span></a>' +
-      '<div class="gymroute__apps">' +
-      '<a href="' + U.esc(links.naver) + '" target="_blank" rel="noopener">네이버 지도</a>' +
-      '<a href="' + U.esc(links.kakao) + '" target="_blank" rel="noopener">카카오맵</a>' +
-      '<a href="' + U.esc(links.google) + '" target="_blank" rel="noopener">구글 지도</a>' +
-      '</div>' +
-      '<p class="gymroute__hint">예상 시간은 직선거리로 계산한 어림값이에요 · 실제 도로 사정에 따라 달라요</p>' +
-      '</section>';
-  }
-
-  /* 지도 우측 아래 '내 위치(GPS)' 버튼 */
-  function gpsBtnHtml(m) {
-    var busy = m.geoState === 'locating';
-    return '<button type="button" class="gymgps' + (m.geo ? ' is-on' : '') + (busy ? ' is-busy' : '') + '"' +
-      ' data-gym-gps aria-label="내 위치(GPS)로 지도 맞추기"' + (busy ? ' disabled' : '') + '>' +
-      UI.icon('target') + '<span>' + (busy ? '찾는 중…' : '내 위치') + '</span></button>';
-  }
-
   /* 오프라인(Leaflet 없음) 핀 지도 — 체육관 + 내 집 + 반경 5km 원 + 동호인을 % 위치로 */
   function homeBox(h, km) {
     var dLat = (km || N().RADIUS_KM) / 111.32;
@@ -805,22 +604,16 @@
       '<div data-gymhome>' + homeRowHtml(m) + '</div>' +
       '<div data-gymnear>' + nearHtml(m) + '</div>' +
       '<div data-gymfavs>' + favSectionHtml(m) + '</div>' + segHost(m) +
-      '<div class="gymfilters">' + searchHtml(m) +
-      '<div data-gymsuggest>' + suggestHtml(m) + '</div>' +
-      '<div data-gymreghost>' + regionChipsHtml(m) + '</div></div>' +
+      '<div class="gymfilters">' + searchHtml(m) + '<div data-gymreghost>' + regionChipsHtml(m) + '</div></div>' +
       '<div data-gymgeohost>' + geoHtml(m) + '</div>' +
       '<div class="gymmapwrap">' +
       /* 지도 상자(data-gymmap)는 다시 그려도 그대로 둡니다 — Leaflet 인스턴스가 그 안에 살아 있습니다 */
-      '<div class="gymmap' + (m.focus ? ' has-route' : '') + '" data-gymmap>' +
+      '<div class="gymmap" data-gymmap>' +
       '<div class="gymmap__fallback" data-gympins aria-hidden="true">' + pinsHtml(m) + '</div>' +
-      /* 오프라인 핀 지도용 경로선 — Leaflet 이 뜨면 숨깁니다 */
-      '<div class="gymfroute" data-gymfroute aria-hidden="true">' + routeOverlayHtml(m) + '</div>' +
-      gpsBtnHtml(m) +
       '</div>' +
       '<p class="gymmap__note" data-gymnote>' + mapNoteInner(m) + '</p>' +
       '<p class="gymmap__legend" data-gymlegend>' + legendHtml() + '</p>' +
       '</div>' +
-      '<div data-gymrouthost>' + routeCardHtml(m) + '</div>' +
       '<div data-gymrecruit>' + recruitHtml(m) + '</div>' +
       '<div data-gymlist>' + listHtml(m) + '</div>' +
       '<p class="hint gympage__hint">체육관 정보는 공개 자료를 정리한 것이고, 운영 시간·요금은 바뀔 수 있어요. ' +
@@ -875,8 +668,7 @@
       now: (m && m.now) || null, onlyLit: !!(m && m.onlyLit),
       recruitOpen: !!(m && m.recruitOpen),
       draft: (m && m.draft) || null,
-      person: (m && m.person) || '',
-      suggestOpen: !!(m && m.suggestOpen)
+      person: (m && m.person) || ''
     };
     return headHtml(mm) + '<div class="gympage__body" data-gymbody>' + bodyHtml(mm) + '</div>' +
       '<div class="gymacthost" data-gymacthost>' + actHostHtml(mm) + '</div>';
@@ -913,10 +705,7 @@
       zoomSnap: 0.25, zoomDelta: 0.5
     });
     map.attributionControl.setPrefix(false);
-    /* 오른쪽 아래는 '내 위치(GPS)' 버튼 자리 — 저작권 표기는 왼쪽 아래로 */
-    try { map.attributionControl.setPosition('bottomleft'); } catch (e) { /* 위치를 못 옮겨도 지도는 그대로 */ }
-    /* bm-v1.82.0 — 오른쪽 아래는 '내 위치(GPS)' 버튼 자리라 확대/축소는 위로 옮겼습니다 */
-    L.control.zoom({ position: 'topright' }).addTo(map);
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
     var tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '지도 © OpenStreetMap'
@@ -930,7 +719,6 @@
     homeLayer = L.layerGroup().addTo(map);
     markerLayer = L.layerGroup().addTo(map);
     peopleLayer = L.layerGroup().addTo(map);
-    routeLayer = L.layerGroup().addTo(map);
     /* 지도에서 '내 집 찍기' 모드일 때만 누른 자리를 내 집으로 */
     map.on('click', onMapClick);
     fitHome();
@@ -940,56 +728,6 @@
     syncMarkers();
     syncPeople();
     syncMe();
-    syncRoute();
-  }
-
-  /* ---------- 경로선 · 방향 화살표 (bm-v1.82.0) ---------- */
-  function routeArrowIcon(deg) {
-    var L = leaflet();
-    return L.divIcon({
-      className: 'gyroute-arrow-wrap',
-      html: '<span class="gyroute-arrow" style="transform:rotate(' + Math.round(deg) + 'deg)">▲</span>',
-      iconSize: [22, 22], iconAnchor: [11, 11]
-    });
-  }
-
-  /* 고른 체육관까지 지도 위에 직선 경로 + 방향 화살표를 그립니다 */
-  function syncRoute() {
-    var L = leaflet();
-    if (!L || !map || !routeLayer) return;
-    routeLayer.clearLayers();
-    var v = model.focus ? G().get(model.focus) : null;
-    if (!v) return;
-    var from = meStart(model);
-    var a = G().pointOf(from), b = G().pointOf(v);
-    if (!a || !b) return;
-    routeLayer.addLayer(L.polyline([[a.lat, a.lng], [b.lat, b.lng]], {
-      color: '#ffffff', weight: 8, opacity: 0.55, lineCap: 'round', interactive: false
-    }));
-    routeLayer.addLayer(L.polyline([[a.lat, a.lng], [b.lat, b.lng]], {
-      color: LIVE, weight: 4, opacity: 0.95, dashArray: '10 8', lineCap: 'round', interactive: false
-    }));
-    var deg = bearingDeg(a, b) || 0;
-    var mid = [a.lat + (b.lat - a.lat) * 0.6, a.lng + (b.lng - a.lng) * 0.6];
-    routeLayer.addLayer(L.marker(mid, {
-      icon: routeArrowIcon(deg), keyboard: false, interactive: false, zIndexOffset: 500
-    }));
-  }
-
-  /* 출발점과 도착점이 모두 보이게 (고른 체육관이 화면 가운데 오도록) */
-  function fitRoute() {
-    var L = leaflet();
-    if (!L || !map) return;
-    var v = model.focus ? G().get(model.focus) : null;
-    if (!v) return;
-    var from = meStart(model);
-    var a = G().pointOf(from), b = G().pointOf(v);
-    if (!a || !b) return;
-    if (Math.abs(a.lat - b.lat) < 0.0004 && Math.abs(a.lng - b.lng) < 0.0004) {
-      map.setView([b.lat, b.lng], 16, { animate: true });
-      return;
-    }
-    map.fitBounds(L.latLngBounds([[a.lat, a.lng], [b.lat, b.lng]]).pad(0.32), { animate: true, maxZoom: 16 });
   }
 
   /* ---------- 내 집 점 · 반경 5km 원 ---------- */
@@ -1268,8 +1006,6 @@
     UI.haptic(8);
     refresh();
     syncPeople();
-    /* 헤더의 '매칭 ON / 휴식 중' 배지도 바로 따라가게 (bm-v1.82.0) */
-    if (BM.app && BM.app.paintChrome) BM.app.paintChrome();
   }
 
   function pickRange(id) {
@@ -1280,7 +1016,6 @@
     UI.toast('운동 가능 시간을 ‘' + r.label + '’로 바꿨어요');
     refresh();
     syncPeople();
-    if (BM.app && BM.app.paintChrome) BM.app.paintChrome();
   }
 
   /* '내 집 정하기' 시트 — 현재 위치 · 동네 프리셋 · 지도에서 찍기 */
@@ -1402,9 +1137,6 @@
     put('[data-gymseg]', segHtml(model));
     put('[data-gymreghost]', regionChipsHtml(model));
     put('[data-gymgeohost]', geoHtml(model));
-    put('[data-gymsuggest]', suggestHtml(model));
-    put('[data-gymrouthost]', routeCardHtml(model));
-    put('[data-gymfroute]', routeOverlayHtml(model));
     put('[data-gympins]', pinsHtml(model));
     put('[data-gymnote]', mapNoteInner(model));
     put('[data-gymlist]', listHtml(model));
@@ -1413,8 +1145,7 @@
     syncHome();
     syncPeople();
     syncMe();
-    syncRoute();
-    if (map && !model.geo && !model.focus) fitVisibleAfterChange();
+    if (map && !model.geo) fitVisibleAfterChange();
   }
 
   /* 보기(전체/즐겨찾기만)·권역·검색이 바뀌면 그 결과가 다 들어오게 지도를 맞춥니다 */
@@ -1445,7 +1176,6 @@
     meLayer = null;
     homeLayer = null;
     peopleLayer = null;
-    routeLayer = null;
     tileBroken = false;
     if (page && page.parentNode) page.parentNode.removeChild(page);
     page = null;
@@ -1550,7 +1280,7 @@
       now: optsRef.now || null,
       onlyLit: false, recruitOpen: !!optsRef.recruitOpen,
       draft: { place: focusVenue ? focusVenue.name : '', when: '', cap: '', fee: '' },
-      pickHome: false, person: '', suggestOpen: false
+      pickHome: false, person: ''
     };
 
     page = document.createElement('div');
@@ -1572,11 +1302,7 @@
     /* 모집글·프로필에서 특정 체육관으로 들어왔을 때 — 지도를 그 곳에 두고 요약을 위에 */
     if (model.focus) {
       var fv = G().get(model.focus);
-      if (map) {
-        map.setView([fv.lat, fv.lng], 15, { animate: false });
-        syncRoute();
-        if (optsRef.focus) setTimeout(function () { if (page) fitRoute(); }, 60);
-      }
+      if (fv && map) map.setView([fv.lat, fv.lng], 15, { animate: false });
     }
     return page;
   }
@@ -1621,53 +1347,6 @@
     }
   }
 
-  /* 체육관 하나를 '길찾기 대상'으로 고릅니다 — 지도에 경로선·방향 화살표를 그리고 카드에 방향·시간 */
-  function selectVenue(id, opts) {
-    var v = G().get(id);
-    if (!v) return;
-    opts = opts || {};
-    model.focus = v.id;
-    model.suggestOpen = false;
-    UI.haptic(6);
-    refresh();
-    if (map) { syncRoute(); fitRoute(); }
-    if (opts.scroll !== false && page) {
-      var host = mapHost();
-      if (host && host.scrollIntoView) host.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      else {
-        var card = page.querySelector('[data-gym-routecard]');
-        if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-    if (opts.card) raiseCard(v.id);
-  }
-
-  /* 지도 오른쪽 아래 '내 위치(GPS)' — 한 번만 위치를 받아 지도·경로를 내 자리로 */
-  function locateNow() {
-    if (model.geoState === 'locating') return;
-    model.geoState = 'locating';
-    UI.haptic(6);
-    refresh();
-    locate(function (pos) {
-      if (!page) return;
-      if (!pos) {
-        model.geoState = 'off';
-        refresh();
-        UI.toast('위치를 받지 못했어요 · 브라우저 위치 권한을 확인해 주세요', 'error');
-        return;
-      }
-      model.geo = pos;
-      model.geoState = 'on';
-      UI.haptic(8);
-      refresh();
-      if (map) {
-        if (model.focus) { syncRoute(); fitRoute(); }
-        else map.setView([pos.lat, pos.lng], 15, { animate: true });
-      }
-      UI.toast('내 위치를 찾았어요 · 여기서부터 방향과 거리를 알려드려요');
-    });
-  }
-
   function bind(root, ctx) {
     /* 모집 글 작성 칸은 화면을 다시 그려도 값이 남게 모델에 적어 둡니다 */
     root.addEventListener('input', function (ev) {
@@ -1679,30 +1358,6 @@
 
     root.addEventListener('click', function (ev) {
       if (ev.target.closest('[data-gym-close]')) { ev.preventDefault(); close(); return; }
-
-      /* 검색 후보 — 누르면 그 체육관으로 지도 이동 + 길찾기 카드 (bm-v1.82.0) */
-      var sug = ev.target.closest('[data-gymsug]');
-      if (sug) {
-        ev.preventDefault();
-        var sv = G().get(sug.getAttribute('data-gymsug'));
-        if (!sv) return;
-        model.query = sv.name;
-        var box0 = page && page.querySelector('[data-gym-search]');
-        if (box0) box0.value = sv.name;
-        var host0 = page && page.querySelector('.gymsearch');
-        if (host0) host0.classList.add('has-q');
-        selectVenue(sv.id, { scroll: true, card: false });
-        return;
-      }
-      /* 후보 바깥을 누르면 후보만 접습니다(검색어·목록은 그대로) */
-      if (model.suggestOpen && !ev.target.closest('.gymfilters')) {
-        model.suggestOpen = false;
-        var sg = page && page.querySelector('[data-gymsuggest]');
-        if (sg) sg.innerHTML = '';
-      }
-
-      /* 지도 '내 위치(GPS)' 버튼 · 길찾기 카드의 내 위치 */
-      if (ev.target.closest('[data-gym-gps]')) { ev.preventDefault(); locateNow(); return; }
 
       /* ---- 내 상태 (운동 중 · 운동 가능 시간) ---- */
       if (ev.target.closest('[data-mystat-work]')) {
@@ -1820,7 +1475,6 @@
       if (ev.target.closest('[data-gym-search-clear]')) {
         ev.preventDefault();
         model.query = '';
-        model.suggestOpen = false;
         var host = page && page.querySelector('.gymsearch');
         var box = page && page.querySelector('[data-gym-search]');
         if (box) box.value = '';
@@ -1836,7 +1490,6 @@
       if (ev.target.closest('[data-gym-focus-clear]')) {
         ev.preventDefault();
         model.focus = '';
-        model.suggestOpen = false;
         refresh();
         fitSeoul();
         return;
@@ -1850,14 +1503,14 @@
         ev.preventDefault();
         var pid = pin.getAttribute('data-gym-pin');
         if (optsRef.onPick) { pick(pid); return; }
-        /* 핀을 누르면 그 체육관까지의 방향·거리·시간이 바로 뜨고 지도도 함께 맞춰집니다 */
-        selectVenue(pid, { scroll: false, card: false });
         raiseCard(pid);
+        var card = page && page.querySelector('[data-gym-card="' + pid + '"]');
+        if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
 
       var view = ev.target.closest('[data-gym-view]');
-      if (view) { ev.preventDefault(); selectVenue(view.getAttribute('data-gym-view'), { scroll: true }); return; }
+      if (view) { ev.preventDefault(); focusVenue(view.getAttribute('data-gym-view')); return; }
 
       var club = ev.target.closest('[data-gym-club]');
       if (club) { ev.preventDefault(); setClub(club.getAttribute('data-gym-club'), ctx); return; }
@@ -1875,13 +1528,11 @@
       var host = box.closest('.gymsearch');
       if (host) host.classList.toggle('has-q', !!val);
       if (searchTimer) clearTimeout(searchTimer);
-      model.suggestOpen = true;
       searchTimer = setTimeout(function () {
         searchTimer = null;
         if (!page) return;
         /* 입력 칸은 그대로 두고 목록·핀·안내만 바꿉니다(커서가 날아가지 않게) */
         model.query = val;
-        model.suggestOpen = !!String(val).trim();
         refresh();
       }, 120);
     });
@@ -1902,9 +1553,6 @@
     isOpen: function () { return !!page; },
     visible: visible,
     focusVenue: focusVenue,
-    /* bm-v1.82.0 — 방향·거리·시간·길찾기 (테스트가 같은 함수를 씁니다) */
-    routeInfo: routeInfo, bearingDeg: bearingDeg, dir8: dir8, metersLabel: metersLabel,
-    minLabel: minLabel, navLinks: navLinks, meStart: meStart, selectVenue: selectVenue,
     link: gymLink,
     linkOrText: linkOrText
   };

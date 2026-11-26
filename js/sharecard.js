@@ -1,5 +1,5 @@
 /* ============================================================
- * sharecard.js — 인스타 공유 카드 (오늘 운동 · 대회 인증) (bm-v1.71.0)
+ * sharecard.js — 인스타 공유 카드 (오늘 운동 · 대회 인증) (bm-v1.63.0)
  *
  *  · 사진은 폰 안에서만 합성되고 서버로 보내지 않습니다
  *    (파일 선택 → 캔버스 → 저장·공유). 업로드 없음.
@@ -8,22 +8,15 @@
  *  · 시트는 '3초 완성' 순서 (bm-v1.63.0) — 탭 → 한 줄 안내 → 미리보기 →
  *    📷 사진 넣기(+ 기본 배경 4종) → 디자인·비율·사진 밝기 → 접기(문구 · 색 · 내용) → 저장.
  *    저장 버튼은 시트 아래에 붙어 있어 스크롤을 되돌리지 않아도 됩니다.
- *  · 기본 배경 4종 (bm-v1.71.0 — 사진 없이 1탭)
- *      야경 코트 · 노을 체육관 · 다크 스튜디오 — assets/share-bg/ 의 1080×1350 실사 JPEG.
- *        시트를 열면 첫 배경이 자동으로 깔려 사진이 없어도 바로 화보 같은 카드가 됩니다.
- *        아직 로드 전·오프라인이면 예전 캔버스 아트(fallback)를 그려 절대 비지 않습니다.
- *      민턴 그라데이션 — 캔버스 그라데이션 1종.
+ *  · 기본 감성 배경 4종 (사진 없이 1탭) — 코트 야경 · 셔틀콕 라이트 · 노을 코트 ·
+ *    민턴 그라데이션. 모두 캔버스로 그립니다(외부 이미지·저작권 없음).
  *  · 디자인 4종 (사람이 찍어 올린 카드처럼)
- *      매거진 — 사진 풀블리드. 아주 큰 숫자 1개 + 얇은 가로선 1개 + 짧은 한 줄 +
- *               맨 아래 날짜·장소. 그 위 작은 워드마크 하나. 박스·테두리·도장 없음.
- *      영수증 — (v1.71 신규) '오늘의 민턴 영수증'. 아래를 톱니로 찢은 크림 종이에
- *               날짜·운동시간·체육관·경기·컨디션 줄, TOTAL 큰 숫자, 바코드, 한 줄 코멘트.
+ *      매거진 — 사진 풀블리드. 좌상단 얇은 날짜·장소, 하단에 부드럽게 스며드는 스크림 위에
+ *               아주 큰 숫자 + 얇은 가로선 1개 + 작은 스탯. 박스·테두리 없음.
+ *      글래스 — 사진 위 반투명 프로스트 유리 배지(1px 테두리) 안에 스탯·셔틀콕 (v1.67 신규)
  *      필름   — 따뜻한 오프화이트(#F7F5F0) 여백 프레임 안에 사진, 아래 여백에
- *               제목 → 모노 날짜·체육관 → 스탯 → 한 줄.
+ *               모노스페이스 날짜·체육관·스탯 한 줄과 작은 셔틀콕 스탬프.
  *      스티커 — 배경 투명 PNG. 얇은 글씨 + 큰 숫자 + 셔틀콕 라인 아이콘만.
- *      (v1.67의 '글래스'는 칸에서 빠졌지만 레거시 값 보호용으로 그리는 방법은 남깁니다.)
- *  · 꾸밈 배지 (bm-v1.71.0) — 도장·자랑 배지·WIN 스탬프는 기본으로 그리지 않고,
- *    시트의 '꾸밈 배지'를 켰을 때만 마지막에 얹습니다(영수증 종이에는 얹지 않음).
  *  · 색은 5종(나이트·코트 블루·선셋·사쿠라·챔피언 골드)에서 포인트 1색만 씁니다.
  *  · 사진 밝기 3단계(원본·살짝 어둡게·감성 어둡게)로 밝은 체육관 사진에서도 글씨가 살아납니다.
  *  · 문구는 프리셋 5종(민턴일기 · 오늘도, 배드민턴 · 민턴기록 · 민턴성장기 · COURT TIME)에서
@@ -88,27 +81,13 @@
     { id: 'story', name: '스토리 9:16', note: '1080×1920 · 위아래 비움', w: 1080, h: 1920, safe: SAFE }
   ];
 
-  /* ---------- 디자인(레이아웃) 4종 (bm-v1.71.0 — 영수증 추가) ----------
-   *  매거진 — 풀블리드 사진 + 잡지 표지 타이포 (기본)
-   *  영수증 — '오늘의 민턴 영수증' 종이 카드 (요즘 인스타에서 도는 그 모양)
-   *  필름   — 폴라로이드 여백 + 모노 캡션
-   *  스티커 — 배경 투명 PNG, 스토리에 얹기 */
+  /* ---------- 디자인(레이아웃) 4종 (bm-v1.67.0 — 글래스 추가) ---------- */
   var DESIGNS = [
     { id: 'magazine', name: '매거진', note: '사진 꽉 차게 · 큰 숫자' },
-    { id: 'receipt', name: '영수증', note: '오늘의 민턴 영수증' },
+    { id: 'glass', name: '글래스', note: '유리 배지 · 스트라바 감성' },
     { id: 'film', name: '필름', note: '폴라로이드 · 여백' },
     { id: 'sticker', name: '스티커', note: '투명 · 스토리에 붙이기' }
   ];
-  /* v1.67 글래스는 칸에서 빠졌지만, 그리는 방법은 남겨 둡니다(레거시 값 보호). */
-  var LEGACY_DESIGNS = [
-    { id: 'glass',
-      name: '글래스', note: '유리 배지 · 스트라바 감성' },
-    /* bm-v1.80.0 — '스매시 임팩트'는 저장 직후 공유 흐름의 전용 템플릿입니다.
-     * 디자인 칸(4개)은 그대로 두고, 공유 시트의 스매시 배너에서 켜고 끕니다. */
-    { id: 'smash',
-      name: '스매시 임팩트', note: '내 라켓이 터지며 오늘 운동이 퍼지는 카드' }
-  ];
-  var SMASH_DESIGN = 'smash';
 
   /* ---------- 사진 필터 5종 (bm-v1.67.0) ----------
    * 사진을 넣으면 '자동 감성'이 기본으로 붙어 색·밝기가 살아납니다.
@@ -361,97 +340,24 @@
   /* 필름(종이) 카드의 잉크 — 색 3개 이하: 종이 · 잉크 · 포인트 */
   var PAPER = { bg0: '#FAF8F3', bg1: '#F7F5F0', bg2: '#EFEAE0', ink: '#1D1B18', ink2: '#6E685D', ink3: 'rgba(29,27,24,0.42)' };
 
-  /* ---------- 기본 배경 4종 (bm-v1.71.0 — 고화질 실사 사진 3종 + 그라데이션 1종) ----------
-   * 사진을 고르지 않아도 1탭으로 인스타 화보 같은 카드가 나옵니다.
-   *   nightcourt     야경 코트     — 어두운 코트 위 라켓·셔틀콕 그림자 (실사 사진)
-   *   sunsetshuttle  노을 체육관   — 노을 빛이 드는 체육관, 네트 위 셔틀콕 (실사 사진)
-   *   darkstudio     다크 스튜디오 — 무채색 스튜디오의 라켓과 셔틀콕 (실사 사진)
-   *   mintmesh       민턴 그라데이션 — 딥 네이비 · 민트 글로우 (캔버스)
-   * 실사 사진은 assets/share-bg/ 에 1080×1350 JPEG(quality 88)로 넣어 두었고,
-   * 카드를 열 때 한 번만 내려받아 브라우저·서비스워커 캐시에 남습니다.
-   *   src      — 사진 경로(없으면 캔버스 배경)
-   *   fallback — 사진이 아직 안 왔거나 오프라인일 때 그릴 예전 캔버스 아트
-   *   tone     — 사진 위에 얹는 아주 옅은 어둡기(밝은 사진일수록 조금 더)
+  /* ---------- 기본 감성 배경 4종 (bm-v1.63.0) ----------
+   * 사진을 고르지 않아도 1탭으로 감성 카드를 만드는 캔버스 아트입니다.
+   * 외부 이미지·서버 없이 그 자리에서 1080×1350 / 1080×1920 으로 다시 그립니다.
+   *   courtnight   코트 야경 — 깊은 에메랄드 코트 · 체육관 스포트라이트 · 원근 코트 라인
+   *   shuttlelight 셔틀콕 라이트 — 따뜻한 다크 스튜디오 · 빛 번짐 보케 · 큰 셔틀콕 실루엣
+   *   sunsetcourt  노을 코트 — 노을 그라데이션 · 네트 실루엣 · 코트 라인
+   *   mintmesh     민턴 그라데이션 — 딥 네이비 · 민트 글로우 메쉬
    * 내 갤러리 사진을 고르면 사진이 우선하고(배경은 비워짐), 스티커는 투명이 우선입니다. */
   var BGS = [
-    { id: 'nightcourt',
-      name: '야경 코트', note: '어두운 코트 · 라켓 그림자',
-      src: 'assets/share-bg/night-court.jpg', fallback: 'courtnight', tone: 0.10 },
-    { id: 'sunsetshuttle',
-      name: '노을 체육관', note: '노을 빛 · 네트 위 셔틀콕',
-      src: 'assets/share-bg/sunset-shuttle.jpg', fallback: 'sunsetcourt', tone: 0.26 },
-    { id: 'darkstudio',
-      name: '다크 스튜디오', note: '무채색 스튜디오 · 라켓',
-      src: 'assets/share-bg/minimal-studio.jpg', fallback: 'shuttlelight', tone: 0.16 },
+    { id: 'courtnight',
+      name: '코트 야경', note: '에메랄드 코트 · 조명' },
+    { id: 'shuttlelight',
+      name: '셔틀콕 라이트', note: '따뜻한 스튜디오 · 보케' },
+    { id: 'sunsetcourt',
+      name: '노을 코트', note: '노을 · 네트 실루엣' },
     { id: 'mintmesh',
-      name: '민턴 그라데이션', note: '딥 네이비 · 민트 글로우',
-      src: '', fallback: 'mintmesh', tone: 0 }
+      name: '민턴 그라데이션', note: '딥 네이비 · 민트 글로우' }
   ];
-
-  /* 실사 배경 사진 — 한 번 받아 두고 계속 씁니다(폰 안 메모리).
-   * 로드가 끝나면 열려 있는 카드만 다시 그려, 처음 열 때 잠깐 보이던
-   * fallback 그림이 사진으로 바뀝니다. 서버로 보내는 값은 없습니다. */
-  var BG_IMAGES = {};     /* id → Image */
-  var BG_LOADING = {};    /* id → true (받는 중) */
-  var BG_REPAINT = null;  /* 열린 시트의 다시 그리기 함수 */
-
-  function canLoadImages() {
-    return typeof Image !== 'undefined' && typeof document !== 'undefined' && !!document.createElement;
-  }
-
-  function bgImageOf(id) {
-    var img = BG_IMAGES[id];
-    return (img && img.width) ? img : null;
-  }
-
-  /* 배경 사진을 받아 둡니다. 다 받으면 done(true), 이미 다 있으면 done(false) */
-  function preloadBgs(done) {
-    if (!canLoadImages()) { if (typeof done === 'function') done(false); return; }
-    var fresh = 0;
-    BGS.forEach(function (b) {
-      if (!b.src || BG_IMAGES[b.id] || BG_LOADING[b.id]) return;
-      fresh++;
-      BG_LOADING[b.id] = true;
-      var img = new Image();
-      img.onload = function () {
-        BG_IMAGES[b.id] = img;
-        BG_LOADING[b.id] = false;
-        if (BG_REPAINT) BG_REPAINT(b.id);
-      };
-      img.onerror = function () { BG_LOADING[b.id] = false; };
-      img.src = b.src;
-    });
-    if (typeof done === 'function') done(fresh > 0);
-  }
-
-  /* 배경 사진이 다 올 때까지(최대 1.2초) 기다렸다가 fn — 저장 직전에 씁니다.
-   * 오프라인·실패·사진이 없으면 바로 fn 을 부릅니다(저장을 막지 않음). */
-  function whenBgsReady(fn) {
-    if (typeof fn !== 'function') return;
-    if (!canLoadImages()) { fn(); return; }
-    var tries = 0;
-    (function check() {
-      var pending = false;
-      BGS.forEach(function (b) {
-        if (!b.src) return;
-        if (!BG_IMAGES[b.id] && BG_LOADING[b.id]) pending = true;
-      });
-      if (!pending) { fn(); return; }
-      tries++;
-      if (tries > 24 || typeof setTimeout !== 'function') { fn(); return; }
-      setTimeout(check, 50);
-    })();
-  }
-
-  /* 열린 시트가 배경 사진 로드에 맞춰 다시 그리도록 연결(시트를 닫으면 null) */
-  function onBgLoad(fn) { BG_REPAINT = (typeof fn === 'function') ? fn : null; }
-
-  /* 그릴 때 배경 사진이 아직 없으면 받기 시작합니다(그림은 fallback으로 먼저) */
-  function ensureBgs() {
-    var waiting = false;
-    BGS.forEach(function (b) { if (b.src && !BG_IMAGES[b.id]) waiting = true; });
-    if (waiting) preloadBgs();
-  }
 
   function paletteById(id) {
     for (var i = 0; i < PALETTES.length; i++) if (PALETTES[i].id === id) return PALETTES[i];
@@ -473,16 +379,7 @@
 
   function designById(id) {
     for (var i = 0; i < DESIGNS.length; i++) if (DESIGNS[i].id === id) return DESIGNS[i];
-    /* 예전에 고른 '글래스'가 기기에 남아 있어도 카드가 깨지지 않게 그대로 그립니다 */
-    for (var j = 0; j < LEGACY_DESIGNS.length; j++) if (LEGACY_DESIGNS[j].id === id) return LEGACY_DESIGNS[j];
     return DESIGNS[0];
-  }
-
-  /* 고를 수 있는 디자인(4종)만 — 예전 '글래스' 같은 레거시 값은 기본 매거진으로 */
-  function presetDesignId(id) {
-    if (id === SMASH_DESIGN) return SMASH_DESIGN;
-    for (var i = 0; i < DESIGNS.length; i++) if (DESIGNS[i].id === id) return DESIGNS[i].id;
-    return DESIGNS[0].id;
   }
 
   function ratioById(id) {
@@ -762,7 +659,6 @@
     }
     var extra = [designById(s.design).name, ratioById(s.ratio).name];
     if (s.photo) extra.push(shadeById(s.shade).name);
-    if (designById(s.design).id === 'sticker') extra.push('글씨 ' + inkById(s.ink).name);
     extra.push(paletteById(s.palette).name);
     return text + ' / ' + extra.join(' · ');
   }
@@ -1355,112 +1251,86 @@
       [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.30)']]);
   }
 
-  /* 배경 id → 그림 (box 안에만)
-   * 실사 사진이 준비돼 있으면 cover로 깔고 아주 옅은 톤을 얹습니다.
-   * 아직 안 왔거나 오프라인이면 같은 느낌의 예전 캔버스 아트를 그려
-   * 카드가 비거나 깨지지 않게 합니다(fallback). */
+  /* 배경 id → 그림 (box 안에만) */
   function paintBg(g, id, box) {
     if (!box || !box.w || !box.h) return;
-    var b = bgById(id);
     g.save();
     g.beginPath();
     g.rect(box.x, box.y, box.w, box.h);
     g.clip();
-    var img = bgImageOf(b.id);
-    if (img) {
-      drawCover(g, img, box.x, box.y, box.w, box.h, null);
-      if (b.tone) {
-        g.fillStyle = 'rgba(4,8,7,' + b.tone + ')';
-        g.fillRect(box.x, box.y, box.w, box.h);
-      }
-    } else {
-      var fb = b.fallback || 'mintmesh';
-      if (fb === 'courtnight') paintBgCourtNight(g, box);
-      else if (fb === 'shuttlelight') paintBgShuttleLight(g, box);
-      else if (fb === 'sunsetcourt') paintBgSunsetCourt(g, box);
-      else paintBgMintMesh(g, box);
-    }
+    if (id === 'courtnight') paintBgCourtNight(g, box);
+    else if (id === 'shuttlelight') paintBgShuttleLight(g, box);
+    else if (id === 'sunsetcourt') paintBgSunsetCourt(g, box);
+    else paintBgMintMesh(g, box);
     g.restore();
   }
 
   /* ============================================================
-   * 매거진 — 풀블리드 사진 · 큰 숫자 하나 · 얇은 선 · 짧은 한 줄 (bm-v1.71.0)
-   *   잡지 표지처럼 한 번에 시선이 꽂히게: 큰 숫자 1개 → 얇은 선 1개 →
-   *   짧은 한 줄(전적·스탯) → 맨 아래 날짜·장소. 도장·자랑 배지·도발 멘트를
-   *   한꺼번에 얹지 않고, '꾸밈 배지'를 켰을 때만 마지막에 조용히 더합니다.
+   * 매거진 — 사진 풀블리드 · 하단 30% 소프트 그라데이션 · 큰 숫자
    * ============================================================ */
   function paintMagazine(g, spec, p, F) {
     var W = F.W, H = F.H, pad = F.pad, photo = photoOf(spec);
-    /* 사진이 없으면 고른 기본 배경(실사 사진)을 깔고, 그것도 없으면 색 메쉬 */
+    /* 사진이 없으면 고른 기본 배경 아트를 깔고, 그것도 없으면 색 메쉬 */
     var art = photo ? null : bgOf(spec);
+    var img = !!photo || !!art;
 
     if (photo) {
       try { drawPhotoBox(g, photo, 0, 0, W, H, photoViewOf(spec), spec.filter); }
-      catch (e) { photo = null; }
-      if (!photo && art) paintBg(g, art.id, { x: 0, y: 0, w: W, h: H });
-      else if (!photo) paintMesh(g, p, F);
+      catch (e) { photo = null; paintMesh(g, p, F); }
+      if (photo) art = null;
+      else art = bgOf(spec);
+      if (!photo && art) { g.save(); g.beginPath(); g.rect(0, 0, W, H); g.clip(); paintBg(g, art.id, { x: 0, y: 0, w: W, h: H }); g.restore(); }
     } else if (art) {
       paintBg(g, art.id, { x: 0, y: 0, w: W, h: H });
     } else {
       paintMesh(g, p, F);
     }
-    var img = !!photo || (!photo && !!art);
+    img = !!photo || (!photo && !!art);
 
-    /* ---------- 글씨 묶음 자리 (아래 → 위로 쌓기) ---------- */
+    /* ---------- 글씨 묶음 자리 먼저 계산 (bm-v1.66.0 글씨 위치 … ·
+     * 아래·가운데·위 어디든 같은 글씨 묶음을 통째로 밀어서 놓습니다.
+     * 스크림도 이 자리를 따라가야 해서, 그리기 전에 계산합니다. */
     var maxW = W - pad * 2;
     var stats = spec.stats || [];
+    var hasStats = stats.length > 0;
     var pos = textPosById(spec.textPos).id;
 
     var bitext = String((spec.big && spec.big.value) || '');
     var unit = String((spec.big && spec.big.unit) || '');
-    var unitSize = 46;
-    var unitW = unit ? (function () { g.font = font(unitSize, 600, FONT); return g.measureText(unit).width + 18; })() : 0;
-    var fitted = fitText(g, bitext, maxW - unitW, F.story ? 234 : 210, 900, FONT, 58);
+    var unitSize = 50;
+    var unitW = unit ? (function () { g.font = font(unitSize, 600, FONT); return g.measureText(unit).width + 22; })() : 0;
+    var fitted = fitText(g, bitext, maxW - unitW, 198, 900, FONT, 58);
     var bigSize = fitted.size;
-    if (spec.mode === 'comp' && bigSize > 176) {
-      /* 대회 결과는 두 글자라 너무 커지지 않게 한 번 더 줄입니다 */
-      fitted = fitText(g, bitext, maxW - unitW, 176, 900, FONT, 58);
-      bigSize = fitted.size;
-    }
 
-    /* 짧은 한 줄 — 파트너·라이벌 전적이 있으면 그 줄, 없으면 스탯 한 줄 */
-    var shortLine = spec.tagLine || '';
-    if (!shortLine && spec.mode === 'comp') {
-      function statValue(label) {
-        var hit = stats.filter(function (x) { return x && x.label === label; })[0];
-        return hit && hit.value ? String(hit.value) : '';
-      }
-      var cbits = [];
-      var cEv = (spec.comp && spec.comp.event) || statValue('종목');
-      var cPa = (spec.comp && spec.comp.partner) || statValue('파트너');
-      if (cEv) cbits.push(cEv);
-      if (cPa) cbits.push('파트너 ' + cPa);
-      /* 직접 쓴 문구는 짧은 한 줄 끝에 — 기본 문구('민턴일기')는 카드에 넣지 않습니다 */
-      if (spec.phrase && spec.phrase !== DEFAULT_PHRASE) cbits.push(spec.phrase);
-      shortLine = cbits.join('  ·  ');
-    }
-    if (!shortLine) {
-      var bits = stats.filter(function (s) { return s && s.value; }).map(function (s) {
-        return s.label ? s.label + ' ' + s.value : String(s.value);
-      });
-      shortLine = bits.join('  ·  ') || spec.label || '';
-    }
+    /* 기본(아래) 자리 — 예전과 똑같은 위치에서 시작합니다.
+     * 전적 태그 한 줄(spec.tagLine)이 있으면 그만큼 위로 올려 카드 밖으로 나가지 않게 합니다. */
+    var metaY = F.bottom - (spec.tagLine ? 106 : 52);
+    var ruleY = metaY - (spec.meta ? 58 : 36);
+    var valBase = ruleY - 76;
+    var bigBase = (hasStats ? valBase - 98 : ruleY - 86);
 
-    var dateY = F.bottom - 34;                          /* 맨 아래 날짜·장소 */
-    var ruleY = dateY - 48;                             /* 얇은 가로선 */
-    var lineY = ruleY - 42;                             /* 짧은 한 줄 */
-    var bigBase = lineY - 70;                           /* 큰 숫자 baseline */
-    var phraseY = bigBase - Math.round(bigSize * 0.80) - 24;
+    /* 큰 숫자 위 제목 — 고른 문구(민턴일기 · 직접 쓴 문구)가 숫자 바로 위에 옵니다.
+     * 대회 카드는 대회명이 주인공이라 문구를 그 위에 작게 얹습니다. */
+    var kickerY = bigBase - Math.round(bigSize * 0.74) - 42;
+    if (kickerY < F.safeTop + 158) kickerY = F.safeTop + 158;
 
-    var blockTop = phraseY - 40;
-    var blockBottom = dateY + 10;
+    /* 글씨 묶음의 위·아래 끝 — 이 높이를 기준으로 통째로 옮깁니다 */
+    var blockTop = kickerY - (spec.mode === 'comp'
+      ? (spec.phrase ? 96 : 40)
+      : (spec.phrase ? 44 : 18));
+    var blockBottom = hasStats ? valBase + 54 : (spec.meta ? metaY + 12 : ruleY + 22);
+    if (spec.tagLine) blockBottom = Math.max(blockBottom, metaY + 42);
     var dy = 0;
-    var headBottom = F.safeTop + 96;
-    if (pos === 'middle') dy = Math.round((F.safeTop + F.bottom) / 2 - (blockTop + blockBottom) / 2);
-    else if (pos === 'top') dy = Math.round((headBottom + 56) - blockTop);
-    if (blockBottom + dy > F.bottom - 14) dy = (F.bottom - 14) - blockBottom;
-    if (blockTop + dy < F.safeTop + 18) dy = (F.safeTop + 18) - blockTop;
-    dateY += dy; ruleY += dy; lineY += dy; bigBase += dy; phraseY += dy;
+    /* 좌상단 날짜 줄 아래 — 하이라이트 배지·메달/WIN 스탬프가 있으면 그만큼 더 내립니다 */
+    var headBottom = F.safeTop + 132 + (spec.badge ? 60 : 0) + (spec.hasStamp ? 66 : 0);
+    if (pos === 'middle') {
+      dy = Math.round((F.safeTop + F.bottom) / 2 - (blockTop + blockBottom) / 2);
+    } else if (pos === 'top') {
+      dy = Math.round((headBottom + 46) - blockTop);   /* 날짜 줄 아래에서 시작 */
+    }
+    if (pos !== 'bottom' && blockTop + dy < headBottom) dy = headBottom - blockTop;  /* 머리줄과 안 겹치게 */
+    if (blockBottom + dy > F.bottom - 18) dy = (F.bottom - 18) - blockBottom;  /* 카드 밖으로 안 나가게 */
+    metaY += dy; ruleY += dy; valBase += dy; bigBase += dy; kickerY += dy;
     blockTop += dy; blockBottom += dy;
 
     /* 사진 밝기 — 고른 단계만큼만 (원본은 그대로) */
@@ -1470,10 +1340,11 @@
       g.fillRect(0, 0, W, H);
     }
 
-    /* 스크림 — 사진을 칙칙하게 덮던 검은 막을 크게 줄였습니다(bm-v1.67.0).
-     * 글씨 자리만 은은하게 누르고, 글씨 자체는 그림자로 띄워 사진 색을 살립니다. */
+    /* 스크림 — bm-v1.67.0: 사진을 칙칙하게 덮던 검은 막을 크게 줄였습니다.
+     * 글씨 자리만 은은하게 누르고, 글씨 자체는 그림자로 띄워 사진 색·밝기를 살립니다. */
     if (img) {
       if (pos === 'middle') {
+        /* 가운데 — 글씨 자리 위아래로 아주 부드럽게 번지는 띠 (경계가 보이지 않게) */
         var bTop = Math.max(0, blockTop - 170), bBot = Math.min(H, blockBottom + 130);
         var band = g.createLinearGradient(0, bTop, 0, bBot);
         band.addColorStop(0, rgba(p.scrim, 0));
@@ -1484,6 +1355,8 @@
         g.fillStyle = band;
         g.fillRect(0, bTop, W, bBot - bTop);
       } else if (pos === 'top') {
+        /* 위 — 위에서 내려오며 사라지는 스크림. 마지막 줄(파트너·상대)까지
+         * 덮도록 글씨 묶음 아래 +130px까지 깔고 그 뒤로 서서히 사라집니다. */
         var tBot = Math.min(H, blockBottom + 130);
         var topScrim = g.createLinearGradient(0, 0, 0, tBot);
         topScrim.addColorStop(0, rgba(p.scrim, 0.76));
@@ -1493,8 +1366,10 @@
         g.fillStyle = topScrim;
         g.fillRect(0, 0, W, tBot);
       } else {
-        var startY = Math.round(H * 0.54);
-        var scrim = g.createLinearGradient(0, startY, 0, H);
+        /* 아래 — 위쪽 사진은 그대로, 아래 글씨만 또렷하게 (검은 막은 얇게).
+         * 네 구간으로 나눠 곡선을 부드럽게(급격한 경계가 보이지 않게) 깔았습니다. */
+        var start = Math.round(H * 0.54);
+        var scrim = g.createLinearGradient(0, start, 0, H);
         scrim.addColorStop(0, rgba(p.scrim, 0));
         scrim.addColorStop(0.24, rgba(p.scrim, 0.05));
         scrim.addColorStop(0.48, rgba(p.scrim, 0.16));
@@ -1502,8 +1377,8 @@
         scrim.addColorStop(0.86, rgba(p.scrim, 0.44));
         scrim.addColorStop(1, rgba(p.scrim, 0.58));
         g.fillStyle = scrim;
-        g.fillRect(0, startY, W, H - startY);
-        /* 맨 위 한 줄(워드마크)도 읽히게 아주 옅은 그라데이션 */
+        g.fillRect(0, start, W, H - start);
+        /* 맨 위 한 줄도 읽히게 아주 옅은 그라데이션 */
         var topFade = g.createLinearGradient(0, 0, 0, Math.round(H * 0.17));
         topFade.addColorStop(0, rgba(p.scrim, 0.26));
         topFade.addColorStop(1, rgba(p.scrim, 0));
@@ -1520,51 +1395,97 @@
     var shadow = img ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0)';
     var shadowBlur = img ? 20 : 0;
 
-    /* 맨 위 오른쪽 — 아주 작은 워드마크 하나만 (잡지 마스트헤드 자리) */
+    /* 좌상단 — 얇은 모노스페이스 날짜 · 장소 한 줄 (살짝 풀어 쓴 자간) */
+    var topY = F.safeTop + 84;
+    g.textAlign = 'left';
+    if (spec.top) {
+      tracking(g, 1.2);
+      var t = fitText(g, spec.top, W - pad * 2 - 240, 24, 500, MONO, 18);
+      g.fillStyle = soft;
+      g.globalAlpha = 0.9;
+      g.font = font(t.size, 500, MONO);
+      g.shadowColor = shadow;
+      g.shadowBlur = shadowBlur;
+      g.fillText(t.text, pad, topY);
+      g.shadowBlur = 0;
+      g.globalAlpha = 1;
+      tracking(g, 0);
+    }
     g.textAlign = 'right';
     g.fillStyle = soft;
-    g.globalAlpha = 0.5;
-    tracking(g, 4);
-    g.font = font(18, 700, MONO);
+    g.globalAlpha = 0.62;
+    tracking(g, 3);
+    g.font = font(19, 600, FONT);
     g.shadowColor = shadow;
-    g.shadowBlur = img ? 12 : 0;
-    g.fillText('SHUTTLIX', W - pad, F.safeTop + 74);
+    g.shadowBlur = shadowBlur;
+    g.fillText('BADMINTON', W - pad, topY);
     g.shadowBlur = 0;
     g.globalAlpha = 1;
     tracking(g, 0);
     g.textAlign = 'left';
 
-    /* 큰 숫자 위 짧은 한 줄 — 대회 카드는 대회명이 이 자리에 */
-    if (spec.mode === 'comp' && spec.kicker) {
-      tracking(g, 0.5);
-      var kt = fitText(g, spec.kicker, maxW, 30, 700, FONT, 17);
-      g.fillStyle = soft;
-      g.globalAlpha = 0.95;
-      g.font = font(kt.size, 700, FONT);
+    /* 큰 숫자 · 단위 · 자리는 위에서 계산했고, 여기서는 글씨만 그립니다 */
+    /* 잡지 표지 느낌 — 숫자 위에 아주 작은 영문 라벨 (COURT LOG · CONTEST LOG) */
+    var enY = kickerY - (spec.mode === 'comp' ? (spec.phrase ? 88 : 44) : 36);
+    if (enY > F.safeTop + 150) {
+      tracking(g, 3.4);
+      g.textAlign = 'left';
+      g.font = font(16, 700, MONO);
+      g.fillStyle = p.accent;
+      g.globalAlpha = 0.62;
       g.shadowColor = shadow;
-      g.shadowBlur = Math.round(shadowBlur * 0.8);
-      g.fillText(kt.text, pad, phraseY);
+      g.shadowBlur = shadowBlur * 0.6;
+      g.fillText(spec.mode === 'comp' ? 'CONTEST LOG' : 'COURT LOG', pad, enY);
       g.shadowBlur = 0;
       g.globalAlpha = 1;
       tracking(g, 0);
+    }
+    if (spec.mode === 'comp') {
+      if (spec.phrase) {
+        tracking(g, 0.6);
+        var pt = fitText(g, spec.phrase, maxW, 25, 600, FONT, 15);
+        g.textAlign = 'left';
+        g.fillStyle = soft;
+        g.globalAlpha = 0.92;
+        g.font = font(pt.size, 600, FONT);
+        g.shadowColor = shadow;
+        g.shadowBlur = shadowBlur;
+        g.fillText(pt.text, pad, kickerY - 58);
+        g.shadowBlur = 0;
+        g.globalAlpha = 1;
+        tracking(g, 0);
+      }
+      if (spec.kicker) {
+        g.textAlign = 'left';
+        var kt = fitText(g, spec.kicker, maxW, 44, 700, FONT, 20);
+        g.fillStyle = ink;
+        g.font = font(kt.size, 700, FONT);
+        g.shadowColor = shadow;
+        g.shadowBlur = shadowBlur;
+        g.fillText(kt.text, pad, kickerY);
+        g.shadowBlur = 0;
+      }
     } else if (spec.phrase) {
-      tracking(g, 0.2);
-      var pt = fitText(g, spec.phrase, maxW, 31, 700, FONT, 17);
-      g.fillStyle = isTauntPhrase(spec.phrase) ? p.accent : soft;
-      g.globalAlpha = 0.94;
-      g.font = font(pt.size, 700, FONT);
+      tracking(g, -0.6);
+      var tt = fitText(g, spec.phrase, maxW, 33, 700, FONT, 18);
+      g.textAlign = 'left';
+      /* 도발 멘트는 포인트 색으로 한 번 더 눈에 띄게 */
+      g.fillStyle = isTauntPhrase(spec.phrase) ? p.accent : ink;
+      g.globalAlpha = 0.95;
+      g.font = font(tt.size, 700, FONT);
       g.shadowColor = shadow;
       g.shadowBlur = shadowBlur;
-      g.fillText(pt.text, pad, phraseY);
+      g.fillText(tt.text, pad, kickerY);
       g.shadowBlur = 0;
       g.globalAlpha = 1;
       tracking(g, 0);
     }
 
-    /* 큰 숫자 — 화면에서 가장 큰 목소리.
+    /* 큰 숫자 — 화면에서 가장 큰 목소리. 자간만 살짝 조여 단단하게
      * 대회 입상 카드는 메달 색 메탈릭 그라데이션으로 채워 임팩트를 더합니다. */
     g.textAlign = 'left';
     var bigFill = ink;
+    var valueW = 0;
     if (p.medal && spec.mode === 'comp') {
       var metal = g.createLinearGradient(pad, bigBase - bigSize, pad, bigBase);
       metal.addColorStop(0, p.medal.accent);
@@ -1574,299 +1495,67 @@
       bigFill = metal;
     }
     g.fillStyle = bigFill;
-    tracking(g, -3);
+    tracking(g, -2);
     g.font = font(bigSize, 900, FONT);
-    g.shadowColor = p.medal ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.36)';
-    g.shadowBlur = img ? 30 : 0;
+    g.shadowColor = p.medal ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.32)';
+    g.shadowBlur = img ? 26 : 0;
     g.fillText(fitted.text, pad, bigBase);
-    var valueW = g.measureText(fitted.text).width;
+    valueW = g.measureText(fitted.text).width;
     g.shadowBlur = 0;
     tracking(g, 0);
     if (unit) {
       g.font = font(unitSize, 600, FONT);
       g.fillStyle = p.accent;
-      g.shadowColor = 'rgba(0,0,0,0.34)';
-      g.shadowBlur = img ? 16 : 0;
-      g.fillText(unit, pad + valueW + 18, bigBase - Math.round(bigSize * 0.06));
-      g.shadowBlur = 0;
+      g.fillText(unit, pad + valueW + 20, bigBase - Math.round(bigSize * 0.08));
     }
 
-    /* 얇은 가로선 1개 (+ 왼쪽 짧은 포인트 선) */
+    /* 얇은 가로선 1개 */
     paintRule(g, pad, ruleY, maxW, lineColor, p.accent);
 
-    /* 짧은 한 줄 — 전적이 있으면 포인트 색, 스탯이면 차분하게 */
-    if (shortLine) {
+    /* 스탯 2~3개 — 작고 얇은 라벨 + 숫자 */
+    if (hasStats) {
+      var colW = (maxW - 36 * (stats.length - 1)) / stats.length;
+      stats.forEach(function (st, i) {
+        var x = pad + colW * i + 36 * i;
+        tracking(g, -1);
+        var v = fitText(g, String(st.value), colW, 54, 800, FONT, 26);
+        g.fillStyle = ink;
+        g.font = font(v.size, 800, FONT);
+        g.textAlign = 'left';
+        g.shadowColor = shadow;
+        g.shadowBlur = shadowBlur;
+        g.fillText(v.text, x, valBase);
+        g.shadowBlur = 0;
+        tracking(g, 1.2);
+        g.fillStyle = soft;
+        g.globalAlpha = 0.8;
+        g.font = font(21, 600, FONT);
+        g.shadowColor = shadow;
+        g.shadowBlur = shadowBlur;
+        g.fillText(String(st.label || ''), x, valBase + 46);
+        g.shadowBlur = 0;
+        g.globalAlpha = 1;
+        tracking(g, 0);
+      });
+    }
+
+    /* 맨 아래 얇은 한 줄 — 파트너/라이벌 (전적 한 줄이 있으면 그 줄을 포인트 색으로) */
+    var bottomLine = spec.tagLine || spec.meta || '';
+    if (bottomLine) {
       var isTag = !!spec.tagLine;
       tracking(g, isTag ? 0.2 : 0.3);
-      var m = fitText(g, shortLine, maxW, isTag ? 28 : 27, isTag ? 700 : 600, FONT, 18);
+      var m = fitText(g, bottomLine, maxW, isTag ? 24 : 26, isTag ? 700 : 500, FONT, 18);
       g.fillStyle = isTag ? p.accent : soft;
-      g.globalAlpha = isTag ? 0.95 : 0.82;
-      g.font = font(m.size, isTag ? 700 : 600, FONT);
+      g.globalAlpha = isTag ? 0.94 : 0.76;
+      g.font = font(m.size, isTag ? 700 : 500, FONT);
+      g.textAlign = 'left';
       g.shadowColor = shadow;
-      g.shadowBlur = Math.round(shadowBlur * 0.8);
-      g.fillText(m.text, pad, lineY);
+      g.shadowBlur = shadowBlur;
+      g.fillText(m.text, pad, metaY);
       g.shadowBlur = 0;
       g.globalAlpha = 1;
       tracking(g, 0);
     }
-
-    /* 맨 아래 — 모노스페이스 날짜 · 장소 한 줄 (+ 친구 코드, bm-v1.80.0) */
-    if (spec.top || (spec.showCode !== false && spec.friendCode)) {
-      tracking(g, 1.4);
-      var topLine = [spec.top, (spec.showCode !== false && spec.friendCode) ? spec.friendCode : ''].filter(Boolean).join('  ·  ');
-      var t = fitText(g, topLine, maxW, 23, 500, MONO, 16);
-      g.fillStyle = soft;
-      g.globalAlpha = 0.78;
-      g.font = font(t.size, 500, MONO);
-      g.shadowColor = shadow;
-      g.shadowBlur = Math.round(shadowBlur * 0.7);
-      g.fillText(t.text, pad, dateY);
-      g.shadowBlur = 0;
-      g.globalAlpha = 1;
-      tracking(g, 0);
-    }
-  }
-
-  /* ============================================================
-   * 영수증 — '오늘의 민턴 영수증' (bm-v1.71.0)
-   *   위는 반듯하고 아래는 톱니로 찢은 크림색 종이에 날짜·체육관·운동시간·
-   *   전적·컨디션을 모노스페이스로 줄 맞춰 적고, 그 아래로 큰 숫자 → 바코드 →
-   *   한 줄 코멘트를 흐르게 놓습니다. 사진 위에 얹으면 힙하고, 기본 배경
-   *   위에 얹으면 매거진처럼 깔끔합니다. (박스·테두리·알약 배지 없음)
-   * ============================================================ */
-
-  /* 점선 — 영수증의 구분선 */
-  function dashLine(g, x1, x2, y, color, dash, gap, lw) {
-    g.save();
-    g.strokeStyle = color;
-    g.lineWidth = lw || 1.4;
-    g.beginPath();
-    var step = (dash || 6) + (gap || 5);
-    var x = x1;
-    while (x < x2) {
-      g.moveTo(x, y);
-      g.lineTo(Math.min(x + (dash || 6), x2), y);
-      x += step;
-    }
-    g.stroke();
-    g.restore();
-  }
-
-  /* 바코드 막대 — 날짜·시간·숫자를 씨앗으로 굵기가 다른 세로 줄을 만듭니다.
-   * 난수를 쓰지 않아 같은 카드는 늘 같은 바코드가 나옵니다(장식용). */
-  function barcodeBars(seed, count) {
-    var text = String(seed || 'badminton');
-    var h = 7;
-    for (var i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % 100003;
-    var out = [];
-    for (var k = 0; k < (count || 44); k++) {
-      h = (h * 48271) % 2147483647;
-      var v = h % 100;
-      out.push({ w: v < 34 ? 3 : (v < 78 ? 6 : 10), gap: (v % 3 === 0) ? 5 : 4 });
-    }
-    return out;
-  }
-
-  /* 완료한 훈련 이름 — '풋워크' / '풋워크 · 스트록' / '풋워크 · 스트록 외 2' (bm-v1.72.0)
-   * 운동 시간·점수가 없는 일지(예: 11/21 · 풋워크)도 영수증에서 무엇을 했는지 보이게 합니다. */
-  function doneLine(rec) {
-    var done = (rec && rec.done) || [];
-    done = done.filter(function (x) { return String(x || '').trim(); });
-    if (!done.length) return '';
-    if (done.length <= 2) return done.join(' · ');
-    return done.slice(0, 2).join(' · ') + ' 외 ' + (done.length - 2);
-  }
-
-  /* 일지에 적은 한 줄 메모 — 영수증에는 18자까지만 */
-  function noteLineOf(rec) {
-    var t = String((rec && (rec.text || rec.note)) || '').replace(/\s+/g, ' ').trim();
-    return t ? U.truncate(t, 18) : '';
-  }
-
-  /* 영수증 줄 — 일지·대회 값 그대로. 값이 없으면 화면 글(날짜·장소)에서 나눕니다. */
-  function receiptRows(spec) {
-    var rows = [];
-    function add(key, value) {
-      var v = String(value == null ? '' : value).trim();
-      if (v) rows.push({ key: key, value: v });
-    }
-    /* '11/24 (화) · 나래울체육관' → 날짜 / 장소 */
-    var topBits = String(spec.top || '').split('·').map(function (s) { return s.trim(); });
-    var day = spec.date || topBits[0] || '';
-    var gym = spec.gymName || topBits[1] || '';
-
-    if (spec.mode === 'comp') {
-      var c = spec.comp || {};
-      add('날짜', day);
-      add('대회', c.contest || spec.kicker || '');
-      add('종목', c.event || '');
-      add('성적', c.result || (spec.big && spec.big.value) || '');
-      add('파트너', c.partner || '');
-      return rows;
-    }
-    add('날짜', day);
-    add('운동시간', spec.minutes ? spec.minutes + '분' : '');
-    /* 시간·점수가 없어도 완료한 훈련과 한 줄 메모는 영수증에 남깁니다 (bm-v1.72.0) */
-    add('훈련', spec.doneText || '');
-    add('체육관', gym);
-    add('경기', spec.recordText || '');
-    add('컨디션', spec.condText || '');
-    add('한 줄', spec.noteText || '');
-    add('함께', spec.partnerName || '');
-    add('상대', spec.rivalName || '');
-    return rows;
-  }
-
-  function paintReceipt(g, spec, p, F) {
-    var W = F.W, H = F.H, photo = photoOf(spec);
-    var art = photo ? null : bgOf(spec);
-
-    /* 1) 바탕 — 내 사진(없으면 기본 배경 사진). 종이가 주인공이라 조금 눌러 둡니다 */
-    if (photo) {
-      try { drawPhotoBox(g, photo, 0, 0, W, H, photoViewOf(spec), spec.filter); }
-      catch (e) { photo = null; }
-      if (!photo && art) paintBg(g, art.id, { x: 0, y: 0, w: W, h: H });
-      else if (!photo) paintMesh(g, p, F);
-    } else if (art) {
-      paintBg(g, art.id, { x: 0, y: 0, w: W, h: H });
-    } else {
-      paintMesh(g, p, F);
-    }
-    var img = !!photo || (!photo && !!art);
-    if (img) {
-      var dim = photo ? shadeDim(spec) : 0;
-      var dark = (0.30 + dim * 0.5);
-      g.fillStyle = 'rgba(6,9,8,' + (dark > 0.8 ? 0.8 : dark).toFixed(2) + ')';
-      g.fillRect(0, 0, W, H);
-    }
-
-    var rows = receiptRows(spec);
-    var medal = (spec.mode === 'comp') ? medalOf((spec.comp && spec.comp.result) || (spec.big && spec.big.value) || '') : null;
-    var accentInk = medal ? medal.deep : PAPER.ink;
-
-    /* 2) 종이 — 내용에 맞춰 크기를 잡고 화면 가운데에 */
-    var rowH = F.story ? 70 : 62;
-    var headH = 186;
-    var totalH = 306;
-    var footH = 184;
-    var paperW = Math.min(W - 120, 900);
-    var areaTop = F.story ? F.safeTop + 76 : 92;
-    var areaBottom = F.story ? F.bottom - 76 : H - 92;
-    var need = headH + rows.length * rowH + totalH + footH;
-    var paperH = Math.min(areaBottom - areaTop, need);
-    var paperY = Math.round(areaTop + Math.max(0, (areaBottom - areaTop - paperH) / 2));
-    var px = Math.round((W - paperW) / 2);
-
-    /* 종이 — 위는 반듯, 아래는 톱니로 찢은 모양 */
-    var tooth = 10;
-    g.save();
-    g.shadowColor = 'rgba(0,0,0,0.36)';
-    g.shadowBlur = 46;
-    g.shadowOffsetX = 0;
-    g.shadowOffsetY = 18;
-    g.beginPath();
-    g.moveTo(px, paperY);
-    g.lineTo(px + paperW, paperY);
-    g.lineTo(px + paperW, paperY + paperH - tooth);
-    var teeth = 22, step = paperW / teeth;
-    for (var i = 0; i < teeth; i++) {
-      var xr = px + paperW - step * i;
-      g.lineTo(xr - step / 2, paperY + paperH);
-      g.lineTo(xr - step, paperY + paperH - tooth);
-    }
-    g.closePath();
-    g.fillStyle = 'rgba(250,246,237,0.96)';
-    g.fill();
-    g.restore();
-
-    /* 종이 결 — 아주 옅은 대각 그라데이션 (톱니 위로는 칠하지 않음) */
-    var tone = g.createLinearGradient(px, paperY, px + paperW, paperY + paperH);
-    tone.addColorStop(0, 'rgba(255,255,255,0.55)');
-    tone.addColorStop(0.55, 'rgba(255,255,255,0)');
-    tone.addColorStop(1, 'rgba(196,180,150,0.18)');
-    g.fillStyle = tone;
-    g.fillRect(px, paperY, paperW, paperH - tooth);
-
-    /* 3) 안쪽 글씨 */
-    var ix = Math.round(px + 64), iw = paperW - 128, cx = W / 2;
-    var y = paperY + 96;
-
-    function centered(text, yy, size, weight, family, color, track) {
-      g.textAlign = 'center';
-      g.font = font(size, weight, family);
-      g.fillStyle = color;
-      tracking(g, track || 0);
-      g.fillText(String(text), cx, yy);
-      tracking(g, 0);
-      g.textAlign = 'left';
-    }
-
-    /* 머리 */
-    centered('SHUTTLIX RECEIPT', y, 26, 700, MONO, PAPER.ink, 6);
-    y += 42;
-    centered(spec.mode === 'comp' ? '대회 인증 영수증' : '오늘의 민턴 영수증', y, 20, 600, FONT, PAPER.ink2, 1.5);
-    y += 34;
-    dashLine(g, ix, ix + iw, y, 'rgba(29,27,24,0.30)', 6, 5, 1.4);
-
-    /* 항목 — 왼쪽 이름, 오른쪽 값 */
-    y += 46;
-    rows.forEach(function (r) {
-      g.textAlign = 'left';
-      tracking(g, 0.4);
-      g.font = font(23, 600, FONT);
-      g.fillStyle = PAPER.ink3;
-      g.fillText(r.key, ix, y);
-      tracking(g, 0);
-      var v = fitText(g, r.value, iw - 160, 26, 700, MONO, 15);
-      g.textAlign = 'right';
-      g.font = font(v.size, 700, MONO);
-      g.fillStyle = PAPER.ink;
-      g.fillText(v.text, ix + iw, y);
-      g.textAlign = 'left';
-      y += rowH;
-    });
-
-    /* 점선 + 큰 숫자 (TOTAL) */
-    dashLine(g, ix, ix + iw, y - 16, 'rgba(29,27,24,0.30)', 6, 5, 1.4);
-    y += 44;
-    centered('TOTAL', y, 17, 700, MONO, PAPER.ink3, 5);
-    y += 128;
-    var bitext = String((spec.big && spec.big.value) || '') + String((spec.big && spec.big.unit) || '');
-    /* 숫자 대신 훈련 이름이 들어온 카드는 조금 작게 — 종이 위에서 눈에 편하게 (bm-v1.72.0) */
-    var bigMax = spec.mode === 'comp' ? 94 : (spec.big && spec.big.textOnly ? 78 : 108);
-    var bigFit = fitText(g, bitext || '—', iw, bigMax, 900, FONT, 38);
-    centered(bigFit.text, y, bigFit.size, 900, FONT, PAPER.ink, -2);
-
-    /* 전적 한 줄 — 메달 색이면 그 색으로 */
-    /* 대회 영수증은 큰 숫자가 곧 성적이라 아래 줄에 같은 말을 또 쓰지 않습니다 */
-    var totalLine = spec.mode === 'comp'
-      ? ((spec.comp && spec.comp.partner) ? '파트너 ' + spec.comp.partner : '')
-      : (spec.recordText || (spec.bigLine || ''));
-    if (totalLine) {
-      y += 44;
-      centered(totalLine, y, 27, 700, MONO, accentInk, 1.2);
-    }
-
-    /* 4) 바코드 · 한 줄 코멘트 · 감사 인사 */
-    y += 26;
-    dashLine(g, ix, ix + iw, y, 'rgba(29,27,24,0.30)', 6, 5, 1.4);
-    y += 46;
-    var seed = [spec.date, spec.top, spec.minutes, bitext, spec.phrase].join('|');
-    var bars = barcodeBars(seed, 42);
-    var totalW = 0;
-    bars.forEach(function (b) { totalW += b.w + b.gap; });
-    var bcW = Math.min(iw, totalW);
-    var bx = Math.round((W - bcW) / 2);
-    g.fillStyle = PAPER.ink;
-    bars.forEach(function (b) {
-      if (bx + b.w > W - (W - bcW) / 2) return;
-      g.fillRect(bx, y - 44, b.w, 48);
-      bx += b.w + b.gap;
-    });
-    y += 46;
-    if (spec.phrase) centered(spec.phrase, y, 25, 700, FONT, PAPER.ink, 0.4);
-    y += 34;
-    centered('* THANK YOU FOR TODAY *', y, 17, 600, MONO, PAPER.ink3, 2);
   }
 
   /* ============================================================
@@ -1906,15 +1595,18 @@
     var tag = spec.tagLine || '';
     if (spec.mode === 'comp' && !tag) tag = [spec.comp && spec.comp.result, spec.partnerLine].filter(Boolean).join(' · ');
 
-    var metaSize = 24;
+    var stampSize = 22;
+    g.font = font(stampSize, 600, MONO);
+    var stampW = stampText ? Math.min(maxW, g.measureText(stampText).width + 34) : 0;
+    var stampH = stampText ? 46 : 0;
 
-    var blockH = pf.size + 30 + (stampText ? 46 : 0) + (tag ? 36 : 0) + 12;
-    var top = F.bottom - blockH - 34;
+    var blockH = pf.size + 30 + (stampH ? stampH + 22 : 0) + (tag ? 34 : 0) + 14;
+    var top = F.bottom - blockH - 30;
     if (pos === 'middle') top = (F.safeTop + F.bottom) / 2 - blockH / 2;
     else if (pos === 'top') top = F.safeTop + 132 + (spec.badge ? 60 : 0) + (spec.hasStamp ? 66 : 0) + 20;
     var lo = F.safeTop + 120;
     if (top < lo) top = lo;
-    if (top + blockH > F.bottom - 30) top = (F.bottom - 30) - blockH;
+    if (top + blockH > F.bottom - 34) top = (F.bottom - 34) - blockH;
 
     /* 사진 위 — 글씨 자리만 아주 옅게 눌러 주고(검은 막 대신) 그림자로 띄웁니다 */
     if (img) paintTextVignette(g, F, top - 20, top + blockH, p, 0.36);
@@ -1935,8 +1627,8 @@
     g.shadowBlur = 0;
     tracking(g, 0);
 
-    /* 짧은 포인트 선 — 테두리·알약 없이 선 하나만 (bm-v1.71.0) */
-    var ruleY = top + pf.size + 22;
+    /* 짧은 포인트 선 */
+    var ruleY = top + pf.size + 24;
     g.save();
     g.strokeStyle = p.accent;
     g.lineWidth = 3.4;
@@ -1947,16 +1639,22 @@
     g.stroke();
     g.restore();
 
-    /* 날짜 · 장소 — 실선 테두리 대신 모노스페이스 한 줄 */
-    if (stampText) {
-      tracking(g, 1.3);
-      var mt = fitText(g, stampText, maxW, metaSize, 500, MONO, 16);
+    /* 도장 — 체육관 · 날짜 (1px 실선 테두리) */
+    if (stampH) {
+      var boxY = ruleY + 22;
+      g.save();
+      g.strokeStyle = img ? 'rgba(255,255,255,0.46)' : p.hair;
+      g.lineWidth = 1.4;
+      roundRect(g, pad, boxY, stampW, stampH, 8);
+      g.stroke();
+      g.restore();
+      tracking(g, 1.1);
       g.fillStyle = soft;
-      g.font = font(mt.size, 500, MONO);
+      g.font = font(stampSize, 600, MONO);
       g.textAlign = 'left';
       g.shadowColor = shadow;
-      g.shadowBlur = Math.round(shadowBlur * 0.7);
-      g.fillText(mt.text, pad, ruleY + 44);
+      g.shadowBlur = shadowBlur * 0.7;
+      g.fillText(stampText, pad + 17, boxY + 31);
       g.shadowBlur = 0;
       tracking(g, 0);
     }
@@ -1968,7 +1666,7 @@
       g.textAlign = 'left';
       g.shadowColor = shadow;
       g.shadowBlur = shadowBlur;
-      g.fillText(tg.text, pad, ruleY + (stampText ? 84 : 44));
+      g.fillText(tg.text, pad, ruleY + (stampH ? stampH + 22 : 0) + 34);
       g.shadowBlur = 0;
     }
   }
@@ -2116,7 +1814,7 @@
     tracking(g, 2.6);
     g.fillStyle = 'rgba(255,255,255,0.44)';
     g.font = font(15, 700, FONT);
-    g.fillText('SHUTTLIX', cardX + cardW - 26, cardY + 60);
+    g.fillText('BADMINTON', cardX + cardW - 26, cardY + 60);
     tracking(g, 0);
     g.textAlign = 'left';
   }
@@ -2274,7 +1972,7 @@
     g.fillStyle = PAPER.ink3;
     tracking(g, 2.4);
     g.font = font(17, 700, FONT);
-    g.fillText('SHUTTLIX', W - 64, F.story ? F.bottom - 8 : H - 38);
+    g.fillText('BADMINTON', W - 64, F.story ? F.bottom - 8 : H - 38);
     tracking(g, 0);
     g.textAlign = 'left';
   }
@@ -2299,9 +1997,8 @@
         bandTop: box.y, bandBot: Math.min(box.y + box.h, box.y + 330)
       };
     }
-    /* 아래 — 인화지 아래 여백에 제목 → 날짜 → 스탯 → 한 줄 (v1.71 여백 다듬기) */
-    var b1 = box.y + box.h + 54;
-    return { onPhoto: false, pos: 'bottom', tx: tx, tw: tw, phraseY: b1, l1: b1 + 40, l2: b1 + 92, l3: b1 + 138 };
+    var b1 = box.y + box.h + 72;
+    return { onPhoto: false, pos: 'bottom', tx: tx, tw: tw, phraseY: box.y - 26, l1: b1, l2: b1 + 68, l3: b1 + 116 };
   }
 
   /* 사진 위 캡션 스크림 — 아래는 인화지 빛을 살리려고 종이톤 대신 어두운 톤을 얇게
@@ -2377,45 +2074,15 @@
       tracking(g, 0);
     }
 
-    /* 오른쪽 아래 작은 포인트 선 — 셔틀콕 도장 대신 담백하게 (bm-v1.71.0) */
-    if (!on) {
-      g.save();
-      g.strokeStyle = p.accent;
-      g.lineWidth = 2;
-      g.lineCap = 'round';
-      g.beginPath();
-      g.moveTo(F.W - 152, cap.l2 - 8);
-      g.lineTo(F.W - 104, cap.l2 - 8);
-      g.stroke();
-      g.restore();
-    }
+    /* 오른쪽 아래 작은 셔틀콕 스탬프 — 2줄과 같은 높이에 정렬 */
+    paintShuttle(g, F.W - 104, cap.l2 - 16, 46, p.accent);
   }
 
   /* ============================================================
    * 스티커 — 배경 투명 · 얇은 글씨 + 큰 숫자 + 셔틀콕 라인
    * ============================================================ */
-
-  /* 스티커 글씨 색 — 흰색(기본) · 라임 · 골드 3색 (bm-v1.73.0)
-   *  · 내 사진 톤(어두운 코트·따뜻한 조명)에 맞춰 고르라고 넣었습니다.
-   *  · 색은 기기(localStorage)에 기억하고, 투명 PNG에 그 색 그대로 그립니다. */
-  var STICKER_INKS = [
-    { id: 'white', name: '흰색', fill: '#ffffff' },
-    { id: 'lime', name: '라임', fill: '#ccff4d' },
-    { id: 'gold', name: '골드', fill: '#ffd166' }
-  ];
-
-  function inkById(id) {
-    var v = String(id || '');
-    for (var i = 0; i < STICKER_INKS.length; i++) if (STICKER_INKS[i].id === v) return STICKER_INKS[i];
-    return STICKER_INKS[0];
-  }
-
   function paintSticker(g, spec, p, F) {
     if (spec.showNums === false) { paintStickerMood(g, spec, p, F); return; }
-    var ink = inkById(spec.ink);
-    var inkFill = ink.fill;
-    /* 흰색일 때는 예전 그대로(단위·포인트는 카드 색), 색을 고르면 글씨 전체가 그 색 */
-    var inkOn = ink.id !== 'white';
     var pad = F.pad;
     var maxW = F.W - pad * 2;
     var labelY = F.bottom - 46;
@@ -2450,7 +2117,7 @@
     g.strokeStyle = 'rgba(0,0,0,0.26)';
     g.lineWidth = Math.max(3, bigSize * 0.022);
     outlineText(g, fitted.text, pad, bigBase);
-    g.fillStyle = inkFill;
+    g.fillStyle = '#ffffff';
     g.font = font(bigSize, 900, FONT);
     g.shadowColor = 'rgba(0,0,0,0.5)';
     g.shadowBlur = 26;
@@ -2462,7 +2129,7 @@
       g.strokeStyle = 'rgba(0,0,0,0.22)';
       g.lineWidth = 3;
       outlineText(g, unit, pad + valueW + 14, bigBase - Math.round(bigSize * 0.05));
-      g.fillStyle = inkOn ? inkFill : p.accent;
+      g.fillStyle = p.accent;
       g.shadowColor = 'rgba(0,0,0,0.42)';
       g.shadowBlur = 18;
       g.fillText(unit, pad + valueW + 14, bigBase - Math.round(bigSize * 0.05));
@@ -2476,7 +2143,7 @@
       g.strokeStyle = 'rgba(0,0,0,0.22)';
       g.lineWidth = 3;
       outlineText(g, l.text, pad, labelY);
-      g.fillStyle = inkOn ? inkFill : 'rgba(255,255,255,0.92)';
+      g.fillStyle = 'rgba(255,255,255,0.92)';
       g.shadowColor = 'rgba(0,0,0,0.5)';
       g.shadowBlur = 20;
       g.fillText(l.text, pad, labelY);
@@ -2492,7 +2159,7 @@
       g.strokeStyle = 'rgba(0,0,0,0.24)';
       g.lineWidth = 3;
       outlineText(g, pt.text, pad + 62, stampY + 10);
-      g.fillStyle = inkFill;
+      g.fillStyle = '#ffffff';
       g.shadowColor = 'rgba(0,0,0,0.5)';
       g.shadowBlur = 20;
       g.fillText(pt.text, pad + 62, stampY + 10);
@@ -2502,8 +2169,6 @@
 
   /* 스티커 무드 — 숫자 없이 문구·날짜만 (땀샷·라켓샷 스토리용) */
   function paintStickerMood(g, spec, p, F) {
-    var ink = inkById(spec.ink);
-    var inkOn = ink.id !== 'white';
     var pad = F.pad, maxW = F.W - pad * 2;
     var pos = textPosById(spec.textPos).id;
     var pf = fitText(g, spec.phrase || '', maxW - 66, 48, 800, FONT, 22);
@@ -2533,15 +2198,15 @@
     g.textAlign = 'left';
     g.lineJoin = 'round';
     paintShuttle(g, pad + 20, top + pf.size * 0.5, 40, p.accent);
-    stickerText(pf.text, pad + 58, top + pf.size * 0.82, pf.size, 800, ink.fill, 1);
+    stickerText(pf.text, pad + 58, top + pf.size * 0.82, pf.size, 800, '#ffffff', 1);
     var y = top + pf.size + 18;
     if (stamp) {
       tracking(g, 1);
-      stickerText(stamp, pad + 58, y + 10, 21, 600, inkOn ? ink.fill : 'rgba(255,255,255,0.9)', 0.92);
+      stickerText(stamp, pad + 58, y + 10, 21, 600, 'rgba(255,255,255,0.9)', 0.92);
       tracking(g, 0);
     }
     if (tag) {
-      stickerText(tag, pad + 58, y + (stamp ? 44 : 10), 21, 700, inkOn ? ink.fill : p.accent, 0.96);
+      stickerText(tag, pad + 58, y + (stamp ? 44 : 10), 21, 700, p.accent, 0.96);
     }
   }
 
@@ -2769,243 +2434,6 @@
       : (sticker ? { y: F.safeTop + 54, size: 18 } : { size: 18 }));
   }
 
-  /* ============================================================
-   * 스매시 임팩트 — 내 커스텀 라켓이 터지며 오늘 운동이 퍼지는 카드 (bm-v1.80.0)
-   *   · 캔버스 공유 카드(1080×1350 · 스토리 1080×1920)에 그대로 저장·공유됩니다.
-   *   · 고른 프레임·스트링·그립·스텐실 색을 그대로 쓴 라켓 한 자루 + 충격파 링 · 빛줄기 파편 ·
-   *     번개/크랙 라인. 주변으로 오늘의 수치(운동 시간·컨디션·강도·집중)가 타이포 칩으로 퍼지고,
-   *     맨 아래에 SHUTTLIX + 내 친구 코드(이름#코드)를 박습니다.
-   * ============================================================ */
-  function wedge(g, cx, cy, a, spread, len, color, alpha) {
-    var x1 = cx + Math.cos(a - spread) * len, y1 = cy + Math.sin(a - spread) * len;
-    var x2 = cx + Math.cos(a + spread) * len, y2 = cy + Math.sin(a + spread) * len;
-    g.beginPath(); g.moveTo(cx, cy); g.lineTo(x1, y1); g.lineTo(x2, y2); g.closePath();
-    g.globalAlpha = alpha == null ? 1 : alpha;
-    g.fillStyle = color; g.fill();
-    g.globalAlpha = 1;
-  }
-
-  function shardQuad(g, cx, cy, a, r0, len, wid, color, alpha) {
-    var ca = Math.cos(a), sa = Math.sin(a), px = -sa, py = ca;
-    var x0 = cx + ca * r0, y0 = cy + sa * r0;
-    var x1 = cx + ca * (r0 + len) + px * wid, y1 = cy + sa * (r0 + len) + py * wid;
-    var x2 = cx + ca * (r0 + len + 14), y2 = cy + sa * (r0 + len + 14);
-    var x3 = cx + ca * (r0 + len) - px * wid, y3 = cy + sa * (r0 + len) - py * wid;
-    g.beginPath();
-    g.moveTo(x0, y0); g.lineTo(x1, y1); g.lineTo(x2, y2); g.lineTo(x3, y3); g.closePath();
-    g.globalAlpha = alpha == null ? 1 : alpha;
-    g.fillStyle = color; g.fill();
-    g.globalAlpha = 1;
-  }
-
-  function crackLine(g, cx, cy, a, len, jitter, color, lw) {
-    var steps = 5;
-    g.beginPath();
-    for (var i = 0; i <= steps; i++) {
-      var t = i / steps;
-      var r = 26 + len * t;
-      var off = i === 0 || i === steps ? 0 : Math.sin(i * 2.7 + a) * jitter;
-      var x = cx + Math.cos(a + off * 0.004) * r;
-      var y = cy + Math.sin(a + off * 0.004) * r;
-      if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
-    }
-    g.strokeStyle = color;
-    g.lineWidth = lw || 3;
-    g.stroke();
-  }
-
-  function smashChip(g, x, y, k, v, rot, accent) {
-    g.save();
-    if (typeof g.translate === 'function') g.translate(x, y);
-    if (rot && typeof g.rotate === 'function') g.rotate(rot);
-    g.font = font(19, 800, MONO);
-    tracking(g, 2);
-    var kw = g.measureText(k).width;
-    var fitted = fitText(g, v, 214, 42, 900, FONT, 20);
-    var vw = g.measureText(fitted.text).width;
-    tracking(g, 0);
-    var w = Math.max(kw, vw) + 54, h = 104;
-    g.fillStyle = 'rgba(6,11,9,0.66)';
-    roundRect(g, -w / 2, -h / 2, w, h, 20); g.fill();
-    g.strokeStyle = accent; g.lineWidth = 2.2;
-    roundRect(g, -w / 2, -h / 2, w, h, 20); g.stroke();
-    g.textAlign = 'center';
-    g.fillStyle = accent;
-    g.font = font(19, 800, MONO); tracking(g, 2);
-    g.fillText(k, 0, -16);
-    tracking(g, 0);
-    g.fillStyle = '#f7ffdf';
-    g.font = font(fitted.size, 900, FONT);
-    g.fillText(fitted.text, 0, 30);
-    g.textAlign = 'left';
-    g.restore();
-  }
-
-  function paintSmash(g, spec, p, F) {
-    var W = F.W, H = F.H, pad = F.pad;
-    var lime = '#c6f24e', gold = '#f2c14e', ink = '#f7ffdf';
-    var cx = Math.round(W / 2);
-    var cy = Math.round(F.safeTop + (F.H - F.safeTop * 2) * 0.43);
-
-    /* 바탕 — 코트 위 스포트라이트 */
-    var bg = g.createLinearGradient(0, 0, W * 0.35, H);
-    bg.addColorStop(0, '#0c1712');
-    bg.addColorStop(0.55, '#070c0a');
-    bg.addColorStop(1, '#04070a');
-    g.fillStyle = bg;
-    g.fillRect(0, 0, W, H);
-    var glow = g.createRadialGradient(cx, cy, 12, cx, cy, W * 0.78);
-    glow.addColorStop(0, 'rgba(198,242,78,0.22)');
-    glow.addColorStop(0.42, 'rgba(198,242,78,0.055)');
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = glow;
-    g.fillRect(0, 0, W, H);
-
-    /* 코트 사선 */
-    g.strokeStyle = 'rgba(198,242,78,0.09)';
-    g.lineWidth = 2;
-    for (var c = 0; c < 5; c++) {
-      g.beginPath();
-      g.moveTo(-120 + c * 270, H);
-      g.lineTo(200 + c * 270, 0);
-      g.stroke();
-    }
-
-    /* 빛줄기 — 중심에서 사방으로 */
-    for (var r = 0; r < 18; r++) {
-      var a = r * Math.PI * 2 / 18 + 0.1;
-      wedge(g, cx, cy, a, 0.028, W * 0.86, r % 3 === 0 ? gold : lime, r % 2 ? 0.05 : 0.085);
-    }
-
-    /* 충격파 링 3겹 */
-    var rings = [
-      { r: 128, w: 12, c: lime, al: 0.92 },
-      { r: 214, w: 7, c: gold, al: 0.68 },
-      { r: 312, w: 3.4, c: 'rgba(247,255,223,0.75)', al: 0.5 }
-    ];
-    rings.forEach(function (ring) {
-      g.beginPath();
-      g.arc(cx, cy, ring.r, 0, Math.PI * 2);
-      g.strokeStyle = ring.c;
-      g.globalAlpha = ring.al;
-      g.lineWidth = ring.w;
-      g.stroke();
-      g.globalAlpha = 1;
-    });
-
-    /* 날카로운 파편 16개 */
-    for (var s = 0; s < 16; s++) {
-      var sa = s * Math.PI * 2 / 16 + 0.19;
-      shardQuad(g, cx, cy, sa, 118 + (s % 4) * 14, 120 + (s % 5) * 30, 7 + (s % 3) * 3,
-        s % 3 === 0 ? gold : (s % 3 === 1 ? lime : '#f7ffdf'), 0.5 + (s % 3) * 0.16);
-    }
-
-    /* 번개·크랙 라인 */
-    for (var k = 0; k < 6; k++) {
-      crackLine(g, cx, cy, k * Math.PI * 2 / 6 + 0.34, 200 + (k % 3) * 60, 26, k % 2 ? lime : '#f7ffdf', 2.4);
-    }
-
-    /* 임팩트 플래시 — 라켓 뒤에 깔아 라켓이 플래시를 뚫고 나오는 느낌으로 */
-    var flash = g.createRadialGradient(cx, cy, 2, cx, cy, 180);
-    flash.addColorStop(0, 'rgba(255,255,255,0.52)');
-    flash.addColorStop(0.30, 'rgba(247,255,223,0.22)');
-    flash.addColorStop(1, 'rgba(247,255,223,0)');
-    g.fillStyle = flash;
-    g.beginPath();
-    g.arc(cx, cy, 180, 0, Math.PI * 2);
-    g.fill();
-
-    /* 라켓 — 고른 색 그대로, 스매시 순간의 기울기 (어두운 프레임도 보이게 테두리에 빛) */
-    if (spec.showRacket !== false && BM.racketcustom) {
-      var size = Math.min(W * 0.60, 660);
-      BM.racketcustom.drawRacket(g, cx, cy + 150, size, spec.racket, { level: 'prime', rot: -0.5, alpha: 0.99, rim: true });
-    }
-
-    /* 임팩트 슬래시 — 라켓이 맞은 자리를 가로지르는 짧은 빛 3줄 */
-    g.save();
-    if (typeof g.translate === 'function') g.translate(cx, cy);
-    for (var sl = 0; sl < 3; sl++) {
-      var ang = -0.62 + sl * 0.16;
-      var len2 = 210 - sl * 26;
-      g.beginPath();
-      g.moveTo(Math.cos(ang) * -len2, Math.sin(ang) * -len2);
-      g.lineTo(Math.cos(ang) * len2, Math.sin(ang) * len2);
-      g.strokeStyle = sl === 1 ? 'rgba(198,242,78,0.85)' : 'rgba(255,255,255,0.7)';
-      g.lineWidth = 3.2 - sl * 0.6;
-      g.stroke();
-    }
-    g.restore();
-
-    /* 상단 — 워드마크 · 날짜 */
-    g.textAlign = 'left';
-    g.fillStyle = 'rgba(247,255,223,0.72)';
-    tracking(g, 7);
-    g.font = font(26, 800, FONT);
-    var brand = 'SHUTTLIX';
-    g.fillText(brand, pad, F.safeTop + 62);
-    tracking(g, 0);
-    g.textAlign = 'right';
-    g.fillStyle = 'rgba(247,255,223,0.56)';
-    g.font = font(22, 500, MONO);
-    tracking(g, 1.4);
-    g.fillText(spec.date || spec.top || '', W - pad, F.safeTop + 62);
-    tracking(g, 0);
-    g.textAlign = 'left';
-
-    /* 제목 — 오늘의 문구 */
-    var title = phraseText(spec.phrase) || '오늘의 스매시';
-    g.textAlign = 'center';
-    g.fillStyle = lime;
-    tracking(g, 4.5);
-    g.font = font(22, 900, MONO);
-    g.fillText('SMASH DAY', cx, F.safeTop + 140);
-    tracking(g, -0.6);
-    var tf = fitText(g, title, W - pad * 2, 56, 900, FONT, 28);
-    g.fillStyle = ink;
-    g.font = font(tf.size, 900, FONT);
-    g.fillText(tf.text, cx, F.safeTop + 208);
-    tracking(g, 0);
-    g.textAlign = 'left';
-
-    /* 오늘의 수치 — 사방으로 퍼진 칩 */
-    var items = spec.smashItems || [];
-    var spot = [
-      { x: cx - 300, y: cy - 236, r: -0.10 },
-      { x: cx + 296, y: cy - 262, r: 0.09 },
-      { x: cx - 306, y: cy + 216, r: 0.08 },
-      { x: cx + 300, y: cy + 246, r: -0.09 }
-    ];
-    items.slice(0, 4).forEach(function (it, i) {
-      var sp = spot[i];
-      smashChip(g, sp.x, sp.y, it.k, it.v, sp.r, i % 2 ? gold : lime);
-    });
-
-    /* 맨 아래 — 친구 코드 · 브랜드 */
-    var baseY = F.H - F.safeBottom - 74;
-    var code = spec.showCode !== false ? (spec.friendCode || '') : '';
-    g.fillStyle = 'rgba(6,11,9,0.72)';
-    var label = code || 'MINTON DAILY';
-    g.font = font(34, 900, FONT);
-    var lw2 = g.measureText(label).width;
-    if (code) {
-      roundRect(g, pad, baseY - 44, lw2 + 64, 76, 38);
-      g.fill();
-      g.strokeStyle = 'rgba(198,242,78,0.55)';
-      g.lineWidth = 2;
-      roundRect(g, pad, baseY - 44, lw2 + 64, 76, 38);
-      g.stroke();
-    }
-    g.fillStyle = code ? ink : 'rgba(247,255,223,0.7)';
-    g.fillText(label, pad + (code ? 32 : 0), baseY + 8);
-    g.textAlign = 'right';
-    g.fillStyle = 'rgba(247,255,223,0.5)';
-    tracking(g, 5);
-    g.font = font(20, 800, MONO);
-    g.fillText(brand, W - pad, baseY + 6);
-    tracking(g, 0);
-    g.textAlign = 'left';
-  }
-
   /* spec → 캔버스 (캔버스가 없으면 null) */
   function draw(canvas, spec, cb) {
     if (!canvas || !canvas.getContext) return null;
@@ -3015,26 +2443,20 @@
     if (canvas.width !== F.W) canvas.width = F.W;
     if (canvas.height !== F.H) canvas.height = F.H;
     g.clearRect(0, 0, F.W, F.H);
-    if (bgOf(s)) ensureBgs();   /* 기본 배경 사진이 없으면 받아 둡니다(fallback 먼저) */
     var p = paletteById(s.palette);
     var d = designById(s.design).id;
     /* 대회 입상이면 포인트 색이 메달 색으로 (금·은·동·코트 라임) */
     var medal = s.mode === 'comp' ? medalOf((s.comp && s.comp.result) || (s.big && s.big.value)) : null;
     if (medal) p = medalPalette(p, medal);
     if (d === 'film') paintFilm(g, s, p, F);
-    else if (d === 'smash') paintSmash(g, s, p, F);
     else if (d === 'sticker') paintSticker(g, s, p, F);
-    else if (d === 'receipt') paintReceipt(g, s, p, F);
     else if (d === 'glass') paintGlass(g, s, p, F);
     else if (s.showNums === false) paintMood(g, s, p, F);
     else paintMagazine(g, s, p, F);
-    /* 꾸밈 배지(도장·자랑·WIN) — 새 기본은 꺼짐(bm-v1.71.0).
-     * 켜면 예전처럼 디자인 위에 마지막으로 얹고, 영수증 종이에는 얹지 않습니다.
-     * spec에 deco 값이 없으면(직접 만든 카드) 예전처럼 그립니다. */
-    var deco = s.deco !== false && d !== 'receipt';
-    if (deco && medal) paintMedalImpact(g, s, p, F);
-    if (deco) paintWinStamp(g, s, p, F);
-    if (deco && s.badge) {
+    /* 스탬프·배지 — 디자인 위에 마지막으로 얹습니다 */
+    if (medal) paintMedalImpact(g, s, p, F);
+    paintWinStamp(g, s, p, F);
+    if (s.badge) {
       var film = d === 'film';
       var fb = film ? filmBox(F) : null;
       paintHighlightBadge(g, F, s.badge, p, film
@@ -3102,8 +2524,7 @@
     var prefs = readPrefs();
     return {
       mode: opts.mode === 'comp' ? 'comp' : 'today',
-      /* bm-v1.80.0 — 저장 직후 '스매시 임팩트'로 바로 열 수 있습니다 */
-      design: presetDesignId(opts.design || prefs.design),
+      design: designById(prefs.design).id,
       ratio: ratioById(prefs.ratio).id,
       shade: shadeById(prefs.shade).id,
       /* 사진 필터 — 사진을 넣으면 '자동 감성'이 기본 (bm-v1.67.0) */
@@ -3112,18 +2533,9 @@
       nums: numModeById(prefs.nums).id,
       win: prefs.win !== false,
       badge: prefs.badge !== false,
-      /* 꾸밈 배지(도장·자랑·WIN) — 새 기본은 깔끔하게 꺼짐 (bm-v1.71.0) */
-      deco: prefs.deco === true,
-      /* bm-v1.80.0 — 내 커스텀 라켓과 친구 코드를 카드에 넣기(기본 켜짐) */
-      racket: prefs.racket !== false,
-      code: prefs.code !== false,
       palette: paletteById(prefs.palette).id,
-      /* 기본 배경 — 고르지 않았으면 첫 실사 배경(야경 코트)으로 시작해
-       * 사진이 없어도 바로 화보 같은 카드가 보입니다 (bm-v1.71.0) */
-      bg: bgById(prefs.bg).id || BGS[0].id,
+      bg: bgById(prefs.bg).id,
       frame: frameOptionById(prefs.frame).id,
-      /* 스티커 글씨 색 — 마지막에 고른 색을 기억 (기본 흰색, bm-v1.73.0) */
-      ink: inkById(prefs.ink).id,
       phrase: phraseText(prefs.phrase) || DEFAULT_PHRASE,
       phraseComp: phraseText(prefs.phraseComp) || DEFAULT_PHRASE,
       /* 글씨 위치는 마지막에 고른 값을 기억합니다 (기본 '아래' = 예전과 같음) */
@@ -3173,23 +2585,12 @@
       textPos: textPosById(ui.textPos).id,
       /* 카드 프레임은 대회 인증 카드에만 (bm-v1.64.0) */
       frame: ui.mode === 'comp' ? frameOptionById(ui.frame).id : 'none',
-      /* 스티커 글씨 색 3종 (bm-v1.73.0) — 스티커에서만 그립니다 */
-      ink: inkById(ui.ink).id,
       /* 사진 필터 (bm-v1.67.0) — 사진이 없으면 그릴 때 쓰지 않습니다 */
       filter: filterById(ui.filter).id,
       /* 숫자 표시 — 끄면 시간·승패 없이 문구·날짜만 (bm-v1.67.0) */
       showNums: numModeById(ui.nums).id !== 'hide',
-      /* 꾸밈 배지 — 도장·자랑·WIN은 원할 때만 (기본 꺼짐, bm-v1.71.0) */
-      deco: !!ui.deco,
       win: ui.win !== false,
-      numMode: numModeById(ui.nums).id,
-      /* bm-v1.80.0 — 내 커스텀 라켓·친구 코드 (스매시 임팩트·매거진 날짜줄에 사용) */
-      showRacket: ui.racket !== false,
-      showCode: ui.code !== false,
-      racket: BM.racketcustom ? BM.racketcustom.customOf(state.me) : null,
-      racketLevel: BM.racketcustom ? BM.racketcustom.conditionOf(state).level : 'ok',
-      friendCode: BM.racketcustom ? BM.racketcustom.shareInfo(state).label : '',
-      pointsToday: BM.racketcustom ? BM.racketcustom.pointsToday(state) : 0
+      numMode: numModeById(ui.nums).id
     };
 
     if (ui.mode === 'comp') {
@@ -3200,7 +2601,6 @@
       var compTag = duoLine((state.data && state.data.records) || [], ui.compPartner);
       return mix(base, {
         mode: 'comp', title: '대회 인증',
-        /* 영수증 줄 — 대회 정보 그대로 */
         phrase: phraseText(ui.phraseComp) || DEFAULT_PHRASE,
         top: m.date,
         kicker: m.contest,
@@ -3221,12 +2621,6 @@
     var meta = (rec && dom().logMeta) ? dom().logMeta(rec) : {};
     var bigs = todayBigs(rec, { streak: stats.streak, aiScore: an ? an.score : (rec && rec.score) });
     var primary = bigs[0] || null;
-    /* 시간·점수가 없는 일지도 카드 가운데가 비지 않게 — 완료한 훈련 → 한 줄 메모 순서 (bm-v1.72.0) */
-    var doneText = doneLine(rec);
-    var noteText = noteLineOf(rec);
-    var fallbackBig = !primary && doneText
-      ? { value: doneText, unit: '', label: '오늘의 훈련', textOnly: true }
-      : (!primary && noteText ? { value: noteText, unit: '', label: '오늘의 한 줄', textOnly: true } : null);
     var day = dateLine(rec && rec.date);
     var gym = ui.gym || '';
     var topBits = [];
@@ -3258,55 +2652,25 @@
     if (ui.win !== false && tally.count && tally.wins > tally.losses) winText = tally.losses === 0 ? 'GG' : 'WIN';
     /* 자랑 하이라이트 — 오늘 전승 · 이번 달 N시간 · N일 연속 (끄기 가능) */
     var hl = (ui.badge === false) ? [] : highlightsOf(records, stats, rec, { ymd: U.ymd() });
-    var condText = (function () {
-      if (!rec || rec.cond == null || rec.cond === '') return '';
-      var band = (dom() && dom().condBandOf) ? dom().condBandOf(rec.cond) : null;
-      return band ? band.short : String(rec.cond);
-    })();
-    /* 숫자가 없는 일지는 큰 글씨(훈련 이름) 아래 한 줄을 날짜 대신 컨디션으로 */
-    var underLine = labelBits.join(' · ');
-    if (!primary) underLine = condText ? '컨디션 ' + condText : (day || '');
-
-    /* bm-v1.80.0 — 스매시 임팩트 카드에 사방으로 퍼질 오늘의 수치 */
-    var smashItems = [];
-    if (rec && rec.minutes) smashItems.push({ k: '운동 시간', v: rec.minutes + '분' });
-    if (rec && rec.cond != null && rec.cond !== '') smashItems.push({ k: '컨디션', v: rec.cond + '점' });
-    if (rec && rec.intensity) smashItems.push({ k: '강도', v: String(rec.intensity) });
-    var smashFocus = (rec && ((rec.weakness || [])[0] || (rec.done || [])[0])) || '';
-    if (smashFocus) smashItems.push({ k: '오늘 집중', v: smashFocus });
-    if (!smashItems.length) smashItems.push({ k: '오늘의 훈련', v: doneText || '배드민턴' });
 
     return mix(base, {
       mode: 'today', title: '오늘 운동',
-      smashItems: smashItems.slice(0, 4),
       phrase: phrase,
       top: topBits.join(' · '),
-      kicker: primary ? primary.label : (fallbackBig ? fallbackBig.label : ''),
+      kicker: primary ? primary.label : '',
       big: primary ? { value: String(primary.value), unit: primary.unit || '', label: primary.label }
-        : (fallbackBig || { value: '', unit: '', label: '' }),
+        : { value: '', unit: '', label: '' },
       bigLine: primary ? (primary.value + (primary.unit ? primary.unit : '') + (bigs[1] ? ' · ' + bigs[1].value + (bigs[1].unit || '') : '')) : '',
       stats: rest,
       meta: people.join(' · '),
       metaLine: [people.join(' · '), tagLine].filter(Boolean).join(' · '),
-      label: underLine,
+      label: labelBits.join(' · '),
       /* 스탬프·배지·태그 (bm-v1.67.0) */
       stamp: winText, hasStamp: !!winText,
       badge: hl[0] ? hl[0].text : '',
       tagLine: tagLine,
       sub: todaySub(rec, { gym: gym, partner: ui.partner, rival: ui.rival }),
-      date: day,
-      /* 영수증 줄 — 일지에 적힌 값 그대로 (영수증 카드가 이 값으로 표를 그립니다) */
-      gymName: gym,
-      minutes: (rec && rec.minutes) ? rec.minutes : null,
-      doneText: doneText,
-      noteText: noteText,
-      recordText: tally.count
-        ? [tally.wins ? tally.wins + '승' : '', tally.losses ? tally.losses + '패' : '',
-           tally.draws ? tally.draws + '무' : ''].filter(Boolean).join(' ')
-        : '',
-      condText: condText,
-      partnerName: partner,
-      rivalName: rival
+      date: day
     });
   }
 
@@ -3324,17 +2688,6 @@
       '<input type="text" data-sc-field="' + name + '" maxlength="' + (opts.max || 24) + '" ' +
       'placeholder="' + U.esc(opts.placeholder || '') + '" value="' + U.esc(value || '') + '"' +
       (opts.inputmode ? ' inputmode="' + opts.inputmode + '"' : '') + '></label>';
-  }
-
-  /* 날짜 입력 — 대회 인증 날짜를 직접 고릅니다 (bm-v1.72.0) */
-  function dateField(label, name, value, opts) {
-    opts = opts || {};
-    var ymd = String(value || '').slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) ymd = U.ymd();
-    return '<label class="flabel sc__datefield"><span>' + U.esc(label) + '</span>' +
-      '<input type="date" data-sc-field="' + name + '" value="' + U.esc(ymd) + '"' +
-      ' aria-label="' + U.esc(label) + '">' +
-      (opts.hint ? '<small class="hint">' + U.esc(opts.hint) + '</small>' : '') + '</label>';
   }
 
   /* 카드 문구 — 1탭 프리셋 5종 + '직접 쓰기'(입력칸으로) — bm-v1.61.0 */
@@ -3359,22 +2712,6 @@
       '</div>';
   }
 
-  /* 스티커 글씨 색 3종 — 스티커(투명) 디자인에서만 (bm-v1.73.0) */
-  function inkPicks() {
-    var sticker = ui.design === 'sticker';
-    var cur = inkById(ui.ink).id;
-    return '<div class="field sc__inkbox" data-sc-inkbox' + (sticker ? '' : ' hidden') + '>' +
-      '<div class="field__label"><span>스티커 글씨 색</span><small>내 사진 톤에 맞춰</small></div>' +
-      '<div class="chips chips--wrap sc__inks" role="group" aria-label="스티커 글씨 색">' +
-      STICKER_INKS.map(function (k) {
-        var on = cur === k.id;
-        return '<button type="button" class="chip sc__ink sc__ink--' + k.id + (on ? ' is-on' : '') + '"' +
-          ' data-sc-ink="' + k.id + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
-          '<i aria-hidden="true" style="background:' + k.fill + '"></i>' + U.esc(k.name) + '</button>';
-      }).join('') + '</div>' +
-      '<p class="hint">투명 PNG에 이 색으로 글씨가 그려져요.</p></div>';
-  }
-
   /* 사진 필터 5종 — 사진이 들어갔을 때만 (bm-v1.67.0) */
   function filterPicks() {
     var on = !!ui.photo && ui.design !== 'sticker';
@@ -3390,7 +2727,7 @@
       '<p class="hint sc__filterhint">숫자까지 빼고 싶으면 아래 <b>숫자 숨기기</b>를 골라 보세요.</p></div>';
   }
 
-  /* 숫자 표시 · 꾸밈 배지 (bm-v1.71.0 — 기본은 깔끔하게, 도장은 켤 때만) */
+  /* 숫자 표시 · 자랑 배지 · WIN 스탬프 (bm-v1.67.0) */
   function lookPicks() {
     var nums = numModeById(ui.nums).id;
     var seg = '<div class="seg seg--wide sc__nums" role="group" aria-label="숫자 표시">' + NUM_MODES.map(function (n) {
@@ -3399,24 +2736,14 @@
         ' data-sc-nums="' + n.id + '" aria-pressed="' + (on ? 'true' : 'false') + '"' +
         ' title="' + U.esc(n.note) + '">' + U.esc(n.name) + '</button>';
     }).join('') + '</div>';
-
-    /* 꾸밈 배지 — 켜면 자랑 배지·WIN 스탬프 칸이 아래에 함께 나옵니다 */
-    var decoOn = !!ui.deco;
-    var toggles = '<div class="chips chips--wrap sc__toggles" role="group" aria-label="카드 꾸밈">' +
-      '<button type="button" class="chip sc__toggle' + (decoOn ? ' is-on' : '') + '" data-sc-decotoggle aria-pressed="' + (decoOn ? 'true' : 'false') + '"' +
-      ' title="도장 · 자랑 배지 · WIN 스탬프를 카드에 얹어요">꾸밈 배지 ' + (decoOn ? '켜짐' : '꺼짐') + '</button>';
-    /* bm-v1.80.0 — 내 커스텀 라켓 · 친구 코드(이름#코드)를 카드에 */
-    var rkOn = ui.racket !== false, cdOn = ui.code !== false;
-    toggles += '<button type="button" class="chip sc__toggle' + (rkOn ? ' is-on' : '') + '" data-sc-rackettoggle aria-pressed="' + (rkOn ? 'true' : 'false') + '"' +
-      ' title="내 커스텀 라켓을 카드에 넣어요">내 라켓 ' + (rkOn ? '켜짐' : '꺼짐') + '</button>' +
-      '<button type="button" class="chip sc__toggle' + (cdOn ? ' is-on' : '') + '" data-sc-codetoggle aria-pressed="' + (cdOn ? 'true' : 'false') + '"' +
-      ' title="내 친구 코드(이름#코드)를 카드에 넣어요">친구 코드 ' + (cdOn ? '켜짐' : '꺼짐') + '</button>';
-    if (decoOn && ui.mode !== 'comp') {
+    var toggles = '';
+    if (ui.mode !== 'comp') {
       var bOn = ui.badge !== false, wOn = ui.win !== false;
-      toggles += '<button type="button" class="chip sc__toggle' + (bOn ? ' is-on' : '') + '" data-sc-badgetoggle aria-pressed="' + (bOn ? 'true' : 'false') + '">자랑 배지 ' + (bOn ? '켜짐' : '꺼짐') + '</button>' +
-        '<button type="button" class="chip sc__toggle' + (wOn ? ' is-on' : '') + '" data-sc-wintoggle aria-pressed="' + (wOn ? 'true' : 'false') + '">WIN 스탬프 ' + (wOn ? '켜짐' : '꺼짐') + '</button>';
+      toggles = '<div class="chips chips--wrap sc__toggles" role="group" aria-label="카드 표시">' +
+        '<button type="button" class="chip sc__toggle' + (bOn ? ' is-on' : '') + '" data-sc-badgetoggle aria-pressed="' + (bOn ? 'true' : 'false') + '">자랑 배지 ' + (bOn ? '켜짐' : '꺼짐') + '</button>' +
+        '<button type="button" class="chip sc__toggle' + (wOn ? ' is-on' : '') + '" data-sc-wintoggle aria-pressed="' + (wOn ? 'true' : 'false') + '">WIN 스탬프 ' + (wOn ? '켜짐' : '꺼짐') + '</button>' +
+        '</div>';
     }
-    toggles += '</div>';
     return '<div class="field sc__look"><div class="field__label"><span>숫자 표시</span>' +
       '<small>' + (nums === 'hide' ? '사진·날짜·한 줄만' : '시간·승패까지') + '</small></div>' +
       seg + toggles + '</div>';
@@ -3511,7 +2838,6 @@
 
   function hintOf(design, ratio) {
     if (design === 'sticker') return '투명 PNG라 내 사진·스토리 위에 그대로 붙일 수 있어요.';
-    if (design === 'smash') return '내 라켓이 터지며 오늘 수치가 퍼지는 카드예요 · 사진 없이도 꽉 차요.';
     if (ratio === 'story') return '스토리는 위·아래 220px를 비워 프로필·답장창에 가리지 않아요.';
     return '피드 4:5예요. 스토리에 올리려면 비율을 스토리로 바꿔 주세요.';
   }
@@ -3536,19 +2862,7 @@
     if (!opt.deco) { done(); return; }
     var actions = (ctx && ctx.actions) || {};
     var canBuy = typeof actions.buyDeco === 'function';
-    var resRaw = canBuy ? actions.buyDeco('card', opt.id) : { ok: false, reason: 'no_store' };
-    /* bm-v1.75.0 — Supabase 모드에서는 구매 결과가 서버 응답(Promise)으로 옵니다 */
-    if (resRaw && typeof resRaw.then === 'function') {
-      resRaw.then(function (r) { unlockFrameAfter(ctx, opt, r, done); },
-        function () { BM.ui.toast('프레임을 열지 못했어요', 'error'); done(); });
-      return;
-    }
-    unlockFrameAfter(ctx, opt, resRaw, done);
-  }
-
-  /* unlockFrame 의 뒷부분 — 결과를 받은 뒤 화면 처리(기기 저장·시트는 바로, 서버는 응답 뒤) */
-  function unlockFrameAfter(ctx, opt, res, done) {
-    var actions = (ctx && ctx.actions) || {};
+    var res = canBuy ? actions.buyDeco('card', opt.id) : { ok: false, reason: 'no_store' };
     if (res && res.ok) {
       BM.ui.toast(res.purchased ? '하트 ' + res.price + '개로 ' + opt.label + ' 프레임을 열었어요' : '이미 열려 있어요');
       BM.ui.haptic(12);
@@ -3566,15 +2880,13 @@
         continueLabel: '열기',
         onContinue: function () {
           var again = actions.buyDeco('card', opt.id);
-          Promise.resolve(again).then(function (r) {
-            if (r && r.ok) {
-              BM.ui.toast(opt.label + ' 프레임을 열었어요');
-              BM.ui.haptic(12);
-            } else {
-              BM.ui.toast((r && r.message) || '아직 하트가 모자라요', 'error');
-            }
-            done();
-          });
+          if (again && again.ok) {
+            BM.ui.toast(opt.label + ' 프레임을 열었어요');
+            BM.ui.haptic(12);
+          } else {
+            BM.ui.toast('아직 하트가 모자라요', 'error');
+          }
+          done();
         }
       });
       return;
@@ -3615,7 +2927,6 @@
     var rec = recordById(ctx, ui.recordId);
     var dims = dimsOf(ui.ratio);
     var sticker = ui.design === 'sticker';
-    var smash = ui.design === SMASH_DESIGN;
 
     var modeTabs = '<div class="seg seg--wide sc__modes" role="tablist">' + MODES.map(function (m) {
       return '<button type="button" class="seg__btn' + (ui.mode === m.id ? ' is-on' : '') + '" data-sc-mode="' + m.id + '" role="tab" ' +
@@ -3623,25 +2934,14 @@
     }).join('') + '</div>';
 
     /* 한 줄 안내 — 3초 안에 무엇을 할지 */
-    var guide = smash
-      ? '<p class="sc__guide"><span><em>⚡</em>내 라켓이 터지는 스매시 카드</span><i aria-hidden="true">→</i>' +
-        '<span><em>2</em>저장 누르면 끝!</span></p>'
-      : '<p class="sc__guide">' +
-        '<span><em>1</em>사진 고르고</span><i aria-hidden="true">→</i>' +
-        '<span><em>2</em>저장 누르면 끝!</span></p>';
+    var guide = '<p class="sc__guide">' +
+      '<span><em>1</em>사진 고르고</span><i aria-hidden="true">→</i>' +
+      '<span><em>2</em>저장 누르면 끝!</span></p>';
 
     /* 미리보기 — 시트를 열면 가장 먼저 카드가 보입니다 */
-    var preview = '<div class="sc__preview' + (sticker ? ' is-sticker' : '') + (smash ? ' is-smash' : '') + '">' +
+    var preview = '<div class="sc__preview' + (sticker ? ' is-sticker' : '') + '">' +
       '<canvas class="sc__canvas" width="' + dims.w + '" height="' + dims.h + '" aria-label="공유 카드 미리보기"></canvas></div>' +
       '<p class="sc__summary" data-sc-summary></p>';
-
-    /* bm-v1.80.0 — 스매시 임팩트(내 라켓이 터지며 오늘 운동이 퍼지는 카드) */
-    var smashPick = '<button type="button" class="sc__smashban' + (smash ? ' is-on' : '') + '" data-sc-smash="1" aria-pressed="' + (smash ? 'true' : 'false') + '">' +
-      '<span class="sc__smashart" aria-hidden="true">' +
-      (BM.racketcustom ? BM.racketcustom.svg(BM.racketcustom.customOf(state.me), { level: 'prime' }) : '') + '</span>' +
-      '<span class="sc__smashtx"><b>스매시 임팩트 <i>NEW</i></b>' +
-      '<small>내 라켓이 터지며 오늘 운동이 사방으로 · 친구 코드까지</small></span>' +
-      '<span class="sc__smashsw" aria-hidden="true">' + (smash ? '켜짐' : '켜기') + '</span></button>';
 
     var picker = '';
     if (records.length > 1) {
@@ -3661,11 +2961,9 @@
       '</div>' +
       field('상대(라이벌)', 'rival', ui.rival, { max: 12, placeholder: '비워도 돼요' });
 
-    /* 대회 인증 — 대회 날짜·대회명·종목·성적·파트너는 접지 않고 바로 입력
-     * 날짜는 오늘로 고정하지 않고 지난 대회 날짜로 바꿀 수 있게 합니다 (bm-v1.72.0) */
+    /* 대회 인증 — 대회명·종목·성적·파트너는 접지 않고 바로 입력 */
     var compFields = '<div class="sc__compbox">' +
       '<div class="field__label"><span>대회 정보</span><small>카드에 그대로 들어가요</small></div>' +
-      dateField('대회 날짜', 'date', ui.date, { hint: '지난 대회 날짜로 바꿀 수 있어요' }) +
       field('대회명', 'contest', ui.contest, { max: 24, placeholder: '예: ○○시 오픈 배드민턴 대회' }) +
       field('급수 · 종목', 'event', ui.event, { max: 20, placeholder: '예: B조 복식' }) +
       '<div class="field"><div class="field__label"><span>성적</span></div>' +
@@ -3682,7 +2980,7 @@
       : '';
 
     /* 사진 — 스티커(투명)에는 필요 없어 숨깁니다 */
-    var photoBox = '<div class="field sc__photo"' + (sticker || smash ? ' hidden' : '') + '>' +
+    var photoBox = '<div class="field sc__photo"' + (sticker ? ' hidden' : '') + '>' +
       '<div class="sc__shotrow">' +
         '<label class="sc__shot' + (ui.photo ? ' is-on' : '') + '">' +
           '<span class="sc__shotic">' + BM.ui.icon('camera') + '</span>' +
@@ -3695,12 +2993,12 @@
       '</div>' +
       zoomBox() +
       filterPicks() +
-      '<div class="sc__bgrow"><span class="sc__bglabel">기본 배경</span><i class="sc__bghint">사진 없이도 화보처럼</i></div>' +
+      '<div class="sc__bgrow"><span class="sc__bglabel">기본 배경</span><i class="sc__bghint">사진 없이도 감성 있게</i></div>' +
       '<div class="sc__bgs" role="group" aria-label="기본 배경 4종">' + BGS.map(bgChip).join('') + '</div>' +
       '<p class="hint sc__photohint">사진은 폰 안에서만 합쳐져요 · 서버로 보내지 않아요</p></div>';
 
     /* 디자인 4종 */
-    var designPicks = '<div class="field"' + (smash ? ' hidden' : '') + '><div class="field__label"><span>디자인</span></div>' +
+    var designPicks = '<div class="field"><div class="field__label"><span>디자인</span></div>' +
       '<div class="sc__designs">' + DESIGNS.map(function (d) {
         var on = ui.design === d.id;
         return '<button type="button" class="sc__design sc__design--' + d.id + (on ? ' is-on' : '') + '" data-sc-design="' + d.id + '" ' +
@@ -3728,7 +3026,7 @@
       }).join('') + '</div></div>';
 
     /* 사진 밝기 3단계 — 사진이 있을 때만 */
-    var shadePicks = '<div class="field sc__shadebox"' + (ui.photo && !sticker && !smash ? '' : ' hidden') + '>' +
+    var shadePicks = '<div class="field sc__shadebox"' + (ui.photo && !sticker ? '' : ' hidden') + '>' +
       '<div class="field__label"><span>사진 밝기</span></div>' +
       '<div class="seg seg--three sc__shades" role="group" aria-label="사진 밝기">' + SHADES.map(function (s) {
         var on = ui.shade === s.id;
@@ -3765,9 +3063,9 @@
       '<button type="button" class="btn btn--primary btn--big" data-sc-save' + (emptyToday ? ' disabled' : '') + '>' +
       BM.ui.icon('send') + '<span>' + saveLabel + '</span></button></div>';
 
-    return modeTabs + guide + emptyNote + preview + smashPick + photoBox +
+    return modeTabs + guide + emptyNote + preview + photoBox +
       (ui.mode === 'comp' ? compFields : '') +
-      designPicks + inkPicks() + lookPicks() + ratioPicks + textPosPicks + shadePicks + more + saveBar;
+      designPicks + lookPicks() + ratioPicks + textPosPicks + shadePicks + more + saveBar;
   }
 
   function paintPreview(wrap, ctx) {
@@ -3786,16 +3084,12 @@
   function syncControls(node) {
     if (!node) return;
     var sticker = ui.design === 'sticker';
-    var smash = ui.design === SMASH_DESIGN;
     var photoBox = node.querySelector('.sc__photo');
-    if (photoBox) photoBox.hidden = sticker || smash;
+    if (photoBox) photoBox.hidden = sticker;
     var shadeBox = node.querySelector('.sc__shadebox');
-    if (shadeBox) shadeBox.hidden = !ui.photo || sticker || smash;
+    if (shadeBox) shadeBox.hidden = !ui.photo || sticker;
     var preview = node.querySelector('.sc__preview');
-    if (preview) {
-      preview.classList.toggle('is-sticker', sticker);
-      preview.classList.toggle('is-smash', smash);
-    }
+    if (preview) preview.classList.toggle('is-sticker', sticker);
     var saveLabel = node.querySelector('[data-sc-save] span');
     if (saveLabel) {
       saveLabel.textContent = sticker ? '투명 PNG 저장 · 공유' : 'PNG 저장 · 공유';
@@ -3819,10 +3113,6 @@
     /* 사진 필터 — 사진이 들어갔을 때만 */
     var fb = node.querySelector('.sc__filterbox');
     if (fb) fb.hidden = !ui.photo || sticker;
-    /* 스티커 글씨 색 — 스티커 디자인에서만 */
-    var ib = node.querySelector('[data-sc-inkbox]');
-    if (ib) ib.hidden = !sticker;
-    syncInk(node);
     syncTextPos(node);
     syncLook(node);
     /* 기본 배경 4종 — 내 사진이 있으면 배경은 꺼진 상태 */
@@ -3839,13 +3129,6 @@
   function syncLook(node) {
     if (!node) return;
     var nums = numModeById(ui.nums).id;
-    var dt = node.querySelector('[data-sc-decotoggle]');
-    if (dt) {
-      var dOn = !!ui.deco;
-      dt.classList.toggle('is-on', dOn);
-      dt.setAttribute('aria-pressed', dOn ? 'true' : 'false');
-      dt.textContent = '꾸밈 배지 ' + (dOn ? '켜짐' : '꺼짐');
-    }
     Array.prototype.forEach.call(node.querySelectorAll('[data-sc-nums]'), function (b) {
       var on = b.getAttribute('data-sc-nums') === nums;
       b.classList.toggle('is-on', on);
@@ -3867,32 +3150,6 @@
       wt.setAttribute('aria-pressed', wOn ? 'true' : 'false');
       wt.textContent = 'WIN 스탬프 ' + (wOn ? '켜짐' : '꺼짐');
     }
-    /* bm-v1.80.0 — 내 라켓 · 친구 코드 토글 */
-    var rt = node.querySelector('[data-sc-rackettoggle]');
-    if (rt) {
-      var rOn = ui.racket !== false;
-      rt.classList.toggle('is-on', rOn);
-      rt.setAttribute('aria-pressed', rOn ? 'true' : 'false');
-      rt.textContent = '내 라켓 ' + (rOn ? '켜짐' : '꺼짐');
-    }
-    var ct = node.querySelector('[data-sc-codetoggle]');
-    if (ct) {
-      var cOn = ui.code !== false;
-      ct.classList.toggle('is-on', cOn);
-      ct.setAttribute('aria-pressed', cOn ? 'true' : 'false');
-      ct.textContent = '친구 코드 ' + (cOn ? '켜짐' : '꺼짐');
-    }
-  }
-
-  /* 스티커 글씨 색 3종 — 고른 색만 켜 보입니다 */
-  function syncInk(node) {
-    if (!node) return;
-    var cur = inkById(ui.ink).id;
-    Array.prototype.forEach.call(node.querySelectorAll('[data-sc-ink]'), function (b) {
-      var on = b.getAttribute('data-sc-ink') === cur;
-      b.classList.toggle('is-on', on);
-      b.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
   }
 
   /* 글씨 위치 3단 — 고른 자리만 켜 보입니다 */
@@ -3987,15 +3244,6 @@
         paintPreview(node, ctx);
         paintBgThumbs(node);
 
-        /* 기본 배경 사진 — 시트를 열 때 한 번 받아 두고, 도착하면 카드·썸네일을
-         * 다시 그립니다(그 전까지는 같은 느낌의 캔버스 그림이 보입니다). */
-        onBgLoad(function () {
-          if (node.isConnected === false) return;
-          paintPreview(node, ctx);
-          paintBgThumbs(node);
-        });
-        preloadBgs();
-
         /* 미리보기 사진 끌기 — 손가락·마우스로 구도 옮기기 (bm-v1.66.0)
          * 시트 본문을 다시 그릴 때마다 캔버스가 새로 생기므로, 시트(node)에 걸어 둡니다. */
         var drag = null, rafId = 0;
@@ -4043,33 +3291,6 @@
         }
 
         node.addEventListener('click', function (ev) {
-          /* bm-v1.80.0 — 스매시 임팩트 카드 켜기/끄기 */
-          if (ev.target.closest('[data-sc-smash]')) {
-            ev.preventDefault();
-            if (ui.design === SMASH_DESIGN) ui.design = presetDesignId(readPrefs().design);
-            else ui.design = SMASH_DESIGN;
-            BM.ui.haptic(8);
-            refresh();
-            return;
-          }
-          if (ev.target.closest('[data-sc-rackettoggle]')) {
-            ev.preventDefault();
-            ui.racket = (ui.racket === false);
-            BM.ui.haptic(6);
-            syncLook(node);
-            writePrefs({ racket: ui.racket });
-            repaint();
-            return;
-          }
-          if (ev.target.closest('[data-sc-codetoggle]')) {
-            ev.preventDefault();
-            ui.code = (ui.code === false);
-            BM.ui.haptic(6);
-            syncLook(node);
-            writePrefs({ code: ui.code });
-            repaint();
-            return;
-          }
           /* 대회 인증 카드 프레임 (bm-v1.64.0) */
           var fr = ev.target.closest('[data-sc-frame]');
           if (fr) {
@@ -4149,15 +3370,6 @@
             repaint();
             return;
           }
-          if (ev.target.closest('[data-sc-decotoggle]')) {
-            ev.preventDefault();
-            ui.deco = !ui.deco;
-            BM.ui.haptic(6);
-            writePrefs({ deco: !!ui.deco });
-            /* 칩 구성이 바뀌므로 시트 안쪽만 다시 그립니다 */
-            refresh();
-            return;
-          }
           if (ev.target.closest('[data-sc-badgetoggle]')) {
             ev.preventDefault();
             ui.badge = (ui.badge === false);
@@ -4216,17 +3428,6 @@
             BM.ui.haptic(6);
             syncControls(node);
             writePrefs({ design: ui.design });
-            repaint();
-            return;
-          }
-          /* 스티커 글씨 색 3종 (bm-v1.73.0) */
-          var ik = ev.target.closest('[data-sc-ink]');
-          if (ik) {
-            ev.preventDefault();
-            ui.ink = inkById(ik.getAttribute('data-sc-ink')).id;
-            BM.ui.haptic(6);
-            syncInk(node);
-            writePrefs({ ink: ui.ink });
             repaint();
             return;
           }
@@ -4346,19 +3547,14 @@
             btn.dataset.busy = '1';
             var canvas = node.querySelector('.sc__canvas');
             paintPreview(node, ctx);
-            /* 배경 사진이 아직 안 왔으면 저장 직전에 잠깐 기다립니다(PNG에 fallback이
-             * 찍히지 않게). 오프라인·실패면 기다리지 않고 그대로 저장합니다. */
-            whenBgsReady(function () {
-              paintPreview(node, ctx);
-              saveOrShare(canvas, { name: filename(ui.mode, U.ymd().replace(/-/g, '')), mode: ui.mode }).then(function (res) {
-                btn.dataset.busy = '0';
-                if (res && res.ok) {
-                  BM.ui.haptic(12);
-                  BM.ui.toast(res.shared ? '공유 창을 열었어요' : '카드를 저장했어요');
-                } else if (!(res && res.canceled)) {
-                  BM.ui.toast('카드를 저장하지 못했어요', 'error');
-                }
-              });
+            saveOrShare(canvas, { name: filename(ui.mode, U.ymd().replace(/-/g, '')), mode: ui.mode }).then(function (res) {
+              btn.dataset.busy = '0';
+              if (res && res.ok) {
+                BM.ui.haptic(12);
+                BM.ui.toast(res.shared ? '공유 창을 열었어요' : '카드를 저장했어요');
+              } else if (!(res && res.canceled)) {
+                BM.ui.toast('카드를 저장하지 못했어요', 'error');
+              }
             });
             return;
           }
@@ -4427,12 +3623,6 @@
     highlightsOf: highlightsOf, monthMinutes: monthMinutes, recordTally: recordTally,
     duoLine: duoLine, rivalTagLine: rivalTagLine, rivalStreak: rivalStreak, rivalTaunts: rivalTaunts,
     paintGlass: paintGlass, paintMood: paintMood, paintStickerMood: paintStickerMood,
-    paintReceipt: paintReceipt, receiptRows: receiptRows, barcodeBars: barcodeBars,
-    paintMagazine: paintMagazine, dashLine: dashLine,
-    preloadBgs: preloadBgs, onBgLoad: onBgLoad, bgImageOf: bgImageOf, whenBgsReady: whenBgsReady,
-    _setBgImage: function (id, img) { BG_IMAGES[id] = img; },
-    _clearBgImages: function () { BG_IMAGES = {}; BG_LOADING = {}; },
-    presetDesignId: presetDesignId, LEGACY_DESIGNS: LEGACY_DESIGNS,
     paintMedalImpact: paintMedalImpact, paintHighlightBadge: paintHighlightBadge, paintWinStamp: paintWinStamp,
     paintPhotoTone: paintPhotoTone, drawPhotoBox: drawPhotoBox,
     FRAMES: FRAMES, frameOptionById: frameOptionById, ownsFrame: ownsFrame,
@@ -4443,8 +3633,6 @@
     phraseById: phraseById, phraseText: phraseText, isPresetPhrase: isPresetPhrase,
     dimsOf: dimsOf,
     TEXT_POS: TEXT_POS, textPosById: textPosById,
-    /* bm-v1.73.0 — 스티커 글씨 색 3종 */
-    STICKER_INKS: STICKER_INKS, inkById: inkById,
     ZOOM_MIN: ZOOM_MIN, ZOOM_MAX: ZOOM_MAX, ZOOM_STEP: ZOOM_STEP,
     zoomOf: zoomOf, zoomLabel: zoomLabel,
     photoViewOf: photoViewOf, coverBox: coverBox, photoFrameOf: photoFrameOf, movePhotoBy: movePhotoBy,

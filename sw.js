@@ -280,131 +280,8 @@
  *             분류가 게스트 모집으로 바뀌고 모집 칸(언제·어디·몇 명)이 열립니다.
  *             js/views/gyms.js·js/views/coach.js·js/views/community.js·js/views/matching.js·
  *             js/nearby.js·styles.css 가 바뀌어 캐시를 bm-v1.65.0으로 올립니다.
- * 2026-11-24: 🦵 런지·착지 부상 예방 보강(bm-v1.69.0) — '무릎·발목 보호 체크'에
- *             〔발끝 방향〕 런지 착지에서 발끝을 몸 안쪽으로 말면(toe-in) 뒤꿈치에 힘이 몰리고
- *             발목이 바깥으로 꺾이는 부담이 커지며, 몸이 가는 방향~조금 바깥(toe-out)으로 열면
- *             그 힘과 뒤꿈치 충격이 줄어든다는 기준·확인 항목을 넣었습니다.
- *             〔점프 착지〕 내려올 때 두 무릎이 안쪽으로 모이지 않고 발끝 방향으로 정렬해
- *             엉덩이를 뒤로 빼며 부드럽게 흡수하는 확인 항목을 넣었습니다.
- *             풋워크·수비 드릴의 한 줄 코칭도 같은 기준으로 다듬었습니다.
- *             근거는 Wen 2025(BMC Sports Sci Med Rehabil 17(1):341) · Xiao 2026(Res Sports Med 34(6):737-760).
- *             js/ai.js 가 바뀌어 캐시를 bm-v1.69.0으로 올립니다.
- * 2026-11-24: 🏸 실전 시합 웜업 · 복식 전환 전술(bm-v1.70.0) — 19시 선수 인터뷰에서 알려 준 두 가지를
- *             코칭에 넣었습니다.
- *             〔시합 당일 준비〕 시합 들어가기 직전엔 가볍게 조깅으로 몸을 데우고, 스트레칭으로
- *             관절을 푼 뒤 코트에서 시합 — 이 순서를 3단계로 풀어 적었습니다(평소 훈련 웜업은 그대로).
- *             〔수비 → 공격 전환〕 복식에서 수비에 몰렸을 땐 공을 세게 한 번 쳐서 상대를 뒤로
- *             밀리게 만든 다음, 코스를 틀거나 짧게 놓아 빈틈을 노립니다. 밀기 전에 방향부터 바꾸면
- *             앞을 지키는 상대에게 걸린다는 순서까지 함께 적었습니다.
- *             js/ai.js·js/views/log.js 가 바뀌어 캐시를 bm-v1.70.0으로 올립니다.
- * 2026-11-24: 🎨 인스타 공유 카드 감성 전면 리디자인(bm-v1.71.0) — 카드가 군더더기를 벗었습니다.
- *             〔고화질 기본 배경 3종〕 야경 코트 · 노을 체육관 · 다크 스튜디오 실사 사진을
- *             1080×1350 JPEG로 넣어, 내 사진이 없어도 바로 화보 같은 카드가 나옵니다.
- *             〔레이아웃〕 도장·자랑 배지·전적·도발 멘트를 한꺼번에 얹지 않고 큰 숫자 하나 +
- *             얇은 선 + 짧은 한 줄 + 맨 아래 날짜·장소만. 도장류는 '꾸밈 배지'를 켤 때만.
- *             〔영수증〕 요즘 인스타에서 도는 '오늘의 민턴 영수증' 카드(찢은 종이 · 바코드) 추가,
- *             글래스는 칸에서 빠지고 영수증이 들어왔습니다(예전 값은 그대로 그려집니다).
- *             js/sharecard.js·styles.css·assets/share-bg/* 가 바뀌어 캐시를 bm-v1.71.0으로 올리고
- *             배경 사진 3장을 SHELL에 넣어 오프라인에서도 사용합니다.
- * 2026-11-25: ☀️ 아침 사용성 6건(bm-v1.72.0) — 쓰다가 걸리던 자리들을 고쳤습니다.
- *             〔영수증〕 시간·점수 없는 일지도 본문이 비지 않게 훈련·컨디션·한 줄을 채우고,
- *             TOTAL 자리는 완료한 훈련으로 채웁니다(훈련이 3개를 넘으면 앞 2개 + 외 N).
- *             〔대회 인증〕 카드 날짜가 오늘로 고정되던 문제 — 날짜를 직접 고르는 칸을 넣었습니다.
- *             〔일지 & AI〕 무릎·어깨가 아픈데 풋워크·점프 드릴을 권하던 모순을 없애고,
- *             아픈 부위에 맞는 상체·스트레칭·회복 드릴로 바꿔 이유를 한 줄로 보여 줍니다.
- *             저장 뒤 접힘 메뉴 9개는 '심화 · 선수 루틴 더 보기' 하나로 묶었습니다.
- *             〔상세 리포트〕 접전 승률이 떨어졌는데 칭찬하던 문구를 보완 문구로 바꾸고,
- *             통증이 있으면 드릴 권유 대신 회복 안내를, '채워져요.일지의' 띄어쓰기를 고쳤습니다.
- *             〔영상 자세 비교〕 예시 1·2구간 시간이 겹치던 것을 나누고, 예시를 본 뒤에도
- *             다른 예시로 바꾸는 버튼이 남게 했습니다.
- *             js/ai.js·js/pose.js·js/report.js·js/sharecard.js·js/views/log.js·styles.css 가
- *             바뀌어 캐시를 bm-v1.72.0으로 올립니다.
- * 2026-11-25: 🏅 30일 출석 챔피언 · ⚡ 오늘의 하트 부스트 · 📅 코트 약속 카드 (bm-v1.73.0)
- *             〔30일〕 연속 출석 30일째에 하트 +5와 🏆 챔피언 배지(30일 전에는 하트 3개).
- *             〔오늘의 하트 부스트〕 하트 부스트를 아직 열지 않은 사람도 그날 첫 광고에 +1
- *             (하루 1회 · 하루 5회·30초 간격·영구 부스트 +1은 그대로 함께 쌓입니다).
- *             〔약속 카드〕 1:1 대화방 입력창 옆 📅 약속 잡기 — 체육관·날짜·시간 카드와
- *             상대의 좋아요 / 시간 조정 1탭. 하트가 모자란 자리는 공용 충전 시트로 바로 이어집니다.
- *             〔일지·인스타〕 약점 칩에 수비(수비 타이밍 코칭) 추가, 스티커 글씨 흰색·라임·골드 3색.
- *             js/domain.js·js/ads.js·js/store.js·js/views/chat.js·js/views/my.js·js/sharecard.js·
- *             styles.css 가 바뀌어 캐시를 bm-v1.73.0으로 올립니다.
- * 2026-11-25: 🏸 앱 이름 '셔틀릭스 (Shuttlix)' 반영 (bm-v1.74.0)
- *             〔이름〕 승우 님·조환비 님 확정 이름으로 앱 안 표시 이름만 바꿉니다 —
- *             문서 제목·상단 헤더·시작 로딩·시작화면·매니페스트·TWA·인스타 공유 카드
- *             워터마크(SHUTTLIX)·푸시 알림 기본 제목. localStorage 키(bm_*), Supabase 테이블,
- *             주소 경로(/badminton/), TWA packageId(io.github.csw42060713_byte.badminton)는
- *             그대로입니다. 이름 글자만 바뀌어 캐시를 bm-v1.74.0으로 올립니다.
- * 2026-11-25: 🔒 하트·광고 보상 서버 잠금 (bm-v1.75.0)
- *             〔잠금〕 출석·광고·꾸미기·선물 하트의 적립/차감 행을 이제 서버(Supabase RPC)만
- *             넣습니다. 브라우저가 app_records 에 '출석하트'·'광고하트'·'꾸미기구매'·
- *             '선물하트'·'하트합치기'·'내하트사용' 행을 직접 넣으면 RLS 가 막습니다
- *             (supabase/heart-rpc-v1.75.sql). 오늘 날짜·연속 출석 보너스·광고 5회/30초·
- *             txId 중복·잔액 검사를 서버가 다시 셉니다. 기기 저장(체험)·26칸 시트 브리지는
- *             그대로이고, 화면 문구도 그대로입니다. js/api.js·js/store.js·js/ads.js·
- *             js/util.js·js/views/my.js·js/views/matching.js·js/sharecard.js 가 바뀌어
- *             캐시를 bm-v1.75.0으로 올립니다.
- * 2026-11-25: 🏸 내 라켓 · 스트링 장력 메모 & 교체 알림 (bm-v1.76.0)
- *             〔기록〕 MY 에 '🏸 내 라켓 · 스트링' 카드를 더했습니다 — 라켓 모델 · 스트링 ·
- *             장력(lbs) · 교체한 날 · 교체 주기 · 한 줄 메모를 적어 두고, 지난 뒤 D+N일과
- *             '교체까지 N일 남음'을 보여 줍니다. 스트링(BG65·BG80·에어로바이트·엑스볼트63) ·
- *             장력(24~28) · 주기(30·45·60·90일) 칩과 직접 입력, 교체한 날 '오늘' 버튼,
- *             '오늘 새 줄로 갈았어요' 원탭 리셋까지.
- *             〔알림〕 주기가 지났거나 3일 안으로 다가오면 MY 카드 배지 + 일지 & AI 위 한 줄
- *             배너로 조용히 알리고, 브라우저 알림을 허용한 사람에게는 하루 한 번만 알립니다.
- *             〔저장〕 새 시트 칸·새 DB 컬럼 없이 프로필 꾸미기 JSON(theme.gear) 한 칸만.
- *             js/gear.js 가 새로 생기고 js/store.js·js/views/my.js·js/views/log.js·
- *             app.js·styles.css 가 바뀌어 캐시를 bm-v1.76.0으로 올립니다.
- * 2026-11-25: 🔔 푸시 토큰 저장 + 발송 서버 틀 (bm-v1.77.0)
- *             〔토큰〕 기기별 푸시 토큰을 내 계정에 저장합니다 — supabase/push-v1.77.sql 의
- *             push_tokens 표와 register_push_token · unregister_push_token · my_push_tokens
- *             함수(본인 토큰만 · 최대 10대 · 같은 기기에서 계정을 바꾸면 주인도 이동).
- *             〔브리지〕 안드로이드 앱(TWA·웹뷰)이 토큰을 넘길 표준 통로 window.ShuttlixPush
- *             (register·unregister·token·status)와 옛 AndroidBridge 훅,
- *             postMessage(BM_PUSH_TOKEN)·커스텀 이벤트(shuttlix:push-token)를 js/push.js 에서 받습니다.
- *             〔발송〕 채팅 · 약속 카드 · 1:1 매칭 요청 · 게스트 신청(수락/거절)이 나간 직후
- *             Edge Function send-push 에 상대 알림을 부탁합니다. FCM_SERVICE_ACCOUNT_JSON
- *             시크릿이 아직 없으면 pending_fcm_secret 만 돌아오고 앱은 조용히 지나갑니다
- *             — 알림이 실패해도 메시지 전송은 절대 막히지 않습니다.
- *             〔화면〕 MY › 알림·편지지에 '실시간 알림(앱 켜짐)'과 '백그라운드 푸시(앱 닫힘)'를
- *             두 줄로 나눠 이 기기의 연결 상태를 보여 줍니다.
- *             js/push.js·js/store.js·js/views/my.js·app.js·styles.css 가 바뀌고
- *             supabase/push-v1.77.sql·supabase/functions/send-push/index.ts 가 새로 생겨
- *             캐시를 bm-v1.77.0으로 올립니다.
- * 2026-11-25: 🦶 스플릿 스텝 → 전위 런지 연결 · 발목 비틀림 보호 (bm-v1.78.0)
- *             〔근거〕 Wang et al., Bioengineering 11(5):501, 2024 (DOI: 10.3390/bioengineering11050501) —
- *             대학 수준 남자 선수 18명을 VICON 모션캡처·지면반력으로 비교. 포핸드 런지에서는 스플릿 스텝을
- *             밟으면 발이 닿는 순간 고관절 움직임이 커지고 무릎 굽힘이 줄며, 백핸드 런지에서는 무릎 돌림이
- *             커지는 대신 발목 돌림이 유의하게 줄었습니다(p < 0.05). 첫 지면반력 하중률이 커지고
- *             첫·둘째 피크 간격이 좁아져 앞으로 나가기 직전 힘을 받아내는 준비가 빨라집니다.
- *             〔앱〕 추천 드릴 '풋워크'에 '스플릿 스텝 → 전위 런지'를 추가하고, '무릎·발목 보호 체크'의
- *             쉬운 기준 1줄·조심할 동작 1개('방향 바꾸기 전 스플릿 스텝 한 번')를 더했습니다.
- *             새 시트 칸·새 DB 컬럼 없음. js/ai.js 만 바뀌어 캐시를 bm-v1.78.0으로 올립니다.
- *
- * 2026-11-26 (bm-v1.79.0): 매칭 '💛 응원 하트 1개'(카드·프로필 시트, 부족하면 공용 충전 시트) + 친구 코드
- *             초대 칩 · 일지 '⚡ 지난 운동 그대로 채우기'(직전 일지의 시간·컨디션·강도·약점) + 첫 화면 여백 정돈 ·
- *             커뮤니티 '🏟️ 체육관 후기'(바닥·조명·주차·샤워, 새 시트 칸·DB 컬럼 없음).
- *             js·css·index 만 바뀌어 캐시를 bm-v1.79.0으로 올립니다.
- *
- * 2026-11-26 (bm-v1.80.0): 내 커스텀 라켓 — 상단 오른쪽 미니 라켓(운동 상태에 따라 최상·느슨·끊어짐) ·
- *             배드민턴 용품 감성 파츠 5칸(프레임·스트링·그립·스텐실·참)을 일지·출석·매칭으로 모은
- *             라켓 포인트로 골라 열기 · 1:1 매칭 카드·프로필 시트에 상대 라켓 표시 · 공유 카드
- *             '스매시 임팩트'(라켓이 터지며 오늘 운동이 퍼짐) · 일지 저장 직후 스매시 연출과
- *             '방금 쓴 오늘 운동 그대로 공유' 바. 꾸미기 시트는 3D 라켓을 끌어 360° 돌려 보고
- *             거트·테두리·그립을 직접 눌러 그 파츠를 바로 바꿉니다(캔버스 투영, 라이브러리 없음).
- *             저장은 theme.gear.custom 한 칸(새 시트 칸·DB 컬럼 없음).
- *             js/racketcustom.js 가 새로 생기고 js/gear.js·js/store.js·js/sharecard.js·js/views/*·
- *             app.js·styles.css·index.html 이 바뀌어 캐시를 bm-v1.80.0 으로 올립니다.
- *
- * 2026-11-26 (bm-v1.84.0): 2026-11-25 점심·저녁 사용성 6건 —
- *             ① MY 하트 합계 표기(괄호 안 항의 합) 일치 · '오늘의 부스트(무료)'와 '하트 3개 부스트(꾸미기)' 구분
- *             ② 게스트 모집 '몇 명' 2·4·6명 빠른 칩 · ③ 1:1 채팅 매너 카드 기본 접힘 · 코트 약속 체육관 칩·지도 고르기
- *             ④ 1:1 매칭 첫 화면 추천 6명 바로 보기(전체 보기 버튼은 하나로 정리)
- *             ⑤ 내 라켓·스트링 여러 자루(theme.gears, 첫 자루는 theme.gear 에도) 및 장력 칩 21~28 lbs
- *             ⑥ 코트 점수판 가로 보기 내 팀·상대 팀 배지 구분.
- *             js/gear.js·js/store.js·js/ads.js·js/views/*·styles.css·index.html 이 바뀌어
- *             캐시를 bm-v1.84.0 으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.85.0';
+var VERSION = 'bm-v1.68.0';
 var SHELL = [
   './',
   './index.html',
@@ -422,8 +299,6 @@ var SHELL = [
   './js/auth.js',
   './js/store.js',
   './js/ui.js',
-  './js/racketcustom.js',
-  './js/gear.js',
   './js/gyms.js',
   './js/nearby.js',
   './js/art.js',
@@ -453,10 +328,7 @@ var SHELL = [
   './js/vendor/leaflet/leaflet.css',
   './js/vendor/leaflet/images/marker-icon.png',
   './js/vendor/leaflet/images/marker-icon-2x.png',
-  './js/vendor/leaflet/images/marker-shadow.png',
-  './assets/share-bg/night-court.jpg',
-  './assets/share-bg/sunset-shuttle.jpg',
-  './assets/share-bg/minimal-studio.jpg'
+  './js/vendor/leaflet/images/marker-shadow.png'
 ];
 
 self.addEventListener('install', function (event) {
@@ -491,7 +363,7 @@ var PUSH_TABS = ['log', 'matching', 'community', 'coach', 'my'];
 
 /* 푸시 페이로드 → 알림 글·갈 곳. JSON이 아니면 본문 글자만 씁니다. */
 function pushPayload(data) {
-  var out = { title: '셔틀릭스', body: '', url: './', tag: '' };
+  var out = { title: '배드민턴', body: '', url: './', tag: '' };
   try {
     if (data && typeof data === 'object') {
       out.title = String(data.title || data.heading || out.title).slice(0, 80);
@@ -505,20 +377,14 @@ function pushPayload(data) {
   return out;
 }
 
-/* 알림 링크는 앱 안 화면으로만 — 다른 주소가 오면 첫 화면으로
- * bm-v1.77.0 — 'chat/<방>' 처럼 뒤에 방 ID가 붙으면 그 방까지 살려 둡니다
- *              ('#/chat' 만 오면 예전처럼 매칭 탭) */
+/* 알림 링크는 앱 안 화면으로만 — 다른 주소가 오면 첫 화면으로 */
 function pushTargetUrl(raw) {
   var s = String(raw || '').trim();
   var i = s.indexOf('#');
   if (i >= 0) s = s.slice(i + 1);
   s = s.replace(/^\/+/, '');
-  var parts = s.split(/[\/?#&]+/).filter(Boolean);
-  var seg = String(parts[0] || '').toLowerCase();
-  if (seg === 'chat') {
-    var room = String(parts[1] || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
-    return room ? './#/chat/' + room : './#/matching';
-  }
+  var seg = s.split(/[\/?#&]+/)[0].toLowerCase();
+  if (seg === 'chat') return './#/matching';
   if (PUSH_TABS.indexOf(seg) >= 0) return './#/' + seg;
   return './';
 }

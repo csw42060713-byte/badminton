@@ -48,8 +48,6 @@
       text: p.text, createdAt: p.createdAt, date: p.date, target: p.target || '',
       topic: D.topicOf(p),
       meet: D.meetOf(p),
-      /* bm-v1.79.0 — '체육관 후기'의 네 칸(바닥·조명·주차·샤워)과 체육관 이름 */
-      gym: D.gymReviewOf(p),
       likes: Math.max(likeCount, p.likes || 0),
       likedByMe: !!(likeSets[p.id] && likeSets[p.id][me]),
       likeId: likeSets[p.id] && likeSets[p.id][me],
@@ -149,46 +147,7 @@
     if (grade) me.level = grade;
     /* v1.40 — 저장된 유형(꾸미기 JSON의 role)을 화면이 바로 쓰게 me.role로도 꺼내 둡니다 */
     me.role = D.roleOf(me);
-    /* bm-v1.76.0 — 내 라켓·스트링 기록(꾸미기 JSON의 gear)도 화면이 바로 쓰게 꺼내 둡니다.
-     * bm-v1.84.0 — 여러 자루 목록(gears)도 함께 꺼내 둡니다. */
-    me.gear = BM.gear ? BM.gear.gearOf(me) : ((me.theme && me.theme.gear) || null);
-    /* bm-v1.82.0 — 기록이 theme.gear 에만 있으면 me.gear 로도 채워 두고, 반대도 맞춰 둡니다.
-     * (예전에는 서버에서 새로 받은 프로필이 theme.gear 없이 오면 화면만 비어 보였습니다) */
-    if (me.gear && me.theme && !me.theme.gear) me.theme.gear = me.gear;
-    /* bm-v1.84.0 — 여러 자루 목록은 theme.gears 가 진실, 화면용으로 me.gears 에 사본을 둡니다. */
-    if (BM.gear && BM.gear.listOf) me.gears = BM.gear.listOf(me);
-    else me.gears = (me.theme && me.theme.gears) || (me.gear ? [me.gear] : []);
     return me;
-  }
-
-  /* 꾸미기 JSON(theme) 뼈대 — 테마·아바타는 늘 새로 만들지만, 함께 살아야 하는
-   * 라켓·스트링 기록(gear: 라켓·스트링·장력·교체일 + 커스텀 라켓 색)과 하트 부스트는
-   * 이 함수를 거치는 모든 저장에서 그대로 이어집니다 (bm-v1.82.0).
-   *  · 예전 버그: 테마를 바꾸면(setTheme) theme 객체를 새로 만들면서 gear 를 통째로 빠뜨려,
-   *    저장해 둔 라켓 기록이 다음에 창을 열 때(새로고침·서버 동기화 뒤) 빈 값으로 보였습니다. */
-  function themeWith(me, themeId) {
-    me = me || {};
-    var cur = D.avatarOf({ theme: me.theme });
-    var t = {
-      theme: themeId || (me.theme && me.theme.theme) || 'th_night',
-      avatar: cur.emoji, avatarPhoto: cur.photo,
-      avatarFrame: cur.frame, avatarBg: cur.bg, avatarBadge: cur.badge,
-      style: D.normalizeStyle(me.style || (me.theme && me.theme.style)),
-      role: D.roleOf(me)
-    };
-    if (!t.role) delete t.role;
-    /* bm-v1.84.0 — gear 칸은 항상 남깁니다(값이 없으면 빈 값). 새 행에 칸이 아예 없으면
-     * 앱이 '예전 행의 라켓 기록'을 이어받아, 텐션·라켓이 리셋된 것처럼 보입니다. */
-    var gear = BM.gear ? BM.gear.gearOf(me) : ((me.theme && me.theme.gear) || null);
-    /* bm-v1.84.0 — 값이 있으면 그대로, 없으면 빈 값이라도 칸을 남깁니다(명시).
-     *  · 이래야 다음에 새 행이 와도 '저장한 라켓 기록'을 잃지 않습니다. */
-    t.gear = (gear && (!BM.gear || BM.gear.hasGear(gear))) ? gear : (BM.gear ? BM.gear.blank() : null);
-    if (!t.gear) delete t.gear;
-    /* bm-v1.84.0(점심·저녁 6건) — 여러 자루 목록(theme.gears)도 테마를 바꾸면 빠지지 않게 이어 갑니다. */
-    var gears = BM.gear && BM.gear.listOf ? BM.gear.listOf(me) : ((me.theme && me.theme.gears) || null);
-    if (gears && gears.length) { t.gears = gears; t.gear = gears[0]; }
-    if (me.theme && me.theme.boost) t.boost = 1;
-    return t;
   }
 
   function createStore(options) {
@@ -218,9 +177,7 @@
         matchSort: 'score',      /* score(궁합순) · recent(최근순) */
         matchFilterOpen: '',     /* 펼친 필터 줄 (level · region · discipline · gender) */
         chatRoom: null, chatOther: '', chatOpen: false, chatDraft: '',
-        coachTab: '', coachPlayer: null, composer: '', composerTopic: '자유', composerMeet: { when: '', place: '', cap: '', fee: '' },
-        /* v1.79 — '체육관 후기' 작성 칸(체육관 이름 + 바닥·조명·주차·샤워) */
-        composerGym: { name: '', floor: '', light: '', parking: '', shower: '' }, replyTo: null,
+        coachTab: '', coachPlayer: null, composer: '', composerTopic: '자유', composerMeet: { when: '', place: '', cap: '', fee: '' }, replyTo: null,
         routineWeek: 0,          /* 초보자 루틴: 보고 있는 주차 (0이면 아직 덜 끝낸 주차) */
         editLogId: null,         /* 수정 중인 일지 ID (있으면 저장은 새 줄이 아니라 갱신) */
         lastSavedLog: null       /* 방금 저장한 일지 → 커뮤니티 원탭 공유 */
@@ -666,60 +623,6 @@
       return e;
     }
 
-    /* ---------- 알림 보내기 훅 (bm-v1.77.0) ----------
-     *  채팅·약속 카드·매칭 요청·게스트 신청이 실제로 저장된 '직후' 상대에게 푸시를 부탁합니다.
-     *  · Supabase 모드에서만 서버(send-push)를 부릅니다 — 체험·시트 모드는 그대로 조용합니다.
-     *  · Firebase 키가 아직 없으면 서버가 pending_fcm_secret 만 돌려주고, 여기서는 무시합니다.
-     *  · 실패·오프라인이어도 메시지 전송 자체는 절대 막지 않습니다(반환값을 쓰지 않음). */
-    function pushHook(kind, toKey, extra) {
-      try {
-        var to = String(toKey || '').trim();
-        if (!to) return null;
-        if (!(BM.push && typeof BM.push.notify === 'function')) return null;
-        var opts = { to: to, mode: state.mode, me: state.me || {}, api: apiRef };
-        Object.keys(extra || {}).forEach(function (k) { opts[k] = extra[k]; });
-        return BM.push.notify(kind, opts);
-      } catch (e) {
-        return null;    /* 알림은 덤 — 메시지는 그대로 나갔습니다 */
-      }
-    }
-
-    /* ---------- 서버 하트 함수 (bm-v1.75.0) ----------
-     *  Supabase 모드에서는 하트 적립·차감을 서버(SECURITY DEFINER RPC)가 처리합니다.
-     *  · 클라이언트가 '출석하트'·'광고하트'·'꾸미기구매'·'선물하트'·'하트합치기'·
-     *    '내하트사용' 행을 직접 넣으면 RLS 가 막습니다(supabase/heart-rpc-v1.75.sql).
-     *  · 기기 저장(체험)·26칸 시트 브리지는 예전처럼 앱/브리지가 검사합니다(그대로).
-     *  · 결과는 Promise 로 오므로 화면은 U.when(결과, 함수) 로 받습니다. */
-    function heartServer() {
-      return (apiRef && typeof apiRef.rpc === 'function') ? apiRef : null;
-    }
-
-    /* 서버가 만들어 준 행을 화면에 바로 꽂습니다 — 이미 서버에 있으니 큐에 다시 넣지 않습니다 */
-    function pushServerRow(r) {
-      if (!r || !r.id) return null;
-      var me = state.me || {};
-      var exists = state.rows.some(function (x) { return String(x[0]) === String(r.id); });
-      var row = D.toRow({
-        id: r.id, type: r.type, createdAt: r.created_at, date: r.date,
-        nick: r.nick || me.nick, level: me.level, discipline: me.discipline,
-        likes: r.likes, text: r.note || '', target: r.target || '', userKey: r.user_key || me.key
-      });
-      if (!exists) state.rows.unshift(row);
-      return row;
-    }
-
-    /* 서버 호출이 실패했을 때 화면에 보일 이유 */
-    function serverFail(err) {
-      var code = String((err && err.code) || '').toLowerCase();
-      if (code === 'network' || code === 'timeout' || code === 'offline' || code === 'bad_response') {
-        return { ok: false, reason: 'offline', message: '하트는 인터넷에 연결되면 받을 수 있어요.' };
-      }
-      if (code === 'session' || (err && err.status === 401)) {
-        return { ok: false, reason: 'login', message: '로그인이 풀렸어요. MY에서 다시 로그인해 주세요.' };
-      }
-      return { ok: false, reason: 'error', message: (err && err.message) || '서버가 받지 않았어요.' };
-    }
-
     /* ---------- 액션 ---------- */
     var actions = {
       init: function () {
@@ -800,43 +703,6 @@
         state.proPref = saveProPref(routineScope(), val);
         emit();
         return { ok: true, proPref: state.proPref };
-      },
-
-      /* ---------- bm-v1.76.0: 내 라켓 · 스트링 장력 메모 ----------
-       * 새 시트 칸·새 DB 컬럼 없이 프로필 꾸미기 JSON(theme.gear) 한 칸에만 적습니다.
-       * 넘기지 않은 값은 지금 것을 유지하고, 다 지우면 theme.gear 를 없앱니다.
-       * bm-v1.84.0 — 여러 자루는 theme.gears 배열에 함께 적고, 첫 자루는 theme.gear 에도 남깁니다. */
-      setGear: function (patch) {
-        var list = BM.gear ? BM.gear.listOf(state.me) : [];
-        var cur = list[0] || (BM.gear ? BM.gear.blank() : ((state.me && state.me.theme && state.me.theme.gear) || {}));
-        var next = BM.gear ? BM.gear.normalizeGear({
-          racket: patch && patch.racket != null ? patch.racket : cur.racket,
-          string: patch && patch.string != null ? patch.string : cur.string,
-          tension: patch && patch.tension != null ? patch.tension : cur.tension,
-          strungAt: patch && patch.strungAt != null ? patch.strungAt : cur.strungAt,
-          cycleDays: patch && patch.cycleDays != null ? patch.cycleDays : cur.cycleDays,
-          memo: patch && patch.memo != null ? patch.memo : cur.memo,
-          /* bm-v1.80.0 — 커스텀 라켓 색(같은 theme.gear.custom 칸) */
-          custom: patch && patch.custom != null ? patch.custom : cur.custom
-        }) : cur;
-        var full = (BM.gear && BM.gear.hasGear(next)) ? [next].concat(list.slice(1)) : list.slice(1);
-        var res = actions.saveProfile({ gears: full });
-        if (!res || !res.ok) return { ok: false, reason: (res && res.reason) || 'locked' };
-        state.me.gears = full;
-        state.me.gear = full[0] || (BM.gear ? BM.gear.blank() : null);
-        emit();
-        return { ok: true, gear: next, gears: full };
-      },
-
-      /* 여러 자루 한 번에 저장 (bm-v1.84.0) — 메인·서브 라켓 목록 */
-      setGears: function (list) {
-        var full = BM.gear ? BM.gear.normalizeGearList(list) : (list || []);
-        var res = actions.saveProfile({ gears: full });
-        if (!res || !res.ok) return { ok: false, reason: (res && res.reason) || 'locked' };
-        state.me.gears = full;
-        state.me.gear = full[0] || (BM.gear ? BM.gear.blank() : null);
-        emit();
-        return { ok: true, gears: full, gear: full[0] || null };
       },
 
       /* ---------- v1.40: 사용자 유형 (초보 · 동호인 · 선수 · 코치) ----------
@@ -1105,17 +971,6 @@
           return { ok: true, purchased: false, price: 0, id: id, balance: status.balance || 0 };
         }
         var price = D.decoPrice(id);
-        /* Supabase 모드: 하트는 서버가 검사하고 빠집니다(가격표도 서버가 압니다) */
-        var server = heartServer();
-        if (server) {
-          return server.rpc('heart_spend', { p_kind: 'deco', p_target: id }).then(function (res) {
-            res = res || { ok: false, reason: 'error' };
-            if (!res.ok) return res;
-            pushServerRow(res.row);
-            commit();
-            return res;
-          }, serverFail);
-        }
         if ((status.balance || 0) < price) {
           return { ok: false, reason: 'hearts', need: price - (status.balance || 0), price: price, id: id };
         }
@@ -1125,114 +980,6 @@
         }));
         commit();
         return { ok: true, purchased: true, price: price, id: id, balance: (state.data.hearts || {}).balance || 0 };
-      },
-
-      /* ---------- bm-v1.84.0: 바디·파츠·효과를 전부 하트로 해금 ----------
-       *  · '라켓 포인트(P)'를 없애고, 스매시 이펙트만 하던 하트 결제를 모든 파츠로 넓혔습니다.
-       *  · 잔액 검사·차감은 서버 함수 heart_spend('racket', 'slot:id')가 합니다
-       *    (supabase/heart-rpc-v1.84-racket.sql). 서버가 아직 이 종류를 모르면 'unknown'만
-       *    돌려주므로 하트는 그대로이고 화면은 안내만 합니다.
-       *  · 효과(effect)는 예전 서버 kind('smash')도 알고 있으니, 새 SQL 전에도 그쪽으로 한 번 더 시도합니다.
-       *  · 해금 기록은 기존 '꾸미기구매' 행 그대로(target=slot:id) — 새 칸·새 DB 컬럼 없음.
-       *  · 차감과 장착을 한 번에: 하트만 빠지고 장착이 안 되는 일이 없도록 이어서 저장합니다. */
-      buyRacketPart: function (slot, id) {
-        var me = state.me || {};
-        if (!me.key) return { ok: false, reason: 'no_login' };
-        if (!BM.racketcustom) return { ok: false, reason: 'unknown' };
-        slot = String(slot || '');
-        id = String(id || '');
-        if (BM.racketcustom.SLOTS.indexOf(slot) < 0 && slot !== 'body') return { ok: false, reason: 'unknown' };
-        var key = slot + ':' + id;
-        var price = BM.racketcustom.priceOf(slot, id);
-        /* 관리자(csw42060713@gmail.com)는 모든 바디·파츠·효과가 열려 있습니다 — 하트를 쓰지 않습니다 */
-        if (D.isAdminMe && D.isAdminMe(me)) price = 0;
-        if (!BM.racketcustom.priceOf(slot, id)) return { ok: false, reason: 'unknown' };
-        if (!price) {
-          var curA = BM.racketcustom.customOf(me);
-          var nextA = BM.racketcustom.normalizeCustom(curA);
-          if (nextA.unlocked.indexOf(key) < 0) nextA.unlocked.push(key);
-          nextA[slot] = id;
-          var resA = actions.setGear({ custom: nextA });
-          return resA && resA.ok
-            ? { ok: true, purchased: !resA.gear ? false : true, price: 0, gear: resA.gear, custom: nextA, admin: true }
-            : { ok: false, reason: 'locked' };
-        }
-        if (!tryLock('part:' + key, 1600)) return { ok: false, reason: 'locked' };
-        /* 이미 연 파츠 — 다시 차감하지 않고 입기만 합니다(연타·다시 눌러도 안전) */
-        var cur0 = BM.racketcustom.customOf(me);
-        if (BM.racketcustom.isUnlocked(cur0, slot, id)) {
-          var own = BM.racketcustom.normalizeCustom(cur0);
-          own[slot] = id;
-          var g0 = actions.setGear({ custom: own });
-          return g0 && g0.ok ? { ok: true, purchased: false, price: 0, gear: g0.gear } : { ok: false, reason: 'locked' };
-        }
-
-        function unlock(balance) {
-          var cur = BM.racketcustom.customOf(state.me);
-          var next = BM.racketcustom.normalizeCustom(cur);
-          if (next.unlocked.indexOf(key) < 0) next.unlocked.push(key);
-          next[slot] = id;
-          var res = actions.setGear({ custom: next });
-          if (res && res.ok) {
-            return { ok: true, purchased: true, price: price, gear: res.gear, custom: next, balance: balance };
-          }
-          /* 하트는 이미 빠졌는데 프로필 저장이 잠깐 잠겨 있으면(연속 저장),
-           * 잠금이 풀린 뒤 같은 값으로 다시 적습니다 — 추가로 하트를 빼지 않습니다. */
-          if (res && res.reason === 'locked') {
-            var tries = 4;
-            (function retry() {
-              setTimeout(function () {
-                var again = actions.setGear({ custom: next });
-                if (again && again.ok) {
-                  if (BM.ui && BM.ui.toast) BM.ui.toast('파츠를 열었어요');
-                  return;
-                }
-                if (--tries > 0) retry();
-              }, 700);
-            })();
-            return { ok: false, reason: 'paid_retry', price: price, balance: balance };
-          }
-          return { ok: false, reason: (res && res.reason) || 'locked', paid: true };
-        }
-
-        /* Supabase 모드: 하트는 서버가 검사하고 뺀다 */
-        var server = heartServer();
-        if (server) {
-          return server.rpc('heart_spend', { p_kind: 'racket', p_target: key }).then(function (res) {
-            res = res || { ok: false, reason: 'error' };
-            /* 새 SQL 을 아직 안 돌린 프로젝트 — 효과는 예전 'smash' 종류로 한 번 더 시도 */
-            if (!res.ok && res.reason === 'unknown' && slot === 'effect') {
-              return server.rpc('heart_spend', { p_kind: 'smash', p_target: key }).then(function (res2) {
-                res2 = res2 || { ok: false, reason: 'error' };
-                if (!res2.ok) return res2;
-                if (res2.row) pushServerRow(res2.row);
-                commit();
-                return unlock(res2.balance);
-              }, serverFail);
-            }
-            if (!res.ok) return res;
-            if (res.row) pushServerRow(res.row);
-            commit();
-            return unlock(res.balance);
-          }, serverFail);
-        }
-
-        /* 기기 저장(체험) 모드: 같은 '꾸미기구매' 행을 이 기기에만 남겨 잔액·기록을 같게 */
-        var status = state.data.hearts || {};
-        if ((status.balance || 0) < price) {
-          return { ok: false, reason: 'hearts', need: price - (status.balance || 0), price: price };
-        }
-        pushRow(meEntity({
-          type: '꾸미기구매', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
-          target: key, likes: price, nick: me.nick
-        }));
-        commit();
-        return unlock((state.data.hearts || {}).balance);
-      },
-
-      /* 예전 이름 — 스페셜 스매시 이펙트를 하트로 여는 길은 이제 buyRacketPart 하나로 모였습니다 */
-      buySmash: function (slot, id) {
-        return actions.buyRacketPart(String(slot || 'effect'), id);
       },
 
       /* 하트 부스트 켜기/끄기 (bm-v1.64.0)
@@ -1246,18 +993,22 @@
         var streak = D.checkinStreak(state.idx, me.key);
         var owned = D.ownsDeco(state.idx, me.key, D.BOOST_ID, streak);
         if (on && !owned) return { ok: false, reason: 'not_owned', price: D.decoPrice(D.BOOST_ID) };
-        /* bm-v1.82.0 — 테마를 새로 만들 때 라켓·스트링 기록(gear)이 지워지지 않게 themeWith */
-        var theme = themeWith(me);
-        if (on) theme.boost = 1; else delete theme.boost;
+        var cur = D.avatarOf({ theme: me.theme });
+        var theme = {
+          theme: (me.theme && me.theme.theme) || 'th_night',
+          avatar: cur.emoji, avatarPhoto: cur.photo,
+          avatarFrame: cur.frame, avatarBg: cur.bg, avatarBadge: cur.badge,
+          style: D.normalizeStyle(me.style || (me.theme && me.theme.style)),
+          role: D.roleOf(me)
+        };
+        if (!theme.role) delete theme.role;
+        if (on) theme.boost = 1;
         pushRow({
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
           nick: me.nick, level: me.level, discipline: me.discipline, userKey: me.key,
           bio: me.bio, theme: theme
         });
         state.me.theme = theme;
-        if (theme.gear) state.me.gear = theme.gear;
-        state.me.gears = (theme.gears && theme.gears.length) ? theme.gears
-          : (theme.gear ? [theme.gear] : []);
         commit();
         return { ok: true, equipped: !!on, bonus: on ? D.BOOST_BONUS : 0, owned: owned };
       },
@@ -1341,22 +1092,16 @@
        * bm-v1.39.1: 모집 칸(언제·몇 명·어디 체육관)만 채우고 본문 한 줄을 비워도 올라갑니다.
        *  모집 글은 모집 정보만으로도 성립하기 때문입니다(현장에서 급하게 올리는 경우).
        *  본문도 모집 칸도 비어 있으면 지금처럼 empty로 막습니다. */
-      createPost: function (text, topic, meet, gym) {
+      createPost: function (text, topic, meet) {
         /* 화면 입력칸(maxlength) 밖으로 들어온 아주 긴 글도 여기서 자릅니다 (bm-v1.41.1) */
         text = D.clampText(text, 300).trim();
         var tag = D.normalizeTopic(topic || state.ui.composerTopic);
         var mv = (tag === D.MEET.topic) ? D.normalizeMeet(meet || state.ui.composerMeet) : null;
         var hasMeet = D.meetFilled(mv);
-        /* v1.79 — '체육관 후기'는 체육관 이름·네 칸 중 하나만 적어도 올라갑니다.
-         * 본문에는 같은 내용을 사람이 읽는 문장으로 넣어 예전 앱에서도 그대로 보입니다. */
-        var gv = (tag === D.GYM_REVIEW.topic) ? D.normalizeGymReview(gym || state.ui.composerGym) : null;
-        var hasGym = D.gymReviewFilled(gv);
-        if (hasGym) text = D.gymReviewBody(gv, text);
         if (!text && !hasMeet) return { ok: false, reason: 'empty' };
         if (!tryLock('post', 1200)) return { ok: false, reason: 'locked' };
         var plan = { topic: tag };
         if (hasMeet) plan.meet = mv;
-        if (hasGym) plan.gym = gv;
         var entity = meEntity({
           type: '소셜', date: U.ymd(), id: U.uid(), clientId: U.clientId(), text: text,
           plan: plan
@@ -1365,9 +1110,8 @@
         state.ui.composer = '';
         state.ui.composerTopic = '자유';
         state.ui.composerMeet = { when: '', place: '', cap: '', fee: '' };
-        state.ui.composerGym = { name: '', floor: '', light: '', parking: '', shower: '' };
         commit();
-        return { ok: true, topic: tag, meet: plan.meet || null, gym: plan.gym || null, text: text };
+        return { ok: true, topic: tag, meet: plan.meet || null };
       },
 
       /* ---------- 커뮤니티 내 글 삭제(취소) (bm-v1.40.1) ----------
@@ -1570,33 +1314,6 @@
           role: merged.role
         };
         if (!theme.role) delete theme.role;
-        /* bm-v1.76.0 — 내 라켓·스트링 기록은 꾸미기 JSON 안 gear 한 칸에만(넘기지 않으면 그대로)
-         * bm-v1.84.0 — 여러 자루는 theme.gears 배열, 첫 자루는 예전 그대로 theme.gear 에도. */
-        var gearsNext = patch.gears != null
-          ? (BM.gear ? BM.gear.normalizeGearList(patch.gears) : patch.gears)
-          : null;
-        var gearNext = patch.gear != null
-          ? (BM.gear ? BM.gear.normalizeGear(patch.gear) : patch.gear)
-          : (BM.gear ? BM.gear.gearOf(me) : ((me.theme && me.theme.gear) || null));
-        /* bm-v1.84.0 — 값이 있으면 그대로, 없으면 빈 값이라도 칸을 남깁니다(명시).
-         *  · 이래야 다음에 새 행이 와도 '저장한 라켓 기록'을 잃지 않습니다.
-         *  · 여러 자루(theme.gears)는 첫 자루를 theme.gear 에도 함께 적어 예전 화면과 호환됩니다. */
-        var gearFilled = !!(gearNext && (!BM.gear || BM.gear.hasGear(gearNext)));
-        theme.gear = gearFilled ? gearNext : (BM.gear ? BM.gear.blank() : null);
-        if (!theme.gear) delete theme.gear;
-        if (gearsNext) {
-          if (gearsNext.length) {
-            theme.gears = gearsNext;
-            theme.gear = gearsNext[0];
-          } else {
-            /* 목록이 비면 기록을 지운 것입니다 — theme.gear 도 함께 비웁니다(되살아나지 않게). */
-            delete theme.gears;
-            delete theme.gear;
-          }
-        } else if (gearFilled) {
-          var rest = ((me.theme && me.theme.gears) || []).slice(1);
-          theme.gears = [gearNext].concat(rest);
-        }
         /* 꾸미기를 저장해도 켜 둔 하트 부스트(boost)는 그대로 남습니다 (bm-v1.64.0) */
         if (me.theme && me.theme.boost) theme.boost = 1;
         var entity = {
@@ -1606,13 +1323,10 @@
         };
         pushRow(entity);
         state.me = {
-          /* bm-v1.84.0 — email 을 빠뜨리면 관리자 판정(D.isAdminMe)이 풀립니다. 늘 이어 줍니다. */
-          key: me.key, email: me.email || '', nick: merged.nick, level: merged.level, discipline: merged.discipline,
+          key: me.key, nick: merged.nick, level: merged.level, discipline: merged.discipline,
           bio: merged.bio, region: merged.region, club: merged.club, gender: merged.gender,
           style: merged.style, role: merged.role,
-          availability: merged.availability, experience: merged.experience, theme: theme,
-          gear: theme.gear || (BM.gear ? BM.gear.blank() : null),
-          gears: theme.gears || (theme.gear ? [theme.gear] : [])
+          availability: merged.availability, experience: merged.experience, theme: theme
         };
         commit();
         return { ok: true };
@@ -1641,33 +1355,17 @@
           return r.userKey === (state.me && state.me.key) && r.target === targetKey && r.status !== '거절';
         });
         if (already) return { ok: false, reason: 'already' };
-
-        function send(bal) {
-          var reqId = U.uid();
-          var req = meEntity({
-            type: '매칭신청', id: reqId, clientId: U.clientId(), date: U.ymd(),
-            nick: state.me.nick, target: targetKey, status: '대기',
-            payload: { note: D.clampText(note, 60).trim(), heartCost: cost, payOn: 'accept' }
-          });
-          pushRow(req);
-          state.ui.chatRoom = reqId;
-          commit();
-          /* bm-v1.77.0 — 매칭 요청 도착 알림 */
-          pushHook('match', targetKey, { room: reqId });
-          return { ok: true, roomId: reqId, cost: cost, balance: bal, chargeOnAccept: true };
-        }
-
-        /* Supabase 모드: 하트 2개를 가지고 있는지 서버가 확인합니다(차감은 수락 때 원장 규칙) */
-        var server = heartServer();
-        if (server) {
-          return server.rpc('heart_spend', { p_kind: 'match', p_target: targetKey }).then(function (res) {
-            res = res || { ok: false, reason: 'error' };
-            if (!res.ok) return res;
-            return send(res.balance);
-          }, serverFail);
-        }
         if (balance < cost) return { ok: false, reason: 'hearts', need: cost - balance };
-        return send(balance);
+        var reqId = U.uid();
+        var req = meEntity({
+          type: '매칭신청', id: reqId, clientId: U.clientId(), date: U.ymd(),
+          nick: state.me.nick, target: targetKey, status: '대기',
+          payload: { note: D.clampText(note, 60).trim(), heartCost: cost, payOn: 'accept' }
+        });
+        pushRow(req);
+        state.ui.chatRoom = reqId;
+        commit();
+        return { ok: true, roomId: reqId, cost: cost, balance: balance, chargeOnAccept: true };
       },
 
       /* 받은 요청 수락/거절 — 수락하면 보낸 사람 하트 2개가 이때 차감됩니다.
@@ -1734,8 +1432,6 @@
           }
         }));
         commit();
-        /* bm-v1.77.0 — 글쓴이에게 신청 도착 알림 */
-        pushHook('guest', String(post.userKey || ''), { room: key });
         return { ok: true, postId: key, note: text };
       },
 
@@ -1771,8 +1467,6 @@
           }
         }));
         commit();
-        /* bm-v1.77.0 — 신청한 사람에게 수락/거절 알림 */
-        pushHook(accept ? 'guest_accept' : 'guest_reject', applicant, { room: postId });
         return { ok: true, accepted: !!accept, postId: postId, applicant: applicant };
       },
 
@@ -1832,55 +1526,7 @@
         pushRow(entity);
         state.ui.chatDraft = '';
         commit();
-        /* bm-v1.77.0 — 상대에게 알림(단체방은 글쓴이에게, 내가 글쓴이면 보내지 않음) */
-        var notifyTo = group ? String(gpost && gpost.userKey || '') : otherKey;
-        if (group && notifyTo === String(state.me.key || '')) notifyTo = '';
-        pushHook('chat', notifyTo, { text: text, room: roomId });
         return { ok: true, group: group };
-      },
-
-      /* 1:1 대화방 `📅 코트 약속` 카드 (bm-v1.73.0)
-       *  · 체육관·날짜·시간을 구조화해 그대로 보냅니다. 화면은 이 글을 카드로 그립니다.
-       *  · 새 칸 없이 `매칭채팅` 행의 글(text)에 표시([[APT]]{…})만 남깁니다. */
-      sendAppt: function (roomId, otherKey, appt) {
-        if (!(state.me && state.me.key)) return { ok: false, reason: 'no_login' };
-        if (!roomId || !otherKey) return { ok: false, reason: 'no_room' };
-        if (!D.canChatWith(state.idx, state.me.key, otherKey)) return { ok: false, reason: 'not_allowed' };
-        var text = D.apptText(appt || {});
-        if (!text) return { ok: false, reason: 'empty' };
-        if (!tryLock('chat:' + roomId, 450)) return { ok: false, reason: 'locked' };
-        var entity = meEntity({
-          type: '매칭채팅', id: U.uid(), clientId: U.clientId(), nick: state.me.nick,
-          userKey: state.me.key, target: otherKey, team: roomId, text: text,
-          createdAt: U.stamp()
-        });
-        pushRow(entity);
-        state.ui.chatDraft = '';
-        commit();
-        /* bm-v1.77.0 — 약속 카드 도착 알림 (체육관·날짜·시간을 한 줄로) */
-        var apText = [String((appt || {}).gym || ''), D.apptWhen((appt || {}).date || '', (appt || {}).time || '')]
-          .filter(Boolean).join(' · ');
-        pushHook('appt', otherKey, { text: apText, room: roomId });
-        return { ok: true, card: D.apptParse(text) };
-      },
-
-      /* 약속 카드 1탭 응답 — `좋아요`(ok) / `시간 조정`(adjust) */
-      respondAppt: function (roomId, otherKey, cardId, kind) {
-        if (!(state.me && state.me.key)) return { ok: false, reason: 'no_login' };
-        if (!roomId || !otherKey) return { ok: false, reason: 'no_room' };
-        if (!D.canChatWith(state.idx, state.me.key, otherKey)) return { ok: false, reason: 'not_allowed' };
-        var text = D.apptReplyText(cardId, kind === 'adjust' ? 'adjust' : 'ok');
-        if (!text) return { ok: false, reason: 'empty' };
-        if (!tryLock('chat:' + roomId, 450)) return { ok: false, reason: 'locked' };
-        pushRow(meEntity({
-          type: '매칭채팅', id: U.uid(), clientId: U.clientId(), nick: state.me.nick,
-          userKey: state.me.key, target: otherKey, team: roomId, text: text,
-          createdAt: U.stamp()
-        }));
-        commit();
-        /* bm-v1.77.0 — 약속 카드 응답 알림 */
-        pushHook('appt', otherKey, { text: kind === 'adjust' ? '시간을 조정하고 싶대요' : '좋다고 했어요', room: roomId });
-        return { ok: true, kind: kind === 'adjust' ? 'adjust' : 'ok' };
       },
 
       /* ---------- 1:1 채팅(상단 DM) ---------- */
@@ -2056,7 +1702,7 @@
         return { ok: true };
       },
 
-    /* 출석 체크: 하루 1회 +1 · 연속 3·7·14일(그 뒤 14일마다) 보너스 +1/+2/+3 (bm-v1.64.0)
+      /* 출석 체크: 하루 1회 +1 · 연속 3·7·14일(그 뒤 14일마다) 보너스 +1/+2/+3 (bm-v1.64.0)
        *  · 보너스는 출석 행에 얹지 않고 원장(js/domain.js heartLedger)이 날짜 연속에서
        *    매번 다시 셉니다 — 앱을 다시 열거나 다른 기기에서도 같은 잔액이 되게(멱등).
        *    행에는 보너스를 받은 날이라는 메모만 남깁니다(중복 방지 키).
@@ -2067,20 +1713,6 @@
         var status = state.data.hearts || {};
         if (status.checkedInToday) return { ok: false, reason: 'done' };
         var me = state.me && state.me.key;
-        /* Supabase 모드: 오늘 날짜·연속 일수·보너스를 서버가 다시 세고, 행도 서버가 넣습니다 */
-        var server = heartServer();
-        if (server) {
-          return server.rpc('heart_checkin', {}).then(function (res) {
-            res = res || { ok: false, reason: 'error' };
-            if (!res.ok) {
-              if (res.reason === 'done') commit();   /* 다른 기기·다른 탭에서 먼저 출석한 경우 */
-              return res;
-            }
-            pushServerRow(res.row);
-            commit();
-            return res;
-          }, serverFail);
-        }
         var streak = (me ? D.checkinStreak(state.idx, me) : 0) + 1;
         var milestone = D.streakBonusFor(streak);
         var bonus = milestone ? Math.max(0, Number(milestone.amount) || 0) : 0;
@@ -2115,22 +1747,11 @@
         opts = opts || {};
         var me = state.me && state.me.key;
         var txId = D.cleanTxId ? D.cleanTxId(opts.txId) : '';
-        /* 중복은 시각과 치수 없는 조건이라 잠금보다 먼저 봅니다 */
+        /* 중복은 시각과 상관없는 조건이라 잠금보다 먼저 봅니다 */
         if (txId && me && D.adTxSeen(state.idx, me, txId)) {
           return { ok: false, reason: 'duplicate', txId: txId, balance: (state.data.hearts || {}).balance || 0 };
         }
         if (!tryLock('ad', 1200)) return { ok: false, reason: 'locked' };
-        /* Supabase 모드: 한도·간격·txId 중복·오늘의 부스트를 서버가 검사하고 적립행도 서버가 넣습니다 */
-        var server = heartServer();
-        if (server) {
-          return server.rpc('heart_ad_reward', { p_tx: txId || null, p_unit: opts.adUnit || '' }).then(function (res) {
-            res = res || { ok: false, reason: 'error' };
-            if (!res.ok) return res;
-            pushServerRow(res.row);
-            commit();
-            return res;
-          }, serverFail);
-        }
         var status = state.data.hearts || {};
         /* 실제 앱 연동 시: 광고 SDK의 '시청 완료(verified)' 신호가 없으면 적립하지 않도록
          * 여기서 막는 것을 권장합니다. 프로토타입은 서버가 한도·간격을 다시 검사합니다. */
@@ -2141,24 +1762,17 @@
           return { ok: false, reason: 'cooldown', retryAfter: status.nextAdInSec };
         }
         var boost = me ? D.heartBoost(state.idx, me, state.me && state.me.theme) : { bonus: 0 };
-        /* 오늘의 하트 부스트 — 그날 첫 광고 한 편에 +1 (bm-v1.73.0, 하루 1회)
-         *  · 행(likes)에는 예전처럼 광고값(1 + 부스트)만 적고, 하루 부스트는
-         *    원장(heartLedger)이 '그날 첫 광고 행'에서 한 줄로 더합니다 — 두 번 들어가지 않게. */
-        var firstToday = !(status.adUsedToday > 0);
-        var dailyBoost = firstToday ? (D.DAILY_BOOST ? D.DAILY_BOOST.amount : 0) : 0;
-        var rowGain = D.HEART_RULES.AD_REWARD + (boost.bonus || 0);
-        var gained = rowGain + dailyBoost;
+        var gained = D.HEART_RULES.AD_REWARD + (boost.bonus || 0);
         var entity = meEntity({
           type: '광고하트', id: U.uid(), clientId: U.clientId(), date: U.ymd(),
-          likes: rowGain, target: opts.adUnit || '',
+          likes: gained, target: opts.adUnit || '',
           text: txId ? D.adTxNote(txId) : ''
         });
         pushRow(entity);
         commit();
         var after = state.data.hearts || {};
         return {
-          ok: true, gained: gained, base: D.HEART_RULES.AD_REWARD, boost: boost.bonus || 0,
-          dailyBoost: dailyBoost, txId: txId,
+          ok: true, gained: gained, base: D.HEART_RULES.AD_REWARD, boost: boost.bonus || 0, txId: txId,
           remaining: after.adRemaining, balance: after.balance,
           nextAdInSec: D.HEART_RULES.AD_COOLDOWN_SEC
         };
@@ -2173,17 +1787,6 @@
           (state.idx.byType['매칭프로필'] || []).some(function (m) { return m.userKey === targetKey; });
         if (!known) return { ok: false, reason: 'no_target' };
         var status = state.data.hearts || {};
-        /* Supabase 모드: 잔액 검사·차감행을 서버가 합니다 */
-        var server = heartServer();
-        if (server) {
-          return server.rpc('heart_spend', { p_kind: 'gift', p_target: targetKey }).then(function (res) {
-            res = res || { ok: false, reason: 'error' };
-            if (!res.ok) return res;
-            pushServerRow(res.row);
-            commit();
-            return res;
-          }, serverFail);
-        }
         if (status.balance < D.HEART_RULES.GIFT_COST) {
           return { ok: false, reason: 'hearts', need: D.HEART_RULES.GIFT_COST - status.balance };
         }
@@ -2219,18 +1822,23 @@
           purchased = true;
         }
 
-        /* 테마를 바꿔도 사진·프레임·배지·플레이 스타일과
-         * 라켓·스트링 기록(gear)·하트 부스트는 그대로 남깁니다 (bm-v1.82.0) */
-        var theme = themeWith(me, themeId);
+        /* 테마를 바꿔도 사진·프레임·배지·플레이 스타일은 그대로 남깁니다 */
+        var cur = D.avatarOf({ theme: me.theme });
+        var theme = {
+          theme: themeId, avatar: cur.emoji, avatarPhoto: cur.photo,
+          avatarFrame: cur.frame, avatarBg: cur.bg, avatarBadge: cur.badge,
+          style: D.normalizeStyle(me.style || (me.theme && me.theme.style)),
+          role: D.roleOf(me)
+        };
+        if (!theme.role) delete theme.role;
+        /* 테마를 바꿔도 켜 둔 하트 부스트는 그대로 (bm-v1.64.0) */
+        if (me.theme && me.theme.boost) theme.boost = 1;
         pushRow({
           type: '프로필', id: U.uid(), clientId: U.clientId(), createdAt: U.stamp(),
           nick: me.nick, level: me.level, discipline: me.discipline, userKey: me.key,
           bio: me.bio, theme: theme
         });
         state.me.theme = theme;
-        if (theme.gear) state.me.gear = theme.gear;
-        state.me.gears = (theme.gears && theme.gears.length) ? theme.gears
-          : (theme.gear ? [theme.gear] : []);
         commit();
         return { ok: true, purchased: purchased, price: purchased ? price : 0, balance: state.data.hearts.balance };
       },
@@ -2471,16 +2079,6 @@
         var next = D.normalizeMeet(cur);
         next[field] = value;
         state.ui.composerMeet = D.normalizeMeet(next);
-      },
-
-      /* v1.79 — '체육관 후기' 작성 칸(체육관 이름·바닥·조명·주차·샤워).
-       * 화면은 여기에만 적고, 올리기는 createPost 가 한 번에 합니다. */
-      setComposerGym: function (field, value) {
-        var keys = ['name'].concat(D.GYM_REVIEW.fields.map(function (f) { return f.key; }));
-        if (keys.indexOf(field) < 0) return;
-        var next = D.normalizeGymReview(state.ui.composerGym || {});
-        next[field] = value;
-        state.ui.composerGym = D.normalizeGymReview(next);
       },
 
       retrySync: function () { return flush(); },

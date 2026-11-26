@@ -132,13 +132,6 @@
  *        a lateral backward step in badminton: A case report of a televised injury incident>,
  *        J Sport Health Sci 12(1):139-144, 2023 (DOI: 10.1016/j.jshs.2021.03.007) — 측후방 스텝 중 앞발 착지
  *        (발목 33° 저측굴곡·18° 내회전)가 급성 외측 염좌의 메커니즘. 예방은 앞발 착지 순간의 발목 제어.
- * [WANG24] Wang Y., Xu L., Jiang H., Yu L., Wu H., Mei Q., <Biomechanical Effects of the Badminton
- *        Split-Step on Forecourt Lunging Footwork>, Bioengineering 11(5):501, 2024
- *        (DOI: 10.3390/bioengineering11050501) — 대학 수준 남자 선수 18명, VICON 모션캡처·지면반력 분석.
- *        포핸드 런지에서는 스플릿 스텝을 밟으면 발이 닿는 순간 고관절 벌림·돌림이 커지고 무릎 굽힘이,
- *        백핸드 런지에서는 무릎 돌림이 커지는 대신 발목 돌림이 유의하게 줄었습니다(p < 0.05).
- *        첫 지면반력 피크의 하중률이 커지고 첫·둘째 피크 사이 간격이 좁아져, 앞으로 나가기 직전의
- *        스플릿 스텝이 힘을 받아내는 준비와 백핸드 착지의 발목 비틀림 부담을 함께 다룹니다.
  * [FOST98] Foster C., <Monitoring training in athletes with reference to overtraining syndrome>,
  *        Med Sci Sports Exerc 30(7):1164-1168, 1998 (DOI: 10.1097/00005768-199807000-00023) —
  *        세션 RPE 부하에서 '단조로움(monotony)' = 하루 부하 평균 ÷ 표준편차, '긴장(strain)' = 주간 총부하 × 단조로움.
@@ -156,39 +149,6 @@
  *        competitive badminton players: a systematic review>, Front Physiol, 2025 (DOI: 10.3389/fphys.2025.1548869) —
  *        하체 저항운동이 점프력에 가장 크고, 코어는 힘 전달, 상체는 스매시 속도에 도움(근거는 아직 적음).
  *        8주를 넘긴 프로그램이 짧은 것보다 효과적 → '주 2회로 8주'를 안내.
- * [WEN25] Wen J., Xu D., Gao X., Qu X., Zhang Z. 외, <Effects of foot rotation on ankle control and injury risk
- *        during badminton lunge landings>, BMC Sports Sci Med Rehabil 17(1):341, 2025
- *        (DOI: 10.1186/s13102-025-01393-y) — 남자 아마추어 30명, 모션캡처·힘판·표면근전도·족부 3D 유한요소해석.
- *        런지 착지에서 발끝 각도 3가지(중립 0°, toe-in 안쪽 20°, toe-out 바깥 20°)를 비교했습니다.
- *        toe-out은 발목 외번 각도·외번 모멘트·전후방 전단력·관절 충격량을 유의하게 줄였고
- *        (p < 0.001 / p = 0.025 / p = 0.047 / p = 0.038), 뒤꿈치에서 앞발 쪽으로 응력이 옮겨 가며
- *        비골근·하퇴삼두근 활성도가 높아 충격 흡수가 부드러워졌습니다.
- *        toe-in은 외번 부하·뒤꿈치 응력 집중이 커져 위험 → '진행 방향~조금 바깥(toe-out)'을 권합니다.
- *        (같은 연구에서 toe-out이 무릎 바깥쪽 벌어짐 각도는 조금 컸으므로 무릎 정렬은 별도 과제입니다.)
- * [XIAO26] Xiao D., Duan Y., Weng H., <Biomechanical risk factors for badminton injuries: a systematic review>,
- *        Res Sports Med 34(6):737-760, 2026 (DOI: 10.1080/15438627.2026.2680707) — 6개 DB 435편 → 전향적
- *        생체역학 연구 11편. 런지에서 시상면·이마면 무릎 모멘트 증가, 높은 최대 하중률, 경골 후방 이동이
- *        전방십자인대(ACL) 부상 위험과 연관. 착지에서는 무릎 안쪽 꺾임(knee valgus)·내회전·높은 수직
- *        지면반력이 위험을 높였습니다. 예방은 런지·착지 정렬 교정 + 햄스트링·회전근개 강화를 강조.
- * [CHENG24] Cheng K-C., Chiu Y-L., Tsai C-L., Hsu Y-L., Tsai Y-J., <Fatigue Affects Body Acceleration During
- *        Vertical Jumping and Agility Tasks in Elite Young Badminton Players>, Sports Health 17(1):126-134, 2024
- *        (DOI: 10.1177/19417381241245908) — 1부 리그 고등부 선수 38명(평균 16.2세, 경력 7.1년). 배드민턴
- *        풋워크·점프로 피로를 유도한 직후 수직 점프 높이가 최고·평균 모두 약 3~4cm 낮아졌고(p < 0.01),
- *        스쿼트(내려앉는) 구간의 하강 가속도가 커졌습니다(p < 0.05). 가속도 주파수 분석에서는 높은 주파수
- *        성분이 줄어 스스로 조절하는 힘이 떨어지고 탄성 조직(힘줄·인대)에 부담이 늘었다고 해석했습니다.
- *        → 피로가 쌓인 날의 연속 점프 스매시는 착지 충격이 커지므로, 네트 앞 짧은 볼·안정적인 풋워크로 전환.
- * [APRI23] Apriantono T.A., Herman I., Winata B., Chia-Smith Y-D., Akbari M.R., Ihsani S.I. 등,
- *        <Impact of Decreased Hamstring Flexibility and Trunk Muscle Strength Performance in Junior Badminton
- *        Athletes with a History of Knee Injuries: The Risk of Low Back Pain>, Int J Hum Mov Sports Sci 11(5), 2023
- *        (DOI: 10.13189/saj.2023.110504) — 17~19세 주니어 120명(무릎 부상 이력 60명). 무릎 부상 이력이 있는
- *        선수는 무릎 기능 점수(AKPS)가 낮을수록 허벅지 뒤(햄스트링) 유연성이 낮았고(남 r = -0.575, p = 0.001 ·
- *        여 r = -0.304, p = 0.018), 몸통 근력도 함께 낮았습니다(여 r = -0.354, p = 0.006).
- *        → 무릎 통증·햄스트링 뻣뻣함은 몸통 힘 저하와 함께 허리 통증 위험을 키우는 연쇄로 봅니다.
- * [SATRA25] Satra S.S., Bhurke A., <Comparison of Trunk Muscle Endurance and Modified Oswestry Disability
- *        Levels in Female Recreational Badminton Players With Low Back Pain>, IOSR J Sports Phys Educ
- *        12(5):01-06, 2025 (DOI: 10.9790/6737-1205010612) — 허리 통증이 4주 이상 이어진 여성 동호인 128명.
- *        몸통 회전 버티기(오른쪽) 시간이 길수록 일상 동작 불편 점수도 높았습니다(r = 0.174, p = 0.049).
- *        → 일반 코어 운동만으로는 부족하고, 좌우를 같은 시간으로 채우는 사이드 플랭크가 필요합니다.
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -386,7 +346,7 @@
         name: '점프 스매시 착지 밸런스',
         method: '점프 후 착지에서 1초 버티기까지 한 동작. 무릎과 발목 상해 예방에 가장 중요한 부분입니다.',
         sets: vol('회', [6, 8, 8, 10, 10, 12, 12], [3, 3, 3, 3, 4, 4, 4]),
-        point: '착지 후 흔들리지 않게 — 무릎은 발끝 방향으로 벌리고 엉덩이를 뒤로 빼며 부드럽게 흡수'
+        point: '착지 후 흔들리지 않게, 무릎은 부드럽게'
       },
       {
         name: '스매시 좌우 코스',
@@ -413,12 +373,6 @@
         method: '상대가 치는 순간 발이 땅에서 살짝 떠 있다가 내려오게. 2023 BWF 세계선수권 남자단식 Top 4 연구에서 반응시간(상대 타구 → 첫 발)은 ' + rng(SPLIT_STEP.reactionSec, '초') + ', 스탠스 폭은 신장의 약 50%(' + rng(SPLIT_STEP.stanceHeightRatio) + '배)였습니다. BWF 매뉴얼의 무브먼트 사이클 시작 단계입니다.',
         sets: vol('회', [10, 15, 20, 20, 25, 25, 30], [3, 3, 3, 4, 4, 4, 4]),
         point: '상대 라켓을 보고 발은 먼저 — 스탠스는 어깨보다 넓게(신장의 절반)'
-      },
-      {
-        name: '스플릿 스텝 → 전위 런지',
-        method: '앞으로 뛰어나가기 직전에 두 발을 살짝 떼며 박자를 맞춘 뒤, 포핸드·백핸드 쪽으로 길게 런지합니다. 두 발이 땅에서 떠 있는 순간이 상대 타구와 맞아야 하고, 런지로 딛는 발은 발바닥 전체로 내려놓으세요. 스플릿 스텝을 넣은 런지와 넣지 않은 런지를 번갈아 해 보면 차이가 느껴집니다.',
-        sets: vol('회', [6, 8, 10, 12, 12, 15, 15], [2, 2, 3, 3, 3, 4, 4]),
-        point: '나가기 직전 두 발 살짝 떼며 박자 → 백핸드로 길게 뻗을 때 발목이 덜 비틀려요'
       },
       {
         name: '베이스 복귀 스플릿스텝',
@@ -499,12 +453,6 @@
     ],
     '수비': [
       {
-        name: '수비 타이밍 — 예측했을 때 / 아닐 때',
-        method: '코스를 예측한 공은 앞에서 짧게 잡아 상대를 압박하고, 예측하지 못한 공은 몸 쪽 뒤로 살짝 당겨 시간을 벌어 받아칩니다. 앞에서 급하게 치려 하면 공이 더 빠르게 느껴져요.',
-        sets: vol('랠리', [6, 8, 10, 10, 12, 12, 15], [2, 3, 3, 3, 4, 4, 4]),
-        point: '예측했으면 앞에서 짧게 / 예측 못 했으면 뒤로 당겨 여유롭게'
-      },
-      {
         name: '좌우 수비 블록',
         method: '스매시를 블록으로 되받아 네트 앞으로. 좌우로 흔들리며 자세가 무너지지 않게.',
         sets: vol('회', [10, 12, 15, 15, 20, 20, 25], [3, 3, 3, 4, 4, 4, 4]),
@@ -526,7 +474,7 @@
         name: '한 발 수비(리치)',
         method: '넓게 벌린 좌우 수비에서 한 발만 내디뎌 받는 연습. 발목·무릎 부담을 줄이는 정확한 런지가 핵심.',
         sets: vol('회', [10, 10, 12, 15, 15, 20, 20], [2, 3, 3, 3, 4, 4, 4]),
-        point: '무릎이 안쪽으로 무너지지 않게 — 딛는 발끝은 몸이 가는 방향에서 조금 바깥으로 열어 뒤꿈치 충격 줄이기'
+        point: '무릎이 안쪽으로 무너지지 않게'
       }
     ],
     '네트': [
@@ -670,12 +618,11 @@
       '뒤로 밀렸을 때는 억지 스매시보다 깊은 클리어·풀드 드롭으로 랠리 재정비'
     ],
     '복식': [
-      '수비에서 공격으로 뒤집을 땐 먼저 공을 세게 한 번 쳐서 상대를 뒤로 밀리게 만들고, 그다음 코스를 틀거나 짧게 놓아 빈틈을 노리세요 — 밀기 전에 방향부터 바꾸면 앞을 지키는 상대에게 걸립니다',
       '숏서브는 T자 부근, 서브 후 전위는 네트를 지키고 후위는 미드/후방 커버 (BWF 복식 서브). 몸쪽만 반복하면 읽힙니다 — 국내 국가대표 분석에서 몸쪽 서브 ' + rng(DOUBLES_SERVE.bodyPct, '%') + '인 조의 서브 실점이 ' + rng(DOUBLES_SERVE.lossPct, '%') + '였습니다',
       '리시브는 네트 앞으로 차지하기. 숏 드라이브 ' + rng(DOUBLES_RECEIVE.shortDrivePct, '%') + '·드라이브 ' + rng(DOUBLES_RECEIVE.drivePct, '%') + '·헤어핀 ' + rng(DOUBLES_RECEIVE.hairpinPct, '%') + '에 몰리지 말고 구질·코스(중앙/대각/직선)를 섞기',
       '공격은 전후(공격) / 수비는 좌우(수비). 셔틀 높이를 보고 둘이 동시에 바꾸기',
       '전위는 공격 방향 쪽으로 붙는 채널 어택 — 스트레이트·중앙 공격으로 2대1 만들기',
-      '수비에서는 블록·드라이브로 앞으로 나가 주도권 회수, 리프트는 스트레이트 공격엔 크로스로 — 코스를 예측한 수비는 앞에서 짧게 잡아 압박하고, 예측 못 한 공은 몸 쪽 뒤로 살짝 당겨 시간을 벌고 여유롭게 받아치기',
+      '수비에서는 블록·드라이브로 앞으로 나가 주도권 회수, 리프트는 스트레이트 공격엔 크로스로',
       '드라이브 싸움에서는 중앙(두 선수 사이)과 몸쪽을 먼저 겨냥'
     ],
     '혼합복식': [
@@ -866,14 +813,6 @@
     kneeMomentP: 0.001,        /* [DU20] 무릎 모멘트·파워 감소 유의수준 */
     plantarDeg: 33,            /* [FONG21] 착지 순간 저측굴곡 */
     irDeg: 18,                 /* [FONG21] 착지 순간 내회전 */
-    toeTrials: 30,             /* [WEN25] 남자 아마추어 30명 · 발끝 방향 3조건 */
-    toeOutDeg: 20,             /* [WEN25] toe-out(바깥 20°), toe-in도 같은 20° */
-    toeInDeg: 20,
-    toeOutSignificantP: [0.001, 0.025, 0.047, 0.038],  /* [WEN25] toe-out에서 유의하게 줄어든 값 */
-    splitStepTrials: 18,       /* [WANG24] 대학 수준 남자 선수 18명 */
-    splitStepP: 0.05,          /* [WANG24] 발목·무릎 돌림 차이 유의수준 */
-    aclRecords: 435,           /* [XIAO26] 6개 DB 검색 결과 */
-    aclStudies: 11,            /* [XIAO26] 전향적 생체역학 연구 11편 */
     heavyMinutes: 90,          /* 여기서부터 '피로 구간' 경고 */
     heavyIntensity: 8
   };
@@ -882,11 +821,8 @@
   var SHOULDER_SRC_SHORT = '참고 논문 · Guermont 2023 Phys Ther Sport · Cejudo 2022 IJERPH';
   var LOWER_SRC = 'Du & Fan, Appl Sci 10(23):8703, 2020 (DOI 10.3390/app10238703) · ' +
     'Valldecabres et al., PeerJ 6:e6033, 2018 (DOI 10.7717/peerj.6033) · ' +
-    'Fong et al., J Sport Health Sci 12(1):139-144, 2023 (DOI 10.1016/j.jshs.2021.03.007) · ' +
-    'Wang et al., Bioengineering 11(5):501, 2024 (DOI 10.3390/bioengineering11050501) · ' +
-    'Wen et al., BMC Sports Sci Med Rehabil 17(1):341, 2025 (DOI 10.1186/s13102-025-01393-y) · ' +
-    'Xiao et al., Res Sports Med 34(6):737-760, 2026 (DOI 10.1080/15438627.2026.2680707)';
-  var LOWER_SRC_SHORT = '참고 논문 · Du & Fan 2020 · Valldecabres 2018 · Fong 2021 · Wang 2024 · Wen 2025 · Xiao 2026';
+    'Fong et al., J Sport Health Sci 12(1):139-144, 2023 (DOI 10.1016/j.jshs.2021.03.007)';
+  var LOWER_SRC_SHORT = '참고 논문 · Du & Fan 2020 · Valldecabres 2018 · Fong 2021';
   /* 팔꿈치·손목 과사용(라켓 엘보·손목 힘줄) — 내부 수치는 화면 문구와 테스트가 같이 씁니다 */
   var ARM_RISK = {
     tendinopathyPct: 28,      /* [SEN19] 25명 중 28%가 팔꿈치·손목·손 힘줄 통증 */
@@ -942,19 +878,12 @@
         '배드민턴에서 가장 많이 다치는 곳이 다리이고, 부상은 대부분 경기·훈련 끝날 때 몰려요',
         '피곤해지면 무릎을 굽히는 힘과 착지에서 버티는 힘이 먼저 떨어져요',
         '포핸드보다 백핸드 쪽으로 길게 뻗는 런지가 무릎에 더 위험해요',
-        '대각선 뒤로 빠지면서 발끝부터 먼저 닿으면 발목이 접질리기 쉬워요',
-        '런지로 앞으로 딛을 때 발끝을 몸 안쪽으로 말아 딛으면(안쪽으로 말기 · toe-in) 뒤꿈치에 힘이 몰리고 발목이 바깥으로 꺾이는 부담이 커져요',
-        '같은 런지라도 발끝을 몸이 가는 방향이나 조금 바깥으로 열어 딛으면(바깥으로 열기 · toe-out) 발목이 바깥으로 꺾이는 힘과 뒤꿈치 충격이 줄어요',
-        '점프 스매시에서 내려올 때 두 무릎이 안쪽으로 모이면 무릎 안쪽 인대에 부담이 커져요 — 무릎은 발끝과 같은 방향으로 두고 부드럽게 내려앉아야 해요',
-        '급하게 방향을 바꾸다 발목을 접질리는 경우가 가장 많아요 — 방향을 바꾸기 직전에 가볍게 한 번 뛰어 두 발을 살짝 떼는 스플릿 스텝을 넣으면 백핸드 쪽으로 길게 뻗을 때 발목이 비틀리는 부담이 줄어요'
+        '대각선 뒤로 빠지면서 발끝부터 먼저 닿으면 발목이 접질리기 쉬워요'
       ],
       checks: [
         { name: '백핸드 앞쪽 런지 조심', how: '포핸드보다 백핸드 쪽으로 길게 뻗을 때 무릎에 비틀리는 힘이 더 실려요. 지친 마지막 세트엔 무리해서 깊게 뻗지 마세요.' },
         { name: '대각선 뒤로 빠질 때 발바닥 전체로 착지', how: '뒤·옆으로 물러나면서 발끝부터 먼저 닿으면 발목을 삐기 쉬워요.' },
-        { name: '마지막 세트 런지 5개로 확인', how: '지친 마지막 세트에 백핸드 런지 5개를 해 보고 무릎이 안으로 무너지거나 발이 미끄러지면 오늘은 더 뛰지 마세요.' },
-        { name: '런지 착지 발끝 방향', how: '앞으로 런지할 때 딛는 발끝이 몸 안쪽으로 말려 있으면(toe-in) 뒤꿈치에 힘이 몰려요. 발끝을 몸이 가는 방향에서 조금 바깥으로 ' + LOWER_RISK.toeOutDeg + '도 정도 열어(toe-out) 딛으면 발목이 바깥으로 꺾이는 힘과 뒤꿈치 충격이 줄어요.' },
-        { name: '점프 착지 무릎 정렬', how: '점프 스매시에서 내려올 때 무릎이 안쪽으로 모이면(무릎이 X자로 무너지면) 무릎 인대에 부담이 커져요. 착지 전에 무릎을 발끝 방향으로 벌리고 엉덩이를 살짝 뒤로 빼며 두 발로 부드럽게 내려앉으세요.' },
-        { name: '방향 바꾸기 전 스플릿 스텝 한 번', how: '급하게 돌아서거나 착지할 때 발목이 안쪽으로 꺾이면 접질리기 쉬워요. 방향을 바꾸기 직전에 가볍게 한 번 뛰어 두 발을 살짝 떼는 스플릿 스텝으로 멈춘 뒤 발바닥 전체로 디디세요. 같은 선수 18명을 비교한 연구에서 이렇게 스플릿 스텝을 넣으면 백핸드 쪽으로 길게 뻗을 때 발목이 덜 비틀렸어요.' }
+        { name: '마지막 세트 런지 5개로 확인', how: '지친 마지막 세트에 백핸드 런지 5개를 해 보고 무릎이 안으로 무너지거나 발이 미끄러지면 오늘은 더 뛰지 마세요.' }
       ],
       guides: [
         { name: '허벅지 앞 힘 기르기 (계단 오르기 → 런지 → 한 발 내리기)', how: '20cm 계단 오르내리기 12회 → 앞으로 런지 10회 → 한 발로 천천히 내려오기 8회, 주 2~3번(무릎이 아프면 앞 단계만).' },
@@ -997,69 +926,6 @@
       source: ARM_SRC,
       sourceShort: ARM_SRC_SHORT,
       stats: ARM_RISK
-    };
-  }
-
-  /* ---------- 무릎 통증 · 허벅지 뒤 뻣뻣함 → 허리 통증 연쇄 예방 (bm-v1.83.0) ----------
-   * [APRI23] 무릎 부상 이력이 있는 주니어 선수는 허벅지 뒤(햄스트링) 유연성과 몸통 근력이 함께 낮았고,
-   *   그게 허리 통증 위험으로 이어졌습니다. [SATRA25] 허리 통증이 있는 동호인은 몸통 회전 버티기의
-   *   좌우 차이가 기능 불편과 연결됐습니다(일반 코어 운동만으로는 부족).
-   * 화면에서는 '무릎이 아프면 허리까지 온다'는 연쇄만 쉬운 말로 설명하고, 용어·수치는 stats에만 둡니다. */
-  var CHAIN = {
-    label: '무릎·허리 연쇄',
-    title: '무릎 → 허리 연쇄 보호',
-    thresholdTitle: '쉬운 기준',
-    checkTitle: '자가 체크',
-    guideTitle: '오늘 할 것',
-    reasonKnee: '무릎이 불편하거나 허벅지 뒤쪽이 뻣뻣하면 몸통 힘이 떨어져 허리까지 아파질 수 있어요. 운동 전후 허벅지 뒤 스트레칭과 양쪽 균형 코어 버티기(사이드 플랭크)를 같이 챙겨 주세요.',
-    reasonBack: '허리가 불편한 날은 허벅지 뒤가 뻣뻣하거나 몸통 좌우 힘이 기울어져 있을 때가 많아요. 운동 전후 허벅지 뒤 스트레칭과 양쪽 균형 코어 버티기(사이드 플랭크)를 같이 챙겨 주세요.',
-    thresholds: [
-      '무릎이 아파 다리를 덜 쓰면 그쪽 허벅지·엉덩이 힘이 먼저 빠져요',
-      '허벅지 뒤가 뻣뻣하면 허리를 대신 굽혀 숙이게 되고, 그게 허리 통증으로 이어져요',
-      '몸통 좌우 버티는 힘이 한쪽만 약해도 스매시 회전 때 허리가 버티다 지쳐요'
-    ],
-    checks: [
-      { name: '허벅지 뒤 뻣뻣한지', how: '바닥에 앉아 한쪽 다리를 펴고 손이 발끝에 닿는지 봅니다. 무릎이 굽거나 허리가 둥글게 말리면 허벅지 뒤가 굳은 신호예요.' },
-      { name: '한쪽만 아픈지', how: '무릎이 아픈 쪽 다리를 덜 쓰면 엉덩이·허리 힘이 그쪽만 빠집니다. 아픈 쪽과 반대쪽을 나란히 비교해 보세요.' },
-      { name: '사이드 플랭크 좌우 시간', how: '옆으로 누워 팔꿈치로 버티며 좌우 시간을 재 봅니다. 한쪽이 20% 넘게 짧으면 그쪽 몸통이 약한 신호예요.' }
-    ],
-    guides: [
-      { name: '허벅지 뒤 스트레칭 30초 × 좌우 2번', how: '앉아서 한 다리를 펴고 허리를 편 채 몸을 앞으로 — 숨을 내쉬며 30초, 좌우 2번씩. 코트 오기 전과 마친 뒤에 해요.' },
-      { name: '사이드 플랭크 좌우 같은 시간 (20초 × 2)', how: '옆으로 누워 팔꿈치·발 옆면으로 버팁니다. 약한 쪽을 더 길게 하지 말고, 양쪽을 같은 시간으로 채워 좌우 차이를 줄이세요.' },
-      { name: '엉덩이 들기 · 새처럼 버티기 10회', how: '누워서 엉덩이 들어올리기 15회 + 네 발로 엎드려 반대 팔·다리 뻗기 10회씩. 허리를 젖히지 말고 배에 힘을 주세요.' }
-    ],
-    stats: {
-      kneeFlexR: { male: -0.575, female: -0.304 },
-      kneeTmsR: { male: -0.227, maleP: 0.082, female: -0.354, femaleP: 0.006 },
-      backRotationR: 0.174, backRotationP: 0.049
-    },
-    source: 'Apriantono et al., Int J Hum Mov Sports Sci 11(5), 2023 (DOI: 10.13189/saj.2023.110504) · ' +
-      'Satra & Bhurke, IOSR J Sports Phys Educ 12(5):01-06, 2025 (DOI: 10.9790/6737-1205010612)',
-    sourceShort: '참고 논문 · Apriantono 2023 Int J Hum Mov Sports Sci · Satra 2025 IOSR'
-  };
-
-  /* 통증 부위가 무릎·허리(·허벅지)일 때 연쇄 예방 카드를 켜고, 어느 쪽에서 시작됐는지에 맞춰 문장을 고릅니다 */
-  function guardChain(painList) {
-    var pains = (painList || []).filter(Boolean);
-    var areas = pains.filter(function (p) { return p === '무릎' || p === '허리' || p === '허벅지'; });
-    var back = areas.indexOf('허리') >= 0;
-    var knee = areas.indexOf('무릎') >= 0;
-    return {
-      label: CHAIN.label,
-      title: CHAIN.title,
-      thresholdTitle: CHAIN.thresholdTitle,
-      checkTitle: CHAIN.checkTitle,
-      guideTitle: CHAIN.guideTitle,
-      on: areas.length > 0,
-      level: back ? 'back' : (knee ? 'knee' : 'hamstring'),
-      areas: areas.slice(),
-      reason: areas.length ? (back ? CHAIN.reasonBack : CHAIN.reasonKnee) : '',
-      thresholds: CHAIN.thresholds.slice(),
-      checks: CHAIN.checks.map(function (x) { return { name: x.name, how: x.how }; }),
-      guides: CHAIN.guides.map(function (x) { return { name: x.name, how: x.how }; }),
-      source: CHAIN.source,
-      sourceShort: CHAIN.sourceShort,
-      stats: CHAIN.stats
     };
   }
 
@@ -1115,10 +981,6 @@
     if (shoulder.on) on.push(shoulder.label);
     if (lower.on) on.push(lower.label);
 
-    /* ---- 무릎·허리 연쇄 (무릎이 아프면 허리까지 이어지는 고리) ---- */
-    var chain = guardChain(pains);
-    if (chain.on) on.push(chain.label);
-
     /* ---- 팔꿈치·손목 (라켓 엘보·손목 과사용) ----
      * 통증이 있을 때, 또는 머리 위 샷·드라이브를 약점으로 골랐는데
      * 강도가 세거나 길게 친 날(과사용이 쌓이기 쉬운 날)에 켜집니다. */
@@ -1143,7 +1005,6 @@
       label: on.length > 2 ? on[0] + ' 외 ' + (on.length - 1) + '곳' : on.join(' · '),
       shoulder: shoulder,
       lower: lower,
-      chain: chain,
       arm: arm,
       heavy: heavy,
       painStop: on.length ? PAIN_RULE.stop : ''
@@ -1416,211 +1277,6 @@
     source: '체전 1등 선수 현장 기준(2026-11-22) — 조금 아프더라도 바로 쉬고 상태 보기'
   };
 
-  /* ---------- 통증 부위에 부담 없는 드릴 (bm-v1.72.0) ----------
-   * "무릎 쉬기"라고 안내해 놓고 바로 아래에서 육각 풋워크(30초×5세트)를 추천하던
-   * 모순을 없앱니다(2026-11-25 06시 점검).
-   *   · 하체 통증(무릎·발목 등) → 다리를 쓰지 않는 상체·스트레칭·회복으로 바꿉니다.
-   *   · 상체 통증(어깨·팔꿈치 등) → 머리 위·팔을 많이 쓰는 드릴만 빼고 안전한 드릴로 채웁니다.
-   * 드릴 이름과 설명에 이 낱말이 있으면 그 부위에 부담이 큰 동작으로 봅니다. */
-  var PAIN_LOAD_WORDS = {
-    '무릎': ['풋워크', '스텝', '점프', '착지', '런지', '섀도', '전후', '좌우', '수비', '로테이션'],
-    '발목': ['풋워크', '스텝', '점프', '착지', '런지', '섀도', '전후', '좌우', '수비'],
-    '아킬레스건': ['풋워크', '스텝', '점프', '착지', '런지', '섀도', '전후', '좌우'],
-    '종아리': ['풋워크', '스텝', '점프', '착지', '섀도', '전후'],
-    '허벅지': ['풋워크', '스텝', '점프', '착지', '런지', '섀도'],
-    '고관절': ['풋워크', '스텝', '점프', '착지', '런지', '섀도'],
-    '허리': ['점프', '착지', '스매시', '섀도'],
-    '어깨': ['스매시', '클리어', '킬', '리프트', '서브'],
-    '팔꿈치': ['스매시', '드라이브', '클리어'],
-    '손목': ['스매시', '드라이브', '헤어핀', '푸시', '킬'],
-    '손가락': ['스매시', '드라이브', '헤어핀', '푸시']
-  };
-  var PAIN_LOWER_AREAS = ['무릎', '발목', '아킬레스건', '종아리', '허벅지', '고관절', '발', '정강이'];
-  var PAIN_UPPER_AREAS = ['어깨', '팔꿈치', '손목', '손가락', '팔', '가슴', '등'];
-
-  /* 통증이 있을 때 대신 넣는 드릴 — 부위에 부담을 싣지 않는 것만 */
-  var PAIN_SAFE_DRILLS = {
-    lower: [
-      { name: '앉아서 상체 스트록 폼', method: '의자에 앉아 어깨 회전과 라켓 펴기만 반복합니다. 무릎·발목에 체중을 싣지 않아요.', sets: '10분 · 2세트', point: '아픈 다리는 그대로 두고 상체만' },
-      { name: '통증 부위 가벼운 스트레칭', method: '오늘 아픈 부위 주변을 아프지 않은 범위까지만 30초씩 천천히 늘립니다.', sets: '30초 × 2', point: '조금이라도 아프면 바로 멈추기' },
-      { name: '회복 · 냉온 찜질 가이드', method: '오늘은 코트 대신 붓기가 있으면 15분 냉찜질, 2주 넘게 이어지면 병원에 다녀오세요.', sets: '15분', point: '쉬는 날도 훈련이에요' }
-    ],
-    upper: [
-      { name: '하체 풋워크 6방향', method: '라켓을 내려놓고 발놀림만 합니다. 어깨·팔에 힘을 싣지 않아요.', sets: '30초 × 3세트', point: '상체는 편하게, 발만 빠르게' },
-      { name: '코어 · 호흡 정리', method: '누워서 무릎을 굽혀 허리를 바닥에 붙이고 호흡합니다. 팔을 쓰지 않아요.', sets: '10분', point: '허리는 바닥에 붙이고 천천히' },
-      { name: '통증 부위 가벼운 스트레칭', method: '아픈 부위는 아프지 않은 범위까지만 30초씩 천천히 늘립니다.', sets: '30초 × 2', point: '조금이라도 아프면 바로 멈추기' }
-    ],
-    both: [
-      { name: '통증 부위 가벼운 스트레칭', method: '아픈 부위는 아프지 않은 범위까지만 30초씩 천천히 늘립니다.', sets: '30초 × 2', point: '조금이라도 아프면 바로 멈추기' },
-      { name: '호흡 정리 · 회복 10분', method: '앉거나 누워서 긴 호흡으로 몸을 낮춥니다. 오늘은 회복이 먼저예요.', sets: '10분', point: '숨을 끝까지 내쉬기' },
-      { name: '회복 · 냉온 찜질 가이드', method: '붓기가 있으면 15분 냉찜질, 2주 넘게 이어지면 병원에 다녀오세요.', sets: '15분', point: '쉬는 날도 훈련이에요' }
-    ]
-  };
-
-  function painAreaKind(areas) {
-    var lower = false, upper = false;
-    (areas || []).forEach(function (a) {
-      if (PAIN_LOWER_AREAS.indexOf(a) >= 0) lower = true;
-      else if (PAIN_UPPER_AREAS.indexOf(a) >= 0) upper = true;
-    });
-    if (lower && upper) return 'both';
-    if (lower) return 'lower';
-    if (upper) return 'upper';
-    return 'lower';   /* 모르는 부위는 다리를 쓰지 않는 쪽으로 안전하게 */
-  }
-
-  function drillLoadHit(drill, words) {
-    var text = String((drill && drill.name) || '') + ' ' + String((drill && drill.method) || '');
-    for (var i = 0; i < words.length; i++) if (words[i] && text.indexOf(words[i]) >= 0) return words[i];
-    return '';
-  }
-
-  /* 통증 부위 → 부담 없는 드릴 3개 + 화면에 쓸 안내 한 줄 */
-  function painSafeDrills(drills, areas, level) {
-    var list = U.uniq((areas || []).filter(Boolean));
-    var out = { drills: (drills || []).slice(), note: '', swapped: [] };
-    if (!list.length) return out;
-    var kind = painAreaKind(list);
-    var words = [];
-    list.forEach(function (a) { words = words.concat(PAIN_LOAD_WORDS[a] || []); });
-    if (!words.length) words = ['점프', '착지', '풋워크'];
-
-    /* 하체 통증이면 다리를 쓰는 드릴을 통째로 빼고 상체·스트레칭·회복으로 바꿉니다 */
-    if (kind === 'lower' || kind === 'both') {
-      var safe = PAIN_SAFE_DRILLS[kind].map(function (d) {
-        return { name: d.name, level: level || LEVEL_FALLBACK, method: d.method, sets: d.sets, point: d.point, safeFor: list.slice() };
-      });
-      out.drills = safe;
-      out.swapped = (drills || []).filter(function (d) { return drillLoadHit(d, words); }).map(function (d) { return d.name; });
-      out.note = list.join('·') + ' 통증이 있어 오늘 추천 드릴은 ' + list.join('·') +
-        '에 부담이 큰 동작 대신 상체·스트레칭·회복 3가지로 바꿨어요.';
-      return out;
-    }
-
-    /* 상체 통증이면 머리 위·팔을 많이 쓰는 드릴만 빼고 나머지로 채웁니다 */
-    var kept = [];
-    var dropped = [];
-    (drills || []).forEach(function (d) {
-      if (drillLoadHit(d, words)) dropped.push(d.name); else kept.push(d);
-    });
-    var topUp = PAIN_SAFE_DRILLS.upper.map(function (d) {
-      return { name: d.name, level: level || LEVEL_FALLBACK, method: d.method, sets: d.sets, point: d.point, safeFor: list.slice() };
-    });
-    topUp.forEach(function (d) {
-      if (kept.length < 3 && !kept.some(function (x) { return x.name === d.name; })) kept.push(d);
-    });
-    out.drills = kept.slice(0, 3);
-    out.swapped = dropped;
-    if (dropped.length) {
-      out.note = list.join('·') + ' 통증이 있어 ' + list.join('·') + '에 부담이 큰 드릴 ' + dropped.length +
-        '개를 빼고, 부담 없는 드릴로 채웠어요.';
-    }
-    return out;
-  }
-
-  /* ---------- 피로가 쌓인 날의 점프 스매시 전환 (bm-v1.83.0) ----------
-   * [CHENG24] 배드민턴 동작으로 피로를 유도하자 수직 점프 높이가 약 3~4cm 낮아지고
-   *   내려앉는 구간의 하강 가속도(=착지 충격)가 커졌습니다. 화면에는 눈금·용어 없이
-   *   "점프가 낮아지고 착지 충격이 커진다"는 쉬운 말로만 쓰고, 수치는 stats에 담습니다.
-   * 조건: 점프·스매시를 오늘 고르거나 추천했는데 (1) 컨디션 4 이하  (2) 최근 3일 안에
-   *   강도 8 이상 훈련이 2번 이상  (3) 주간 부하 급증 — 셋 중 하나라도 해당할 때.
-   * 이미 다리 통증으로 멈춘 날은 통증 중단 기준이 먼저라 이 카드를 켜지 않습니다. */
-  var FATIGUE_JUMP = {
-    label: '피로 점프 전환',
-    title: '피로할 때 점프 스매시',
-    lowCond: 4,
-    hardIntensity: 8,
-    recentDays: 3,
-    recentHard: 2,
-    jumpPick: ['스매시', '점프'],
-    jumpLoad: ['점프 착지', '점프 스매시', '연속 스매시', '점프'],
-    reasonLow: '몸이 피로하면 점프가 평소보다 낮아지고 착지할 때 무릎·발목 충격이 커져요. 후반엔 연속 점프 스매시 대신 네트 앞 짧은 볼과 안정적인 풋워크 위주로 전환하세요.',
-    reasonLoad: '요 며칠 센 훈련이 이어져 다리에 피로가 쌓였어요. 이 상태에선 점프가 평소보다 낮아지고 착지할 때 무릎·발목 충격이 커져요. 후반엔 연속 점프 스매시 대신 네트 앞 짧은 볼과 안정적인 풋워크 위주로 전환하세요.',
-    note: '오늘은 피로가 쌓여 점프 드릴 대신 네트 앞·스텝 드릴로 바꿨어요.',
-    rehab: '오늘 후반은 연속 점프 스매시 대신 네트 앞 짧은 볼·낮은 스텝으로 바꾸기',
-    chainStretch: '허벅지 뒤 스트레칭 30초 × 좌우 2 + 사이드 플랭크 좌우 같은 시간 20초 × 2',
-    thresholds: [
-      '피곤해지면 점프 높이가 3~4cm쯤 줄고, 내려앉을 때 다리에 걸리는 충격은 오히려 커져요',
-      '그래서 점프가 낮아진 만큼 세게 치려고 더 힘을 쓰다 착지가 딱딱해지기 쉬워요',
-      '피로한 후반일수록 점프 스매시를 몰아 치기보다 네트 앞 짧은 볼과 발놀림으로 점수를 만드는 게 안전해요'
-    ],
-    checks: [
-      { name: '오늘 점프가 가볍게 되는지', how: '코트 오기 전 제자리 점프 3번을 해 보세요. 발이 바닥에서 떨어지는 높이가 평소보다 낮거나 착지할 때 ‘쿵’ 하고 무릎·발목이 찌릿하면 오늘은 점프 스매시를 줄이세요.' },
-      { name: '마지막 세트 착지 소리', how: '후반으로 갈수록 착지 소리가 커지거나 무릎이 안쪽으로 모이면 그 세트에서 점프 스매시를 멈추고 네트 앞으로 바꾸세요.' },
-      { name: '다리 무거움 확인', how: '계단 한 층을 올라가 봤을 때 허벅지가 평소보다 무겁게 느껴지면 오늘은 점프 개수를 절반으로 잡으세요.' }
-    ],
-    guides: [
-      { name: '네트 앞 짧은 볼로 전환', how: '헤어핀·푸시를 번갈아 10분. 점프 없이 발만 살짝 뜨는 스텝으로 자리를 잡습니다.' },
-      { name: '낮은 스텝 6방향', how: '뛰어오르지 않고 한 발씩 내디디는 낮은 스텝으로 6방향을 돕니다. 30초 × 3세트.' },
-      { name: '드라이브 랠리로 감각 유지', how: '서서 드라이브만 3분씩 2번. 점프 없이 랠리 감각과 코스 보는 눈을 유지합니다.' }
-    ],
-    drills: [
-      { name: '네트 앞 헤어핀·푸시 번갈아', method: '점프 없이 네트 앞에서 헤어핀과 푸시를 번갈아 놓습니다. 발은 바닥에서 살짝만 뜨는 스텝으로.', sets: '10분 · 2세트', point: '무릎·발목 충격 없이 손끝 감각만' },
-      { name: '낮은 스텝 6방향 (점프 없이)', method: '한 발씩 내디디는 낮은 스텝으로 6방향을 돕니다. 뛰어오르지 않아요.', sets: '30초 × 3세트', point: '발이 바닥에서 뜨지 않게' },
-      { name: '드라이브 랠리 3분', method: '서서 드라이브만 주고받기. 힘을 빼고 코스를 먼저 봅니다.', sets: '3분 × 2', point: '점프 없이 랠리 감각 유지' }
-    ],
-    stats: { jumpDropCm: 4, jumpDropCmMin: 3, squatAccelUp: 1.03, pJump: 0.01, pSquat: 0.05 },
-    source: 'Cheng et al., Sports Health 17(1):126-134, 2024 (DOI: 10.1177/19417381241245908)',
-    sourceShort: '참고 논문 · Cheng 2024 Sports Health (피로 뒤 점프 높이 3~4cm↓ · 착지 충격↑)'
-  };
-
-  /* fatigueJump(cond, weakSkills, ctx)
-   *   ctx: { intensity, load, recentHard, pain }
-   *   → { on, level:'low'|'load', label, title, reason, thresholds, checks, guides, drills, stats, source }
-   * 무작위 없음 — 같은 입력이면 항상 같은 결과(순수 함수). */
-  function fatigueJump(cond, weakSkills, ctx) {
-    ctx = ctx || {};
-    var c = cond == null ? null : Number(cond);
-    var weak = weakSkills || [];
-    var low = c != null && c <= FATIGUE_JUMP.lowCond;
-    var recentHard = ctx.recentHard == null ? 0 : Number(ctx.recentHard);
-    var zone = (ctx.load && ctx.load.zone) || '';
-    var many = recentHard >= FATIGUE_JUMP.recentHard || zone === 'spike';
-    var jumps = FATIGUE_JUMP.jumpPick.some(function (w) { return weak.indexOf(w) >= 0; });
-    var lowerPain = (ctx.pain || []).some(function (p) { return PAIN_LOWER_AREAS.indexOf(p) >= 0; });
-    var on = jumps && (low || many) && !lowerPain;
-    return {
-      on: on,
-      level: low ? 'low' : (many ? 'load' : ''),
-      label: FATIGUE_JUMP.label,
-      title: FATIGUE_JUMP.title,
-      reason: on ? (low ? FATIGUE_JUMP.reasonLow : FATIGUE_JUMP.reasonLoad) : '',
-      note: FATIGUE_JUMP.note,
-      thresholds: FATIGUE_JUMP.thresholds.slice(),
-      checks: FATIGUE_JUMP.checks.map(function (x) { return { name: x.name, how: x.how }; }),
-      guides: FATIGUE_JUMP.guides.map(function (x) { return { name: x.name, how: x.how }; }),
-      drills: FATIGUE_JUMP.drills.map(function (x) {
-        return { name: x.name, level: LEVEL_FALLBACK, method: x.method, sets: x.sets, point: x.point };
-      }),
-      stats: FATIGUE_JUMP.stats,
-      source: FATIGUE_JUMP.source,
-      sourceShort: FATIGUE_JUMP.sourceShort,
-      recentHard: recentHard
-    };
-  }
-
-  /* 점프·스매시 드릴을 네트 앞·스텝 드릴로 하나씩 바꿉니다(개수는 그대로 3개).
-   * 통증 때문에 이미 통째로 바뀐 날(painSafeDrills)에는 바꿀 것이 없어 그대로 돌려줍니다. */
-  function jumpSafeDrills(drills, level) {
-    var list = (drills || []).slice();
-    var out = { drills: [], swapped: [], note: '' };
-    var pool = FATIGUE_JUMP.drills.map(function (d) {
-      return { name: d.name, level: level || LEVEL_FALLBACK, method: d.method, sets: d.sets, point: d.point };
-    });
-    var pi = 0;
-    list.forEach(function (d) {
-      if (drillLoadHit(d, FATIGUE_JUMP.jumpLoad)) {
-        out.swapped.push(d.name);
-        if (pool[pi]) out.drills.push(pool[pi++]);
-      } else {
-        out.drills.push(d);
-      }
-    });
-    while (out.drills.length < list.length && pool[pi]) out.drills.push(pool[pi++]);
-    if (out.swapped.length) out.note = FATIGUE_JUMP.note;
-    return out;
-  }
-
   /* ---------- 실전 감각연습 + 오후 보강 웨이트 (bm-v1.68.0) ----------
    * 체전 1등 선수 현장에서 하던 하루를 그대로 옮겼습니다(사용자 제보·승인 2026-11-24).
    *   오전 코트: 몸풀기(양쪽 약 5분) → 2대1 감각연습 30분 → 뒷코트 감각연습 10분 = 약 45~50분
@@ -1762,95 +1418,6 @@
       focus: senseFocus(weakList),
       summary: '감각연습 3블록(45~50분) · 보강 웨이트 3묶음',
       source: SENSE.source
-    };
-  }
-
-  /* ---------- 시합 당일 준비 (bm-v1.70.0) ----------
-   * 체전 1등 선수 현장 기준(2026-11-24 인터뷰)에서 두 가지를 그대로 옮겼습니다.
-   *   ① 시합 들어가기 직전 — 가볍게 조깅 → 스트레칭으로 관절 풀기 → 코트에서 시합
-   *      (사용자 답변: "조깅하고 스트레칭하고 시합 뛰고")
-   *   ② 복식 수비 → 공격 전환 — 공을 세게 한 번 쳐서 상대를 뒤로 밀리게 만든 다음,
-   *      코스를 틀거나 짧게 놓아 빈틈을 노리기 (사용자 답변: "공을 세게한번쳐서 밀리게 하고 틀거나 놔")
-   * 평소 훈련 웜업(WARMUP · PREVENT)과 네트 예열 구조는 그대로 두고,
-   * 대회·시합이 있는 날에만 이 순서를 하나 더 얹습니다. */
-  var MATCH_DAY = {
-    title: '시합 당일 준비',
-    note: '대회나 시합이 있는 날, 코트에 들어가기 전 순서예요. 평소 하던 웜업은 그대로 하고, 그 위에 이 세 가지를 순서대로 더하면 됩니다.',
-    steps: [
-      {
-        name: '가볍게 조깅', min: 5,
-        how: '코트 밖에서 몸이 따뜻해질 때까지 가볍게 뜁니다. 옆 사람과 이야기할 수 있는 속도면 충분하고, 숨이 조금 차면 멈춰도 돼요.'
-      },
-      {
-        name: '스트레칭으로 관절 풀기', min: 5,
-        how: '발목·무릎·어깨를 크게 돌리고 다리를 앞뒤로 흔들어 관절을 풀어 줍니다. 시합 직전에는 힘을 오래 주는 스트레칭보다 움직이면서 푸는 스트레칭이 몸을 덜 굳게 해요.'
-      },
-      {
-        name: '코트에서 시합', min: 0,
-        how: '이제 코트에 들어가 실제 경기처럼 뛰어 봅니다. 첫 랠리는 힘을 조금 빼고 시작해 셔틀 속도와 코트 감각을 확인한 뒤 올리세요.'
-      }
-    ],
-    order: '가볍게 조깅 → 스트레칭으로 관절 풀기 → 코트에서 시합',
-    switchTitle: '수비에서 공격으로 뒤집기',
-    switchNote: '복식에서 수비에 몰려 있을 때 공격으로 뒤집는 순서예요. 한 번에 바꾸려 하지 말고, 밀어낸 다음에 바꿉니다.',
-    switchSteps: [
-      {
-        name: '① 세게 한 번 쳐서 밀어내기',
-        how: '수비에서 받은 공을 아래로 힘 있게 한 번 쳐서(드라이브·푸시) 상대 쪽 깊숙이 보냅니다. 상대 두 명이 뒤로 물러나야 다음이 열려요.'
-      },
-      {
-        name: '② 밀린 걸 보고 코스 틀기 · 짧게 놓기',
-        how: '상대가 뒤로 물러난 순간 앞이 비어요. 그때 대각이나 직선으로 코스를 틀거나, 네트 앞에 살짝 짧게 놓아 빈 곳을 찌릅니다.'
-      },
-      {
-        name: '③ 순서 지키기',
-        how: '밀기 전에 방향부터 바꾸면 앞을 지키는 상대에게 그대로 걸립니다. 세게 한 번 → 상대가 물러나는지 보기 → 코스 바꾸기, 이 순서를 지키세요.'
-      }
-    ],
-    partner: '파트너와 미리 약속해 두세요. 한 명이 세게 밀어 상대를 뒤로 보내면, 다른 한 명은 네트 쪽으로 붙어 앞자리를 차지합니다(전후 전환).',
-    defenseTitle: '수비에서 받는 타이밍',
-    defenseNote: '예측한 수비와 예측 못 한 수비는 받는 자리가 달라야 해요.',
-    defenseSteps: [
-      {
-        name: '예측한 공 — 앞에서 짧게',
-        how: '상대가 어디로 칠지 예측했으면 앞에서 짧게 잡아 바로 압박합니다. 이때는 앞에서 치는 게 오히려 상대를 몰아붙여요.'
-      },
-      {
-        name: '예측 못 한 공 — 뒤로 살짝 당겨 여유',
-        how: '예측하지 못한 공을 앞에서 급하게 치려 하면 공이 더 빠르게 느껴져 실수가 나요. 몸 쪽 뒤로 살짝 당겨 시간을 벌고, 최대한 편한 자세로 여유 있게 받아치세요.'
-      }
-    ],
-    singleNote: '단식도 같아요. 세게 깊게 한 번 보내 상대를 뒤로 밀어낸 뒤, 드롭이나 코스 변경으로 앞뒤를 흔들어 빈 곳을 노리세요.',
-    source: '체전 1등 선수 현장 기준(2026-11-24) — 시합 직전 조깅·스트레칭 후 시합 / 수비에서 세게 밀고 코스 틀기'
-  };
-
-  /* matchDay(discipline)
-   *   → 시합 직전 3단계 + 종목에 맞춘 수비→공격 전환 (복식·혼합복식은 3단계, 단식은 한 줄 안내)
-   * 같은 입력이면 같은 결과(순수 함수) — 카드가 다시 그려져도 흔들리지 않게 매번 새 객체로 돌려줍니다. */
-  function matchDay(discipline) {
-    var key = disciplineKey(discipline);
-    var dbl = key !== '단식';
-    return {
-      title: MATCH_DAY.title,
-      note: MATCH_DAY.note,
-      discipline: key,
-      order: MATCH_DAY.order,
-      steps: MATCH_DAY.steps.map(function (s) {
-        return { name: s.name, min: s.min, how: s.how };
-      }),
-      switchBlock: {
-        title: MATCH_DAY.switchTitle,
-        note: dbl ? MATCH_DAY.switchNote : MATCH_DAY.singleNote,
-        steps: dbl ? MATCH_DAY.switchSteps.map(function (s) { return { name: s.name, how: s.how }; }) : [],
-        partner: dbl ? MATCH_DAY.partner : ''
-      },
-      defenseBlock: {
-        title: MATCH_DAY.defenseTitle,
-        note: MATCH_DAY.defenseNote,
-        steps: MATCH_DAY.defenseSteps.map(function (s) { return { name: s.name, how: s.how }; })
-      },
-      summary: '시합 직전 3단계 · 수비에서 공격 전환 · 수비 타이밍',
-      source: MATCH_DAY.source
     };
   }
 
@@ -2547,24 +2114,6 @@
     /* 자기 강도 조절 — 오늘 이 선수가 스스로 브레이크를 잡아야 하는 날인지 */
     var pace = paceGuide(cond, load, U.uniq(painToday.concat(repeatedPain)), streakDays, intensity);
 
-    /* 최근 3일 안에 '센 훈련(강도 8 이상)'이 몇 번 있었는지 — 피로 누적 판단용 */
-    var recentHard = 0;
-    (function () {
-      var todayD = U.parseYmd(U.ymd());
-      history.forEach(function (r) {
-        if (!r.date || r.intensity == null) return;
-        var d = U.parseYmd(r.date);
-        if (!d) return;
-        var gapDays = Math.round((todayD - d) / 86400000);
-        if (gapDays >= 1 && gapDays <= 3 && Number(r.intensity) >= 8) recentHard++;
-      });
-    })();
-
-    /* 피로가 쌓였는데 점프·스매시를 고른 날 — 점프 높이↓·착지 충격↑ ([CHENG24]) */
-    var jump = fatigueJump(cond, weakSkills, {
-      intensity: intensity, load: load, recentHard: recentHard, pain: painToday
-    });
-
     /* ---------- 점수 ---------- */
     var scoreIdx = 60;
     if (cond != null) scoreIdx += cond >= 7 ? 10 : cond <= 4 ? -12 : 3;
@@ -2682,14 +2231,6 @@
         detail: pace.text
       });
     }
-    /* 피로 점프 경고는 '강도 조절' 바로 뒤에 — 둘 다 있으면 맨 앞은 브레이크 문구가 지킵니다 */
-    if (jump.on) {
-      insights.splice(pace.level === 'brake' ? 1 : 0, 0, {
-        icon: 'alert',
-        label: '피로 점프 주의',
-        detail: jump.reason
-      });
-    }
     if (pace.level === 'brake' && load.zone) {
       /* 부하 조언에도 같은 브레이크 문구를 맨 앞에 둡니다 */
       load.tips = [SELF_PACE.brake].concat(load.tips || []).slice(0, 2);
@@ -2711,14 +2252,6 @@
     /* ---------- 맞춤처방 ---------- */
     var care = { rehab: [], stretch: [], mental: [], warmup: [] };
     var painList = U.uniq(painToday.concat(painCounts.filter(function (p) { return p.n >= 3; }).map(function (p) { return p.name; })));
-    /* 통증 부위에 부담이 큰 드릴은 빼고 안전한 드릴로 바꿉니다 (bm-v1.72.0)
-     * — 위에서 "무릎 쉬기"라고 해 놓고 아래에서 육각 풋워크를 권하던 모순 제거 */
-    var drillSwap = painSafeDrills(drills, painToday, level);
-    drills = drillSwap.drills;
-    /* 피로가 쌓인 날의 점프·연속 스매시 드릴 → 네트 앞·낮은 스텝 드릴로 교체 (bm-v1.83.0)
-     * 통증으로 이미 통째로 바뀐 날은 바꿀 것이 없어 그대로 둡니다. */
-    var jumpSwap = jump.on ? jumpSafeDrills(drills, level) : { drills: drills, swapped: [], note: '' };
-    drills = jumpSwap.drills;
     /* 통증 부위·종목에 맞춘 예방 워밍업과 종목별 인터벌 기준 (논문 근거) */
     var prevent = preventionWarmup(painList, discipline);
     var guard = jointGuard(painList, weakSkills, { intensity: intensity, minutes: minutes, load: load });
@@ -2736,16 +2269,10 @@
     if (!care.rehab.length) care.rehab = GENERIC_CARE.rehab.slice();
     if (!care.stretch.length) care.stretch = GENERIC_CARE.stretch.slice();
     care.rehab = U.uniq(care.rehab);
-    /* 피로 점프 경고가 켜진 날은 '회복' 처방에도 전환 한 줄을 같이 넣습니다 (bm-v1.83.0) */
-    if (jump.on) care.rehab = U.uniq([FATIGUE_JUMP.rehab].concat(care.rehab));
     /* 통증이 있으면 처방 맨 앞에 '바로 멈추는 기준'을 둡니다(부위별 처방도 그대로 남김) */
     if (painToday.length) care.rehab = U.uniq([PAIN_RULE.stop].concat(care.rehab)).slice(0, 5);
     else care.rehab = care.rehab.slice(0, 4);
     care.stretch = U.uniq(care.stretch).slice(0, 4);
-    /* 무릎·허리 연쇄 예방은 스트레칭 처방에도 한 줄로 함께 넣습니다 (bm-v1.83.0) */
-    if (guard.chain && guard.chain.on) {
-      care.stretch = U.uniq([FATIGUE_JUMP.chainStretch].concat(care.stretch)).slice(0, 4);
-    }
     care.stop = painToday.length ? PAIN_RULE.stop : '';
 
     /* 워밍업: 훈련일에는 기본 6단계 중 앞 4개, 통증이 있으면 강도 낮춘 3개 */
@@ -2768,11 +2295,7 @@
     /* ---------- 다음 목표 + 이번 주 루틴 ---------- */
     var focus = weakSkills[0] + ' 정확도 1개';
     if (cond != null && cond <= 4) focus = '회복 (20분 가볍게)';
-    else if (painToday.length) {
-      /* 하체 통증이면 '가볍게 풋워크' 같은 다음 목표도 다리를 쓰지 않는 쪽으로 (bm-v1.72.0) */
-      var lowerPain = painToday.some(function (a) { return PAIN_LOWER_AREAS.indexOf(a) >= 0; });
-      focus = painToday[0] + ' 쉬기' + (lowerPain ? ' (오늘은 상체·스트레칭)' : ' + 부담 없는 드릴');
-    }
+    else if (painToday.length) focus = painToday[0] + ' 쉬기 + 가볍게 ' + weakSkills[0];
     else if (ws.rate != null && ws.rate < 40) focus = '리시브 안정 + 실수 줄이기';
 
     var gp = gradePlan(level);
@@ -2801,8 +2324,6 @@
     if (load.zone === 'spike') risk.push({ level: 'warn', text: '최근 7일 부하가 직전 4주 평균의 ' + load.ratio + '배예요. 급증한 주에는 부상 위험이 커지니 다음 주는 볼륨을 유지하세요.' });
     if (streakDays >= 6) risk.push({ level: 'info', text: streakDays + '일 연속 훈련 중이에요. 24시간 휴식을 넣어 주세요.' });
     if (pace.level === 'brake') risk.unshift({ level: 'warn', text: pace.text });
-    /* 피로 점프 경고는 맨 앞 경고를 가리지 않게 뒤에 붙입니다(통증·강도 조절이 우선) */
-    if (jump.on) risk.push({ level: 'warn', text: jump.reason });
     if (!risk.length) risk.push({ level: 'ok', text: '무리한 신호는 없어요. 지금 리듬을 유지하세요.' });
 
     var headline;
@@ -2823,23 +2344,15 @@
       flow: flow,
       gameMode: scoreMode,
       load: load,
-      drills: {
-        drills: drills,
-        note: [drillSwap.note || '', jumpSwap.note || ''].filter(Boolean).join(' '),
-        swapped: (drillSwap.swapped || []).concat(jumpSwap.swapped || []).slice(),
-        jumpSwapped: (jumpSwap.swapped || []).slice(),
-        areas: painList.slice()
-      },
+      drills: { drills: drills },
       care: care,
       prevent: prevent,
       guard: guard,
-      jump: jump,
       balance: balance,
       rhythm: rhythm,
       loadGuide: loadGuide,
       offcourt: offcourtRoutine(discipline),
       sense: senseRoutine(discipline, level, weakSkills),
-      match: matchDay(discipline),
       pace: pace,
       week: week,
       risk: risk,
@@ -2876,15 +2389,11 @@
     gradePlan: gradePlan, playbook: playbook,
     gameFlow: gameFlow, loadIndex: loadIndex, scoreModeOf: scoreModeOf,
     preventionWarmup: preventionWarmup, disciplineLoadGuide: disciplineLoadGuide,
-    jointGuard: jointGuard, guardChain: guardChain, CHAIN: CHAIN,
-    fatigueJump: fatigueJump, FATIGUE_JUMP: FATIGUE_JUMP, jumpSafeDrills: jumpSafeDrills,
-    SHOULDER_RISK: SHOULDER_RISK, LOWER_RISK: LOWER_RISK,
+    jointGuard: jointGuard, SHOULDER_RISK: SHOULDER_RISK, LOWER_RISK: LOWER_RISK,
     proBalance: proBalance, loadRhythm: loadRhythm, PRO_BAL: PRO_BAL, RHYTHM: RHYTHM,
     offcourtRoutine: offcourtRoutine, OFFCOURT: OFFCOURT,
     senseRoutine: senseRoutine, SENSE: SENSE, senseFocus: senseFocus,
-    matchDay: matchDay, MATCH_DAY: MATCH_DAY,
     paceGuide: paceGuide, SELF_PACE: SELF_PACE, PAIN_RULE: PAIN_RULE,
-    painSafeDrills: painSafeDrills, PAIN_SAFE_DRILLS: PAIN_SAFE_DRILLS, PAIN_LOAD_WORDS: PAIN_LOAD_WORDS,
     disciplineKey: disciplineKey, PREVENT: PREVENT, LOAD_GUIDE: LOAD_GUIDE,
     /* 논문 기준값 — 화면 문구와 같은 숫자 */
     SPLIT_STEP: SPLIT_STEP, DOUBLES_SERVE: DOUBLES_SERVE, DOUBLES_RECEIVE: DOUBLES_RECEIVE,

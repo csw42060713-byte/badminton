@@ -174,13 +174,6 @@
     var balance = hearts.balance || 0;
     return { cost: cost, balance: balance, short: balance < cost };
   }
-  /* bm-v1.80.0 — 다른 사람의 커스텀 라켓 한 자루 (급수·지역 옆에 작게) */
-  function racketMini(state, userKey) {
-    if (!BM.racketcustom) return '';
-    return '<span class="pcard__rk" data-rk-person="' + U.esc(userKey) + '">' +
-      BM.racketcustom.personHtml(state, userKey) + '</span>';
-  }
-
   function playerCard(p, state) {
     var st = statusOf(state, p);
     var mp = myProfile(state);
@@ -213,12 +206,8 @@
       '<div class="pcard__id"><div class="pcard__name">' + U.esc(p.nick) +
       gradePill(p) + genderPill(p) +
       (st.friend.state === 'friends' ? '<span class="pill pill--friend">친구</span>' : '') + '</div>' +
-      '<p class="pcard__meta">' + racketMini(state, p.userKey) + (meta || '지역 미입력') + '</p></div>' +
-      '<div class="pcard__side"><div class="fit"><strong>' + scored.score + '</strong><span>궁합</span></div>' +
-      /* bm-v1.79.0 — 요청 전에도 부담 없이 건네는 '응원 하트 1개'(카드 안에서 바로) */
-      '<button type="button" class="cheerbtn cheerbtn--sm" data-cheer="' + key + '"' +
-      ' aria-label="' + U.esc(p.nick) + '님에게 응원 하트 ' + D.HEART_RULES.GIFT_COST + '개 보내기">' +
-      '<span class="cheerbtn__ico" aria-hidden="true">💛</span>응원</button></div></div>' +
+      '<p class="pcard__meta">' + (meta || '지역 미입력') + '</p></div>' +
+      '<div class="fit"><strong>' + scored.score + '</strong><span>궁합</span></div></div>' +
       (p.discipline || p.style || spec ? '<p class="pcard__spec">' +
         (p.discipline ? '<span class="eventchip is-on">' + U.esc(p.discipline) + '</span>' : '') +
         (p.style ? '<span class="pill pill--style">' + U.esc(p.style) + '</span>' : '') +
@@ -270,57 +259,15 @@
       (state.me && state.me.nick) || '', (state.me && state.me.theme && state.me.theme.avatar) || ''].join('|');
   }
 
-  /* bm-v1.84.0 — 조건을 고르기 전 첫 화면에도 선수를 바로 보여 줍니다.
-   *  · 예전에는 '전체를 누르세요' 안내 카드만 있어 빈 화면처럼 보였습니다.
-   *  · 내 동네(지역) → 비슷한 급수 → 궁합 점수 순으로 6명을 먼저 추립니다. */
-  function recommendPlayers(state, max) {
-    var mp = myProfile(state);
-    var me = (state && state.me) || {};
-    var f = filterOf(state);
-    var reg = f.region || mp.region || me.region || '';
-    var lvl = D.normalizeGrade(f.level || mp.level || me.level || '');
-    var list = sortedPlayers(state).map(function (x) {
-      var near = 0;
-      if (reg && x.p.region && x.p.region === reg) near += 2;
-      if (lvl && D.normalizeGrade(x.p.level) === lvl) near += 1;
-      return { p: x.p, near: near, s: x.s };
-    });
-    list.sort(function (a, b) {
-      if (a.near !== b.near) return b.near - a.near;
-      return b.s - a.s;
-    });
-    return list.slice(0, Math.max(1, max || 6)).map(function (x) { return x.p; });
-  }
-
-  function recommendBar(state, n) {
-    return '<div class="resultbar resultbar--rec">' +
-      '<p><span class="resultbar__rec">추천</span> <b>' + n + '</b>명 찾음</p>' +
-      '<div class="sortseg" role="group" aria-label="정렬 기준">' +
-      '<button type="button" class="sortseg__b' + (sortOf(state) === 'score' ? ' is-on' : '') + '" data-sort="score">궁합순</button>' +
-      '<button type="button" class="sortseg__b' + (sortOf(state) === 'recent' ? ' is-on' : '') + '" data-sort="recent">최근순</button>' +
-      '</div></div>';
-  }
-
-  /* 조건을 고르기 전 첫 화면 — 추천 선수 목록 (없을 때만 안내) */
-  function defaultHtml(state) {
-    var list = recommendPlayers(state, 6);
-    if (!list.length) {
-      var nobody = !(state.data.matchProfiles || []).some(function (p) { return p.userKey !== meKey(state); });
-      var hidden = D.inactiveHiddenCount(matchedPlayers(state), state.data.idx, meKey(state));
-      return (nobody
-        ? UI.emptyState('search', '아직 등록된 선수가 없어요',
-          '첫 번째 선수가 되어 보세요. 내 카드를 만들면 여기에 상대가 나타나요.',
-          '<button type="button" class="btn btn--primary btn--sm mt8" data-act="edit-match">내 매칭 카드 만들기</button>')
-        : UI.emptyState('search', hidden ? '지금은 다들 잠시 쉬는 중이에요' : '조건에 맞는 플레이어가 없어요',
-          hidden
-            ? '최근 ' + D.INACTIVE_HIDE_DAYS + '일 안에 활동한 분들만 보여 드려요. 상대가 다시 활동하면 여기에 나타나요.'
-            : '급수·지역 조건을 바꿔 보세요.',
-          '<button type="button" class="btn btn--ghost btn--sm mt8" data-act="reset-filter">조건 초기화</button>')) +
-        '<p class="resultbar__quiet">조건을 고르면 그 조건에 맞춰 다시 찾아드려요.</p>';
-    }
-    return recommendBar(state, list.length) + inactiveNote(state) +
-      '<div class="pcards pcards--rec">' + list.map(function (p) { return playerCard(p, state); }).join('') + '</div>' +
-      '<p class="resultbar__quiet">내 동네 · 비슷한 급수를 먼저 보여 드려요 · ‘전체’를 누르면 모든 선수를 볼 수 있어요</p>';
+  /* 조건을 고르기 전에 보여 주는 첫 화면 — 목록 대신 짧은 안내 카드
+   *  v1.35: 바로 위 필터 칩과 같은 말을 되풀이하던 설명 한 줄을 뺐습니다
+   *  (제목이 '전체'를 누르라고, 칩이 무엇을 고르는지 이미 말합니다). */
+  function introHtml() {
+    return '<div class="matchintro">' +
+      '<span class="matchintro__art">' + (BM.art ? BM.art.empty('search') : UI.icon('search')) + '</span>' +
+      '<p class="matchintro__t">원하는 급수·조건이나 <b>전체</b>를 눌러 선수를 찾아보세요</p>' +
+      '<button type="button" class="btn btn--primary btn--sm matchintro__btn" data-act="show-all">' +
+      UI.icon('check') + '전체 선수 보기</button></div>';
   }
 
   /* bm-v1.59.0 — 14일 미접속으로 숨긴 사람이 있으면 목록 아래에 조용히 알려 줍니다.
@@ -333,7 +280,7 @@
   }
 
   function resultsHtml(state) {
-    if (!searchStarted(state)) return defaultHtml(state);
+    if (!searchStarted(state)) return introHtml();
     var players = visiblePlayers(state);
     var active = D.activeFilters(filterOf(state));
     var q = String(filterOf(state).query || '').trim();
@@ -401,27 +348,8 @@
   }
 
   /* ---------- 찾기 탭 ---------- */
-  /* ---------- 친구 코드 초대 칩 (bm-v1.79.0) ----------
-   * 매칭 찾기 맨 위에 내 코드(#XXXX)를 두어, 코트에서 만난 동호인에게 바로 건네게 합니다.
-   * 코드를 아는 사람끼리만 친구가 되고(친구 코드 규칙 그대로), 친구가 되면 1:1 대화가 열립니다.
-   * 복사는 화면 어디서든 [data-code-copy] 하나로 처리합니다(js/views/friends.js bindCopy). */
-  function inviteBar(state) {
-    var F = BM.views && BM.views.friends;
-    if (!F) return '';
-    var code = F.myCode(state);
-    if (!code) return '';
-    return '<section class="invitebar" data-region="invite">' +
-      '<div class="invitebar__l">' +
-      '<span class="invitebar__k">친구 코드 초대</span>' +
-      '<b class="invitebar__v">' + U.esc((state.me && state.me.nick) || '나') + '<i>#' + U.esc(code) + '</i></b>' +
-      '<span class="invitebar__s">코드로 친구가 되면 1:1 대화 · 응원 하트 1개</span>' +
-      '</div>' +
-      '<button type="button" class="btn btn--ghost btn--sm" data-code-copy="' + U.esc(F.myCodeText(state)) + '">복사</button>' +
-      '</section>';
-  }
-
   function findTab(state) {
-    return gymEntry(state) + inviteBar(state) + '<section class="card">' +
+    return gymEntry(state) + '<section class="card">' +
       '<header class="card__head"><h2>플레이어 찾기</h2></header>' +
       searchBar(state) + filterBar(state) +
       '<div data-region="results" data-sig="' + U.esc(resultsSig(state)) + '">' + resultsHtml(state) + '</div>' +
@@ -595,7 +523,7 @@
         '<div class="room__mid"><strong>' + U.esc(group ? (r.title || D.MEET.roomLabel) : rp.nick) +
         (group ? ' <span class="pill pill--ok">단체</span>' : '') +
         (!group && rp.level ? ' <span class="pill pill--grade">' + U.esc(rp.level) + '</span>' : '') + '</strong>' +
-        '<p>' + U.esc(U.truncate(D.chatTextPreview((r.last && r.last.text) || '대화를 시작해 보세요'), 34)) + '</p>' +
+        '<p>' + U.esc(U.truncate((r.last && r.last.text) || '대화를 시작해 보세요', 34)) + '</p>' +
         (group ? '' : UI.presence(D.presenceOf(state.data.idx, r.other), { cls: 'presence--row' })) + '</div>' +
         '<div class="room__right"><time>' + U.esc(D.chatListTime(r.at)) + '</time>' +
         (r.unread ? '<span class="badge">' + r.unread + '</span>' : '') + '</div></li>';
@@ -648,25 +576,6 @@
   }
 
   /* ---------- 프로필 시트(요청 전 확인) ---------- */
-  /* bm-v1.80.0 — 상대의 커스텀 라켓 + 친구 코드로 초대 (요청 흐름은 아래 그대로) */
-  function racketSheetRow(state, p) {
-    if (!BM.racketcustom) return '';
-    var c = BM.racketcustom.customFor(state, p.userKey);
-    var mine = !!(state.me && state.me.key === p.userKey);
-    var codeText = (BM.views && BM.views.friends && BM.views.friends.myCodeText)
-      ? BM.views.friends.myCodeText(state) : '';
-    return '<div class="pp__racket" data-racket="' + U.esc(p.userKey) + '">' +
-      '<span class="pp__racketart">' + BM.racketcustom.svg(c, { level: 'prime' }) + '</span>' +
-      '<div class="pp__rackettx">' +
-      '<b>커스텀 라켓</b>' +
-      '<span>' + U.esc(BM.racketcustom.hasCustom(c) ? BM.racketcustom.specText(c) : '아직 기본 라켓이에요') + '</span>' +
-      '</div>' +
-      (!mine && codeText
-        ? '<button type="button" class="btn btn--ghost btn--sm pp__invite" data-code-copy="' + U.esc(codeText) + '">친구 코드 초대</button>'
-        : '') +
-      '</div>';
-  }
-
   function profileBody(state, p) {
     var st = statusOf(state, p);
     var mp = myProfile(state);
@@ -710,19 +619,11 @@
           : '<button class="btn btn--primary grow" data-send-request="' + key + '">' +
             (letterOn ? UI.icon('mail') : '') + '요청 보내기</button>') +
         '</div>' +
+        (short ? '' : '<button class="linkbtn mt8" data-gift-in-sheet="' + key + '">하트 선물하기 (' + D.HEART_RULES.GIFT_COST + '개)</button>') +
         (short ? '' : '<p class="hint mt8">' + (letterOn
           ? '편지지 형식이 켜져 있어요. 요청 보내기를 누르면 상대에게 갈 편지지를 미리 보고 보낼 수 있어요.'
           : '편지지 형식이 꺼져 있어 요청이 바로 전송돼요. MY > 알림·편지지에서 다시 켤 수 있어요.') + '</p>');
     }
-
-    /* bm-v1.79.0 — 어느 상태(요청 전·보냄·수락·친구)에서든 부담 없이 건네는 '💛 응원 하트 1개'.
-     * 1:1 매칭(수락 시 2하트)보다 가벼운 인사라 확인 창 없이 한 번에 보내고,
-     * 하트가 모자라면 토스트 대신 공용 충전 시트(출석·광고)가 바로 열립니다. */
-    footer += '<button type="button" class="cheerbtn cheerbtn--wide mt8" data-cheer-sheet="' + key + '"' +
-      ' aria-label="' + U.esc(p.nick) + '님에게 응원 하트 ' + D.HEART_RULES.GIFT_COST + '개 보내기">' +
-      '<span class="cheerbtn__ico" aria-hidden="true">💛</span>' +
-      '<span class="cheerbtn__t">응원 하트 ' + D.HEART_RULES.GIFT_COST + '개 보내기</span>' +
-      '<span class="cheerbtn__s">부담 없이 마음만 전해요</span></button>';
 
     return '<div class="pp" data-profile="' + key + '">' +
       '<div class="pp__head">' + UI.avatar(p, 72) +
@@ -731,8 +632,6 @@
       '<p class="pp__meta">' + (metaHtml(p) || '지역 미입력') + '</p>' +
       UI.presence(D.presenceOf(state.data.idx, p.userKey), { cls: 'presence--profile' }) +
       '</div></div>' +
-      /* bm-v1.80.0 — 상대의 커스텀 라켓 → 바로 매칭 요청·친구 코드 초대 */
-      racketSheetRow(state, p) +
       '<p class="pp__match">궁합 <b>' + scored.score + '</b>' +
       (scored.reasons.length ? '<span class="pp__why">' + U.esc(scored.reasons.slice(0, 3).join(' · ')) + '</span>' : '') + '</p>' +
       /* 하트 소모 안내는 요청 버튼까지 스크롤하지 않아도 보이게 맨 위에 둡니다 */
@@ -766,20 +665,15 @@
     opts = opts || {};
     var res = ctx.actions.requestMatch(p.userKey, note);
     UI.closeSheet();
-    /* bm-v1.75.0 — 서버(Supabase)는 하트 2개 보유 여부를 서버에서 확인해 결과가 Promise 로 옴 */
-    return U.when(res, function (res) {
-      res = res || { ok: false, reason: 'error' };
-      if (res.ok) {
-        UI.toast((opts.letter ? '편지지를 보냈어요. ' : '요청을 보냈어요. ') +
-          '상대가 수락하면 하트 ' + (res.cost || D.HEART_RULES.MATCH_COST) + '개가 차감되고 대화가 열려요.');
-      } else if (res.reason === 'hearts') {
-        openHeartSheet(ctx, p.userKey, { need: D.HEART_RULES.MATCH_COST, continueLabel: '프로필로 돌아가기' });
-      } else if (res.reason === 'already') UI.toast('이미 요청한 상대예요.');
-      else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
-      else if (res.reason === 'offline' || res.reason === 'login') UI.toast(res.message || '인터넷에 연결되면 보낼 수 있어요', 'error');
-      else UI.toast('요청을 보내지 못했어요', 'error');
-      return res;
-    });
+    if (res.ok) {
+      UI.toast((opts.letter ? '편지지를 보냈어요. ' : '요청을 보냈어요. ') +
+        '상대가 수락하면 하트 ' + (res.cost || D.HEART_RULES.MATCH_COST) + '개가 차감되고 대화가 열려요.');
+    } else if (res.reason === 'hearts') {
+      openHeartSheet(ctx, p.userKey, { need: D.HEART_RULES.MATCH_COST, continueLabel: '프로필로 돌아가기' });
+    } else if (res.reason === 'already') UI.toast('이미 요청한 상대예요.');
+    else if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
+    else UI.toast('요청을 보내지 못했어요', 'error');
+    return res;
   }
 
   /* 봉투 모양 미리보기 — 적는 즉시 미리보기에 반영됩니다. */
@@ -861,57 +755,17 @@
     UI.confirm('하트 ' + D.HEART_RULES.GIFT_COST + '개를 ' + p.nick + '님에게 선물할까요?').then(function (ok) {
       if (!ok) return;
       var r = ctx.actions.giftHeart(p.userKey);
-      U.when(r, function (r) {
-        r = r || { ok: false, reason: 'error' };
-        if (r.ok) { UI.closeSheet(); UI.toast('하트를 선물했어요'); return; }
-        if (r.reason === 'hearts') {
-          openHeartSheet(ctx, '', {
-            need: D.HEART_RULES.GIFT_COST,
-            why: '하트 선물에는 <b>하트 ' + D.HEART_RULES.GIFT_COST + '개</b>가 필요해요.',
-            continueLabel: '다시 선물하기',
-            onContinue: function () { sendGift(ctx, p); }
-          });
-          return;
-        }
-        UI.toast(r.message || '선물하지 못했어요', 'error');
-      });
-    });
-  }
-
-  /* ---------- 응원 하트 1개 (bm-v1.79.0) ----------
-   * 1:1 매칭 신청(수락 시 하트 2개)과 달리, 부담 없이 마음만 건네는 1하트 응원입니다.
-   *  · 하트 차감은 기존 store.giftHeart → 서버 RPC(heart_spend 'gift')가 맡습니다(새 RPC 없음).
-   *  · 하트가 모자라면 토스트로 끝내지 않고 공용 충전 시트(출석 · 광고)를 바로 열고,
-   *    채운 뒤 그 자리에서 응원을 이어 보냅니다. */
-  function cheerSend(ctx, p, opts) {
-    opts = opts || {};
-    var need = Math.max(1, Number(D.HEART_RULES.GIFT_COST) || 1);
-    function charge(introText) {
-      openHeartSheet(ctx, p.userKey, {
-        need: need,
-        title: '응원 하트 충전',
-        why: introText || ('응원 하트는 <b>하트 ' + need + '개</b>로 보내요.'),
-        continueLabel: p.nick + '님에게 응원 보내기',
-        onContinue: function () { cheerSend(ctx, p, opts); }
-      });
-    }
-    var hearts = (ctx.store.state.data && ctx.store.state.data.hearts) || {};
-    if ((hearts.balance || 0) < need) { charge(); return null; }
-    var r = ctx.actions.giftHeart(p.userKey);
-    return U.when(r, function (res) {
-      res = res || { ok: false, reason: 'error' };
-      if (res.ok) {
-        UI.haptic(10);
-        UI.toast('💛 ' + p.nick + '님에게 응원 하트를 보냈어요');
-        if (opts.close) UI.closeSheet();
-        return res;
+      if (r.ok) { UI.closeSheet(); UI.toast('하트를 선물했어요'); return; }
+      if (r.reason === 'hearts') {
+        openHeartSheet(ctx, '', {
+          need: D.HEART_RULES.GIFT_COST,
+          why: '하트 선물에는 <b>하트 ' + D.HEART_RULES.GIFT_COST + '개</b>가 필요해요.',
+          continueLabel: '다시 선물하기',
+          onContinue: function () { sendGift(ctx, p); }
+        });
+        return;
       }
-      if (res.reason === 'hearts') { charge(); return res; }
-      if (res.reason === 'locked') UI.toast('잠시만요, 처리 중이에요');
-      else if (res.reason === 'self') UI.toast('나에게는 보낼 수 없어요');
-      else if (res.reason === 'offline' || res.reason === 'login') UI.toast(res.message || '인터넷에 연결되면 보낼 수 있어요', 'error');
-      else UI.toast('응원을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요', 'error');
-      return res;
+      UI.toast('선물하지 못했어요', 'error');
     });
   }
 
@@ -980,12 +834,6 @@
             ev.preventDefault();
             ev.stopPropagation();
             sendGift(ctx, p);
-            return;
-          }
-          /* 응원 하트 1개 — 프로필 시트를 닫지 않고 그 자리에서 보냅니다 */
-          if (ev.target.closest('[data-cheer-sheet]')) {
-            ev.preventDefault();
-            cheerSend(ctx, p);
             return;
           }
         });
@@ -1374,17 +1222,6 @@
           return;
         }
 
-        /* 응원 하트 1개 — 카드 안 버튼이라 프로필 열기보다 먼저 처리합니다 (bm-v1.79.0) */
-        var cheer = ev.target.closest('[data-cheer]');
-        if (cheer) {
-          ev.preventDefault();
-          ev.stopPropagation();
-          var ck = cheer.getAttribute('data-cheer');
-          var cp = profileOf(ctx.store.state, ck) || personOf(ctx.store.state, ck);
-          if (cp) cheerSend(ctx, cp);
-          return;
-        }
-
         var profileTarget = ev.target.closest('[data-open-profile]');
         if (profileTarget) {
           ev.preventDefault();
@@ -1420,8 +1257,6 @@
         });
       }
       syncFbar(root);
-      /* 친구 코드 복사 칩 — 화면 어디서든 한 번으로 (js/views/friends.js) */
-      if (BM.views && BM.views.friends && BM.views.friends.bindCopy) BM.views.friends.bindCopy(root);
     },
 
     /* 필터·검색·신청 상태가 바뀌면 결과 영역만 다시 그립니다.
@@ -1516,8 +1351,6 @@
     /* 프로필 시트 본문 */
     profileBody: profileBody,
     playerCard: playerCard,
-    racketSheetRow: racketSheetRow,
-    racketMini: racketMini,
     letterHtml: letterHtml,
     letterBody: letterBody,
     openLetterCompose: openLetterCompose,
@@ -1526,7 +1359,6 @@
     openLetterSheet: openLetterSheet,
     statusOf: statusOf,
     resultsHtml: resultsHtml,
-    recommendPlayers: recommendPlayers,
     visiblePlayers: visiblePlayers,
     pendingIncoming: pendingIncoming,
     acceptedIncoming: acceptedIncoming,
@@ -1681,10 +1513,6 @@
   view.openProfile = openProfile;
   view.openHeartSheet = openHeartSheet;
   view.profileBody = profileBody;   /* 테스트·점검용 (프로필 시트 본문) */
-  /* v1.79 — 옹원 하트·친구 코드 초대 칩 (테스트·재사용) */
-  view.playerCard = playerCard;
-  view.cheerSend = cheerSend;
-  view.inviteBar = inviteBar;
 
   /* ---------- 다른 화면(체육관 지도)에서 매칭 흐름으로 이어지는 입구 (2026-11-23)
    *  · 매칭 탭의 프로필 시트·매칭 신청(편지지)·1:1 대화를 그대로 재사용합니다.

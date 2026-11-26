@@ -38,8 +38,8 @@
       '<div class="start__glow" aria-hidden="true"></div>' +
       '<div class="start__brand">' +
       '<div class="start__mark"><img src="icons/icon-512.png" alt="" width="512" height="512" decoding="async"></div>' +
-      '<p class="start__kicker">SHUTTLIX</p>' +
-      '<h1 class="start__title">셔틀릭스</h1>' +
+      '<p class="start__kicker">BADMINTON LOG</p>' +
+      '<h1 class="start__title">배드민턴 분석</h1>' +
       '<p class="start__sub">오늘 친 경기 한 줄이면, AI가 내일의 드릴과 이번 주 루틴까지 만들어 드려요.</p>' +
       '</div>' +
       '<div class="start__actions">' +
@@ -63,7 +63,7 @@
       '<div class="start start--form">' +
       '<div class="start__top">' +
       '<button type="button" class="start__back" data-act="back" aria-label="뒤로 가기">←</button>' +
-      '<span class="start__tiny"><img class="start__mini" src="icons/icon-192.png" alt="" width="22" height="22" decoding="async">셔틀릭스</span>' +
+      '<span class="start__tiny"><img class="start__mini" src="icons/icon-192.png" alt="" width="22" height="22" decoding="async">배드민턴 분석</span>' +
       '</div>' +
       '<div class="start__brand start__brand--sm">' +
       '<h1 class="start__title">' + (signup ? '회원가입' : '로그인') + '</h1>' +

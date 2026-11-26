@@ -152,9 +152,6 @@
     var checkinReward = numVal(h.checkinReward, R.CHECKIN);
     var adReward = numVal(h.adReward, R.AD_REWARD);
     var canCheckIn = !!h.canCheckIn;
-    /* 오늘의 하트 부스트 — 오늘 광고가 한 번도 남지 않았으면 오늘은 받을 수 없습니다 */
-    var dailyBoostAmount = numVal(h.dailyBoostAmount, 0);
-    var dailyBoostLeft = (remaining > 0 && !(h.dailyBoost && h.dailyBoost.usedToday)) ? numVal(h.dailyBoostLeft, 0) : 0;
 
     return {
       balance: numVal(h.balance, 0),
@@ -172,13 +169,8 @@
       canWatchAd: remaining > 0 && left <= 0,
 
       /* 오늘 아직 받을 수 있는 무료 하트·받을 수 있는 횟수 (출석 + 광고) */
-      freeHeartsLeft: (canCheckIn ? checkinReward : 0) + remaining * adReward + dailyBoostLeft,
+      freeHeartsLeft: (canCheckIn ? checkinReward : 0) + remaining * adReward,
       freeChancesLeft: (canCheckIn ? 1 : 0) + remaining,
-
-      /* 오늘의 하트 부스트 — 오늘 첫 광고 한 편에 +1 (bm-v1.73.0) */
-      dailyBoost: h.dailyBoost || null,
-      dailyBoostAmount: dailyBoostAmount,
-      dailyBoostLeft: dailyBoostLeft,
 
       /* 연속 출석 보너스 안내 (bm-v1.36.0 → v1.64: 3·7·14일) — MY 하트 카드와 같은 문구를 씁니다 */
       streak: Math.max(0, numVal(h.checkinStreak, 0)),
@@ -189,13 +181,11 @@
     };
   }
 
-  /* 하트 부스트 안내 한 줄 — MY 카드·충전 시트 공용 (bm-v1.64.0)
-   *  · bm-v1.84.0 — '오늘의 하트 부스트'(무료·광고 1회)와 헷갈리지 않게
-   *    꾸미기로 여는 쪽은 '꾸미기'라고 밝히고 무엇이 계속 +1 되는지 한 줄로 적습니다. */
+  /* 하트 부스트 안내 한 줄 — MY 카드·충전 시트 공용 (bm-v1.64.0) */
   function boostText(s) {
     var b = (s && s.boost) || null;
     if (!b || !b.equipped) return '';
-    return '하트 부스트(꾸미기) 적용 중(+' + Math.max(0, numVal(b.bonus, 1)) + ') · 출석·광고 적립에 계속 붙어요';
+    return '하트 부스트 적용 중(+' + Math.max(0, numVal(b.bonus, 1)) + ') · 출석·광고 적립에 붙어요';
   }
 
   /* 3·7·14일 연속 보너스 안내 한 줄 — MY 하트 카드·충전 시트 공용 */
@@ -209,19 +199,6 @@
     return head + left + '일 더 하면 보너스 하트 +' + amount;
   }
 
-  /* 오늘의 하트 부스트 안내 한 줄 — MY 하트 카드·충전 시트 공용 (bm-v1.73.0)
-   *  · 하트 부스트(영구 +1)를 열지 않은 사람도 광고를 볼 이유가 되도록,
-   *    그날 첫 광고에 +1을 더 줍니다.
-   *  · bm-v1.84.0 — 하트 3개로 여는 '하트 부스트(꾸미기)'와 구분되게
-   *    무료·하루 한 번·첫 광고 한 편이라는 조건을 그 줄에 함께 적습니다. */
-  function dailyBoostText(s) {
-    var amount = Math.max(0, numVal(s && s.dailyBoostAmount, 0));
-    if (!(amount > 0)) return '';
-    if (numVal(s.dailyBoostLeft, 0) > 0) return '오늘의 하트 부스트(무료) · 오늘 첫 광고에 +' + amount + ' 더 · 하루 1회';
-    if (s && s.dailyBoost && s.dailyBoost.usedToday) return '오늘의 하트 부스트 받음 · 내일 첫 광고에 +' + amount;
-    return '내일 첫 광고에 하트 +' + amount + ' 더 (무료 · 하루 1회)';
-  }
-
   /* 광고 줄에 쓰는 한 줄 — 남은 초가 있으면 1초마다 이 문구가 바뀝니다 */
   function adText(s) {
     if (!s || !s.adRemaining) return '오늘 모두 받았어요';
@@ -231,9 +208,7 @@
 
   /* 오늘 남은 횟수(N/5회)와 쿨타임을 한 줄에 (bm-v1.47.0)
    *  · MY 하트 카드·충전 시트가 1초마다 다시 그려 '지금 눌러도 되는지'가 바로 보입니다.
-   *  · 남은 횟수를 먼저, 그다음 쿨타임 초를 둡니다.
-   *  · bm-v1.84.0 — 받을 하트가 '광고 1 + 오늘 첫 광고 보너스 1'처럼 나뉠 때
-   *    합계만 보이면 위의 무료 하트 합계와 안 맞아 보이므로, 나뉨을 괄호로 함께 적습니다. */
+   *  · 남은 횟수를 먼저, 그다음 쿨타임 초를 둡니다. */
   function adMeterText(s) {
     if (!s) return '';
     var limit = Math.max(0, numVal(s.adLimit, 0));
@@ -242,10 +217,7 @@
     var head = '남은 ' + leftCount + '/' + limit + '회';
     if (leftCount <= 0) return head + ' · 오늘 모두 받았어요';
     if (numVal(s.nextAdInSec, 0) > 0) return head + ' · 다음 광고까지 ' + numVal(s.nextAdInSec, 0) + '초';
-    var base = numVal(s.adReward, 1);
-    var extra = numVal(s.dailyBoostLeft, 0);
-    return head + ' · 지금 바로 +' + (base + extra) +
-      (extra > 0 ? ' = 광고 ' + base + ' + 보너스 ' + extra : '');
+    return head + ' · 지금 바로 +' + numVal(s.adReward, 1);
   }
 
   function freeText(s) {
@@ -254,18 +226,13 @@
     return '오늘 받을 수 있는 무료 하트 ' + s.freeHeartsLeft + '개 남음';
   }
 
-  /* 아래 괄호 안은 '하트 개수'로 적어 합계와 바로 맞아떨어지게 (bm-v1.84.0)
-   *  예: (출석 1 + 광고 5 + 첫 광고 보너스 1 = 7개) — 각 항의 합이 앞의 7개가 됩니다. */
   function freeDetail(s) {
     if (!s) return '';
     var parts = [
       s.canCheckIn ? '출석 ' + s.checkinReward : '출석 완료'
     ];
-    var adHearts = Math.max(0, numVal(s.adRemaining, 0)) * Math.max(0, numVal(s.adReward, 0));
-    if (s.adRemaining > 0) parts.push('광고 ' + adHearts);
+    if (s.adRemaining > 0) parts.push('광고 ' + s.adRemaining + '회');
     else if (s.adLimit > 0) parts.push('광고 완료');
-    if (numVal(s.dailyBoostLeft, 0) > 0) parts.push('첫 광고 보너스 ' + numVal(s.dailyBoostLeft, 0));
-    if (s.freeHeartsLeft > 0) return '(' + parts.join(' + ') + ' = ' + s.freeHeartsLeft + '개)';
     return '(' + parts.join(' · ') + ')';
   }
 
@@ -309,10 +276,7 @@
     try {
       var store = BM.app && BM.app.ctx && BM.app.ctx.store;
       var h = store && store.state && store.state.data && store.state.data.hearts;
-      if (h && numVal(h.adReward, 0) > 0) {
-        /* 오늘의 하트 부스트가 남아 있으면 그날 첫 광고 보상에 함께 붙습니다 (bm-v1.73.0) */
-        return numVal(h.adReward, 1) + numVal(h.dailyBoostLeft, 0);
-      }
+      if (h && numVal(h.adReward, 0) > 0) return numVal(h.adReward, 1);
     } catch (e) { /* 화면이 없는 환경(테스트)에서는 기본값 */ }
     return (BM.domain && BM.domain.HEART_RULES.AD_REWARD) || 1;
   }
@@ -397,27 +361,20 @@
       var res = null;
       try { res = actions.watchAd({ verified: true, adUnit: r.adUnit, txId: r.txId }); }
       catch (e) { res = { ok: false, reason: 'error' }; }
-      /* bm-v1.75.0 — Supabase 모드에서는 적립 결과가 서버 응답(Promise)으로 옵니다 */
-      return Promise.resolve(res).then(function (res) {
-        res = res || { ok: false, reason: 'error' };
-        var out = {
-          ok: !!res.ok,
-          reason: res.reason,
-          gained: res.gained,
-          remaining: res.remaining,
-          balance: res.balance,
-          dailyBoost: res.dailyBoost,
-          retryAfter: res.retryAfter,
-          message: res.message,
-          ad: r
-        };
-        if (out.ok && !opts.silent && BM.ui) {
-          if (BM.ui.toast) BM.ui.toast('하트 +' + out.gained + (out.dailyBoost ? ' (오늘의 부스트 +' + out.dailyBoost + ' 포함)' : '') +
-            ' · 오늘 ' + out.remaining + '회 남음');
-          if (BM.ui.haptic) BM.ui.haptic(16);
-        }
-        return out;
-      });
+      var out = {
+        ok: !!(res && res.ok),
+        reason: res ? res.reason : 'error',
+        gained: res && res.gained,
+        remaining: res && res.remaining,
+        balance: res && res.balance,
+        retryAfter: res && res.retryAfter,
+        ad: r
+      };
+      if (out.ok && !opts.silent && BM.ui) {
+        if (BM.ui.toast) BM.ui.toast('하트 +' + out.gained + ' · 오늘 ' + out.remaining + '회 남음');
+        if (BM.ui.haptic) BM.ui.haptic(16);
+      }
+      return out;
     }, function () { return { ok: false, reason: 'error' }; });
   }
 
@@ -521,7 +478,7 @@
       var short = need - s.balance;
       if (short <= 0) return '지금 바로 이어서 할 수 있어요.';
       if (s.freeHeartsLeft <= 0) return '오늘 무료 하트를 모두 받았어요. 내일 다시 채울 수 있어요.';
-      if (s.freeHeartsLeft >= short) return '오늘 무료 하트 ' + s.freeHeartsLeft + '개로 ' + short + '개를 채울 수 있어요.';
+      if (s.freeHeartsLeft >= short) return '무료 하트 ' + s.freeChancesLeft + '번이면 ' + short + '개를 채울 수 있어요.';
       return '오늘 무료로 더 받을 수 있는 하트는 ' + s.freeHeartsLeft + '개예요. ' + short + '개 중 그만큼만 채워져요.';
     }
 
@@ -533,7 +490,7 @@
         '<button type="button" class="charge__row" data-charge="ad" data-ad-row' + (s.canWatchAd ? '' : ' disabled') + '>' +
         '<span class="charge__t">광고 보고 받기</span>' +
         '<span class="charge__d" data-ad-sub>' + escText(adMeterText(s)) + '</span>' +
-        '<b class="charge__n">+' + (s.adReward + numVal(s.dailyBoostLeft, 0)) + '</b></button>';
+        '<b class="charge__n">+' + s.adReward + '</b></button>';
     }
 
     function bodyHtml(s) {
@@ -547,12 +504,7 @@
         '<span class="freeline__d" data-free-d>' + escText(freeDetail(s)) + '</span></p>' +
         '<div class="charge">' + rowsHtml(s) + '</div>' +
         (streakText(s) ? '<p class="hint" data-streak-bonus>' + escText(streakText(s)) + '</p>' : '') +
-        (dailyBoostText(s) ? '<p class="hint dailyline" data-daily-boost>' + escText(dailyBoostText(s)) + '</p>' : '') +
         (boostText(s) ? '<p class="hint" data-boost-line>' + escText(boostText(s)) + '</p>' : '') +
-        (short > 0 && s.canWatchAd
-          ? '<button type="button" class="btn btn--primary btn--big mt8" data-charge="ad-fill" data-ad-fill>' +
-            '광고 보고 +' + (numVal(s.adReward, 1) + numVal(s.dailyBoostLeft, 0)) + ' 받기</button>'
-          : '') +
         '<p class="hint" data-hint>' + escText(hintText(s)) + '</p>' +
         (enough
           ? '<button type="button" class="btn btn--primary btn--big mt8" data-charge="continue">' +
@@ -581,13 +533,6 @@
         if (free) free.textContent = freeText(s);
         var fd = wrap.querySelector('[data-free-d]');
         if (fd) fd.textContent = freeDetail(s);
-        var dl = wrap.querySelector('[data-daily-boost]');
-        if (dl) dl.textContent = dailyBoostText(s);
-        var af = wrap.querySelector('[data-ad-fill]');
-        if (af) {
-          af.disabled = !s.canWatchAd;
-          af.textContent = '광고 보고 +' + (numVal(s.adReward, 1) + numVal(s.dailyBoostLeft, 0)) + ' 받기';
-        }
         if (s.nextAdInSec <= 0) stop();
       }, 1000);
       stopTicker = function () { if (typeof ci === 'function') ci.call(root, id); };
@@ -625,37 +570,31 @@
       }
 
       if (kind === 'checkin') {
-        /* bm-v1.75.0 — Supabase 모드에서는 출석 결과가 서버 응답(Promise)으로 옵니다 */
-        Promise.resolve(actions.checkIn ? actions.checkIn() : null).then(function (ci) {
-          ci = ci || { ok: false, reason: 'error' };
-          if (ci.ok) {
-            UI.toast(ci.bonus
-              ? ci.streak + '일 연속 출석! 하트 +' + ci.gained + ' (보너스 +' + ci.bonus + ')'
-              : '출석 체크 완료 · 하트 +' + ci.gained);
-            UI.haptic(12);
-            reopen();
-          } else if (ci.reason === 'done') {
-            UI.toast('오늘은 이미 출석했어요');
-            reopen();
-          } else if (ci.reason === 'locked') {
-            UI.toast('잠시만요, 처리 중이에요');
-          } else if (ci.reason === 'offline' || ci.reason === 'login') {
-            UI.toast(ci.message || '인터넷에 연결되면 출석할 수 있어요', 'error');
-          } else {
-            UI.toast('출석 체크를 하지 못했어요', 'error');
-          }
-        });
+        var ci = actions.checkIn ? actions.checkIn() : null;
+        if (ci && ci.ok) {
+          UI.toast(ci.bonus
+            ? ci.streak + '일 연속 출석! 하트 +' + ci.gained + ' (보너스 +' + ci.bonus + ')'
+            : '출석 체크 완료 · 하트 +' + ci.gained);
+          UI.haptic(12);
+          reopen();
+        } else if (ci && ci.reason === 'done') {
+          UI.toast('오늘은 이미 출석했어요');
+          reopen();
+        } else if (ci && ci.reason === 'locked') {
+          UI.toast('잠시만요, 처리 중이에요');
+        } else {
+          UI.toast('출석 체크를 하지 못했어요', 'error');
+        }
         return;
       }
 
-      if (kind === 'ad' || kind === 'ad-fill') {
+      if (kind === 'ad') {
         if (b.classList.contains('is-busy')) return;
         b.classList.add('is-busy');
         watchForHeart(ctx, { unit: 'heart_reward', silent: true }).then(function (res) {
           b.classList.remove('is-busy');
           if (res && res.ok) {
-            UI.toast('하트 +' + res.gained + (res.dailyBoost ? ' (오늘의 부스트 +' + res.dailyBoost + ' 포함)' : '') +
-              ' · 오늘 ' + res.remaining + '회 남음');
+            UI.toast('하트 +' + res.gained + ' · 오늘 ' + res.remaining + '회 남음');
             UI.haptic(16);
             reopen();
           } else if (res && (res.reason === 'limit')) {
@@ -722,7 +661,6 @@
     freeText: freeText,
     freeDetail: freeDetail,
     streakText: streakText,
-    dailyBoostText: dailyBoostText,
     boostText: boostText,
     rewardNow: rewardNow,
     openHeartSheet: openHeartSheet
