@@ -281,6 +281,13 @@ with sync_playwright() as p:
     }""")
     tap('[data-act="save-log"]', 260)
     check('D 저장 직후 스매시 연출이 화면에 뜬다', has('#smashburst'))
+    # 저장 직후 부드러운 스크롤·애니메이션이 도는 중이라, 캡처용으로 그 순간을 잠깐 멈춰 찍습니다
+    page.evaluate("""() => {
+      const n = document.getElementById('smashburst');
+      if (n) n.querySelectorAll('*').forEach(function (e) { e.style.animationPlayState = 'paused'; });
+      window.scrollTo(0, window.scrollY);
+    }""")
+    page.wait_for_timeout(90)
     shot('smash_burst', keep=True)
     page.wait_for_timeout(900)
     check('D 연출은 0.88초면 사라진다', not has('#smashburst'))
