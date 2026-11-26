@@ -600,7 +600,7 @@
   /* 커뮤니티 말머리(주제 태그) — 시트 칸을 늘리지 않고 '훈련계획' 칸에
    * {"topic":"게스트 모집"} 로 적습니다(예전 글은 주제가 없으므로 아래에서 자동 판별).
    * 2026-11-21 (bm-v1.37.2): '번개'라는 이름을 사용자가 '게스트 모집'으로 바꿨습니다. */
-  var POST_TOPICS = ['자유', '후기', '게스트 모집', '용품', '일지'];
+  var POST_TOPICS = ['자유', '후기', '체육관 후기', '게스트 모집', '용품', '일지'];
 
   /* 예전에 저장된 말머리·방 이름 — 새 이름('게스트 모집')으로 읽어 줍니다.
    * 이미 시트·Supabase에 '"topic":"번개"'로 들어간 글도 모집 카드·단체방이 그대로 뜨게 합니다. */
@@ -637,6 +637,72 @@
     var s = String(v == null ? '' : v).trim();
     if (LEGACY_TOPICS[s]) return LEGACY_TOPICS[s];
     return POST_TOPICS.indexOf(s) >= 0 ? s : '자유';
+  }
+
+  /* ---------- 커뮤니티 '체육관 후기' (bm-v1.79.0) ----------
+   * 동호인이 가장 자주 묻는 것 — "여기 바닥 안 미끄럽나요? 주차 되나요?"를
+   * 말머리 아래 네 칸으로 한 번에 남깁니다.
+   *  · 말머리와 후기 값은 '훈련계획' 칸 JSON({"topic":"체육관 후기","gym":{...}})에 적어
+   *    시트 26칸·Supabase 스키마를 늘리지 않습니다(게스트 모집과 같은 방식).
+   *  · 바닥·조명·주차·샤워는 '좋아요 / 보통 / 아쉬워요' 셋 중 하나이고 비워도 됩니다.
+   *  · 본문에도 같은 내용을 사람이 읽는 문장으로 넣어, 예전 앱·다른 기기에서도 그대로 보입니다. */
+  var GYM_REVIEW = {
+    topic: '체육관 후기',
+    label: '체육관 후기',
+    nameMax: 30,
+    scale: ['좋아요', '보통', '아쉬워요'],
+    fields: [
+      { key: 'floor', label: '바닥' },
+      { key: 'light', label: '조명' },
+      { key: 'parking', label: '주차' },
+      { key: 'shower', label: '샤워' }
+    ]
+  };
+
+  function normalizeGymReview(g) {
+    var out = { name: '' };
+    GYM_REVIEW.fields.forEach(function (f) { out[f.key] = ''; });
+    if (!g || typeof g !== 'object') return out;
+    out.name = meetLine(g.name, GYM_REVIEW.nameMax);
+    GYM_REVIEW.fields.forEach(function (f) {
+      var v = String(g[f.key] == null ? '' : g[f.key]).trim();
+      out[f.key] = GYM_REVIEW.scale.indexOf(v) >= 0 ? v : '';
+    });
+    return out;
+  }
+
+  /* 한 칸이라도 적었는지 — 체육관 이름만 적어도 후기로 올라갑니다 */
+  function gymReviewFilled(g) {
+    if (!g) return false;
+    if (String(g.name || '').trim()) return true;
+    return GYM_REVIEW.fields.some(function (f) { return !!String(g[f.key] || '').trim(); });
+  }
+
+  /* 글에서 후기 값 읽기 — 없으면 null (화면용 글은 gym, 저장 글은 plan.gym) */
+  function gymReviewOf(post) {
+    var g = (post && post.gym) || (post && post.plan && post.plan.gym);
+    if (!g) return null;
+    var out = normalizeGymReview(g);
+    return gymReviewFilled(out) ? out : null;
+  }
+
+  /* 카드·글에 쓰는 한 줄 — '바닥 좋아요 · 조명 보통 · 주차 아쉬워요' */
+  function gymReviewText(g) {
+    var r = normalizeGymReview(g);
+    return GYM_REVIEW.fields.filter(function (f) { return r[f.key]; })
+      .map(function (f) { return f.label + ' ' + r[f.key]; }).join(' · ');
+  }
+
+  /* 글 본문 — 체육관 이름 · 네 칸 요약 · 사람이 쓴 한 줄 (본문 300자 안) */
+  function gymReviewBody(g, text) {
+    var r = normalizeGymReview(g);
+    var lines = [];
+    if (r.name) lines.push('🏟️ ' + r.name);
+    var t = gymReviewText(r);
+    if (t) lines.push(t);
+    var body = String(text == null ? '' : text).trim();
+    if (body) lines.push(body);
+    return clampText(lines.join('\n'), 300).trim();
   }
 
   /* 커뮤니티 '게스트 모집' 모집 정보 — 언제 · 어디 · 몇 명(예전 '번개' 글 포함).
@@ -783,11 +849,13 @@
     return out;
   }
 
-  /* 글의 말머리: 직접 고른 값이 먼저, 없으면 일지 공유 글(target=일지 ID)은 '일지', 나머지는 '자유' */
+  /* 글의 말머리: 직접 고른 값이 먼저, 없으면 일지 공유 글(target=일지 ID)은 '일지', 나머지는 '자유'
+   * bm-v1.79.0 — 화면에 그리는 글(postView)에는 plan 대신 topic이 담기므로 그것도 함께 읽습니다. */
   function topicOf(post) {
     if (!post) return '자유';
     var t = post.plan && post.plan.topic;
     if (t) return normalizeTopic(t);
+    if (post.topic) return normalizeTopic(post.topic);
     return post.target ? '일지' : '자유';
   }
 
@@ -3605,6 +3673,9 @@
     matchBetween: matchBetween, canChatWith: canChatWith,
     coachRoomId: coachRoomId, coachChatAllowed: coachChatAllowed,
     POST_TOPICS: POST_TOPICS, MEET: MEET, LEGACY_TOPICS: LEGACY_TOPICS, normalizeTopic: normalizeTopic, topicOf: topicOf,
+    /* v1.79 — 커뮤니티 '체육관 후기'(바닥·조명·주차·샤워) */
+    GYM_REVIEW: GYM_REVIEW, normalizeGymReview: normalizeGymReview, gymReviewFilled: gymReviewFilled,
+    gymReviewOf: gymReviewOf, gymReviewText: gymReviewText, gymReviewBody: gymReviewBody,
     normalizeMeet: normalizeMeet, meetFilled: meetFilled, meetOf: meetOf, meetText: meetText, meetFeeText: meetFeeText,
     meetCap: meetCap, meetMembers: meetMembers, meetStatus: meetStatus,
     /* 모집 일시 고르기 (bm-v1.48.0) */

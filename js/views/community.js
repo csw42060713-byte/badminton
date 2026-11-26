@@ -17,9 +17,10 @@
   /* 작성칸 안내 문구 — '게스트 모집'은 모집 칸만 채워도 올라가서 그렇게 알려 줍니다
    * (bm-v1.39.1: 본문을 비운 채 모집 칸만 채우고 올리다가 막히던 문제) */
   function composerHint(topic) {
-    return D.normalizeTopic(topic) === D.MEET.topic
-      ? D.MEET.topic + ' 한마디 (비워 두어도 올라가요)'
-      : '오늘 경기 어땠어요? 한 줄 남겨보세요';
+    var t = D.normalizeTopic(topic);
+    if (t === D.MEET.topic) return D.MEET.topic + ' 한마디 (비워 두어도 올라가요)';
+    if (t === (D.GYM_REVIEW && D.GYM_REVIEW.topic)) return '바닥·조명·주차는 어땠어요? 한 줄 남겨보세요';
+    return '오늘 경기 어땠어요? 한 줄 남겨보세요';
   }
 
   /* 말머리 칩 한 줄 (말머리 고르기 · 목록 거르기에서 같은 모양을 씁니다)
@@ -29,8 +30,10 @@
     return vals.map(function (t) {
       var on = t === current;
       var whole = all && t === '전체';
+      /* bm-v1.79 — '체육관 후기'만 앞에 🏟️ 를 붙여 한눈에 찾게 합니다(값은 말머리 그대로) */
+      var mark = (D.GYM_REVIEW && t === D.GYM_REVIEW.topic) ? '🏟️ ' : '';
       return '<button type="button" class="chip chip--sm' + (whole ? ' chip--all' : '') + (on ? ' is-on' : '') + '" ' + attr + '="' + U.esc(t) + '"' +
-        ' aria-pressed="' + (on ? 'true' : 'false') + '">' + (whole && on ? UI.icon('check', 'chip__ic') : '') + U.esc(t) + '</button>';
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' + (whole && on ? UI.icon('check', 'chip__ic') : '') + mark + U.esc(t) + '</button>';
     }).join('');
   }
 
@@ -106,7 +109,7 @@
     /* 다른 사람 글에는 ⋯ 로 신고·차단 (bm-v1.55.0) */
     var others = !!me && !mine && !!String(p.userKey || '');
     /* 본문을 비우고 모집 정보만 적은 글은 빈 문단을 그리지 않습니다 (bm-v1.39.1) */
-    var body = String(p.text == null ? '' : p.text);
+    var body = postBodyText(p);
     return '<article class="post" data-post="' + U.esc(p.id) + '">' +
       '<header class="post__head">' +
       '<button type="button" class="post__author" data-author="' + U.esc(p.userKey) + '" aria-label="' + U.esc(p.nick) + ' 프로필 보기">' +
@@ -133,6 +136,7 @@
           '</div></div>'
         : '') +
       (body.trim() ? '<p class="post__text">' + U.esc(body).replace(/\n/g, '<br>') + '</p>' : '') +
+      gymReviewCard(p) +
       ((p.meet || p.topic === D.MEET.topic) ? meetCard(p, state) : '') +
       '<footer class="post__foot">' +
       '<button class="react' + (p.likedByMe ? ' is-on' : '') + '" data-like="' + U.esc(p.id) + '" aria-pressed="' + (p.likedByMe ? 'true' : 'false') + '">' +
@@ -160,6 +164,43 @@
         '<button class="btn btn--sm btn--primary" type="submit" aria-label="답글 보내기">' + UI.icon('send') + '</button></form>' +
         '</div>' : '') +
       '</article>';
+  }
+
+  /* ---------- 체육관 후기 (bm-v1.79.0) ----------
+   * '바닥 · 조명 · 주차 · 샤워'를 한 카드로 묶어 글 위에 보여 줍니다.
+   * 값이 없는 칸은 그리지 않고, 등록된 체육관 이름이면 지도로 이어 줍니다. */
+  function gymTone(v) {
+    return v === '좋아요' ? 'good' : (v === '아쉬워요' ? 'bad' : 'ok');
+  }
+
+  function gymReviewCard(p) {
+    var g = D.gymReviewOf(p);
+    if (!g) return '';
+    var rows = D.GYM_REVIEW.fields.filter(function (f) { return g[f.key]; }).map(function (f) {
+      return '<span class="gymrow gymrow--' + gymTone(g[f.key]) + '">' +
+        '<i>' + U.esc(f.label) + '</i><b>' + U.esc(g[f.key]) + '</b></span>';
+    }).join('');
+    var name = g.name
+      ? ((BM.views && BM.views.gyms) ? BM.views.gyms.linkOrText(g.name) : U.esc(g.name))
+      : '';
+    return '<div class="gymreview" data-gymreview="' + U.esc(p.id) + '">' +
+      '<p class="gymreview__t">' + (name || (UI.icon('pin') + '<span>체육관 후기</span>')) + '</p>' +
+      (rows ? '<div class="gymreview__rows">' + rows + '</div>' : '') +
+      '</div>';
+  }
+
+  /* 글 본문 — 후기 카드가 같은 내용을 보여 주므로, 저장할 때 본문 앞에 붙여 둔
+   * '체육관 이름 · 네 칸 요약' 두 줄은 글자에서 덜어 내고 사람이 쓴 말만 남깁니다.
+   * (저장된 본문은 그대로라 예전 앱·다른 기기에서는 두 줄이 보입니다) */
+  function postBodyText(p) {
+    var raw = String((p && p.text) == null ? '' : p.text);
+    var g = D.gymReviewOf(p);
+    if (!g) return raw;
+    var lines = raw.split('\n');
+    if (lines.length && lines[0].indexOf('🏟️ ') === 0) lines.shift();
+    var summary = D.gymReviewText(g);
+    if (summary && lines.length && lines[0].trim() === summary) lines.shift();
+    return lines.join('\n').trim();
   }
 
   /* 모집글의 '어디 체육관' — 등록된 체육관과 이어지면 이름을 눌러 지도(주소·코트 수)를
@@ -538,6 +579,32 @@
       '</div></div>';
   }
 
+  /* ---------- '체육관 후기' 작성 칸 (bm-v1.79.0) ----------
+   * 말머리를 '체육관 후기'로 골랐을 때만 열립니다(게스트 모집 칸과 같은 방식).
+   * 체육관 이름은 한 줄, 바닥·조명·주차·샤워는 세 칩 중 하나 — 다시 누르면 비웁니다.
+   * 한 칸도 안 적어도 올라가고(본문만 있는 후기), 적은 것은 글에 구조화해 남습니다. */
+  function gymFields(picked, state) {
+    var g = D.normalizeGymReview((state.ui && state.ui.composerGym) || {});
+    var on = picked === D.GYM_REVIEW.topic;
+    return '<div class="gymform" data-gymform' + (on ? '' : ' hidden') + '>' +
+      '<p class="gymform__t">' + UI.icon('pin') + U.esc(D.GYM_REVIEW.label) +
+      ' <small>바닥·조명·주차·샤워를 한 번씩만 눌러도 올라가요</small></p>' +
+      '<label class="gymform__name"><span>체육관 이름</span>' +
+      '<input type="text" maxlength="' + D.GYM_REVIEW.nameMax + '" data-gymfield="name" enterkeyhint="next"' +
+      ' placeholder="동네 체육관 이름" value="' + U.esc(g.name || '') + '"></label>' +
+      D.GYM_REVIEW.fields.map(function (f) {
+        return '<div class="gympick" data-gymrow="' + f.key + '">' +
+          '<span class="gympick__k">' + U.esc(f.label) + '</span>' +
+          '<div class="chips gympick__chips">' + D.GYM_REVIEW.scale.map(function (v) {
+            var sel = g[f.key] === v;
+            return '<button type="button" class="chip chip--sm gympick__b gympick__b--' + gymTone(v) + (sel ? ' is-on' : '') + '"' +
+              ' data-gympick="' + f.key + '" data-gymval="' + U.esc(v) + '" aria-pressed="' + (sel ? 'true' : 'false') + '">' +
+              U.esc(v) + '</button>';
+          }).join('') + '</div></div>';
+      }).join('') +
+      '</div>';
+  }
+
   /* 게스트 모집의 '어디 체육관'을 지도에서 고르게 합니다.
    * 고른 이름은 작성 칸(composerMeet.place)에 담기므로 화면을 다시 그려도 남습니다. */
   function openGymPicker(ctx, root) {
@@ -637,6 +704,7 @@
         '<div class="topicpick-line"><span class="topicpick__lab">분류</span>' +
         '<div class="chips topicpick" data-topics data-tag="' + U.esc(picked) + '">' + topicChips(picked, 'data-topic', false) + '</div></div>' +
         meetFields(picked, state) +
+        gymFields(picked, state) +
         '<div class="row between mt8"><span class="muted sm">욕설·비방은 자제해 주세요</span>' +
         '<button class="btn btn--primary btn--sm" data-act="post">' + UI.icon('send') + '올리기</button></div>' +
         '</section>' +
@@ -709,6 +777,9 @@
           /* 게스트 모집일 때만 모집 입력칸을 보여 줍니다 (입력칸 포커스는 건드리지 않음) */
           var vf = root.querySelector('[data-viteform]');
           if (vf) vf.hidden = tag !== D.MEET.topic;
+          /* v1.79 — '체육관 후기' 칸도 말머리를 따라 열고 닫습니다 */
+          var gf = root.querySelector('[data-gymform]');
+          if (gf) gf.hidden = tag !== D.GYM_REVIEW.topic;
           /* 본문 없이 모집 칸만 채워도 올라간다고 입력칸 안내도 같이 바꿉니다 */
           var hintTa = root.querySelector('[data-composer]');
           if (hintTa) hintTa.placeholder = composerHint(tag);
@@ -947,6 +1018,26 @@
           else go();
           return;
         }
+        /* 체육관 후기 칩 — 누르면 그 칸만 바뀌고, 같은 칩을 다시 누르면 비웁니다 (bm-v1.79.0) */
+        var gp = ev.target.closest('[data-gympick]');
+        if (gp) {
+          ev.preventDefault();
+          var gKey = gp.getAttribute('data-gympick');
+          var gVal = gp.getAttribute('data-gymval') || '';
+          var cur = D.normalizeGymReview((ctx.store.state.ui && ctx.store.state.ui.composerGym) || {});
+          var nextVal = cur[gKey] === gVal ? '' : gVal;
+          ctx.actions.setComposerGym(gKey, nextVal);
+          var row = gp.closest('[data-gymrow]');
+          if (row) {
+            UI.$$('[data-gympick]', row).forEach(function (b) {
+              var on = !!nextVal && b.getAttribute('data-gymval') === nextVal;
+              b.classList.toggle('is-on', on);
+              b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+          }
+          UI.haptic(6);
+          return;
+        }
         if (ev.target.closest('[data-act="post"]')) {
           ev.preventDefault();
           /* 올리기 연타: 첫 번째로 글이 올라가며 입력칸이 비는데, 두 번째 누름이
@@ -956,7 +1047,7 @@
           var ta = root.querySelector('[data-composer]');
           var text = ta ? ta.value : '';
           var st = ctx.store.state;
-          var res = ctx.actions.createPost(text, st.ui.composerTopic, st.ui.composerMeet);
+          var res = ctx.actions.createPost(text, st.ui.composerTopic, st.ui.composerMeet, st.ui.composerGym);
           if (res.ok) {
             lastPostAt = Date.now();
             if (ta) ta.value = '';
@@ -969,12 +1060,20 @@
             syncFeeChips(root, '');
             var vf = root.querySelector('[data-viteform]');
             if (vf) vf.hidden = true;
+            /* v1.79 — 체육관 후기 칸도 비우고 접습니다 */
+            UI.$$('[data-gymfield]', root).forEach(function (inp) { inp.value = ''; });
+            UI.$$('[data-gympick]', root).forEach(function (b) {
+              b.classList.remove('is-on');
+              b.setAttribute('aria-pressed', 'false');
+            });
+            var gf = root.querySelector('[data-gymform]');
+            if (gf) gf.hidden = true;
             /* 올린 글이 지금 거르는 말머리와 다르면 전체로 돌아가 방금 글을 보여 줍니다 */
             if (topicFilter !== '전체' && topicFilter !== res.topic) {
               topicFilter = '전체';
               paintTopicFilter(root, ctx.store.state);
             }
-            UI.toast(res.meet ? D.MEET.cardLabel + '을 올렸어요' : '글을 올렸어요'); UI.haptic(10);
+            UI.toast(res.gym ? D.GYM_REVIEW.label + '를 올렸어요' : (res.meet ? D.MEET.cardLabel + '을 올렸어요' : '글을 올렸어요')); UI.haptic(10);
           }
           else if (res.reason === 'empty') UI.toast('내용을 입력해 주세요');
           else if (res.reason === 'locked') UI.toast('잠시만요, 올리는 중이에요');
@@ -992,6 +1091,9 @@
         if (vf && vf.getAttribute('data-vitefield') === 'when') whenFromText(root, ctx, vf.value);
         /* 게스트비를 손으로 고쳐도 칩의 켜짐이 따라갑니다 */
         if (vf && vf.getAttribute('data-vitefield') === 'fee') syncFeeChips(root, vf.value);
+        /* 체육관 후기의 체육관 이름 — 화면을 다시 그리지 않고 값만 담아 둡니다 */
+        var gfInp = ev.target.closest('[data-gymfield]');
+        if (gfInp) ctx.actions.setComposerGym(gfInp.getAttribute('data-gymfield'), gfInp.value);
         var ri = ev.target.closest('[data-reply-input]');
         if (ri) replyDrafts[ri.getAttribute('data-reply-input')] = ri.value;
       }, { passive: true });
@@ -1043,6 +1145,8 @@
       /* 모집 입력칸은 말머리를 따라갑니다 (값은 입력칸이 그대로 들고 있음) */
       var viteHost = root.querySelector('[data-viteform]');
       if (viteHost) viteHost.hidden = pickTag !== D.MEET.topic;
+      var gymHost = root.querySelector('[data-gymform]');
+      if (gymHost) gymHost.hidden = pickTag !== D.GYM_REVIEW.topic;
       var hint = root.querySelector('[data-composer]');
       if (hint) hint.placeholder = composerHint(pickTag);
       region.innerHTML = postsHtml(state);
@@ -1073,7 +1177,11 @@
     _whenTimeChips: whenTimeChips,
     _syncWhen: syncWhen,
     _paintWhen: paintWhen,
-    _meetStatus: D.meetStatus
+    _meetStatus: D.meetStatus,
+    /* v1.79 — 체육관 후기(작성 칸·글 카드) */
+    _gymFields: gymFields,
+    _gymReviewCard: gymReviewCard,
+    _postBodyText: postBodyText
   };
 
   BM.views.community = view;

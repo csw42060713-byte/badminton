@@ -7346,3 +7346,141 @@ body {
   color: var(--text);
 }
 .gpick__b:active { transform: scale(0.97); }
+
+/* ============================================================
+ * 21. bm-v1.79.0 — 💛 응원 하트 · ⚡ 지난 운동 채우기 · 🏟️ 체육관 후기
+ *  · 매칭: 카드·프로필에서 1하트로 마음만 건네는 버튼
+ *  · 일지: 직전 일지의 시간·컨디션·강도·약점을 한 번에 채우는 버튼
+ *  · 커뮤니티: 바닥·조명·주차·샤워 네 칸 후기 (칩 3개 중 하나)
+ * ============================================================ */
+
+/* (1) 매칭 — '💛 응원' 버튼 (카드 안 작은 칩 / 프로필 시트의 넓은 줄) */
+.cheerbtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 36px; padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--card));
+  color: var(--text); font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px;
+}
+.cheerbtn:active { transform: scale(0.97); }
+.cheerbtn__ico { font-size: 13px; line-height: 1; }
+.cheerbtn--sm { min-height: 36px; padding: 0 11px; font-size: 12.5px; }
+.cheerbtn--wide {
+  display: flex; width: 100%; justify-content: flex-start; gap: 9px;
+  min-height: 46px; padding: 9px 13px; text-align: left; border-radius: var(--r-sm);
+}
+.cheerbtn--wide .cheerbtn__t { font-size: 13px; font-weight: 800; letter-spacing: -0.2px; }
+.cheerbtn--wide .cheerbtn__s { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--muted); }
+.pcard__act .cheerbtn { flex: none; }
+/* 카드 오른쪽 위: 궁합 아래에 '응원' — 아래 버튼 줄이 줄바꿈되지 않습니다 */
+.pcard__side { flex: none; display: grid; justify-items: end; gap: 6px; }
+.pcard__side .fit { margin: 0; }
+
+/* (2) 매칭 찾기 — 친구 코드 초대 줄 */
+.invitebar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px; border: 1px solid var(--line);
+  background: var(--card);
+}
+.invitebar__l { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.invitebar__k { font-size: 10.5px; font-weight: 800; letter-spacing: 0.4px; color: var(--muted); }
+.invitebar__v { font-size: 14px; font-weight: 900; letter-spacing: -0.2px; }
+.invitebar__v i { font-style: normal; color: var(--accent-2); letter-spacing: 0.8px; }
+.invitebar__s { font-size: 10.5px; line-height: 1.35; color: var(--muted); word-break: keep-all; }
+.invitebar .btn { flex: none; }
+
+/* (3) 일지 — '⚡ 지난 운동 그대로 채우기' */
+.quickfill { margin-top: 10px; }
+.quickfill__btn {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 12px; text-align: left;
+  border-radius: var(--r-sm);
+  border: 1px dashed color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  color: var(--text);
+}
+.quickfill__btn:active { transform: scale(0.995); }
+.quickfill__ico { flex: none; font-size: 15px; line-height: 1; }
+.quickfill__t { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.quickfill__t b { font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px; }
+.quickfill__t small {
+  font-size: 11px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.quickfill__car { flex: none; width: 15px; height: 15px; color: var(--accent); }
+
+/* (4) 커뮤니티 — '🏟️ 체육관 후기' 작성 칸 */
+.gymform {
+  margin-top: 10px; padding: 11px 12px;
+  border: 1px dashed var(--accent-line); border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  animation: viewIn 140ms ease-out;
+}
+.gymform[hidden] { display: none; }
+.gymform__t {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  font-size: 11.5px; font-weight: 800; color: var(--text-2); letter-spacing: -0.1px;
+}
+.gymform__t .ico { flex: 0 0 auto; width: 14px; height: 14px; color: var(--accent); }
+.gymform__t small { font-weight: 700; color: var(--muted); }
+.gymform__name { display: grid; gap: 4px; margin-top: 9px; }
+.gymform__name span { font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: -0.1px; }
+.gymform__name input { min-height: 40px; padding: 8px 11px; border-radius: 10px; background: var(--card-2); }
+.gymform__name input::placeholder { color: var(--muted); }
+.gympick { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.gympick__k { flex: none; width: 32px; font-size: 11px; font-weight: 800; color: var(--muted); }
+.gympick__chips { flex: 1; min-width: 0; gap: 6px; flex-wrap: nowrap; overflow-x: auto; }
+.gympick__b { flex: none; min-height: 38px; padding: 0 11px; font-size: 11.5px; }
+.gympick__b--good.is-on { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.gympick__b--bad.is-on { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+
+/* (4-2) 글에 붙는 후기 카드 */
+.gymreview {
+  margin-top: 9px; padding: 10px 11px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-2);
+  background: var(--card-2);
+}
+.gymreview__t { display: flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 800; letter-spacing: -0.2px; }
+.gymreview__t .ico { flex: none; width: 14px; height: 14px; color: var(--accent); }
+.gymreview__rows { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.gymrow {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card);
+  font-size: 11px; font-weight: 700;
+}
+.gymrow i { font-style: normal; font-weight: 800; color: var(--muted); }
+.gymrow--good b { color: var(--accent-2); }
+.gymrow--ok b { color: var(--text-2); }
+.gymrow--bad b { color: var(--warn); }
+
+/* (5) 일지 첫 화면 살짝 압축 — 390×844에서 '오늘 일지' 입력칸이 더 위에서 시작합니다.
+ *     카드 사이 여백과 카드 안 여백만 줄이고, 블록·셀렉터·기능은 그대로입니다. */
+.view[data-view="log"] { gap: 11px; }
+.view[data-view="log"] > .card { padding: 16px 18px; }
+.view[data-view="log"] > .card--hero { padding-bottom: 14px; }
+.view[data-view="log"] > .card--hero .hero__sub { margin-top: 3px; }
+/* 부가 배너(초보 루틴 시작 카드 · 한 줄 루틴 · 코트 도구)도 여백만 조금 줄여
+ * '오늘 일지' 입력칸이 첫 화면 안에서 시작하게 합니다 (블록·버튼·기능은 그대로) */
+.view[data-view="log"] > .card--rtn-ask { padding: 14px 14px 12px; }
+.view[data-view="log"] .ask__stats { margin-top: 10px; }
+.view[data-view="log"] .ask__btns { margin-top: 10px; }
+.view[data-view="log"] .ask__btns .btn--ghost { min-height: 40px; }
+.view[data-view="log"] .courttools { margin-top: 10px; }
+.view[data-view="log"] .hero__share + .courttools { margin-top: 8px; }
+.view[data-view="log"] > .card--beg-slim .beg-slim { padding: 10px 14px; }
+
+/* bm-v1.79 — 말머리가 6개(체육관 후기 포함)로 늘어 한 줄을 넘을 때
+ *   두 줄로 접히지 않고, 앱의 다른 칩 줄처럼 옆으로 밀어서 고릅니다. */
+.topicbar, .topicpick {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.topicbar::-webkit-scrollbar, .topicpick::-webkit-scrollbar { display: none; }
+.topicbar .chip, .topicpick .chip { flex: none; }
