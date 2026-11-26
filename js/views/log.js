@@ -767,16 +767,9 @@
           '</div></details>'
         : '') +
 
-      /* 저장 직후에만 보이는 "커뮤니티에 공유" 스트립 — v1.57 인스타 공유 카드도 바로 */
+      /* 저장 직후에만 보이는 공유 스트립 — bm-v1.80.0: 커스텀 라켓 + 스매시 임팩트 카드로 바로 */
       (state && state.ui && state.ui.lastSavedLog
-        ? '<div class="sharebar" data-region="share">' +
-          '<p class="sharebar__t">오늘 운동을 자랑할까요?</p>' +
-          '<p class="sharebar__s">' + U.esc(sharePreview(state.ui.lastSavedLog)) + '</p>' +
-          '<div class="sharebar__acts">' +
-          '<button type="button" class="btn btn--primary grow" data-act="share-card">' + UI.icon('camera') + '인스타 공유 카드 만들기</button>' +
-          '<button type="button" class="btn btn--ghost" data-act="dismiss-share">나중에</button></div>' +
-          '<div class="sharebar__acts">' +
-          '<button type="button" class="btn btn--ghost grow" data-act="share-log">' + UI.icon('community') + '커뮤니티에 오늘 운동 공유</button></div></div>'
+        ? shareNowHtml(state, state.ui.lastSavedLog)
         : '') +
       '</section>';
   }
@@ -796,6 +789,32 @@
     var sum = D.gamesSummary(games);
     return [U.shortDay(e.date || U.ymd()), (e.minutes ? e.minutes + '분' : ''), ((e.done || []).join('·')),
       (sum.count ? sum.count + '경기 ' + sum.wins + '승 ' + sum.losses + '패' : '')].filter(Boolean).join(' · ');
+  }
+
+  /* 저장 직후 스트립 (bm-v1.80.0) — 방금 쓴 오늘 운동이 그대로 담긴 스매시 임팩트 공유 카드로 바로.
+   * 화면 아래 떠 있는 바(app.js paintSaveShare)와 같은 내용을, 스크롤해서 내려온 사람에게도 보여 줍니다. */
+  function shareNowHtml(state, rec) {
+    var rc = BM.racketcustom;
+    var cond = (rec && rec.cond != null && D.condBandOf) ? D.condBandOf(rec.cond) : null;
+    var bits = [];
+    if (rec && rec.minutes) bits.push(rec.minutes + '분');
+    if (cond) bits.push(cond.short);
+    if (rec && rec.intensity) bits.push('강도 ' + rec.intensity);
+    var focus = rec && ((rec.weakness || [])[0] || (rec.done || [])[0]);
+    if (focus) bits.push(focus);
+    var gain = rc ? rc.pointsToday(state) : 0;
+    return '<div class="sharebar sharebar--now" data-region="share">' +
+      '<div class="sharebar__top">' +
+        '<span class="sharebar__rk" aria-hidden="true">' + (rc ? rc.miniHtml(rc.customOf(state.me), { level: 'prime' }) : '') + '</span>' +
+        '<div class="sharebar__hd"><p class="sharebar__t">📸 방금 쓴 오늘 운동 그대로 공유하기</p>' +
+        '<p class="sharebar__s">' + U.esc(bits.join(' · ')) + (gain ? ' · +' + gain + 'P' : '') + '</p></div>' +
+        '<button type="button" class="sharebar__x" data-act="dismiss-share" aria-label="이번 공유 카드 닫기">✕</button>' +
+      '</div>' +
+      '<p class="sharebar__hint">내 커스텀 라켓이 터지는 <b>스매시 임팩트</b> 카드로 바로 만들어요</p>' +
+      '<div class="sharebar__acts">' +
+        '<button type="button" class="btn btn--primary grow" data-act="share-card" data-sc-mode="today" data-sc-design="smash">' + UI.icon('camera') + '스매시 임팩트로 공유</button></div>' +
+      '<div class="sharebar__acts">' +
+        '<button type="button" class="btn btn--ghost grow" data-act="share-log">' + UI.icon('community') + '커뮤니티에 오늘 운동 공유</button></div></div>';
   }
 
   /* ---------- 인스타 공유 입구 (bm-v1.62.0) ----------
@@ -2259,6 +2278,7 @@
           var scBtn = ev.target.closest('[data-act="share-card"]');
           BM.sharecard.open(ctx, {
             mode: scBtn.getAttribute('data-sc-mode') || 'today',
+            design: scBtn.getAttribute('data-sc-design') || '',
             record: shareRecordOf(ctx.store.state, scBtn.getAttribute('data-share-entry'))
           });
           return;
@@ -2547,6 +2567,8 @@
   view.quickFillSlot = quickFillSlot;
   view.quickFillSig = quickFillSig;
   view.shareRecordOf = shareRecordOf;           /* v1.62: 입구별로 열 일지 고르기 */
+  view.shareNowHtml = shareNowHtml;             /* v1.80: 저장 직후 공유 스트립 */
+  view.sharePreview = sharePreview;
   view.analysisCard = analysisCard;
   view.challengeBlock = challengeBlock;
   view.challengeHidden = challengeHidden;

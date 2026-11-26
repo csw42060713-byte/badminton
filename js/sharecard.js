@@ -102,8 +102,13 @@
   /* v1.67 글래스는 칸에서 빠졌지만, 그리는 방법은 남겨 둡니다(레거시 값 보호). */
   var LEGACY_DESIGNS = [
     { id: 'glass',
-      name: '글래스', note: '유리 배지 · 스트라바 감성' }
+      name: '글래스', note: '유리 배지 · 스트라바 감성' },
+    /* bm-v1.80.0 — '스매시 임팩트'는 저장 직후 공유 흐름의 전용 템플릿입니다.
+     * 디자인 칸(4개)은 그대로 두고, 공유 시트의 스매시 배너에서 켜고 끕니다. */
+    { id: 'smash',
+      name: '스매시 임팩트', note: '내 라켓이 터지며 오늘 운동이 퍼지는 카드' }
   ];
+  var SMASH_DESIGN = 'smash';
 
   /* ---------- 사진 필터 5종 (bm-v1.67.0) ----------
    * 사진을 넣으면 '자동 감성'이 기본으로 붙어 색·밝기가 살아납니다.
@@ -475,6 +480,7 @@
 
   /* 고를 수 있는 디자인(4종)만 — 예전 '글래스' 같은 레거시 값은 기본 매거진으로 */
   function presetDesignId(id) {
+    if (id === SMASH_DESIGN) return SMASH_DESIGN;
     for (var i = 0; i < DESIGNS.length; i++) if (DESIGNS[i].id === id) return DESIGNS[i].id;
     return DESIGNS[0].id;
   }
@@ -1604,10 +1610,11 @@
       tracking(g, 0);
     }
 
-    /* 맨 아래 — 모노스페이스 날짜 · 장소 한 줄 */
-    if (spec.top) {
+    /* 맨 아래 — 모노스페이스 날짜 · 장소 한 줄 (+ 친구 코드, bm-v1.80.0) */
+    if (spec.top || (spec.showCode !== false && spec.friendCode)) {
       tracking(g, 1.4);
-      var t = fitText(g, spec.top, maxW, 23, 500, MONO, 16);
+      var topLine = [spec.top, (spec.showCode !== false && spec.friendCode) ? spec.friendCode : ''].filter(Boolean).join('  ·  ');
+      var t = fitText(g, topLine, maxW, 23, 500, MONO, 16);
       g.fillStyle = soft;
       g.globalAlpha = 0.78;
       g.font = font(t.size, 500, MONO);
@@ -2762,6 +2769,243 @@
       : (sticker ? { y: F.safeTop + 54, size: 18 } : { size: 18 }));
   }
 
+  /* ============================================================
+   * 스매시 임팩트 — 내 커스텀 라켓이 터지며 오늘 운동이 퍼지는 카드 (bm-v1.80.0)
+   *   · 캔버스 공유 카드(1080×1350 · 스토리 1080×1920)에 그대로 저장·공유됩니다.
+   *   · 고른 프레임·스트링·그립·스텐실 색을 그대로 쓴 라켓 한 자루 + 충격파 링 · 빛줄기 파편 ·
+   *     번개/크랙 라인. 주변으로 오늘의 수치(운동 시간·컨디션·강도·집중)가 타이포 칩으로 퍼지고,
+   *     맨 아래에 SHUTTLIX + 내 친구 코드(이름#코드)를 박습니다.
+   * ============================================================ */
+  function wedge(g, cx, cy, a, spread, len, color, alpha) {
+    var x1 = cx + Math.cos(a - spread) * len, y1 = cy + Math.sin(a - spread) * len;
+    var x2 = cx + Math.cos(a + spread) * len, y2 = cy + Math.sin(a + spread) * len;
+    g.beginPath(); g.moveTo(cx, cy); g.lineTo(x1, y1); g.lineTo(x2, y2); g.closePath();
+    g.globalAlpha = alpha == null ? 1 : alpha;
+    g.fillStyle = color; g.fill();
+    g.globalAlpha = 1;
+  }
+
+  function shardQuad(g, cx, cy, a, r0, len, wid, color, alpha) {
+    var ca = Math.cos(a), sa = Math.sin(a), px = -sa, py = ca;
+    var x0 = cx + ca * r0, y0 = cy + sa * r0;
+    var x1 = cx + ca * (r0 + len) + px * wid, y1 = cy + sa * (r0 + len) + py * wid;
+    var x2 = cx + ca * (r0 + len + 14), y2 = cy + sa * (r0 + len + 14);
+    var x3 = cx + ca * (r0 + len) - px * wid, y3 = cy + sa * (r0 + len) - py * wid;
+    g.beginPath();
+    g.moveTo(x0, y0); g.lineTo(x1, y1); g.lineTo(x2, y2); g.lineTo(x3, y3); g.closePath();
+    g.globalAlpha = alpha == null ? 1 : alpha;
+    g.fillStyle = color; g.fill();
+    g.globalAlpha = 1;
+  }
+
+  function crackLine(g, cx, cy, a, len, jitter, color, lw) {
+    var steps = 5;
+    g.beginPath();
+    for (var i = 0; i <= steps; i++) {
+      var t = i / steps;
+      var r = 26 + len * t;
+      var off = i === 0 || i === steps ? 0 : Math.sin(i * 2.7 + a) * jitter;
+      var x = cx + Math.cos(a + off * 0.004) * r;
+      var y = cy + Math.sin(a + off * 0.004) * r;
+      if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+    }
+    g.strokeStyle = color;
+    g.lineWidth = lw || 3;
+    g.stroke();
+  }
+
+  function smashChip(g, x, y, k, v, rot, accent) {
+    g.save();
+    if (typeof g.translate === 'function') g.translate(x, y);
+    if (rot && typeof g.rotate === 'function') g.rotate(rot);
+    g.font = font(19, 800, MONO);
+    tracking(g, 2);
+    var kw = g.measureText(k).width;
+    var fitted = fitText(g, v, 214, 42, 900, FONT, 20);
+    var vw = g.measureText(fitted.text).width;
+    tracking(g, 0);
+    var w = Math.max(kw, vw) + 54, h = 104;
+    g.fillStyle = 'rgba(6,11,9,0.66)';
+    roundRect(g, -w / 2, -h / 2, w, h, 20); g.fill();
+    g.strokeStyle = accent; g.lineWidth = 2.2;
+    roundRect(g, -w / 2, -h / 2, w, h, 20); g.stroke();
+    g.textAlign = 'center';
+    g.fillStyle = accent;
+    g.font = font(19, 800, MONO); tracking(g, 2);
+    g.fillText(k, 0, -16);
+    tracking(g, 0);
+    g.fillStyle = '#f7ffdf';
+    g.font = font(fitted.size, 900, FONT);
+    g.fillText(fitted.text, 0, 30);
+    g.textAlign = 'left';
+    g.restore();
+  }
+
+  function paintSmash(g, spec, p, F) {
+    var W = F.W, H = F.H, pad = F.pad;
+    var lime = '#c6f24e', gold = '#f2c14e', ink = '#f7ffdf';
+    var cx = Math.round(W / 2);
+    var cy = Math.round(F.safeTop + (F.H - F.safeTop * 2) * 0.43);
+
+    /* 바탕 — 코트 위 스포트라이트 */
+    var bg = g.createLinearGradient(0, 0, W * 0.35, H);
+    bg.addColorStop(0, '#0c1712');
+    bg.addColorStop(0.55, '#070c0a');
+    bg.addColorStop(1, '#04070a');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, W, H);
+    var glow = g.createRadialGradient(cx, cy, 12, cx, cy, W * 0.78);
+    glow.addColorStop(0, 'rgba(198,242,78,0.22)');
+    glow.addColorStop(0.42, 'rgba(198,242,78,0.055)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = glow;
+    g.fillRect(0, 0, W, H);
+
+    /* 코트 사선 */
+    g.strokeStyle = 'rgba(198,242,78,0.09)';
+    g.lineWidth = 2;
+    for (var c = 0; c < 5; c++) {
+      g.beginPath();
+      g.moveTo(-120 + c * 270, H);
+      g.lineTo(200 + c * 270, 0);
+      g.stroke();
+    }
+
+    /* 빛줄기 — 중심에서 사방으로 */
+    for (var r = 0; r < 18; r++) {
+      var a = r * Math.PI * 2 / 18 + 0.1;
+      wedge(g, cx, cy, a, 0.028, W * 0.86, r % 3 === 0 ? gold : lime, r % 2 ? 0.05 : 0.085);
+    }
+
+    /* 충격파 링 3겹 */
+    var rings = [
+      { r: 128, w: 12, c: lime, al: 0.92 },
+      { r: 214, w: 7, c: gold, al: 0.68 },
+      { r: 312, w: 3.4, c: 'rgba(247,255,223,0.75)', al: 0.5 }
+    ];
+    rings.forEach(function (ring) {
+      g.beginPath();
+      g.arc(cx, cy, ring.r, 0, Math.PI * 2);
+      g.strokeStyle = ring.c;
+      g.globalAlpha = ring.al;
+      g.lineWidth = ring.w;
+      g.stroke();
+      g.globalAlpha = 1;
+    });
+
+    /* 날카로운 파편 16개 */
+    for (var s = 0; s < 16; s++) {
+      var sa = s * Math.PI * 2 / 16 + 0.19;
+      shardQuad(g, cx, cy, sa, 118 + (s % 4) * 14, 120 + (s % 5) * 30, 7 + (s % 3) * 3,
+        s % 3 === 0 ? gold : (s % 3 === 1 ? lime : '#f7ffdf'), 0.5 + (s % 3) * 0.16);
+    }
+
+    /* 번개·크랙 라인 */
+    for (var k = 0; k < 6; k++) {
+      crackLine(g, cx, cy, k * Math.PI * 2 / 6 + 0.34, 200 + (k % 3) * 60, 26, k % 2 ? lime : '#f7ffdf', 2.4);
+    }
+
+    /* 임팩트 플래시 — 라켓 뒤에 깔아 라켓이 플래시를 뚫고 나오는 느낌으로 */
+    var flash = g.createRadialGradient(cx, cy, 2, cx, cy, 180);
+    flash.addColorStop(0, 'rgba(255,255,255,0.52)');
+    flash.addColorStop(0.30, 'rgba(247,255,223,0.22)');
+    flash.addColorStop(1, 'rgba(247,255,223,0)');
+    g.fillStyle = flash;
+    g.beginPath();
+    g.arc(cx, cy, 180, 0, Math.PI * 2);
+    g.fill();
+
+    /* 라켓 — 고른 색 그대로, 스매시 순간의 기울기 (어두운 프레임도 보이게 테두리에 빛) */
+    if (spec.showRacket !== false && BM.racketcustom) {
+      var size = Math.min(W * 0.60, 660);
+      BM.racketcustom.drawRacket(g, cx, cy + 150, size, spec.racket, { level: 'prime', rot: -0.5, alpha: 0.99, rim: true });
+    }
+
+    /* 임팩트 슬래시 — 라켓이 맞은 자리를 가로지르는 짧은 빛 3줄 */
+    g.save();
+    if (typeof g.translate === 'function') g.translate(cx, cy);
+    for (var sl = 0; sl < 3; sl++) {
+      var ang = -0.62 + sl * 0.16;
+      var len2 = 210 - sl * 26;
+      g.beginPath();
+      g.moveTo(Math.cos(ang) * -len2, Math.sin(ang) * -len2);
+      g.lineTo(Math.cos(ang) * len2, Math.sin(ang) * len2);
+      g.strokeStyle = sl === 1 ? 'rgba(198,242,78,0.85)' : 'rgba(255,255,255,0.7)';
+      g.lineWidth = 3.2 - sl * 0.6;
+      g.stroke();
+    }
+    g.restore();
+
+    /* 상단 — 워드마크 · 날짜 */
+    g.textAlign = 'left';
+    g.fillStyle = 'rgba(247,255,223,0.72)';
+    tracking(g, 7);
+    g.font = font(26, 800, FONT);
+    var brand = 'SHUTTLIX';
+    g.fillText(brand, pad, F.safeTop + 62);
+    tracking(g, 0);
+    g.textAlign = 'right';
+    g.fillStyle = 'rgba(247,255,223,0.56)';
+    g.font = font(22, 500, MONO);
+    tracking(g, 1.4);
+    g.fillText(spec.date || spec.top || '', W - pad, F.safeTop + 62);
+    tracking(g, 0);
+    g.textAlign = 'left';
+
+    /* 제목 — 오늘의 문구 */
+    var title = phraseText(spec.phrase) || '오늘의 스매시';
+    g.textAlign = 'center';
+    g.fillStyle = lime;
+    tracking(g, 4.5);
+    g.font = font(22, 900, MONO);
+    g.fillText('SMASH DAY', cx, F.safeTop + 140);
+    tracking(g, -0.6);
+    var tf = fitText(g, title, W - pad * 2, 56, 900, FONT, 28);
+    g.fillStyle = ink;
+    g.font = font(tf.size, 900, FONT);
+    g.fillText(tf.text, cx, F.safeTop + 208);
+    tracking(g, 0);
+    g.textAlign = 'left';
+
+    /* 오늘의 수치 — 사방으로 퍼진 칩 */
+    var items = spec.smashItems || [];
+    var spot = [
+      { x: cx - 300, y: cy - 236, r: -0.10 },
+      { x: cx + 296, y: cy - 262, r: 0.09 },
+      { x: cx - 306, y: cy + 216, r: 0.08 },
+      { x: cx + 300, y: cy + 246, r: -0.09 }
+    ];
+    items.slice(0, 4).forEach(function (it, i) {
+      var sp = spot[i];
+      smashChip(g, sp.x, sp.y, it.k, it.v, sp.r, i % 2 ? gold : lime);
+    });
+
+    /* 맨 아래 — 친구 코드 · 브랜드 */
+    var baseY = F.H - F.safeBottom - 74;
+    var code = spec.showCode !== false ? (spec.friendCode || '') : '';
+    g.fillStyle = 'rgba(6,11,9,0.72)';
+    var label = code || 'MINTON DAILY';
+    g.font = font(34, 900, FONT);
+    var lw2 = g.measureText(label).width;
+    if (code) {
+      roundRect(g, pad, baseY - 44, lw2 + 64, 76, 38);
+      g.fill();
+      g.strokeStyle = 'rgba(198,242,78,0.55)';
+      g.lineWidth = 2;
+      roundRect(g, pad, baseY - 44, lw2 + 64, 76, 38);
+      g.stroke();
+    }
+    g.fillStyle = code ? ink : 'rgba(247,255,223,0.7)';
+    g.fillText(label, pad + (code ? 32 : 0), baseY + 8);
+    g.textAlign = 'right';
+    g.fillStyle = 'rgba(247,255,223,0.5)';
+    tracking(g, 5);
+    g.font = font(20, 800, MONO);
+    g.fillText(brand, W - pad, baseY + 6);
+    tracking(g, 0);
+    g.textAlign = 'left';
+  }
+
   /* spec → 캔버스 (캔버스가 없으면 null) */
   function draw(canvas, spec, cb) {
     if (!canvas || !canvas.getContext) return null;
@@ -2778,6 +3022,7 @@
     var medal = s.mode === 'comp' ? medalOf((s.comp && s.comp.result) || (s.big && s.big.value)) : null;
     if (medal) p = medalPalette(p, medal);
     if (d === 'film') paintFilm(g, s, p, F);
+    else if (d === 'smash') paintSmash(g, s, p, F);
     else if (d === 'sticker') paintSticker(g, s, p, F);
     else if (d === 'receipt') paintReceipt(g, s, p, F);
     else if (d === 'glass') paintGlass(g, s, p, F);
@@ -2857,7 +3102,8 @@
     var prefs = readPrefs();
     return {
       mode: opts.mode === 'comp' ? 'comp' : 'today',
-      design: presetDesignId(prefs.design),
+      /* bm-v1.80.0 — 저장 직후 '스매시 임팩트'로 바로 열 수 있습니다 */
+      design: presetDesignId(opts.design || prefs.design),
       ratio: ratioById(prefs.ratio).id,
       shade: shadeById(prefs.shade).id,
       /* 사진 필터 — 사진을 넣으면 '자동 감성'이 기본 (bm-v1.67.0) */
@@ -2868,6 +3114,9 @@
       badge: prefs.badge !== false,
       /* 꾸밈 배지(도장·자랑·WIN) — 새 기본은 깔끔하게 꺼짐 (bm-v1.71.0) */
       deco: prefs.deco === true,
+      /* bm-v1.80.0 — 내 커스텀 라켓과 친구 코드를 카드에 넣기(기본 켜짐) */
+      racket: prefs.racket !== false,
+      code: prefs.code !== false,
       palette: paletteById(prefs.palette).id,
       /* 기본 배경 — 고르지 않았으면 첫 실사 배경(야경 코트)으로 시작해
        * 사진이 없어도 바로 화보 같은 카드가 보입니다 (bm-v1.71.0) */
@@ -2933,7 +3182,14 @@
       /* 꾸밈 배지 — 도장·자랑·WIN은 원할 때만 (기본 꺼짐, bm-v1.71.0) */
       deco: !!ui.deco,
       win: ui.win !== false,
-      numMode: numModeById(ui.nums).id
+      numMode: numModeById(ui.nums).id,
+      /* bm-v1.80.0 — 내 커스텀 라켓·친구 코드 (스매시 임팩트·매거진 날짜줄에 사용) */
+      showRacket: ui.racket !== false,
+      showCode: ui.code !== false,
+      racket: BM.racketcustom ? BM.racketcustom.customOf(state.me) : null,
+      racketLevel: BM.racketcustom ? BM.racketcustom.conditionOf(state).level : 'ok',
+      friendCode: BM.racketcustom ? BM.racketcustom.shareInfo(state).label : '',
+      pointsToday: BM.racketcustom ? BM.racketcustom.pointsToday(state) : 0
     };
 
     if (ui.mode === 'comp') {
@@ -3011,8 +3267,18 @@
     var underLine = labelBits.join(' · ');
     if (!primary) underLine = condText ? '컨디션 ' + condText : (day || '');
 
+    /* bm-v1.80.0 — 스매시 임팩트 카드에 사방으로 퍼질 오늘의 수치 */
+    var smashItems = [];
+    if (rec && rec.minutes) smashItems.push({ k: '운동 시간', v: rec.minutes + '분' });
+    if (rec && rec.cond != null && rec.cond !== '') smashItems.push({ k: '컨디션', v: rec.cond + '점' });
+    if (rec && rec.intensity) smashItems.push({ k: '강도', v: String(rec.intensity) });
+    var smashFocus = (rec && ((rec.weakness || [])[0] || (rec.done || [])[0])) || '';
+    if (smashFocus) smashItems.push({ k: '오늘 집중', v: smashFocus });
+    if (!smashItems.length) smashItems.push({ k: '오늘의 훈련', v: doneText || '배드민턴' });
+
     return mix(base, {
       mode: 'today', title: '오늘 운동',
+      smashItems: smashItems.slice(0, 4),
       phrase: phrase,
       top: topBits.join(' · '),
       kicker: primary ? primary.label : (fallbackBig ? fallbackBig.label : ''),
@@ -3139,6 +3405,12 @@
     var toggles = '<div class="chips chips--wrap sc__toggles" role="group" aria-label="카드 꾸밈">' +
       '<button type="button" class="chip sc__toggle' + (decoOn ? ' is-on' : '') + '" data-sc-decotoggle aria-pressed="' + (decoOn ? 'true' : 'false') + '"' +
       ' title="도장 · 자랑 배지 · WIN 스탬프를 카드에 얹어요">꾸밈 배지 ' + (decoOn ? '켜짐' : '꺼짐') + '</button>';
+    /* bm-v1.80.0 — 내 커스텀 라켓 · 친구 코드(이름#코드)를 카드에 */
+    var rkOn = ui.racket !== false, cdOn = ui.code !== false;
+    toggles += '<button type="button" class="chip sc__toggle' + (rkOn ? ' is-on' : '') + '" data-sc-rackettoggle aria-pressed="' + (rkOn ? 'true' : 'false') + '"' +
+      ' title="내 커스텀 라켓을 카드에 넣어요">내 라켓 ' + (rkOn ? '켜짐' : '꺼짐') + '</button>' +
+      '<button type="button" class="chip sc__toggle' + (cdOn ? ' is-on' : '') + '" data-sc-codetoggle aria-pressed="' + (cdOn ? 'true' : 'false') + '"' +
+      ' title="내 친구 코드(이름#코드)를 카드에 넣어요">친구 코드 ' + (cdOn ? '켜짐' : '꺼짐') + '</button>';
     if (decoOn && ui.mode !== 'comp') {
       var bOn = ui.badge !== false, wOn = ui.win !== false;
       toggles += '<button type="button" class="chip sc__toggle' + (bOn ? ' is-on' : '') + '" data-sc-badgetoggle aria-pressed="' + (bOn ? 'true' : 'false') + '">자랑 배지 ' + (bOn ? '켜짐' : '꺼짐') + '</button>' +
@@ -3342,6 +3614,7 @@
     var rec = recordById(ctx, ui.recordId);
     var dims = dimsOf(ui.ratio);
     var sticker = ui.design === 'sticker';
+    var smash = ui.design === SMASH_DESIGN;
 
     var modeTabs = '<div class="seg seg--wide sc__modes" role="tablist">' + MODES.map(function (m) {
       return '<button type="button" class="seg__btn' + (ui.mode === m.id ? ' is-on' : '') + '" data-sc-mode="' + m.id + '" role="tab" ' +
@@ -3354,9 +3627,17 @@
       '<span><em>2</em>저장 누르면 끝!</span></p>';
 
     /* 미리보기 — 시트를 열면 가장 먼저 카드가 보입니다 */
-    var preview = '<div class="sc__preview' + (sticker ? ' is-sticker' : '') + '">' +
+    var preview = '<div class="sc__preview' + (sticker ? ' is-sticker' : '') + (smash ? ' is-smash' : '') + '">' +
       '<canvas class="sc__canvas" width="' + dims.w + '" height="' + dims.h + '" aria-label="공유 카드 미리보기"></canvas></div>' +
       '<p class="sc__summary" data-sc-summary></p>';
+
+    /* bm-v1.80.0 — 스매시 임팩트(내 라켓이 터지며 오늘 운동이 퍼지는 카드) */
+    var smashPick = '<button type="button" class="sc__smashban' + (smash ? ' is-on' : '') + '" data-sc-smash="1" aria-pressed="' + (smash ? 'true' : 'false') + '">' +
+      '<span class="sc__smashart" aria-hidden="true">' +
+      (BM.racketcustom ? BM.racketcustom.svg(BM.racketcustom.customOf(state.me), { level: 'prime' }) : '') + '</span>' +
+      '<span class="sc__smashtx"><b>스매시 임팩트 <i>NEW</i></b>' +
+      '<small>내 라켓이 터지며 오늘 운동이 사방으로 · 친구 코드까지</small></span>' +
+      '<span class="sc__smashsw" aria-hidden="true">' + (smash ? '켜짐' : '켜기') + '</span></button>';
 
     var picker = '';
     if (records.length > 1) {
@@ -3397,7 +3678,7 @@
       : '';
 
     /* 사진 — 스티커(투명)에는 필요 없어 숨깁니다 */
-    var photoBox = '<div class="field sc__photo"' + (sticker ? ' hidden' : '') + '>' +
+    var photoBox = '<div class="field sc__photo"' + (sticker || smash ? ' hidden' : '') + '>' +
       '<div class="sc__shotrow">' +
         '<label class="sc__shot' + (ui.photo ? ' is-on' : '') + '">' +
           '<span class="sc__shotic">' + BM.ui.icon('camera') + '</span>' +
@@ -3415,7 +3696,7 @@
       '<p class="hint sc__photohint">사진은 폰 안에서만 합쳐져요 · 서버로 보내지 않아요</p></div>';
 
     /* 디자인 4종 */
-    var designPicks = '<div class="field"><div class="field__label"><span>디자인</span></div>' +
+    var designPicks = '<div class="field"' + (smash ? ' hidden' : '') + '><div class="field__label"><span>디자인</span></div>' +
       '<div class="sc__designs">' + DESIGNS.map(function (d) {
         var on = ui.design === d.id;
         return '<button type="button" class="sc__design sc__design--' + d.id + (on ? ' is-on' : '') + '" data-sc-design="' + d.id + '" ' +
@@ -3443,7 +3724,7 @@
       }).join('') + '</div></div>';
 
     /* 사진 밝기 3단계 — 사진이 있을 때만 */
-    var shadePicks = '<div class="field sc__shadebox"' + (ui.photo && !sticker ? '' : ' hidden') + '>' +
+    var shadePicks = '<div class="field sc__shadebox"' + (ui.photo && !sticker && !smash ? '' : ' hidden') + '>' +
       '<div class="field__label"><span>사진 밝기</span></div>' +
       '<div class="seg seg--three sc__shades" role="group" aria-label="사진 밝기">' + SHADES.map(function (s) {
         var on = ui.shade === s.id;
@@ -3480,7 +3761,7 @@
       '<button type="button" class="btn btn--primary btn--big" data-sc-save' + (emptyToday ? ' disabled' : '') + '>' +
       BM.ui.icon('send') + '<span>' + saveLabel + '</span></button></div>';
 
-    return modeTabs + guide + emptyNote + preview + photoBox +
+    return modeTabs + guide + emptyNote + preview + smashPick + photoBox +
       (ui.mode === 'comp' ? compFields : '') +
       designPicks + inkPicks() + lookPicks() + ratioPicks + textPosPicks + shadePicks + more + saveBar;
   }
@@ -3501,12 +3782,16 @@
   function syncControls(node) {
     if (!node) return;
     var sticker = ui.design === 'sticker';
+    var smash = ui.design === SMASH_DESIGN;
     var photoBox = node.querySelector('.sc__photo');
-    if (photoBox) photoBox.hidden = sticker;
+    if (photoBox) photoBox.hidden = sticker || smash;
     var shadeBox = node.querySelector('.sc__shadebox');
-    if (shadeBox) shadeBox.hidden = !ui.photo || sticker;
+    if (shadeBox) shadeBox.hidden = !ui.photo || sticker || smash;
     var preview = node.querySelector('.sc__preview');
-    if (preview) preview.classList.toggle('is-sticker', sticker);
+    if (preview) {
+      preview.classList.toggle('is-sticker', sticker);
+      preview.classList.toggle('is-smash', smash);
+    }
     var saveLabel = node.querySelector('[data-sc-save] span');
     if (saveLabel) {
       saveLabel.textContent = sticker ? '투명 PNG 저장 · 공유' : 'PNG 저장 · 공유';
@@ -3577,6 +3862,21 @@
       wt.classList.toggle('is-on', wOn);
       wt.setAttribute('aria-pressed', wOn ? 'true' : 'false');
       wt.textContent = 'WIN 스탬프 ' + (wOn ? '켜짐' : '꺼짐');
+    }
+    /* bm-v1.80.0 — 내 라켓 · 친구 코드 토글 */
+    var rt = node.querySelector('[data-sc-rackettoggle]');
+    if (rt) {
+      var rOn = ui.racket !== false;
+      rt.classList.toggle('is-on', rOn);
+      rt.setAttribute('aria-pressed', rOn ? 'true' : 'false');
+      rt.textContent = '내 라켓 ' + (rOn ? '켜짐' : '꺼짐');
+    }
+    var ct = node.querySelector('[data-sc-codetoggle]');
+    if (ct) {
+      var cOn = ui.code !== false;
+      ct.classList.toggle('is-on', cOn);
+      ct.setAttribute('aria-pressed', cOn ? 'true' : 'false');
+      ct.textContent = '친구 코드 ' + (cOn ? '켜짐' : '꺼짐');
     }
   }
 
@@ -3739,6 +4039,33 @@
         }
 
         node.addEventListener('click', function (ev) {
+          /* bm-v1.80.0 — 스매시 임팩트 카드 켜기/끄기 */
+          if (ev.target.closest('[data-sc-smash]')) {
+            ev.preventDefault();
+            if (ui.design === SMASH_DESIGN) ui.design = presetDesignId(readPrefs().design);
+            else ui.design = SMASH_DESIGN;
+            BM.ui.haptic(8);
+            refresh();
+            return;
+          }
+          if (ev.target.closest('[data-sc-rackettoggle]')) {
+            ev.preventDefault();
+            ui.racket = (ui.racket === false);
+            BM.ui.haptic(6);
+            syncLook(node);
+            writePrefs({ racket: ui.racket });
+            repaint();
+            return;
+          }
+          if (ev.target.closest('[data-sc-codetoggle]')) {
+            ev.preventDefault();
+            ui.code = (ui.code === false);
+            BM.ui.haptic(6);
+            syncLook(node);
+            writePrefs({ code: ui.code });
+            repaint();
+            return;
+          }
           /* 대회 인증 카드 프레임 (bm-v1.64.0) */
           var fr = ev.target.closest('[data-sc-frame]');
           if (fr) {

@@ -312,9 +312,9 @@
   test('v1.16 버전: sw·app·화면 캐시·README가 함께 올라간다', function () {
     if (!hasNode()) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html'), readme = readRoot('README.md');
-    includes(sw, "var VERSION = 'bm-v1.79.0'", 'sw.js');
-    includes(app, "version: 'v1.79.0'", 'app.js');
-    includes(index, 'styles.css?v=20261126-1', '스타일 캐시');
+    includes(sw, "var VERSION = 'bm-v1.80.0'", 'sw.js');
+    includes(app, "version: 'v1.80.0'", 'app.js');
+    includes(index, 'styles.css?v=20261126-2', '스타일 캐시');
     includes(readme, 'v1.31.0', 'README 변경 이력');
     includes(readme, 'APPS_SCRIPT_BRIDGE.gs', '브리지 안내');
   });

@@ -273,13 +273,13 @@
 
   test('v1.68 버전: sw · app · 스타일 캐시 · TWA · 테스트 목록이 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.79.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.79.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261126-1', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.80.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.80.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261126-2', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.79.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.79.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 73, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.80.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.80.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 74, 'TWA 버전 코드');
     includes(readRoot('test/run.js'), 'test/v168.test.js', '테스트 목록 배선');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

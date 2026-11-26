@@ -174,6 +174,13 @@
     var balance = hearts.balance || 0;
     return { cost: cost, balance: balance, short: balance < cost };
   }
+  /* bm-v1.80.0 — 다른 사람의 커스텀 라켓 한 자루 (급수·지역 옆에 작게) */
+  function racketMini(state, userKey) {
+    if (!BM.racketcustom) return '';
+    return '<span class="pcard__rk" data-rk-person="' + U.esc(userKey) + '">' +
+      BM.racketcustom.personHtml(state, userKey) + '</span>';
+  }
+
   function playerCard(p, state) {
     var st = statusOf(state, p);
     var mp = myProfile(state);
@@ -206,7 +213,7 @@
       '<div class="pcard__id"><div class="pcard__name">' + U.esc(p.nick) +
       gradePill(p) + genderPill(p) +
       (st.friend.state === 'friends' ? '<span class="pill pill--friend">친구</span>' : '') + '</div>' +
-      '<p class="pcard__meta">' + (meta || '지역 미입력') + '</p></div>' +
+      '<p class="pcard__meta">' + racketMini(state, p.userKey) + (meta || '지역 미입력') + '</p></div>' +
       '<div class="pcard__side"><div class="fit"><strong>' + scored.score + '</strong><span>궁합</span></div>' +
       /* bm-v1.79.0 — 요청 전에도 부담 없이 건네는 '응원 하트 1개'(카드 안에서 바로) */
       '<button type="button" class="cheerbtn cheerbtn--sm" data-cheer="' + key + '"' +
@@ -599,6 +606,25 @@
   }
 
   /* ---------- 프로필 시트(요청 전 확인) ---------- */
+  /* bm-v1.80.0 — 상대의 커스텀 라켓 + 친구 코드로 초대 (요청 흐름은 아래 그대로) */
+  function racketSheetRow(state, p) {
+    if (!BM.racketcustom) return '';
+    var c = BM.racketcustom.customFor(state, p.userKey);
+    var mine = !!(state.me && state.me.key === p.userKey);
+    var codeText = (BM.views && BM.views.friends && BM.views.friends.myCodeText)
+      ? BM.views.friends.myCodeText(state) : '';
+    return '<div class="pp__racket" data-racket="' + U.esc(p.userKey) + '">' +
+      '<span class="pp__racketart">' + BM.racketcustom.svg(c, { level: 'prime' }) + '</span>' +
+      '<div class="pp__rackettx">' +
+      '<b>커스텀 라켓</b>' +
+      '<span>' + U.esc(BM.racketcustom.hasCustom(c) ? BM.racketcustom.specText(c) : '아직 기본 라켓이에요') + '</span>' +
+      '</div>' +
+      (!mine && codeText
+        ? '<button type="button" class="btn btn--ghost btn--sm pp__invite" data-code-copy="' + U.esc(codeText) + '">친구 코드 초대</button>'
+        : '') +
+      '</div>';
+  }
+
   function profileBody(state, p) {
     var st = statusOf(state, p);
     var mp = myProfile(state);
@@ -663,6 +689,8 @@
       '<p class="pp__meta">' + (metaHtml(p) || '지역 미입력') + '</p>' +
       UI.presence(D.presenceOf(state.data.idx, p.userKey), { cls: 'presence--profile' }) +
       '</div></div>' +
+      /* bm-v1.80.0 — 상대의 커스텀 라켓 → 바로 매칭 요청·친구 코드 초대 */
+      racketSheetRow(state, p) +
       '<p class="pp__match">궁합 <b>' + scored.score + '</b>' +
       (scored.reasons.length ? '<span class="pp__why">' + U.esc(scored.reasons.slice(0, 3).join(' · ')) + '</span>' : '') + '</p>' +
       /* 하트 소모 안내는 요청 버튼까지 스크롤하지 않아도 보이게 맨 위에 둡니다 */
@@ -1446,6 +1474,8 @@
     /* 프로필 시트 본문 */
     profileBody: profileBody,
     playerCard: playerCard,
+    racketSheetRow: racketSheetRow,
+    racketMini: racketMini,
     letterHtml: letterHtml,
     letterBody: letterBody,
     openLetterCompose: openLetterCompose,

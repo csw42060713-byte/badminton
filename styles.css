@@ -7484,3 +7484,389 @@ body {
 }
 .topicbar::-webkit-scrollbar, .topicpick::-webkit-scrollbar { display: none; }
 .topicbar .chip, .topicpick .chip { flex: none; }
+
+/* ============================================================
+ * bm-v1.80.0 — 🏸 내 커스텀 라켓 (상단 미니 위젯 · 꾸미기 시트 · 매칭/프로필)
+ *   · 운동 상태(최상·보통·느슨·끊어짐)는 색과 작은 점으로만 알립니다.
+ *   · 파츠 칸은 5개씩 한 줄 — 손가락으로 누르기 좋은 68px 높이.
+ * ============================================================ */
+.hdr__right .hedracket {
+  flex: none; width: 34px; height: 34px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 11px; border: 1px solid var(--line);
+  background: var(--card); box-shadow: var(--shadow-soft);
+  position: relative; overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+}
+.hedracket:active { transform: scale(0.95); }
+.hedracket__art { display: block; width: 20px; height: 30px; transform: rotate(-16deg); }
+.hedracket__art .rksvg { width: 100%; height: 100%; display: block; }
+.hedracket::after {
+  content: ''; position: absolute; right: 3px; top: 3px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--good); box-shadow: 0 0 0 2px var(--card);
+}
+.hedracket.is-worn::after { background: var(--warn); }
+.hedracket.is-broken::after { background: var(--bad); }
+.hedracket.is-prime { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.hedracket.is-prime .hedracket__art { filter: drop-shadow(0 0 4px rgba(198,242,78,0.55)); }
+.hedracket.is-broken .hedracket__art { transform: rotate(-24deg); opacity: 0.9; }
+
+/* 다른 사람 카드·프로필의 작은 라켓 */
+.rkmini { display: inline-block; width: 18px; height: 26px; transform: rotate(-14deg); vertical-align: -6px; }
+.rkmini .rksvg { width: 100%; height: 100%; display: block; }
+.rkmini--prime { filter: drop-shadow(0 0 3px rgba(198,242,78,0.5)); }
+.rkperson { display: inline-flex; width: 15px; height: 22px; margin-right: 5px; vertical-align: -5px; transform: rotate(-14deg); }
+.rkperson .rksvg { width: 100%; height: 100%; display: block; }
+.rkperson.is-default { opacity: 0.55; }
+.pcard__rk { display: inline-flex; align-items: center; margin-right: 2px; }
+
+/* 프로필 시트 — 커스텀 라켓 한 줄 */
+.pp__racket {
+  display: flex; align-items: center; gap: 10px;
+  margin: 10px 0 2px; padding: 10px 12px;
+  border-radius: 14px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card-2, var(--card)) 90%, transparent);
+}
+.pp__racketart { flex: none; width: 26px; height: 38px; transform: rotate(-14deg); }
+.pp__racketart .rksvg { width: 100%; height: 100%; display: block; }
+.pp__rackettx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.pp__rackettx b { font-size: 12px; font-weight: 900; color: var(--text); }
+.pp__rackettx span {
+  font-size: 11.6px; font-weight: 700; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pp__invite { flex: none; }
+
+/* 꾸미기 시트 */
+.rksheet { display: grid; gap: 14px; }
+.rkhero {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px; border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%);
+}
+.rkhero--worn { background: linear-gradient(135deg, color-mix(in srgb, var(--warn) 14%, transparent), transparent 70%); }
+.rkhero--broken { background: linear-gradient(135deg, color-mix(in srgb, var(--bad) 14%, transparent), transparent 70%); }
+.rkhero__art { flex: none; width: 58px; height: 84px; transform: rotate(-14deg); }
+.rkhero__art .rksvg { width: 100%; height: 100%; display: block; }
+.rkhero--prime .rkhero__art { filter: drop-shadow(0 0 8px rgba(198,242,78,0.45)); }
+.rkhero__txt { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.rkhero__badge {
+  justify-self: start; margin: 0 0 2px; padding: 3px 9px;
+  border-radius: 999px; font-size: 10.5px; font-weight: 900; letter-spacing: 0.2px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent);
+}
+.rkhero--worn .rkhero__badge { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+.rkhero--broken .rkhero__badge { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+.rkhero__t { margin: 0; font-size: 15px; font-weight: 900; letter-spacing: -0.3px; color: var(--text); }
+.rkhero__s { margin: 0; font-size: 12px; font-weight: 600; color: var(--text-2); line-height: 1.45; }
+.rkhero__r {
+  margin: 2px 0 0; font-size: 11.2px; font-weight: 700; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rkpoints {
+  padding: 13px 14px; border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--card));
+}
+.rkpoints__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.rkpoints__top b { font-size: 13px; font-weight: 900; color: var(--text); }
+.rkpoints__top b i { font-style: normal; color: var(--accent); font-variant-numeric: tabular-nums; }
+.rkpoints__top span { font-size: 10.6px; font-weight: 800; color: var(--muted); }
+.rkpoints__line { margin: 6px 0 0; font-size: 11.6px; font-weight: 700; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.rkpoints__line small { color: var(--muted); font-weight: 700; }
+.rkpoints__hint { margin: 4px 0 0; font-size: 11.2px; font-weight: 600; color: var(--muted); }
+.rkgroup { display: grid; gap: 8px; }
+.rkhead { display: flex; align-items: baseline; gap: 7px; }
+.rkhead b { font-size: 12.6px; font-weight: 900; color: var(--text); }
+.rkhead span { font-size: 10.8px; font-weight: 700; color: var(--muted); }
+.rkparts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.rkpart {
+  position: relative; display: grid; justify-items: center; gap: 4px;
+  padding: 9px 4px 7px; min-height: 76px;
+  border-radius: 13px; border: 1px solid var(--line); background: var(--card);
+  font: inherit; color: var(--text); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.rkpart:active { transform: scale(0.97); }
+.rkpart.is-on { border-color: var(--accent); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent) inset; }
+.rkpart.is-lock { opacity: 0.86; }
+.rkpart__sw {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--c, #333); border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: inset 0 -3px 6px rgba(0,0,0,0.25);
+}
+.rkpart__sw[style*="transparent"] { background: repeating-linear-gradient(45deg, #3a3f3d, #3a3f3d 3px, #2b2f2d 3px, #2b2f2d 6px); }
+.rkpart__n {
+  font-size: 9.4px; font-weight: 800; line-height: 1.15; letter-spacing: -0.2px;
+  text-align: center; word-break: keep-all;
+}
+.rkpart__p { font-size: 9.2px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rkpart__p.is-cost { color: var(--accent); }
+.rkpart__lock { position: absolute; top: 4px; right: 4px; font-size: 8px; opacity: 0.75; }
+.rkactions { display: flex; gap: 8px; }
+.rkactions .btn { min-height: 42px; }
+
+/* 저장 직후 화면 아래 공유 바 */
+.saveshare {
+  position: fixed; left: 12px; right: 12px;
+  /* 일지 탭의 '저장하고 AI 분석' 고정 바(약 66px) 바로 위에 뜨도록 */
+  bottom: calc(var(--nav-h) + var(--safe-b) + 92px);
+  z-index: 46; pointer-events: none;
+}
+.saveshare__card {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 10px 9px 12px; border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+  backdrop-filter: blur(10px);
+  animation: saveshareIn 320ms cubic-bezier(.2,.9,.25,1.05) both;
+}
+@keyframes saveshareIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.saveshare__rk { flex: none; width: 22px; height: 32px; transform: rotate(-14deg); }
+.saveshare__rk .rksvg { width: 100%; height: 100%; display: block; }
+.saveshare__txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.saveshare__t {
+  margin: 0; font-size: 12.2px; font-weight: 900; letter-spacing: -0.2px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.saveshare__s {
+  margin: 0; font-size: 10.8px; font-weight: 700; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.saveshare__go {
+  flex: none; min-height: 36px; padding: 0 14px; border-radius: 12px;
+  border: 0; font: inherit; font-size: 12.5px; font-weight: 900; color: #08130a;
+  background: linear-gradient(135deg, #c6f24e, #a8e63f);
+}
+.saveshare__go:active { transform: scale(0.96); }
+.saveshare__x {
+  flex: none; width: 30px; height: 30px; border-radius: 10px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  font-size: 12px; font-weight: 900;
+}
+
+/* 일지 분석 카드 안의 저장 직후 스트립 */
+.sharebar--now {
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line));
+  border-radius: 16px; padding: 12px; margin-top: 16px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
+}
+.sharebar__top { display: flex; align-items: center; gap: 9px; }
+.sharebar__rk { flex: none; width: 20px; height: 30px; transform: rotate(-14deg); }
+.sharebar__rk .rksvg { width: 100%; height: 100%; display: block; }
+.sharebar__hd { flex: 1; min-width: 0; }
+.sharebar__x {
+  flex: none; width: 28px; height: 28px; border-radius: 9px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  font-size: 11px; font-weight: 900;
+}
+.sharebar--now .sharebar__t { font-size: 13px; }
+.sharebar__hint { margin: 7px 0 0; font-size: 11.4px; font-weight: 600; color: var(--muted); }
+.sharebar__hint b { color: var(--accent); }
+
+/* 공유 시트 — 스매시 임팩트 배너 */
+.sc__smashban {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  margin-top: 10px; padding: 10px 12px;
+  border-radius: 16px; border: 1px dashed color-mix(in srgb, var(--accent) 46%, var(--line));
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
+  font: inherit; color: var(--text); text-align: left; cursor: pointer;
+}
+.sc__smashban.is-on {
+  border-style: solid;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--card));
+}
+.sc__smashart { flex: none; width: 24px; height: 36px; transform: rotate(-18deg); }
+.sc__smashart .rksvg { width: 100%; height: 100%; display: block; }
+.sc__smashtx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.sc__smashtx b { font-size: 12.6px; font-weight: 900; letter-spacing: -0.2px; }
+.sc__smashtx b i {
+  font-style: normal; font-size: 9px; font-weight: 900; letter-spacing: 0.8px;
+  margin-left: 4px; padding: 2px 5px; border-radius: 5px;
+  background: var(--accent); color: #08130a; vertical-align: 1px;
+}
+.sc__smashtx small { font-size: 10.6px; font-weight: 600; color: var(--muted); line-height: 1.3; }
+.sc__smashsw {
+  flex: none; font-size: 10.8px; font-weight: 900; color: var(--accent);
+  padding: 5px 9px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.sc__preview.is-smash { background: #060a09; }
+
+/* ============================================================
+ * 저장 순간의 스매시 임팩트 (0.88초 · 조작을 막지 않음)
+ *  라켓이 갈라지고 충격파 링·빛줄기 파편·오늘 수치가 사방으로 퍼집니다.
+ * ============================================================ */
+.smashburst {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  pointer-events: none; overflow: hidden;
+}
+/* 순간적으로 화면을 살짝 눌러 임팩트가 도드라지게 (0.88초 뒤 사라짐) */
+.smashburst::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 46%, rgba(4,10,7,0.66) 0%, rgba(4,10,7,0.86) 58%, rgba(4,10,7,0.80) 100%);
+  animation: smashDim 880ms ease-out both;
+}
+@keyframes smashDim {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  76% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.smash__stage { position: relative; width: 0; height: 0; }
+.smash__flash {
+  position: absolute; left: -140px; top: -140px; width: 280px; height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(247,255,223,0.55) 38%, rgba(247,255,223,0) 72%);
+  animation: smashFlash 880ms ease-out both;
+}
+@keyframes smashFlash {
+  0% { opacity: 0; transform: scale(0.18); }
+  14% { opacity: 1; transform: scale(1.12); }
+  38% { opacity: 0.85; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(2.3); }
+}
+.smash__ring {
+  position: absolute; border-radius: 50%;
+  border: 4px solid rgba(198,242,78,0.9);
+  animation: smashRing 880ms cubic-bezier(.15,.75,.2,1) both;
+}
+.smash__ring--2 { border-color: rgba(242,193,78,0.85); border-width: 3px; animation-delay: 40ms; }
+.smash__ring--3 { border-color: rgba(255,255,255,0.72); border-width: 2px; animation-delay: 80ms; }
+@keyframes smashRing {
+  0% { width: 24px; height: 24px; margin: -12px 0 0 -12px; opacity: 0.95; }
+  70% { opacity: 0.45; }
+  100% { width: 286px; height: 286px; margin: -143px 0 0 -143px; opacity: 0; }
+}
+.smash__rays {
+  position: absolute; left: -190px; top: -190px; width: 380px; height: 380px;
+  background: conic-gradient(from 0deg,
+    rgba(198,242,78,0.55) 0deg 6deg, transparent 6deg 30deg,
+    rgba(242,193,78,0.42) 30deg 36deg, transparent 36deg 60deg,
+    rgba(247,255,223,0.40) 60deg 65deg, transparent 65deg 90deg,
+    rgba(198,242,78,0.45) 90deg 96deg, transparent 96deg 120deg,
+    rgba(242,193,78,0.40) 120deg 126deg, transparent 126deg 150deg,
+    rgba(247,255,223,0.35) 150deg 155deg, transparent 155deg 180deg,
+    rgba(198,242,78,0.45) 180deg 186deg, transparent 186deg 210deg,
+    rgba(242,193,78,0.40) 210deg 216deg, transparent 216deg 240deg,
+    rgba(247,255,223,0.35) 240deg 245deg, transparent 245deg 270deg,
+    rgba(198,242,78,0.45) 270deg 276deg, transparent 276deg 300deg,
+    rgba(242,193,78,0.40) 300deg 306deg, transparent 306deg 330deg,
+    rgba(247,255,223,0.35) 330deg 335deg, transparent 335deg 360deg);
+  border-radius: 50%; opacity: 0;
+  animation: smashRays 880ms ease-out both;
+}
+@keyframes smashRays {
+  0% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  18% { opacity: 0.9; }
+  100% { opacity: 0; transform: scale(1.35) rotate(22deg); }
+}
+.smash__shards { position: absolute; left: 0; top: 0; }
+.smash__shard {
+  position: absolute; left: -1px; top: 0;
+  width: var(--w, 3px); height: var(--h, 18px);
+  margin-top: 10px;
+  margin-left: calc(var(--w, 3px) / -2);
+  background: var(--c, #c6f24e);
+  transform-origin: 50% 0;
+  border-radius: 1px; opacity: 0;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--c, #c6f24e) 70%, transparent);
+  animation: smashShard 880ms cubic-bezier(.1,.8,.2,1) var(--dl, 0ms) both;
+}
+@keyframes smashShard {
+  0% { opacity: 0; transform: rotate(var(--a)) rotate(var(--tilt, 0deg)) translateY(4px) scaleY(0.25); }
+  12% { opacity: var(--o, 0.9); }
+  66% { opacity: var(--o, 0.9); }
+  100% { opacity: 0; transform: rotate(var(--a)) rotate(var(--tilt, 0deg)) translateY(var(--d)) scaleY(1); }
+}
+.smash__racket {
+  position: absolute; left: 0; top: 0; width: 0; height: 0;
+  animation: smashRacket 880ms cubic-bezier(.2,.85,.2,1) both;
+}
+.smash__half { position: absolute; left: -65px; top: -103px; width: 130px; height: 206px; }
+.smash__half .rksvg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 0 10px rgba(198,242,78,0.45)); }
+.smash__half--l { clip-path: polygon(0 0, 52% 0, 46% 34%, 55% 52%, 47% 70%, 52% 100%, 0 100%); animation: smashHalfL 880ms ease-out both; }
+.smash__half--r { clip-path: polygon(52% 0, 100% 0, 100% 100%, 52% 100%, 47% 70%, 55% 52%, 46% 34%); animation: smashHalfR 880ms ease-out both; }
+@keyframes smashHalfL {
+  0% { opacity: 0; transform: scale(0.55) rotate(-4deg); }
+  18% { opacity: 1; transform: scale(1.08) rotate(0deg); }
+  34% { transform: scale(1.02) rotate(0deg); }
+  100% { opacity: 0; transform: translate(-34px, 16px) rotate(-14deg) scale(1.04); }
+}
+@keyframes smashHalfR {
+  0% { opacity: 0; transform: scale(0.55) rotate(4deg); }
+  18% { opacity: 1; transform: scale(1.08) rotate(0deg); }
+  34% { transform: scale(1.02) rotate(0deg); }
+  100% { opacity: 0; transform: translate(34px, -12px) rotate(14deg) scale(1.04); }
+}
+.smash__streak {
+  position: absolute; left: -170px; top: -2px; width: 340px; height: 4px;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 46%, #c6f24e 54%, rgba(255,255,255,0) 100%);
+  transform: rotate(-32deg);
+  filter: drop-shadow(0 0 10px rgba(198,242,78,0.9));
+  opacity: 0; animation: smashStreak 880ms ease-out both;
+}
+@keyframes smashStreak {
+  0% { opacity: 0; transform: rotate(-32deg) scaleX(0.2); }
+  12% { opacity: 1; transform: rotate(-32deg) scaleX(1); }
+  42% { opacity: 0.85; transform: rotate(-32deg) scaleX(1.15); }
+  100% { opacity: 0; transform: rotate(-32deg) scaleX(1.35); }
+}
+.smash__crack {
+  position: absolute; left: -46px; top: -46px; width: 92px; height: 92px;
+  background: linear-gradient(115deg, transparent 46%, #f7ffdf 49%, #c6f24e 51%, transparent 55%);
+  filter: drop-shadow(0 0 6px rgba(198,242,78,0.8));
+  opacity: 0; animation: smashCrack 880ms ease-out both;
+}
+@keyframes smashCrack {
+  0%, 10% { opacity: 0; transform: scale(0.4) rotate(-10deg); }
+  20% { opacity: 1; transform: scale(1) rotate(0deg); }
+  60% { opacity: 0.85; }
+  100% { opacity: 0; transform: scale(1.35) rotate(6deg); }
+}
+.smash__chips { position: absolute; left: 0; top: 0; }
+.smash__chip {
+  position: absolute; left: 0; top: 0;
+  display: grid; gap: 1px; justify-items: center;
+  padding: 8px 12px; border-radius: 14px;
+  background: rgba(6,11,9,0.82);
+  border: 1.5px solid rgba(198,242,78,0.75);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+  transform-origin: 50% 50%;
+  opacity: 0; white-space: nowrap;
+  animation: smashChip 880ms cubic-bezier(.16,.9,.24,1.02) var(--d, 0ms) both;
+}
+.smash__chip:nth-child(2) { border-color: rgba(242,193,78,0.8); }
+.smash__chip:nth-child(4) { border-color: rgba(247,255,223,0.7); }
+.smash__chip i {
+  font-style: normal; font-size: 9px; font-weight: 900; letter-spacing: 1.2px;
+  color: rgba(198,242,78,0.9);
+}
+.smash__chip b { font-size: 15px; font-weight: 900; color: #f7ffdf; letter-spacing: -0.3px; }
+@keyframes smashChip {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.25) rotate(0deg); }
+  22% { opacity: 1; transform: translate(calc(var(--tx) * 0.55), calc(var(--ty) * 0.55)) scale(1.12) rotate(var(--r)); }
+  46% { transform: translate(var(--tx), var(--ty)) scale(0.96) rotate(var(--r)); }
+  62% { transform: translate(var(--tx), var(--ty)) scale(1.04) rotate(var(--r)); }
+  100% { opacity: 0; transform: translate(calc(var(--tx) * 1.09), calc(var(--ty) * 1.09)) scale(1) rotate(var(--r)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .smashburst { display: none; }
+  .saveshare__card { animation: none; }
+}
+.rkundo {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 9px 12px; border-radius: 13px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 9%, var(--card));
+}
+.rkundo__t { font-size: 11.4px; font-weight: 800; color: var(--text-2); }

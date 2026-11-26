@@ -776,7 +776,9 @@
           tension: patch && patch.tension != null ? patch.tension : cur.tension,
           strungAt: patch && patch.strungAt != null ? patch.strungAt : cur.strungAt,
           cycleDays: patch && patch.cycleDays != null ? patch.cycleDays : cur.cycleDays,
-          memo: patch && patch.memo != null ? patch.memo : cur.memo
+          memo: patch && patch.memo != null ? patch.memo : cur.memo,
+          /* bm-v1.80.0 — 커스텀 라켓 색(같은 theme.gear.custom 칸) */
+          custom: patch && patch.custom != null ? patch.custom : cur.custom
         }) : cur;
         var res = actions.saveProfile({ gear: next });
         if (!res || !res.ok) return { ok: false, reason: (res && res.reason) || 'locked' };
