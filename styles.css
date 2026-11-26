@@ -3113,7 +3113,7 @@ summary { display: list-item; }
 .letter--compact .letter__rule { font-size: 10.5px; }
 .dmletters { display: grid; gap: 8px; }
 
-/* bm-v1.79.0 — 첫 화면이 추천 목록으로 바뀌어 .matchintro 안내 카드 스타일은 걷어냈습니다 */
+/* bm-v1.84.0 — 첫 화면이 추천 목록으로 바뀌어 .matchintro 안내 카드 스타일은 걷어냈습니다 */
 
 /* 편지지 카드 — 어디를 눌러도 상세 편지지로 (내부 버튼과 충돌하지 않게 처리) */
 .letter:active { transform: scale(0.995); }
@@ -8173,7 +8173,7 @@ body {
 .rkage--due .rkage__fix { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 22%, transparent); color: #ffd9d4; }
 /* ============================================================
  * 23. 2026-11-25 점심·저녁 사용성 6건 (미리보기 반영)
- * bm-v1.79.0 — 2026-11-25 점심·저녁 사용성 6건
+ * bm-v1.84.0 — 2026-11-25 점심·저녁 사용성 6건
  *  1) MY 하트 부스트 문구·무료 하트 합계 정비 (문구만 바뀜)
  *  2) 게스트 모집 '몇 명' 빠른 칩 (.vitecap)
  *  3) 1:1 코트 약속 체육관 칩·지도 (.apptchips · .apptmap) · 매너 카드 접기 (.manner__fold)

@@ -1439,7 +1439,7 @@
   function sbCard(st, side, land) {
     var mine = side === 'a';
     var who = land ? sbShort(st, side) : sbTeam(st, side);
-    /* bm-v1.79.0 — 가로 보기에서는 어느 쪽이 내 점수인지 배지로 한 번 더 알립니다 */
+    /* bm-v1.84.0 — 가로 보기에서는 어느 쪽이 내 점수인지 배지로 한 번 더 알립니다 */
     var tag = land
       ? '<span class="sb__tag sb__tag--' + (mine ? 'mine' : 'rvl') + '">' + (mine ? '내 팀' : '상대 팀') + '</span>'
       : '';

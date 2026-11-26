@@ -7,7 +7,7 @@
  *
  *  저장: 새 시트 칸·새 DB 컬럼 없이 프로필 꾸미기 JSON(theme.gear) 한 칸.
  *        (theme 은 이미 jsonb/JSON 문자열 칸이라 기기·시트·Supabase 모두 그대로 따라옵니다)
- *          bm-v1.79.0 — 메인·서브 여러 자루는 theme.gears 배열에, 첫 자루는 예전 그대로
+ *          bm-v1.84.0 — 메인·서브 여러 자루는 theme.gears 배열에, 첫 자루는 예전 그대로
  *          theme.gear 에도 함께 적어 둡니다(예전 화면·저장값 호환).
  *  알림: 브라우저 알림은 허용한 사람에게만, 하루 한 번(같은 날 중복 없음).
  *        화면이 보이는 중에는 MY 카드·일지 위 한 줄 배너로만 알립니다.
@@ -21,7 +21,7 @@
 
   /* 자주 쓰는 프리셋 — 칩으로 1탭, 아니면 직접 입력 */
   var STRINGS = ['BG65', 'BG80', '에어로바이트', '엑스볼트63'];
-  /* bm-v1.79.0 — 초심·여성 동호인이 많이 쓰는 21~23 lbs 를 앞에 더했습니다 (21~28) */
+  /* bm-v1.84.0 — 초심·여성 동호인이 많이 쓰는 21~23 lbs 를 앞에 더했습니다 (21~28) */
   var TENSIONS = [21, 22, 23, 24, 25, 26, 27, 28];
   var MAX_RACKETS = 5;          /* 한 사람이 기억해 둘 라켓 수 — 메인 + 서브 */
   var CYCLES = [30, 45, 60, 90];
@@ -290,7 +290,7 @@
     }).join('') + '</div>';
   }
 
-  /* 라켓 한 자루의 입력 묶음 — 자루마다 같은 칸이 하나씩 (bm-v1.79.0) */
+  /* 라켓 한 자루의 입력 묶음 — 자루마다 같은 칸이 하나씩 (bm-v1.84.0) */
   function gearBlock(g, i, total) {
     var cycle = g.cycleDays || DEFAULT_CYCLE;
     var today = U.ymd();
@@ -335,7 +335,7 @@
   function sheetBody(me, extra) {
     var list = listOf(me);
     var arr = list.length ? list.slice() : [blank()];
-    /* '+ 라켓 한 자루 더'로 열면 빈 자루가 붙은 채로 시작합니다 (bm-v1.79.0) */
+    /* '+ 라켓 한 자루 더'로 열면 빈 자루가 붙은 채로 시작합니다 (bm-v1.84.0) */
     if (extra && arr.length < MAX_RACKETS) arr.push(blank());
     return '' +
       '<div class="gearform" data-gear-form>' +

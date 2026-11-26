@@ -270,7 +270,7 @@
       (state.me && state.me.nick) || '', (state.me && state.me.theme && state.me.theme.avatar) || ''].join('|');
   }
 
-  /* bm-v1.79.0 — 조건을 고르기 전 첫 화면에도 선수를 바로 보여 줍니다.
+  /* bm-v1.84.0 — 조건을 고르기 전 첫 화면에도 선수를 바로 보여 줍니다.
    *  · 예전에는 '전체를 누르세요' 안내 카드만 있어 빈 화면처럼 보였습니다.
    *  · 내 동네(지역) → 비슷한 급수 → 궁합 점수 순으로 6명을 먼저 추립니다. */
   function recommendPlayers(state, max) {

@@ -461,7 +461,7 @@
     }).join('');
   }
 
-  /* 몇 명 빠른 선택 칩 (bm-v1.79.0) — 언제·게스트비처럼 2·4·6명을 한 번에
+  /* 몇 명 빠른 선택 칩 (bm-v1.84.0) — 언제·게스트비처럼 2·4·6명을 한 번에
    *  · 누르면 칸에 그대로 적히고, 같은 칩을 다시 누르면 지웁니다. */
   var CAP_CHIPS = ['2', '4', '6'];
   function capChips(cur) {
@@ -780,7 +780,7 @@
           UI.haptic(6);
           return;
         }
-        /* 몇 명 빠른 선택 칩 (bm-v1.79.0) — 2·4·6명을 한 번에, 다시 누르면 지움 */
+        /* 몇 명 빠른 선택 칩 (bm-v1.84.0) — 2·4·6명을 한 번에, 다시 누르면 지움 */
         var cchip = ev.target.closest('[data-vitecap-val]');
         if (cchip) {
           ev.preventDefault();
@@ -1133,7 +1133,7 @@
         /* 체육관 후기의 체육관 이름 — 화면을 다시 그리지 않고 값만 담아 둡니다 */
         var gfInp = ev.target.closest('[data-gymfield]');
         if (gfInp) ctx.actions.setComposerGym(gfInp.getAttribute('data-gymfield'), gfInp.value);
-        /* 몇 명을 손으로 고쳐도 2·4·6명 칩의 켜짐이 따라갑니다 (bm-v1.79.0) */
+        /* 몇 명을 손으로 고쳐도 2·4·6명 칩의 켜짐이 따라갑니다 (bm-v1.84.0) */
         if (vf && vf.getAttribute('data-vitefield') === 'cap') syncCapChips(root, vf.value);
         var ri = ev.target.closest('[data-reply-input]');
         if (ri) replyDrafts[ri.getAttribute('data-reply-input')] = ri.value;

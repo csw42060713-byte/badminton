@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v176.test.js — bm-v1.83.0
+ * test/v176.test.js — bm-v1.84.0
  *   🏸 내 라켓 · 스트링 장력 메모 & 교체 알림
  *
  *   1) 계산 — 장력·주기 정리, 경과일(D+N)·남은 날, ok/soon/due 경계
@@ -389,17 +389,17 @@
    * ========================================================= */
   test('v1.76 버전: sw · app · 스타일 캐시 · TWA · README · 테스트 목록이 함께', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.83.0';", 'sw 캐시 이름');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.84.0';", 'sw 캐시 이름');
     includes(readRoot('sw.js'), "'./js/gear.js'", '새 파일도 오프라인 캐시에');
-    includes(readRoot('app.js'), "version: 'v1.83.0'", 'app 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261126-5', '스타일 캐시');
+    includes(readRoot('app.js'), "version: 'v1.84.0'", 'app 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261126-6', '스타일 캐시');
     includes(readRoot('index.html'), 'js/gear.js', 'index.html 로드');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.83.0', 'TWA 이름');
-    eq(twa.appVersionCode, 77, 'TWA 코드');
-    eq(twa.appVersion, '1.83.0', 'TWA 버전');
+    eq(twa.appVersionName, '1.84.0', 'TWA 이름');
+    eq(twa.appVersionCode, 78, 'TWA 코드');
+    eq(twa.appVersion, '1.84.0', 'TWA 버전');
     var readme = readRoot('README.md');
-    includes(readme, 'bm-v1.83.0', 'README 버전 절');
+    includes(readme, 'bm-v1.84.0', 'README 버전 절');
     includes(readme, '내 라켓 · 스트링', 'README 요약');
     includes(readRoot('test/run.js'), 'test/v176.test.js', '테스트 목록');
   });

@@ -1,5 +1,5 @@
 /* ============================================================
- * test/ux1125.test.js — 2026-11-25 점심·저녁 사용성 점검 6건 (bm-v1.79.0)
+ * test/ux1125.test.js — 2026-11-25 점심·저녁 사용성 점검 6건 (bm-v1.84.0)
  *
  *   1) MY → 하트 부스트 문구·무료 하트 계산 정비
  *      · 오늘 받을 수 있는 무료 하트 합계 = 출석 + 광고 + 첫 광고 보너스 (괄호 안 합과 일치)
@@ -64,7 +64,7 @@
    * 1. 하트 부스트 문구 · 무료 하트 계산
    * ========================================================= */
 
-  test('v1.79 하트: 무료 하트 합계와 괄호 안 항의 합이 같다', function () {
+  test('v1.84 하트: 무료 하트 합계와 괄호 안 항의 합이 같다', function () {
     var s = BM.ads.getStatus({
       balance: 3, checkinReward: 1, canCheckIn: true, checkedInToday: false,
       adReward: 1, adLimit: 5, adUsedToday: 0, adRemaining: 5,
@@ -85,7 +85,7 @@
     eq(total, s.freeHeartsLeft, '합계가 freeHeartsLeft 와 같다');
   });
 
-  test('v1.79 하트: 하트 부스트를 켜면 광고 몫도 커진 값으로 합계가 맞는다', function () {
+  test('v1.84 하트: 하트 부스트를 켜면 광고 몫도 커진 값으로 합계가 맞는다', function () {
     var s = BM.ads.getStatus({
       balance: 0, checkinReward: 2, canCheckIn: true,
       adReward: 2, adLimit: 5, adUsedToday: 0, adRemaining: 5,
@@ -96,7 +96,7 @@
     includes(BM.ads.freeDetail(s), '= 13개', '합계');
   });
 
-  test('v1.79 하트: 광고 버튼 +N 이 광고 몫 + 보너스로 나뉘어 보인다', function () {
+  test('v1.84 하트: 광고 버튼 +N 이 광고 몫 + 보너스로 나뉘어 보인다', function () {
     var s = BM.ads.getStatus({
       balance: 3, adReward: 1, adLimit: 5, adUsedToday: 0, adRemaining: 5,
       nextAdInSec: 0, nextAdAt: 0, dailyBoostAmount: 1, dailyBoostLeft: 1
@@ -108,14 +108,14 @@
     includes(text, '보너스 1', '첫 광고 보너스');
   });
 
-  test('v1.79 하트: 보너스가 없으면 예전 문구 그대로 (합계만)', function () {
+  test('v1.84 하트: 보너스가 없으면 예전 문구 그대로 (합계만)', function () {
     var s = BM.ads.getStatus({
       balance: 3, adReward: 1, adLimit: 5, adUsedToday: 2, adRemaining: 3, nextAdAt: 0
     });
     eq(BM.ads.adMeterText(s), '남은 3/5회 · 지금 바로 +1', '보너스 없으면 +1');
   });
 
-  test('v1.79 하트: 오늘의 부스트(무료)와 하트 3개 부스트(꾸미기)가 문구로 구분된다', function () {
+  test('v1.84 하트: 오늘의 부스트(무료)와 하트 3개 부스트(꾸미기)가 문구로 구분된다', function () {
     var s = BM.ads.getStatus({
       adLimit: 5, adUsedToday: 0, adRemaining: 5, adReward: 1,
       dailyBoostAmount: 1, dailyBoostLeft: 1, dailyBoost: { amount: 1, usedToday: false }
@@ -138,7 +138,7 @@
    * 2. 게스트 모집 '몇 명' 빠른 칩
    * ========================================================= */
 
-  test('v1.79 게스트 모집: 몇 명 칸 아래 2·4·6명 칩이 있고 4명을 고르면 켜진다', function () {
+  test('v1.84 게스트 모집: 몇 명 칸 아래 2·4·6명 칩이 있고 4명을 고르면 켜진다', function () {
     var state = {
       ui: { composerMeet: { cap: '4', when: '', place: '', fee: '' } },
       data: { hearts: {} }
@@ -175,7 +175,7 @@
     return state;
   }
 
-  test('v1.79 채팅: 매너 카드는 기본 접힘 — 한 줄 요약 + 눌러서 펼치기', function () {
+  test('v1.84 채팅: 매너 카드는 기본 접힘 — 한 줄 요약 + 눌러서 펼치기', function () {
     var state = chatState();
     var html = BM.views.chat.roomHtml(state);
     includes(html, 'data-manner-toggle', '접기/펼치기 버튼');
@@ -190,7 +190,7 @@
     }
   });
 
-  test('v1.79 채팅: 코트 약속 시트에 체육관 칩·지도 고르기가 붙는다', function () {
+  test('v1.84 채팅: 코트 약속 시트에 체육관 칩·지도 고르기가 붙는다', function () {
     if (!hasNode) return;
     var src = readRoot('js/views/chat.js');
     includes(src, 'data-apt-gym-map', '지도에서 고르기 버튼');
@@ -244,7 +244,7 @@
     };
   }
 
-  test('v1.79 매칭: 첫 화면에 추천 선수 카드가 바로 보인다', function () {
+  test('v1.84 매칭: 첫 화면에 추천 선수 카드가 바로 보인다', function () {
     var state = matchState();
     ok(state.data.matchProfiles.length >= 3, '선수 카드 3명');
     var html = BM.views.matching.render(state);
@@ -256,14 +256,14 @@
     excludes(html, 'matchintro', '예전 빈 안내 카드는 없음');
   });
 
-  test('v1.79 매칭: 추천은 내 지역·비슷한 급수를 먼저 둔다', function () {
+  test('v1.84 매칭: 추천은 내 지역·비슷한 급수를 먼저 둔다', function () {
     var state = matchState();
     var rec = BM.views.matching.recommendPlayers(state, 3);
     eq(rec[0].nick, '같은동네C조', '같은 지역 + 같은 급수가 첫 번째');
     eq(rec[rec.length - 1].nick, '먼동네A조', '먼 지역·다른 급수는 뒤로');
   });
 
-  test('v1.79 매칭: 전체 선수 보기 버튼은 필터 줄 하나뿐', function () {
+  test('v1.84 매칭: 전체 선수 보기 버튼은 필터 줄 하나뿐', function () {
     var state = matchState();
     var html = BM.views.matching.render(state);
     eq((html.match(/전체 선수 보기/g) || []).length, 1, '중복 버튼 없음');
@@ -279,7 +279,7 @@
    * 5. 내 라켓 여러 자루 + 21~28 lbs
    * ========================================================= */
 
-  test('v1.79 라켓: 장력 칩이 21~28 lbs 로 늘어난다', function () {
+  test('v1.84 라켓: 장력 칩이 21~28 lbs 로 늘어난다', function () {
     var G = BM.gear;
     eq(G.TENSIONS.join(','), '21,22,23,24,25,26,27,28', '21~28');
     eq(G.TENSIONS.length, 8, '8칸');
@@ -289,7 +289,7 @@
     });
   });
 
-  test('v1.79 라켓: 예전 한 자루 저장값도 그대로 읽는다', function () {
+  test('v1.84 라켓: 예전 한 자루 저장값도 그대로 읽는다', function () {
     var G = BM.gear;
     var list = G.listOf({ theme: { gear: { racket: '아스트록스', string: 'BG80', tension: 26 } } });
     eq(list.length, 1, '한 자루');
@@ -298,7 +298,7 @@
     eq(G.listOf({}).length, 0, '없으면 빈 목록');
   });
 
-  test('v1.79 라켓: 여러 자루를 정리하고 5자루까지만 둔다', function () {
+  test('v1.84 라켓: 여러 자루를 정리하고 5자루까지만 둔다', function () {
     var G = BM.gear;
     var list = G.normalizeGearList([
       { racket: 'A', tension: 26 },
@@ -313,7 +313,7 @@
     eq(G.normalizeGearList(many).length, 5, '최대 5자루');
   });
 
-  test('v1.79 라켓: setGears 가 theme.gears 와 theme.gear(첫 자루)에 함께 남긴다', function () {
+  test('v1.84 라켓: setGears 가 theme.gears 와 theme.gear(첫 자루)에 함께 남긴다', function () {
     if (!hasNode) return;
     return storeWith([]).then(function (store) {
       var res = store.actions.setGears([
@@ -336,7 +336,23 @@
     });
   });
 
-  test('v1.79 라켓: MY 카드가 두 자루를 메인 표시와 함께 그린다', function () {
+  test('v1.84 라켓: 테마를 바꿔도 여러 자루와 커스텀 색이 그대로다', function () {
+    if (!hasNode) return;
+    return storeWith([]).then(function (store) {
+      store.actions.setGears([
+        { racket: '아스트록스 88D 프로', string: 'BG80', tension: 26, strungAt: dayAgo(40), cycleDays: 30 },
+        { racket: '아크세이버 7 프로', string: 'BG65', tension: 22, strungAt: dayAgo(8), cycleDays: 45 }
+      ]);
+      unlock(store);
+      var res = store.actions.setTheme('th_night');
+      ok(res && res.ok, '테마 저장 성공');
+      eq(store.state.me.gears.length, 2, '테마를 바꿔도 두 자루');
+      eq((store.state.me.theme.gears || []).length, 2, '꾸미기 JSON 에도 두 자루');
+      eq(store.state.me.gear.racket, '아스트록스 88D 프로', '첫 자루는 예전 칸에도');
+    });
+  });
+
+  test('v1.84 라켓: MY 카드가 두 자루를 메인 표시와 함께 그린다', function () {
     var state = {
       me: {
         theme: {
@@ -359,7 +375,7 @@
     includes(html, 'data-gear-state="due"', '가장 급한 자루 상태로 카드 배지');
   });
 
-  test('v1.79 라켓: 시트에 두 자루 칸과 자루 지우기가 있다', function () {
+  test('v1.84 라켓: 시트에 두 자루 칸과 자루 지우기가 있다', function () {
     var me = {
       theme: {
         gears: [
@@ -383,7 +399,7 @@
     }
   });
 
-  test('v1.79 라켓: 오늘 갈았어요는 고른 자루만 바꾼다', function () {
+  test('v1.84 라켓: 오늘 갈았어요는 고른 자루만 바꾼다', function () {
     if (!hasNode) return;
     return storeWith([]).then(function (store) {
       store.actions.setGears([
@@ -401,7 +417,7 @@
     });
   });
 
-  test('v1.79 라켓: 한 자루만 있으면 예전 setGear 도 그대로 동작한다', function () {
+  test('v1.84 라켓: 한 자루만 있으면 예전 setGear 도 그대로 동작한다', function () {
     if (!hasNode) return;
     return storeWith([]).then(function (store) {
       var r1 = store.actions.setGear({ racket: '아스트록스', string: 'BG80', tension: 26, strungAt: dayAgo(10), cycleDays: 60 });
@@ -420,7 +436,7 @@
    * 6. 코트 점수판 가로 보기 팀 구분
    * ========================================================= */
 
-  test('v1.79 점수판: 가로 보기에 내 팀·상대 팀 배지가 붙는다', function () {
+  test('v1.84 점수판: 가로 보기에 내 팀·상대 팀 배지가 붙는다', function () {
     var SB = BM.scoreboard;
     var st = SB.create({ partner: '콕집사', rival: '발놀림장인' });
     var land = BM.views.log.scoreboardHtml(st, { land: true });
@@ -434,7 +450,7 @@
     ok(land.indexOf('data-sb-point="a"') < land.indexOf('data-sb-point="b"'), '내 팀이 왼쪽');
   });
 
-  test('v1.79 점수판: 세로 보기는 예전 그대로 (배지 없음)', function () {
+  test('v1.84 점수판: 세로 보기는 예전 그대로 (배지 없음)', function () {
     var SB = BM.scoreboard;
     var st = SB.create({ partner: '콕집사', rival: '발놀림장인' });
     var port = BM.views.log.scoreboardHtml(st, { land: false });
@@ -443,7 +459,7 @@
     includes(port, '상대 팀 · 발놀림장인', '상대도 그대로');
   });
 
-  test('v1.79 점수판: 가로 팀 색 구분 CSS 가 있다', function () {
+  test('v1.84 점수판: 가로 팀 색 구분 CSS 가 있다', function () {
     if (!hasNode) return;
     var css = readRoot('styles.css');
     includes(css, '.sbfull.is-land .sb__tag--rvl', '상대 팀 배지 색');
@@ -456,14 +472,30 @@
    * 보호 — 기존 화면·칸은 그대로
    * ========================================================= */
 
-  test('v1.79 보호: 5개 탭·시트 26칸·버전은 그대로 (미리보기 단계)', function () {
+  test('v1.84 보호: 5개 탭·시트 26칸은 그대로', function () {
     if (!hasNode) return;
     var app = readRoot('app.js');
     ['log', 'matching', 'community', 'coach', 'my'].forEach(function (id) {
       includes(app, "id: '" + id + "'", '탭 ' + id);
     });
     eq(D.COLS.length, 26, '시트 26칸');
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.78.0'", '미리보기는 버전을 올리지 않음');
     includes(readRoot('test/run.js'), 'test/ux1125.test.js', '테스트 목록 배선');
+  });
+
+  /* =========================================================
+   * 버전 — bm-v1.84.0 (sw · app · push · 스타일 캐시 · TWA · README)
+   * ========================================================= */
+
+  test('v1.84 버전: sw · app · push · 스타일 캐시 · TWA · README', function () {
+    if (!hasNode) return;
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.84.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.84.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.84.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261126-6', '스타일 캐시 키');
+    var twa = JSON.parse(readRoot('twa-manifest.json'));
+    eq(twa.appVersionName, '1.84.0', 'TWA 이름');
+    eq(twa.appVersion, '1.84.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 78, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.84.0', 'README');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
