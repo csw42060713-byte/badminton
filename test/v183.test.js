@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v183.test.js — bm-v1.85.0
+ * test/v183.test.js — bm-v1.86.0
  *   🤖 피로 점프 · 무릎-허리 연쇄 보호 AI 고도화
  *
  *   1) 피로 점프 — 컨디션 낮음/최근 센 훈련 누적 + 점프·스매시 → 전환 경고 + 네트·스텝 드릴
@@ -258,15 +258,15 @@
    * ========================================================= */
   test('v1.83 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.85.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.85.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.85.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261126-7', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.86.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.86.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.86.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261126-8', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.85.0', 'TWA 이름');
-    eq(twa.appVersion, '1.85.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 79, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.85.0', 'README');
+    eq(twa.appVersionName, '1.86.0', 'TWA 이름');
+    eq(twa.appVersion, '1.86.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 80, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.86.0', 'README');
     includes(readRoot('test/run.js'), 'test/v183.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

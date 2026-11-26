@@ -1141,7 +1141,8 @@
         if (!BM.racketcustom) return { ok: false, reason: 'unknown' };
         slot = String(slot || '');
         id = String(id || '');
-        if (BM.racketcustom.SLOTS.indexOf(slot) < 0 && slot !== 'body') return { ok: false, reason: 'unknown' };
+        if (BM.racketcustom.isPartSlot ? !BM.racketcustom.isPartSlot(slot)
+          : (BM.racketcustom.SLOTS.indexOf(slot) < 0 && slot !== 'body')) return { ok: false, reason: 'unknown' };
         var key = slot + ':' + id;
         var price = BM.racketcustom.priceOf(slot, id);
         /* 관리자(csw42060713@gmail.com)는 모든 바디·파츠·효과가 열려 있습니다 — 하트를 쓰지 않습니다 */
