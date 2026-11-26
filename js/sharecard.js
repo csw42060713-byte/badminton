@@ -3511,6 +3511,7 @@
 
   function hintOf(design, ratio) {
     if (design === 'sticker') return '투명 PNG라 내 사진·스토리 위에 그대로 붙일 수 있어요.';
+    if (design === 'smash') return '내 라켓이 터지며 오늘 수치가 퍼지는 카드예요 · 사진 없이도 꽉 차요.';
     if (ratio === 'story') return '스토리는 위·아래 220px를 비워 프로필·답장창에 가리지 않아요.';
     return '피드 4:5예요. 스토리에 올리려면 비율을 스토리로 바꿔 주세요.';
   }
@@ -3622,9 +3623,12 @@
     }).join('') + '</div>';
 
     /* 한 줄 안내 — 3초 안에 무엇을 할지 */
-    var guide = '<p class="sc__guide">' +
-      '<span><em>1</em>사진 고르고</span><i aria-hidden="true">→</i>' +
-      '<span><em>2</em>저장 누르면 끝!</span></p>';
+    var guide = smash
+      ? '<p class="sc__guide"><span><em>⚡</em>내 라켓이 터지는 스매시 카드</span><i aria-hidden="true">→</i>' +
+        '<span><em>2</em>저장 누르면 끝!</span></p>'
+      : '<p class="sc__guide">' +
+        '<span><em>1</em>사진 고르고</span><i aria-hidden="true">→</i>' +
+        '<span><em>2</em>저장 누르면 끝!</span></p>';
 
     /* 미리보기 — 시트를 열면 가장 먼저 카드가 보입니다 */
     var preview = '<div class="sc__preview' + (sticker ? ' is-sticker' : '') + (smash ? ' is-smash' : '') + '">' +
