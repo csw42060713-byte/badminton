@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v181.test.js — bm-v1.82.0
+ * test/v181.test.js — bm-v1.83.0
  *   🏸 실제 배드민턴 라켓 3D · 바디 4종 · 등급 · 효과(연출) · 줄 갈고 며칠째
  *
  *  1) 바디 4종 — 실제 비율(헤드:샤프트:그립 ≈ 25:22:20), 모델마다 실루엣·프레임 두께·데칼이 다르다
@@ -156,7 +156,7 @@
     var checked = 0;
     RC.SLOTS.forEach(function (slot) {
       RC.itemsOf(slot).forEach(function (it) {
-        if (it.heart) return;        /* bm-v1.82.0 — 하트로 여는 스페셜 스매시는 포인트 가격표 밖 */
+        if (it.heart) return;        /* bm-v1.83.0 — 하트로 여는 스페셜 스매시는 포인트 가격표 밖 */
         var cost = it.free ? 0 : it.cost;
         var range = band[it.rarity];
         ok(range, slot + ':' + it.id + ' 등급 있음');
@@ -192,7 +192,7 @@
   test('v1.81 효과: 효과 칸에 5종, 없음은 무료 · 레어 50P · 에픽 80/100P · 레전드 150P', function () {
     eq(RC.SLOTS.indexOf('effect'), 5, '여섯 번째 칸');
     var list = RC.itemsOf('effect');
-    /* bm-v1.82.0 — 하트로 여는 스페셜 스매시(불꽃·번개) 2종이 더해져 일곱 종 */
+    /* bm-v1.83.0 — 하트로 여는 스페셜 스매시(불꽃·번개) 2종이 더해져 일곱 종 */
     eq(list.length, 7, '일곱 종');
     eq(list.filter(function (it) { return it.heart; }).length, 2, '하트로 여는 2종');
     var byId = {};
@@ -385,15 +385,15 @@
 
   test('v1.81 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.82.0'", 'sw.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.83.0'", 'sw.js');
     includes(readRoot('sw.js'), "'./js/racketcustom.js'", 'sw 캐시');
-    includes(readRoot('app.js'), "version: 'v1.82.0'", 'app.js');
-    includes(readRoot('js/push.js'), "version: 'v1.82.0'", 'push.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261126-4', '스타일 캐시 키');
+    includes(readRoot('app.js'), "version: 'v1.83.0'", 'app.js');
+    includes(readRoot('js/push.js'), "version: 'v1.83.0'", 'push.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261126-5', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.82.0', 'TWA 이름');
-    eq(twa.appVersionCode, 76, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.82.0', 'README');
+    eq(twa.appVersionName, '1.83.0', 'TWA 이름');
+    eq(twa.appVersionCode, 77, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.83.0', 'README');
     includes(readRoot('test/run.js'), 'test/v181.test.js', '테스트 목록');
   });
 

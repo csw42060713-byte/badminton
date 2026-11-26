@@ -468,12 +468,12 @@
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.82.0'", 'sw.js');
-    includes(app, "version: 'v1.82.0'", 'app.js');
-    includes(index, 'styles.css?v=20261126-4', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.82.0', 'TWA 이름');
-    eq(twa.appVersion, '1.82.0', 'TWA 버전');
-    eq(twa.appVersionCode, 76, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.83.0'", 'sw.js');
+    includes(app, "version: 'v1.83.0'", 'app.js');
+    includes(index, 'styles.css?v=20261126-5', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.83.0', 'TWA 이름');
+    eq(twa.appVersion, '1.83.0', 'TWA 버전');
+    eq(twa.appVersionCode, 77, 'TWA 코드');
   });
 
   test('v1.55 스타일: 신고·차단·세부 기록 접기 스타일이 있다', function () {
