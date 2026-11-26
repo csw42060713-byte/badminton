@@ -281,7 +281,7 @@ with sync_playwright() as p:
     }""")
     tap('[data-act="save-log"]', 260)
     check('D 저장 직후 스매시 연출이 화면에 뜬다', has('#smashburst'))
-    shot('smash_burst')
+    shot('smash_burst', keep=True)
     page.wait_for_timeout(900)
     check('D 연출은 0.88초면 사라진다', not has('#smashburst'))
     check('D 화면 아래 공유 바', has('#saveShare') and not page.locator('#saveShare').is_hidden())
