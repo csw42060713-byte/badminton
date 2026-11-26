@@ -94,11 +94,11 @@
     if (!me) return blank();
     var saved = (me.theme && me.theme.gear) || null;
     var mirror = me.gear || null;
-    var raw = null;
-    if (saved && hasGear(saved)) raw = saved;
-    else if (mirror && hasGear(mirror)) raw = mirror;
-    else raw = saved || mirror;
-    return raw ? normalizeGear(raw) : blank();
+    /* bm-v1.84.0 — theme.gear 가 진실입니다. 비어 있게 저장된 뒤 me.gear 사본이 남아 있으면
+     * 사본을 쓰지 않고 '지운 그대로'를 따릅니다(지운 기록이 되살아나지 않게). */
+    if (saved) return normalizeGear(saved);
+    if (mirror && hasGear(mirror)) return normalizeGear(mirror);
+    return blank();
   }
 
   /* 여러 자루 정리 — 배열·한 자루·JSON 문자열을 모두 받습니다.

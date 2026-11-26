@@ -177,9 +177,14 @@
       role: D.roleOf(me)
     };
     if (!t.role) delete t.role;
+    /* bm-v1.84.0 — gear 칸은 항상 남깁니다(값이 없으면 빈 값). 새 행에 칸이 아예 없으면
+     * 앱이 '예전 행의 라켓 기록'을 이어받아, 텐션·라켓이 리셋된 것처럼 보입니다. */
     var gear = BM.gear ? BM.gear.gearOf(me) : ((me.theme && me.theme.gear) || null);
-    if (gear && (!BM.gear || BM.gear.hasGear(gear))) t.gear = gear;
-    /* bm-v1.84.0 — 여러 자루 목록(theme.gears)도 테마를 바꾸면 빠지지 않게 그대로 이어 갑니다. */
+    /* bm-v1.84.0 — 값이 있으면 그대로, 없으면 빈 값이라도 칸을 남깁니다(명시).
+     *  · 이래야 다음에 새 행이 와도 '저장한 라켓 기록'을 잃지 않습니다. */
+    t.gear = (gear && (!BM.gear || BM.gear.hasGear(gear))) ? gear : (BM.gear ? BM.gear.blank() : null);
+    if (!t.gear) delete t.gear;
+    /* bm-v1.84.0(점심·저녁 6건) — 여러 자루 목록(theme.gears)도 테마를 바꾸면 빠지지 않게 이어 갑니다. */
     var gears = BM.gear && BM.gear.listOf ? BM.gear.listOf(me) : ((me.theme && me.theme.gears) || null);
     if (gears && gears.length) { t.gears = gears; t.gear = gears[0]; }
     if (me.theme && me.theme.boost) t.boost = 1;
@@ -1122,31 +1127,48 @@
         return { ok: true, purchased: true, price: price, id: id, balance: (state.data.hearts || {}).balance || 0 };
       },
 
-      /* ---------- bm-v1.82.0: 스페셜 스매시 이펙트를 하트로 해금 ----------
-       *  · 라켓 포인트로 여는 파츠와 달리, 스매시 이펙트(불꽃 스매시·번개 셔틀)는 하트로 삽니다.
-       *  · 잔액 검사·차감은 기존 서버 함수 heart_spend('smash', 'effect:fire')가 합니다
-       *    (supabase/heart-rpc-v1.82-smash.sql). 서버가 아직 이 종류를 모르면 'unknown'만
+      /* ---------- bm-v1.84.0: 바디·파츠·효과를 전부 하트로 해금 ----------
+       *  · '라켓 포인트(P)'를 없애고, 스매시 이펙트만 하던 하트 결제를 모든 파츠로 넓혔습니다.
+       *  · 잔액 검사·차감은 서버 함수 heart_spend('racket', 'slot:id')가 합니다
+       *    (supabase/heart-rpc-v1.84-racket.sql). 서버가 아직 이 종류를 모르면 'unknown'만
        *    돌려주므로 하트는 그대로이고 화면은 안내만 합니다.
-       *  · 해금 기록은 기존 '꾸미기구매' 행 그대로(target=effect:fire) — 새 칸·새 DB 컬럼 없음.
+       *  · 효과(effect)는 예전 서버 kind('smash')도 알고 있으니, 새 SQL 전에도 그쪽으로 한 번 더 시도합니다.
+       *  · 해금 기록은 기존 '꾸미기구매' 행 그대로(target=slot:id) — 새 칸·새 DB 컬럼 없음.
        *  · 차감과 장착을 한 번에: 하트만 빠지고 장착이 안 되는 일이 없도록 이어서 저장합니다. */
-      buySmash: function (slot, id) {
+      buyRacketPart: function (slot, id) {
         var me = state.me || {};
         if (!me.key) return { ok: false, reason: 'no_login' };
         if (!BM.racketcustom) return { ok: false, reason: 'unknown' };
-        slot = String(slot || 'effect');
-        var key = slot + ':' + String(id || '');
-        var price = BM.racketcustom.heartCostOf(slot, id);
-        if (!price) return { ok: false, reason: 'unknown' };
-        if (!tryLock('smash:' + key, 1500)) return { ok: false, reason: 'locked' };
-        var cur = BM.racketcustom.customOf(me);
-        if (BM.racketcustom.isUnlocked(cur, slot, id)) {
-          var own = BM.racketcustom.normalizeCustom(cur);
+        slot = String(slot || '');
+        id = String(id || '');
+        if (BM.racketcustom.SLOTS.indexOf(slot) < 0 && slot !== 'body') return { ok: false, reason: 'unknown' };
+        var key = slot + ':' + id;
+        var price = BM.racketcustom.priceOf(slot, id);
+        /* 관리자(csw42060713@gmail.com)는 모든 바디·파츠·효과가 열려 있습니다 — 하트를 쓰지 않습니다 */
+        if (D.isAdminMe && D.isAdminMe(me)) price = 0;
+        if (!BM.racketcustom.priceOf(slot, id)) return { ok: false, reason: 'unknown' };
+        if (!price) {
+          var curA = BM.racketcustom.customOf(me);
+          var nextA = BM.racketcustom.normalizeCustom(curA);
+          if (nextA.unlocked.indexOf(key) < 0) nextA.unlocked.push(key);
+          nextA[slot] = id;
+          var resA = actions.setGear({ custom: nextA });
+          return resA && resA.ok
+            ? { ok: true, purchased: !resA.gear ? false : true, price: 0, gear: resA.gear, custom: nextA, admin: true }
+            : { ok: false, reason: 'locked' };
+        }
+        if (!tryLock('part:' + key, 1600)) return { ok: false, reason: 'locked' };
+        /* 이미 연 파츠 — 다시 차감하지 않고 입기만 합니다(연타·다시 눌러도 안전) */
+        var cur0 = BM.racketcustom.customOf(me);
+        if (BM.racketcustom.isUnlocked(cur0, slot, id)) {
+          var own = BM.racketcustom.normalizeCustom(cur0);
           own[slot] = id;
           var g0 = actions.setGear({ custom: own });
           return g0 && g0.ok ? { ok: true, purchased: false, price: 0, gear: g0.gear } : { ok: false, reason: 'locked' };
         }
 
         function unlock(balance) {
+          var cur = BM.racketcustom.customOf(state.me);
           var next = BM.racketcustom.normalizeCustom(cur);
           if (next.unlocked.indexOf(key) < 0) next.unlocked.push(key);
           next[slot] = id;
@@ -1162,7 +1184,7 @@
               setTimeout(function () {
                 var again = actions.setGear({ custom: next });
                 if (again && again.ok) {
-                  if (BM.ui && BM.ui.toast) BM.ui.toast('스매시 이펙트를 열었어요');
+                  if (BM.ui && BM.ui.toast) BM.ui.toast('파츠를 열었어요');
                   return;
                 }
                 if (--tries > 0) retry();
@@ -1176,8 +1198,18 @@
         /* Supabase 모드: 하트는 서버가 검사하고 뺀다 */
         var server = heartServer();
         if (server) {
-          return server.rpc('heart_spend', { p_kind: 'smash', p_target: key }).then(function (res) {
+          return server.rpc('heart_spend', { p_kind: 'racket', p_target: key }).then(function (res) {
             res = res || { ok: false, reason: 'error' };
+            /* 새 SQL 을 아직 안 돌린 프로젝트 — 효과는 예전 'smash' 종류로 한 번 더 시도 */
+            if (!res.ok && res.reason === 'unknown' && slot === 'effect') {
+              return server.rpc('heart_spend', { p_kind: 'smash', p_target: key }).then(function (res2) {
+                res2 = res2 || { ok: false, reason: 'error' };
+                if (!res2.ok) return res2;
+                if (res2.row) pushServerRow(res2.row);
+                commit();
+                return unlock(res2.balance);
+              }, serverFail);
+            }
             if (!res.ok) return res;
             if (res.row) pushServerRow(res.row);
             commit();
@@ -1196,6 +1228,11 @@
         }));
         commit();
         return unlock((state.data.hearts || {}).balance);
+      },
+
+      /* 예전 이름 — 스페셜 스매시 이펙트를 하트로 여는 길은 이제 buyRacketPart 하나로 모였습니다 */
+      buySmash: function (slot, id) {
+        return actions.buyRacketPart(String(slot || 'effect'), id);
       },
 
       /* 하트 부스트 켜기/끄기 (bm-v1.64.0)
@@ -1540,14 +1577,23 @@
           : null;
         var gearNext = patch.gear != null
           ? (BM.gear ? BM.gear.normalizeGear(patch.gear) : patch.gear)
-          : ((me.theme && me.theme.gear) || null);
+          : (BM.gear ? BM.gear.gearOf(me) : ((me.theme && me.theme.gear) || null));
+        /* bm-v1.84.0 — 값이 있으면 그대로, 없으면 빈 값이라도 칸을 남깁니다(명시).
+         *  · 이래야 다음에 새 행이 와도 '저장한 라켓 기록'을 잃지 않습니다.
+         *  · 여러 자루(theme.gears)는 첫 자루를 theme.gear 에도 함께 적어 예전 화면과 호환됩니다. */
+        var gearFilled = !!(gearNext && (!BM.gear || BM.gear.hasGear(gearNext)));
+        theme.gear = gearFilled ? gearNext : (BM.gear ? BM.gear.blank() : null);
+        if (!theme.gear) delete theme.gear;
         if (gearsNext) {
           if (gearsNext.length) {
             theme.gears = gearsNext;
             theme.gear = gearsNext[0];
+          } else {
+            /* 목록이 비면 기록을 지운 것입니다 — theme.gear 도 함께 비웁니다(되살아나지 않게). */
+            delete theme.gears;
+            delete theme.gear;
           }
-        } else if (gearNext && (!BM.gear || BM.gear.hasGear(gearNext))) {
-          theme.gear = gearNext;
+        } else if (gearFilled) {
           var rest = ((me.theme && me.theme.gears) || []).slice(1);
           theme.gears = [gearNext].concat(rest);
         }
@@ -1560,7 +1606,8 @@
         };
         pushRow(entity);
         state.me = {
-          key: me.key, nick: merged.nick, level: merged.level, discipline: merged.discipline,
+          /* bm-v1.84.0 — email 을 빠뜨리면 관리자 판정(D.isAdminMe)이 풀립니다. 늘 이어 줍니다. */
+          key: me.key, email: me.email || '', nick: merged.nick, level: merged.level, discipline: merged.discipline,
           bio: merged.bio, region: merged.region, club: merged.club, gender: merged.gender,
           style: merged.style, role: merged.role,
           availability: merged.availability, experience: merged.experience, theme: theme,

@@ -1808,10 +1808,44 @@
     return map;
   }
 
+  /* 내 프로필 행 고르기 — bm-v1.84.0
+   *  · 예전에는 createdAt 문자열만 비교하고 pop() 해서, 같은 초(second)에 저장된 두 행이면
+   *    어느 것이 먼저인지 배열 순서에 맡겼습니다(state.rows 는 새 행을 앞에 넣습니다) →
+   *    라켓·스트링을 저장한 뒤 곧바로 다른 꾸미기 저장이 겹치면 방금 쓴 행 대신 옛 행을
+   *    골라, 다시 열 때 라켓·텐션이 빈 값으로 보이는 원인이 됐습니다.
+   *  · 이제 (createdAt, id) 로 확실히 '가장 나중 행'을 고릅니다(id 는 시간+난수라 항상 큽니다). */
   function profileOf(idx, userKey) {
     var list = (idx.byType['프로필'] || []).filter(function (p) { return p.userKey === userKey; });
     if (!list.length) return { nick: '', level: '', discipline: '', bio: '', theme: null };
-    return U.sortBy(list, function (p) { return p.createdAt || ''; }).pop();
+    /* 같은 시각(초)에 저장된 행은 배열 순서(= 저장된 순서: 기기 행은 뒤에 붙고, 서버 행은
+     * created_at·id 오름차순)로 뒤에 있는 쪽이 더 새 행입니다. 그래서 '>=' 로 고릅니다. */
+    var best = list[0];
+    for (var i = 1; i < list.length; i++) {
+      if (String(list[i].createdAt || '') >= String(best.createdAt || '')) best = list[i];
+    }
+    return best;
+  }
+
+  /* 최근 프로필 행 중 theme.gear(라켓·스트링 기록)를 가진 마지막 행 — bm-v1.84.0
+   *  · 새 행이 gear 칸을 아예 담지 않았을 때(예전 버전이 쓴 행·다른 화면이 만든 행)
+   *    마지막으로 저장된 라켓 기록을 이어받아 '저장한 값이 사라진' 일이 없게 합니다.
+   *  · gear 칸을 빈 값으로 *명시*해 저장한 행이 있으면(사용자가 기록을 지운 경우)
+   *    그 행에서는 이어받지 않습니다(지운 기록이 되살아나지 않게). */
+  function gearCarryFrom(idx, userKey) {
+    var list = (idx.byType['프로필'] || []).filter(function (p) { return p.userKey === userKey; });
+    if (!list || !list.length) return null;
+    var best = null;
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      var theme = p && p.theme;
+      var g = theme && theme.gear;
+      if (!g) continue;
+      var filled = !!(String(g.racket || '').trim() || String(g.string || '').trim() ||
+        Number(g.tension) || String(g.strungAt || '').trim());
+      if (!filled) continue;                       /* 비어 있는 gear 칸은 '지운 기록'이라 이어받지 않음 */
+      if (!best || String(p.createdAt || '') >= String(best.createdAt || '')) best = p;
+    }
+    return best ? best.theme.gear : null;
   }
 
   function displayName(idx, userKey) {
@@ -3657,7 +3691,7 @@
     parseScore: parseScore, parseGames: parseGames, cleanGames: cleanGames,
     gamesSummary: gamesSummary, formatGames: formatGames,
     resultFromScore: resultFromScore, splitList: splitList,
-    index: index, profileOf: profileOf, displayName: displayName, latestPerUser: latestPerUser,
+    index: index, profileOf: profileOf, gearCarryFrom: gearCarryFrom, displayName: displayName, latestPerUser: latestPerUser,
     heartLedger: heartLedger, heartStatus: heartStatus,
     ownsTheme: ownsTheme, themeById: themeById, themePrice: themePrice,
     /* v1.56 — 컨디션 5단계 · 시작 화면 앱 분위기 3종 */
