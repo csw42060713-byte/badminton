@@ -7914,3 +7914,119 @@ body {
   margin-left: auto; font-style: normal; font-size: 9.6px; font-weight: 900;
   color: #08130a; background: var(--accent); padding: 2px 7px; border-radius: 999px;
 }
+
+/* ============================================================
+ * bm-v1.81.0 — 실제 비율 3D 라켓 · 바디 4종 · 등급 · 효과(연출)
+ * ============================================================ */
+/* 세로로 긴 실제 라켓 비율이 잘리지 않게 */
+.rk3d__cv { height: 356px; }
+.rk3d { box-shadow: inset 0 -30px 40px -30px rgba(0,0,0,0.8); }
+
+/* 바디(모델) 4종 — 고르면 실루엣·데칼이 바로 바뀝니다 */
+.rkbody {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;
+  padding: 0 10px 9px;
+}
+.rkbody__chip {
+  position: relative; display: grid; grid-template-columns: 8px 1fr; grid-template-rows: auto auto;
+  gap: 1px 7px; align-items: center; padding: 8px 9px 7px; min-height: 46px;
+  border-radius: 13px; border: 1px solid rgba(255,255,255,0.13);
+  background: rgba(255,255,255,0.045); color: rgba(247,255,223,0.9);
+  font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.rkbody__chip:active { transform: scale(0.98); }
+.rkbody__chip b { font-size: 11.4px; font-weight: 900; letter-spacing: -0.2px; white-space: nowrap; }
+.rkbody__chip span { grid-column: 2; font-size: 9.2px; font-weight: 700; color: rgba(247,255,223,0.52); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rkbody__sw {
+  grid-row: 1 / span 2; width: 8px; align-self: stretch; border-radius: 4px;
+  background: linear-gradient(180deg, var(--c), color-mix(in srgb, var(--c) 40%, #10161a));
+}
+.rkbody__chip.is-on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.rkbody__chip.is-lock { opacity: 0.74; }
+.rkbody__chip .rkrar { position: absolute; top: 5px; right: 6px; }
+
+/* 등급 — 일반(회색) · 레어(블루) · 에픽(퍼플) · 레전드(골드) */
+.rkpart, .rkbody__chip, .rkrar { --rar: #9aa6b0; --rar-glow: rgba(154,166,176,0.0); }
+.is-r-common { --rar: #9aa6b0; --rar-glow: rgba(154,166,176,0.35); }
+.is-r-rare { --rar: #4aa3ff; --rar-glow: rgba(74,163,255,0.55); }
+.is-r-epic { --rar: #a678ff; --rar-glow: rgba(166,120,255,0.6); }
+.is-r-legend { --rar: #f2c14e; --rar-glow: rgba(242,193,78,0.75); }
+
+.rkparts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.rkpart {
+  min-height: 92px; padding: 9px 6px 7px;
+  border-color: color-mix(in srgb, var(--rar) 40%, var(--line));
+}
+.rkpart.is-on {
+  border-color: var(--rar);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rar) 70%, transparent) inset,
+    0 0 16px var(--rar-glow);
+}
+.is-r-legend { box-shadow: 0 0 14px var(--rar-glow); }
+.rkpart__d {
+  font-style: normal; font-size: 8.6px; font-weight: 700; line-height: 1.2;
+  color: var(--muted); text-align: center; word-break: keep-all;
+}
+.rkrar {
+  position: static; font-style: normal; text-decoration: none;
+  font-size: 8.2px; font-weight: 900; letter-spacing: 0.1px; line-height: 1;
+  padding: 2px 5px; border-radius: 999px;
+  color: var(--rar); border: 1px solid color-mix(in srgb, var(--rar) 55%, transparent);
+  background: color-mix(in srgb, var(--rar) 16%, transparent);
+}
+.rkhero__b {
+  margin: 1px 0 0; font-size: 10.6px; font-weight: 800; color: var(--muted);
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.rkhero__b .rkrar--common { --rar: #9aa6b0; }
+.rkhero__b .rkrar--rare { --rar: #4aa3ff; }
+.rkhero__b .rkrar--epic { --rar: #a678ff; }
+.rkhero__b .rkrar--legend { --rar: #f2c14e; }
+.rk3d__tabs { grid-template-columns: repeat(6, 1fr); }
+.rk3d__tab { font-size: 10.4px; }
+@media (prefers-reduced-motion: reduce) {
+  .rkbody__chip, .rkpart { transition: none; }
+}
+
+/* 줄 갈고 며칠째 — 3D 라켓 바로 아래 한 줄 */
+.rkage { display: flex; align-items: stretch; gap: 6px; padding: 0 10px 10px; }
+.rkage__main {
+  flex: 1; min-width: 0; display: grid; grid-template-columns: 9px 1fr; grid-template-rows: auto auto;
+  gap: 1px 8px; align-items: center; padding: 8px 11px; border-radius: 13px;
+  border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05);
+  color: rgba(247,255,223,0.92); font: inherit; text-align: left; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.rkage__main:active { transform: scale(0.99); }
+.rkage__dot {
+  grid-row: 1 / span 2; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 9px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.rkage__t { font-size: 12.2px; font-weight: 900; letter-spacing: -0.2px; font-variant-numeric: tabular-nums; }
+.rkage__s {
+  grid-column: 2; font-size: 10.2px; font-weight: 700; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rkage--due .rkage__main {
+  border-color: color-mix(in srgb, var(--bad) 55%, transparent);
+  background: color-mix(in srgb, var(--bad) 13%, transparent);
+}
+.rkage--due .rkage__dot { background: var(--bad); box-shadow: 0 0 10px color-mix(in srgb, var(--bad) 70%, transparent); }
+.rkage--due .rkage__t { color: var(--bad); }
+.rkage--soon .rkage__dot { background: var(--warn); box-shadow: 0 0 9px color-mix(in srgb, var(--warn) 65%, transparent); }
+.rkage--soon .rkage__t { color: var(--warn); }
+.rkage--nodate .rkage__dot { background: var(--muted); box-shadow: none; }
+.rkage__fix {
+  flex: none; min-height: 40px; padding: 0 13px; border-radius: 13px;
+  border: 1px solid var(--accent); background: var(--accent); color: #08130a;
+  font: inherit; font-size: 10.8px; font-weight: 900; cursor: pointer; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.rkage__fix:active { transform: scale(0.97); }
+.rkage__fix.is-ghost { background: transparent; color: rgba(247,255,223,0.82); border-color: rgba(255,255,255,0.18); }
+.rkage--due .rkage__fix { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 22%, transparent); color: #ffd9d4; }
