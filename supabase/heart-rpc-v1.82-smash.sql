@@ -29,6 +29,7 @@ returns int language sql immutable set search_path = public as $$
 $$;
 
 /* 쓰기: kind = 'deco'(꾸미기 구매) · 'gift'(하트 선물) · 'match'(매칭 신청 잔액 검사)
+ *      · 'smash'(스페셜 스매시 이펙트 · bm-v1.82.0)
  *  · 잔액은 언제나 서버가 셉니다(heart_balance). 클라이언트가 보낸 숫자는 쓰지 않습니다. */
 create or replace function public.heart_spend(p_kind text, p_target text default null)
 returns jsonb language plpgsql security definer set search_path = public as $$
