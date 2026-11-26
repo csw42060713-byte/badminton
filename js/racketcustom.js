@@ -2082,8 +2082,8 @@
   var POSE_HIT = { yaw: 0.20, pitch: 0.42, dx: -30, dy: 16, roll: 0.14 };
   var POSE_FLOW = { yaw: 0.30, pitch: 0.60, dx: -40, dy: 22, roll: 0.10 };
   var POSE_BACK_SLAM = { yaw: -0.32, pitch: -0.98, dx: 6, dy: -20, roll: -0.08 };
-  var POSE_HIT_SLAM = { yaw: 0.14, pitch: 0.86, dx: -14, dy: 46, roll: 0.04 };
-  var POSE_FLOW_SLAM = { yaw: 0.18, pitch: 1.05, dx: -18, dy: 54, roll: 0.02 };
+  var POSE_HIT_SLAM = { yaw: 0.16, pitch: 0.56, dx: -14, dy: 46, roll: 0.04 };
+  var POSE_FLOW_SLAM = { yaw: 0.20, pitch: 0.72, dx: -18, dy: 54, roll: 0.02 };
 
   function poseLerp(a, b, p) {
     return {
@@ -2886,7 +2886,7 @@
     if (t <= 0 || t >= 1) return;
     var cxp = project3({ x: 0, y: 0, z: 0 }, v);
     var loop = headLoop(gm, 2), n = loop.length;
-    var pieces = 9, i, j;
+    var pieces = 12, i, j;
     for (i = 0; i < pieces; i++) {
       var i0 = Math.floor(i / pieces * n), i1 = Math.floor((i + 1) / pieces * n);
       var pts = [project3({ x: 0, y: 0, z: 0 }, v)];
@@ -2895,8 +2895,8 @@
         pts.push(project3({ x: p.x, y: p.y, z: 0 }, v));
       }
       var dir = i / pieces * TAU + 0.4;
-      var ox = Math.cos(dir) * 92 * t * t * v.k;
-      var oy = Math.sin(dir) * 34 * t * t * v.k + 118 * t * t * v.k;
+      var ox = Math.cos(dir) * 66 * t * t * v.k;
+      var oy = Math.sin(dir) * 26 * t * t * v.k + 96 * t * t * v.k;
       var rot = (seedRand(i * 3) - 0.5) * 3.2 * t;
       g.save();
       g.globalAlpha = Math.max(0, 1 - t * 1.05);
@@ -2906,7 +2906,7 @@
       g.moveTo(pts[0].x - cxp.x, pts[0].y - cxp.y);
       for (j = 1; j < pts.length; j++) g.lineTo(pts[j].x - cxp.x, pts[j].y - cxp.y);
       g.closePath();
-      g.fillStyle = i % 3 === 0 ? pal.hot : (i % 2 ? '#2b3a33' : '#1d2a24');
+      g.fillStyle = i % 5 === 0 ? pal.hot : (i % 2 ? '#2b3a33' : '#1d2a24');
       g.fill();
       g.strokeStyle = kind === 'ice' ? '#cdf3ff' : pal.ring;
       g.lineWidth = Math.max(0.6, 1.2 * unit);
@@ -2996,17 +2996,18 @@
         g.fillRect(0, 0, w, h);
         g.restore();
         var fr = rx * 2.6 * (0.5 + Math.min(1, after / 150) * 1.0);
-        blit(g, 'flash', imp.x, imp.y, fr, fr, after * 0.004, ha * 0.7, true);
+        blit(g, 'flash', imp.x, imp.y, fr, fr, after * 0.004, ha * 0.55, true);
       }
       /* 충격 링 — 한 장만, 얇고 빠르게(여러 장 겹치면 과녁처럼 보입니다) */
       g.save();
-      var rp0 = clamp01(boom / 0.34);
+      var rp0 = clamp01(boom / 0.24);
       if (rp0 > 0 && rp0 < 1) {
-        g.globalAlpha = Math.pow(1 - rp0, 1.8) * 0.85;
+        g.globalAlpha = Math.pow(1 - rp0, 2) * 0.6;
         g.strokeStyle = '#ffffff';
-        g.lineWidth = Math.max(0.9, (3.4 - rp0 * 3) * unit * 1.3);
+        g.lineWidth = Math.max(0.8, (2.6 - rp0 * 2.2) * unit * 1.25);
         g.beginPath();
-        g.arc(imp.x, imp.y, rx * (0.5 + 1.6 * rp0), 0, TAU);
+        if (g.ellipse) g.ellipse(imp.x, imp.y, rx * (0.5 + 1.5 * rp0), rx * (0.42 + 1.15 * rp0), 0, 0, TAU);
+        else g.arc(imp.x, imp.y, rx * (0.5 + 1.5 * rp0), 0, TAU);
         g.stroke();
       }
       g.restore();
