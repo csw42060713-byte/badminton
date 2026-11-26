@@ -8344,3 +8344,11 @@ body {
   border-color: rgba(255,140,80,0.55); color: #ffd9c2;
 }
 .rkstage__go--slam.is-on, .rkstage__go--slam:active { background: #ff7a2f; color: #1a0c05; }
+
+/* bm-v1.85.0 — 조작 줄이 좁은 화면에서도 눌리게(모드·스매시·바닥 강타), 잠금 표시는 등급 배지와 겹치지 않게 */
+.rkstage { gap: 4px; }
+.rkstage__modes { padding: 2px; gap: 1px; }
+.rkstage__m { padding: 0 6px; font-size: 9.8px; min-height: 26px; }
+.rkstage__go { padding: 0 5px; font-size: 10px; }
+.rkbody__chip .rkpart__lock { top: 2px; right: 3px; font-size: 7.5px; opacity: 0.85; }
+.rkbody__chip .rkrar { margin-right: 9px; }
