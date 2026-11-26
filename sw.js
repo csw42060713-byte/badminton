@@ -404,7 +404,7 @@
  *             js/gear.js·js/store.js·js/ads.js·js/views/*·styles.css·index.html 이 바뀌어
  *             캐시를 bm-v1.84.0 으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.84.0';
+var VERSION = 'bm-v1.85.0';
 var SHELL = [
   './',
   './index.html',

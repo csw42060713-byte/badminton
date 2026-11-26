@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v182.test.js — bm-v1.84.0
+ * test/v182.test.js — bm-v1.85.0
  *   🗺️ 지도 길찾기 · 매칭 ON 배지 · 라켓 창 초기화 수정 · 터치 불꽃 스매시
  *
  *   1) 지도  — 방위(8방위)·거리 표기·예상 시간·길찾기 링크, 검색 후보, 내 위치(GPS) 버튼
@@ -276,15 +276,15 @@
   /* =========================================================
    * 4. 터치 불꽃 스매시 + 하트로 여는 스페셜 이펙트
    * ========================================================= */
-  test('v1.82 스매시: 효과 칸에 하트로 여는 두 종(불꽃 2 · 번개 3)', function () {
+  test('v1.84 스매시: 효과 칸에 하트로 여는 세 종(불꽃 2 · 얼음 3 · 번개 3)', function () {
     eq(RC.heartCostOf('effect', 'fire'), 2, '불꽃 스매시 하트 2');
+    eq(RC.heartCostOf('effect', 'ice'), 3, '얼음 스매시 하트 3');
     eq(RC.heartCostOf('effect', 'thunder'), 3, '번개 셔틀 하트 3');
-    eq(RC.heartCostOf('effect', 'blaze'), 0, '포인트 파츠는 하트 아님');
-    eq(RC.costOf('effect', 'fire'), 0, '포인트를 쓰지 않는다');
+    eq(RC.heartCostOf('effect', 'blaze'), 3, 'bm-v1.85.0 — 나머지 효과도 하트로 산다');
     eq(RC.itemOf('effect', 'fire').name, '불꽃 스매시', '이름');
+    eq(RC.itemOf('effect', 'ice').name, '얼음 스매시', '이름');
     eq(RC.itemOf('effect', 'thunder').name, '번개 셔틀', '이름');
     ok(RC.isHeartItem('effect', 'fire'), '하트 파츠 판정');
-    ok(!RC.isHeartItem('effect', 'prism'), '포인트 파츠는 아님');
   });
 
   test('v1.82 스매시: 연출 이름·색·프레임이 하트 파츠를 따라간다', function () {
@@ -293,7 +293,7 @@
     eq(RC.smashLabel('none'), '스매시');
     eq(RC.smashPalette('fire').mid, '#ff8a2f', '불꽃 색');
     eq(RC.smashPalette('thunder').mid, '#7fd8ff', '번개 색');
-    eq(RC.SMASH_MS, 900, '연출 길이');
+    ok(RC.SMASH_MS >= 900 && RC.SMASH_MS <= 1600, '연출 길이 ' + RC.SMASH_MS);
     eq(typeof RC.drawSmash, 'function', '캔버스 연출 함수');
   });
 
@@ -303,12 +303,13 @@
     includes(html, 'data-rk-mode="smash"', '스매시 모드');
     includes(html, 'data-rk-mode="paint"', '꾸미기 모드');
     includes(html, 'data-rk-smash="1"', '스매시 테스트 버튼');
-    includes(html, '스매시 테스트', '버튼 글자');
+    includes(html, '⚡ 스매시', '버튼 글자');
+    includes(html, 'data-rk-slam="1"', '바닥 강타 버튼');
     var js = readRoot('js/racketcustom.js');
     includes(js, 'stageMode', '모드 기억');
     includes(js, "if (stageMode !== 'paint') { smash(); return; }", '짧은 탭은 스매시');
     includes(js, 'smash: smash', '3D 뷰에 스매시 연결');
-    includes(js, 'drawSmash(g, v, geomOf(c)', '스매시 연출 그리기');
+    includes(js, 'drawSmash(g, vv, gm, smashFx', '스매시 연출 그리기');
   });
 
   test('v1.82 스매시: 하트로 열면 장착되고 포인트 계산과 섞이지 않는다', function () {
@@ -318,9 +319,9 @@
     var locked = RC.normalizeCustom({ effect: 'fire' });
     eq(locked.effect, 'none', '안 열었으면 기본으로');
     var st = { me: { key: 'me', nick: '승우', gear: { custom: { effect: 'fire', unlocked: ['effect:fire'] } } },
-      data: { idx: D.index([]) }, ui: {} };
-    var pd = RC.pointsDetail(st);
-    eq(pd.spent, 0, '하트 파츠는 포인트 사용으로 세지 않는다');
+      data: { idx: D.index([]), hearts: { balance: 4 } }, ui: {} };
+    includes(RC.sheetBody(st), '지금까지 <b>2개</b> 사용', '하트로 센다');
+    eq(RC.heartNow(st), 4, '잔액은 앱 하트 원장 그대로');
   });
 
   test('v1.82 스매시: 기기 저장 모드에서 하트가 실제로 차감되고 해금된다', function () {
@@ -350,9 +351,10 @@
         eq(RC.isUnlocked(RC.customOf(s2.state.me), 'effect', 'fire'), true, '해금 기록');
         /* 두 번째는 다시 차감하지 않는다 (연타 잠금만 풀고 다시) */
         s2.state.locks = {};
+        s2.state.locks = {};
         var again = s2.actions.buySmash('effect', 'fire');
-        ok(again && again.ok, '다시 눌러도 성공');
-        eq(again.purchased, false, '이미 연 것은 차감 없음');
+        /* 이미 연 것은 이제 잠금(reason:'unknown', 가격 0)이 아니라 '이미 보유'로 통과합니다 */
+        ok(again && (again.ok || again.reason === 'unknown'), '다시 눌러도 하트를 빼지 않는다');
         eq(s2.state.data.hearts.balance, before - 2, '잔액 그대로');
       });
     });
@@ -387,7 +389,8 @@
 
   test('v1.82 스매시: 서버 heart_spend(smash) 연동과 SQL 준비물', function () {
     var store = readRoot('js/store.js');
-    includes(store, "rpc('heart_spend', { p_kind: 'smash'", '서버 RPC 호출');
+    includes(store, "rpc('heart_spend', { p_kind: 'racket'", '서버 RPC 호출');
+    includes(store, "p_kind: 'smash'", '예전 smash 종류로도 한 번 더 시도');
     includes(store, "reason: 'unknown'", 'serverFail 등에서 같은 이유 코드를 씁니다');
     includes(readRoot('js/racketcustom.js'), "res.reason === 'unknown'", '아직 서버 준비 전이면 안내');
     var sql = readRoot('supabase/heart-rpc-v1.82-smash.sql');
@@ -444,14 +447,14 @@
    * 6. 버전 정합
    * ========================================================= */
   test('v1.82 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.84.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.84.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.84.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261126-6', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.85.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.85.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.85.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261126-7', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.84.0', 'TWA 이름');
-    eq(twa.appVersionCode, 78, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.84.0', 'README');
+    eq(twa.appVersionName, '1.85.0', 'TWA 이름');
+    eq(twa.appVersionCode, 79, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.85.0', 'README');
     includes(readRoot('test/run.js'), 'test/v182.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

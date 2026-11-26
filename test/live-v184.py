@@ -1,4 +1,4 @@
-"""bm-v1.84.0 라이브 점검 (390×844) — https://csw42060713-byte.github.io/badminton/
+"""bm-v1.85.0 라이브 점검 (390×844) — https://csw42060713-byte.github.io/badminton/
 
   A) 버전 — BM.app.version v1.84.0 · 5개 탭 · 시트 26칸 · 최신 기능(3D 라켓·응원 하트·체육관 후기·피로 점프) 살아 있음
   B) ① MY 하트 — 무료 하트 합계와 괄호 안 항의 합이 같다 · 광고 버튼에 보너스가 나뉜다
@@ -73,7 +73,7 @@ with sync_playwright() as p:
 
     # ── A. 버전 · 기본 ─────────────────────────────────────────────
     ver = pg.evaluate("() => BM.app.version")
-    ck('LIVE 버전 v1.84.0', ver == 'v1.84.0', ver)
+    ck('LIVE 버전 v1.84.0', ver == 'v1.85.0', ver)
     ck('LIVE 5개 탭', pg.evaluate("() => BM.app.TABS.map(t => t.id).join(',')")
        == 'log,matching,community,coach,my')
     ck('LIVE 시트 26칸', pg.evaluate("() => BM.domain.COLS.length") == 26)
@@ -145,8 +145,8 @@ with sync_playwright() as p:
     print('  saved ' + OUT + '/live-1126-v184.png', flush=True)
     pg.locator('[data-region="gear"]').first.scroll_into_view_if_needed()
     pg.wait_for_timeout(400)
-    pg.screenshot(path=OUT + '/v184_live_gear.png')
-    print('  saved ' + OUT + '/v184_live_gear.png', flush=True)
+    pg.screenshot(path=OUT + '/v185_live_gear.png')
+    print('  saved ' + OUT + '/v185_live_gear.png', flush=True)
 
     # ── D. ② 게스트 모집 몇 명 칩 ─────────────────────────────────
     pg.locator('[data-tab="community"]').first.click()
@@ -168,8 +168,8 @@ with sync_playwright() as p:
         on = pg.evaluate("""() => { const b = document.querySelector('[data-vitecap-val="4"]');
           return b ? b.classList.contains('is-on') : false; }""")
         ck('LIVE 게스트 모집: 4명을 누르면 칸·칩이 함께 켜진다', (val == '4') and on, (val, on))
-        pg.screenshot(path=OUT + '/v184_live_community.png')
-        print('  saved ' + OUT + '/v184_live_community.png', flush=True)
+        pg.screenshot(path=OUT + '/v185_live_community.png')
+        print('  saved ' + OUT + '/v185_live_community.png', flush=True)
 
     # ── E. ④ 1:1 매칭 첫 화면 추천 ────────────────────────────────
     mykey = pg.evaluate("() => BM.app.ctx.store.state.me.key")
@@ -207,8 +207,8 @@ with sync_playwright() as p:
     ck('LIVE 매칭: 안내 카드(.matchintro)는 걷어냄', pg.locator('.matchintro').count() == 0)
     allbtns = pg.get_by_role('button', name=re.compile('전체 선수 보기'))
     ck('LIVE 매칭: 전체 선수 보기 버튼 1개', allbtns.count() == 1, allbtns.count())
-    pg.screenshot(path=OUT + '/v184_live_matching.png')
-    print('  saved ' + OUT + '/v184_live_matching.png', flush=True)
+    pg.screenshot(path=OUT + '/v185_live_matching.png')
+    print('  saved ' + OUT + '/v185_live_matching.png', flush=True)
 
     # ── F. ③ 1:1 채팅 매너 카드 접힘 · 코트 약속 칩 ────────────────
     pg.locator('[data-match-tab="chat"]').first.click()
@@ -229,8 +229,8 @@ with sync_playwright() as p:
         open_now = pg.evaluate("""() => { const b = document.querySelector('[data-manner-body]');
           return b ? !b.hasAttribute('hidden') : null; }""")
         ck('LIVE 채팅: 눌러서 펼쳐진다', open_now is True, open_now)
-        pg.screenshot(path=OUT + '/v184_live_chat.png')
-        print('  saved ' + OUT + '/v184_live_chat.png', flush=True)
+        pg.screenshot(path=OUT + '/v185_live_chat.png')
+        print('  saved ' + OUT + '/v185_live_chat.png', flush=True)
     apt = pg.locator('[data-dm-appt]')
     ck('LIVE 채팅: 약속 잡기 버튼이 있다', apt.count() > 0, apt.count())
     if apt.count():
@@ -240,8 +240,8 @@ with sync_playwright() as p:
         chips = pg.locator('[data-apt-gyms] [data-apt-gym-pick]')
         ck('LIVE 채팅: 코트 약속 시트에 체육관 칩', chips.count() > 0, chips.count())
         ck('LIVE 채팅: 지도에서 고르기', pg.locator('[data-apt-gym-map]').count() > 0)
-        pg.screenshot(path=OUT + '/v184_live_appt.png')
-        print('  saved ' + OUT + '/v184_live_appt.png', flush=True)
+        pg.screenshot(path=OUT + '/v185_live_appt.png')
+        print('  saved ' + OUT + '/v185_live_appt.png', flush=True)
         pg.evaluate("() => { if (BM.ui && BM.ui.closeSheet) BM.ui.closeSheet(); }")
         pg.wait_for_timeout(700)
     pg.evaluate("""() => { const st = BM.app.ctx.store;
@@ -277,8 +277,8 @@ with sync_playwright() as p:
         tags = pg.evaluate("() => [...document.querySelectorAll('.sbfull .sb__tag')].map(t => t.textContent.trim())")
         ck('LIVE 점수판: 가로 보기에 내 팀·상대 팀 배지', ('내 팀' in tags) and ('상대 팀' in tags), tags)
         ck('LIVE 점수판: 가로 클래스', pg.evaluate("() => document.querySelector('.sbfull .sb').classList.contains('is-land')"))
-        pg.screenshot(path=OUT + '/v184_live_scoreboard.png')
-        print('  saved ' + OUT + '/v184_live_scoreboard.png', flush=True)
+        pg.screenshot(path=OUT + '/v185_live_scoreboard.png')
+        print('  saved ' + OUT + '/v185_live_scoreboard.png', flush=True)
         pg.locator('[data-sb-close]').first.click()
         pg.wait_for_timeout(600)
 

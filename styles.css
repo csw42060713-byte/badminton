@@ -8307,3 +8307,40 @@ body {
 .sbfull.is-land .sb__card.sb__btn--b::before { left: 0; background: var(--sb-rvl); }
 .sbfull.is-land .sb__card .sb__who { opacity: 1; font-weight: 900; }
 .sbfull.is-land .sb__card .sb__num { letter-spacing: -2px; }
+
+/* ============================================================
+ * bm-v1.84.0 — 라켓 꾸미기: 탭 바로 아래 선택창 · 하트 지갑
+ *   (포인트 폐지: 바디·파츠·효과를 전부 하트로 삽니다)
+ * ============================================================ */
+.rkpick {
+  display: grid; gap: 10px; padding: 10px;
+  border-radius: 20px; border: 1px solid rgba(255,255,255,0.09);
+  background: linear-gradient(180deg, #0b1410, #080d0b 78%);
+}
+.rkpick .rk3d__tabs { padding: 0; }
+.rkhearts {
+  display: grid; gap: 6px; padding: 12px 13px;
+  border-radius: 18px; border: 1px solid var(--line);
+  background: linear-gradient(135deg, rgba(255,122,140,0.14), transparent 68%);
+}
+.rkhearts__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.rkhearts__top b { font-size: 13px; font-weight: 900; color: var(--text); }
+.rkhearts__top b i { font-style: normal; color: #ff7a8c; font-variant-numeric: tabular-nums; }
+.rkhearts__top span { font-size: 10.4px; font-weight: 800; color: var(--muted); }
+.rkhearts__line { margin: 0; font-size: 11.4px; font-weight: 700; color: var(--text-2); }
+.rkhearts__line b { color: #ff7a8c; font-variant-numeric: tabular-nums; }
+.rkhearts__line small { color: var(--muted); font-weight: 700; }
+.rkhearts__acts { display: flex; gap: 6px; margin-top: 2px; }
+.rkhearts.is-admin { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent), transparent 68%); }
+.rkhearts.is-admin .rkhearts__top span { color: var(--accent); font-weight: 900; }
+.rkpart.is-heart .rkpart__p.is-heartp { color: #ff7a8c; }
+/* bm-v1.84.0 — 3D 위 조작 줄: 모드(고정) + 스매시·바닥 강타(남는 폭을 나눔) */
+.rkstage { flex-wrap: nowrap; gap: 5px; }
+.rkstage__modes { flex: 0 0 auto; }
+.rkstage__m { padding: 0 7px; font-size: 10.2px; }
+.rkstage__go { flex: 1 1 0; min-width: 0; margin-left: 0; font-size: 10.4px; padding: 0 6px; white-space: nowrap; }
+.rkstage__go--slam {
+  background: linear-gradient(135deg, rgba(255,122,47,0.22), rgba(255,59,47,0.12));
+  border-color: rgba(255,140,80,0.55); color: #ffd9c2;
+}
+.rkstage__go--slam.is-on, .rkstage__go--slam:active { background: #ff7a2f; color: #1a0c05; }

@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v180.test.js — bm-v1.84.0
+ * test/v180.test.js — bm-v1.85.0
  *   🏸 내 커스텀 라켓 — 상태 연동 · 수집(포인트 해금) · 매칭/공유 노출
  *
  *  1) 파츠 — 배드민턴 용품 감성 5칸(프레임·스트링·그립·스텐실·참), 기본 5종 무료
@@ -120,8 +120,8 @@
     /* v1.81에서 '효과'(연출) 칸이 더해져 여섯 칸입니다 */
     eq(RC.SLOTS.join(','), 'frame,string,grip,stencil,charm,effect', '여섯 칸');
     RC.SLOTS.forEach(function (slot) {
-      /* bm-v1.83.0 — '효과' 칸에 하트로 여는 스페셜 스매시 2종이 더해져 7종입니다 */
-      eq(RC.itemsOf(slot).length, slot === 'effect' ? 7 : 5, slot + (slot === 'effect' ? ' 7종' : ' 5종'));
+      /* bm-v1.85.0 — '효과' 칸에 하트로 여는 스페셜 스매시 3종(불꽃·얼음·번개)이 더해져 8종입니다 */
+      eq(RC.itemsOf(slot).length, slot === 'effect' ? 8 : 5, slot + (slot === 'effect' ? ' 8종' : ' 5종'));
       var free = RC.itemsOf(slot).filter(function (it) { return it.free; });
       eq(free.length, 1, slot + ' 무료 1종');
     });
@@ -156,85 +156,71 @@
    * 2. 포인트 — 기록에서 계산 (기존 사용자 초기 지급)
    * ============================================================ */
 
-  test('v1.80 포인트: 일지 +10P · 출석 +5P · 매칭 +15P를 기록에서 센다', function () {
+  test('v1.84 하트: 라켓 파츠 가격은 등급을 따라 하트 1~5개이고, 기록으로 쌓이지 않는다', function () {
+    /* 포인트(P)는 폐지 — 일지를 아무리 써도 라켓 가격표가 자동으로 채워지지 않습니다 */
     var rows = BM.fixtures.demo();
     var st = stateOf(rows);
-    var idx = st.data.idx;
-    var logs = U.uniq(((idx.byType['기록'] || []).filter(function (r) { return r.userKey === ME.key; }))
-      .map(function (r) { return r.date; })).length;
-    var pd = RC.pointsDetail(st);
-    eq(pd.logs, logs, '일지 수');
-    eq(pd.earned, logs * 10 + pd.checkins * 5 + pd.matches * 15, '합계 = 일지·출석·매칭');
-    eq(pd.balance, pd.earned, '아직 쓴 게 없으면 그대로');
+    eq(RC.pointsToday(st), 0, '포인트가 없어졌다');
+    eq(RC.priceOf('string', 'white'), 1, '일반 파츠 1하트');
+    eq(RC.priceOf('frame', 'navy'), 3, '에픽 파츠 3하트');
+    eq(RC.priceOf('charm', 'ace'), 5, '레전드 파츠 5하트');
+    eq(RC.priceOf('frame', 'matte'), 0, '기본 파츠는 무료');
+    eq(RC.priceOf('body', 'power77'), 0, '파워 77 바디는 무료');
+    eq(RC.priceOf('body', 'smash'), 5, '스매시 맥스 5하트');
   });
 
-  test('v1.80 포인트: 일지가 10개면 바로 100P — 기존 사용자도 과거 기록만큼 받는다', function () {
-    var rows = [];
-    var KEY = BM.seed.ME;
-    for (var i = 0; i < 10; i++) {
-      rows.push({
-        type: '기록', id: 'r' + i, clientId: 'c' + i, createdAt: '2026-11-' + (10 + i) + ' 10:00:00',
-        userKey: KEY, nick: '나래', date: '2026-11-' + (10 + i), minutes: 60
-      });
-    }
-    var st = stateOf(rows);
-    var pd = RC.pointsDetail(st);
-    eq(pd.logs, 10, '과거 일지 10개');
-    eq(pd.earned, 100, "100P 자동 지급");
-    /* 60P 프레임 하나를 열면 잔액이 40P */
-    var c = RC.normalizeCustom({ unlocked: ['frame:carbon'] });
-    st.me.theme = { theme: 'th_night', gear: { custom: c } };
-    var pd2 = RC.pointsDetail(st);
-    eq(pd2.spent, 60, '쓴 포인트');
-    eq(pd2.balance, 40, '남은 포인트');
-  });
-
-  test('v1.80 포인트: 오늘 새로 모은 포인트는 +10P (출석했으면 +15P)', function () {
-    var rows = BM.fixtures.demo();
-    var st = stateOf(rows);
-    var before = RC.pointsToday(st);
-    ok(before === 0 || before === 10 || before === 15, '오늘 몫만 센다: ' + before);
-    rows.push({ type: '기록', id: 'today1', clientId: 'ct1', createdAt: U.ymd() + ' 20:00:00',
-      userKey: BM.seed.ME, nick: '나래', date: U.ymd(), minutes: 60 });
-    var st2 = stateOf(rows);
-    eq(RC.pointsToday(st2), 10, '오늘 일지 +10P');
+  test('v1.80 헤더(하트 지갑): 보유 하트와 쓰는 곳이 시트에 보인다', function () {
+    var st = stateOf(BM.fixtures.demo());
+    st.data.hearts = { balance: 3 };
+    var html = RC.sheetBody(st);
+    includes(html, '보유 하트', '하트 지갑');
+    includes(html, '❤ 3개', '잔액');
+    includes(html, 'data-rk-hearts="1"', '하트 모으기 버튼');
+    excludes(html, '라켓 포인트', '포인트 안내는 없다');
   });
 
   /* ============================================================
-   * 3. 해금 — 원하는 파츠부터
+   * 3. 해금 — 원하는 파츠부터 (하트)
    * ============================================================ */
 
-  test('v1.80 해금: 포인트로 산 파츠는 열리고(보유) 잔액이 줄고, 다시 계산해도 같다', function () {
+  test('v1.84 해금: 하트로 산 파츠는 열리고(보유) 잔액이 줄고, 다시 계산해도 같다', function () {
     return freshStore({ empty: true }).then(function (store) {
-      /* 일지 3개 = 30P */
-      for (var i = 0; i < 3; i++) {
-        store.state.drafts.log.date = '2026-11-' + (20 + i);
-        store.actions.setDraft({ date: '2026-11-' + (20 + i), minutes: 60 });
-        store.state.locks = {};
-        ok(store.actions.saveLog().ok, '일지 ' + (i + 1));
-        store.actions.resetDraft();
+      /* 출석 3일치 = 기본 3 + 3 = 6하트 */
+      var rows = U.readJSON('bm_rows_v1', []) || [];
+      for (var i = 1; i <= 3; i++) {
+        rows.push(D.toRow({ type: '출석하트', id: 'h' + i, clientId: 'h' + i, date: '2026-11-' + (10 + i),
+          createdAt: '2026-11-' + (10 + i) + ' 07:00:00', nick: '나래', userKey: store.state.me.key, likes: 1 }));
       }
-      eq(RC.pointsBalance(store.state), 30, '30P');
-      store.state.locks = {};
-      /* 스트링 화이트(30P) 해금 */
-      var res = store.actions.setGear({ custom: { string: 'white', unlocked: ['string:white'] } });
-      ok(res && res.ok, '저장');
-      eq(RC.customOf(store.state.me).string, 'white', '입은 색');
-      eq(RC.pointsBalance(store.state), 0, '30P 사용');
-      eq(RC.isUnlocked(RC.customOf(store.state.me), 'string', 'white'), true, '열림');
-      eq(RC.isUnlocked(RC.customOf(store.state.me), 'string', 'gold'), false, '다른 색은 아직 잠김');
-      return store.flush();
+      U.writeJSON('bm_rows_v1', rows);
+      return store.actions.reload().then(function () {
+        store.state.locks = {};
+        ok(RC.heartNow(store.state) >= 2, '하트가 모였다: ' + RC.heartNow(store.state));
+        var before = RC.heartNow(store.state);
+        var res = store.actions.buyRacketPart('string', 'white');
+        return Promise.resolve(res).then(function (r) {
+          r = r || {};
+          if (r.ok) {
+            eq(rC(store).string, 'white', '입은 색');
+            ok(RC.heartNow(store.state) < before, '하트가 줄었다');
+            eq(RC.isUnlocked(rC(store), 'string', 'white'), true, '열림');
+            eq(RC.isUnlocked(rC(store), 'string', 'gold'), false, '다른 색은 아직 잠김');
+          }
+          return store.flush();
+        });
+      });
     });
+    function rC(store) { return RC.customOf(store.state.me); }
   });
 
-  test('v1.80 해금: 잔액이 모자라면 서버 저장 없이 그대로 둔다(화면이 먼저 막는다)', function () {
+  test('v1.84 해금: 하트가 모자라면 서버 저장 없이 그대로 둔다(화면이 먼저 막는다)', function () {
     var st = stateOf([]);
-    eq(RC.pointsBalance(st), 0, '기록이 없으면 0P');
-    ok(RC.costOf('frame', 'carbon') > 0, '프레임 가격');
-    /* 잠긴 파츠는 화면에서 잠금 표시 + 가격이 보인다 */
+    st.data.hearts = { balance: 0 };
+    eq(RC.heartNow(st), 0, '하트 없음');
+    ok(RC.priceOf('frame', 'carbon') > 0, '프레임 가격');
+    /* 잠긴 파츠는 화면에서 잠금 표시 + 하트 가격이 보인다 */
     var html = RC.sheetBody(st);
     includes(html, 'data-rk-part="frame:carbon"', '잠긴 파츠 버튼');
-    includes(html, '60P', '가격 표시');
+    includes(html, '❤ 2', '하트 가격 표시');
     includes(html, 'is-lock', '잠금 표시');
   });
 
@@ -310,7 +296,7 @@
     includes(RC.headerHtml(stateWithLogs(0)), 'opacity="0.18"', '오늘 쳤으면 반짝');
     var sheet = RC.sheetBody(stateWithLogs(9));
     includes(sheet, 'rkhero--broken', '끊어진 상태 카드');
-    includes(sheet, '라켓 포인트', '포인트');
+    includes(sheet, '보유 하트', '하트 지갑');
     includes(sheet, 'data-rk-open-gear="1"', '라켓 기록으로');
   });
 
@@ -404,13 +390,13 @@
     includes(html, 'data-sc-design="smash"', '스매시 카드로');
     includes(html, '60분', '운동 시간');
     includes(html, '풋워크', '오늘 집중');
-    includes(html, '+10P', '라켓 포인트');
+    excludes(html, '+10P', '포인트 폐지 — 하트만 쓴다');
     includes(html, 'data-act="dismiss-share"', '닫기');
     includes(html, 'data-act="share-log"', '커뮤니티 공유는 그대로');
     var chips = RC.burstChips(st, rec);
-    eq(chips.length, 4, '네 칩');
+    eq(chips.length, 3, '세 칩 (포인트 폐지로 +P 칩이 빠졌다)');
     eq(chips[0].v, '60분', '첫 칩은 운동 시간');
-    includes(chips[3].v, '+', '마지막은 포인트');
+    eq(chips[2].k, '집중', '마지막 칩은 오늘의 집중');
   });
 
   test('v1.80 저장 직후: 저장하면 화면 아래 공유 바가 뜨고 스매시 연출이 불린다', function () {
@@ -601,16 +587,16 @@
 
   test('v1.80 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록이 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.84.0'", 'sw.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.85.0'", 'sw.js');
     includes(readRoot('sw.js'), "'./js/racketcustom.js'", 'sw 캐시에 라켓 모듈');
-    includes(readRoot('app.js'), "version: 'v1.84.0'", 'app.js');
-    includes(readRoot('js/push.js'), "version: 'v1.84.0'", 'push.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261126-6', '스타일 캐시 키');
+    includes(readRoot('app.js'), "version: 'v1.85.0'", 'app.js');
+    includes(readRoot('js/push.js'), "version: 'v1.85.0'", 'push.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261126-7', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.84.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.84.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 78, 'TWA 버전 코드');
-    includes(readRoot('README.md'), 'bm-v1.84.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.85.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.85.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 79, 'TWA 버전 코드');
+    includes(readRoot('README.md'), 'bm-v1.85.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v180.test.js', '테스트 목록 배선');
     includes(readRoot('test/run.js'), 'js/racketcustom.js', '테스트 로드');
   });

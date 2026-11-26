@@ -338,7 +338,7 @@
     var app = fs.readFileSync(path.join(rootDir, 'app.js'), 'utf8');
     includes(index, 'js/routine.js', 'index.html 스크립트');
     includes(sw, "'./js/routine.js'", 'sw.js 캐시');
-    ok(/var VERSION = 'bm-v1.84.0'/.test(sw), 'sw.js');
-    includes(app, "version: 'v1.84.0'", 'app.js v1.17.0');
+    ok(/var VERSION = 'bm-v1.85.0'/.test(sw), 'sw.js');
+    includes(app, "version: 'v1.85.0'", 'app.js v1.17.0');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

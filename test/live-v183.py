@@ -1,6 +1,6 @@
-"""bm-v1.83.0 라이브 점검 (390×844) — https://csw42060713-byte.github.io/badminton/
+"""bm-v1.85.0 라이브 점검 (390×844) — https://csw42060713-byte.github.io/badminton/
 
-  A) 버전 — BM.app.version v1.83.0 · 새 AI 함수(fatigueJump·guardChain) · 5개 탭
+  A) 버전 — BM.app.version v1.85.0 · 새 AI 함수(fatigueJump·guardChain) · 5개 탭
   B) 피로 점프 — 컨디션 3 + 스매시 저장 → '피로할 때 점프 스매시' 접기 ·
                  점프가 평소보다 낮아지고 · 네트 앞 짧은 볼 · 참고 논문(Cheng 2024)
   C) 연쇄 보호 — 무릎 통증 저장 → 관절 보호 체크 안 '무릎 → 허리 연쇄 보호' · 사이드 플랭크
@@ -67,7 +67,7 @@ with sync_playwright() as p:
     pg.reload(wait_until='load')
     pg.wait_for_timeout(3000)
 
-    ck('LIVE 버전 v1.83.0', pg.evaluate("() => BM.app.version") == 'v1.83.0',
+    ck('LIVE 버전 v1.85.0', pg.evaluate("() => BM.app.version") == 'v1.85.0',
        pg.evaluate("() => BM.app.version"))
     ck('LIVE 새 AI 함수', pg.evaluate(
         "() => typeof BM.ai.fatigueJump === 'function' && typeof BM.ai.guardChain === 'function'"))

@@ -1,7 +1,7 @@
-"""bm-v1.83.0 로컬 점검 (390×844) — 🤖 피로 점프 · 무릎-허리 연쇄 보호 AI
+"""bm-v1.85.0 로컬 점검 (390×844) — 🤖 피로 점프 · 무릎-허리 연쇄 보호 AI
 
 · 127.0.0.1 로 띄운 저장소를 그대로 봅니다(Supabase·구글·지도 타일·CDN 요청은 막습니다).
-  A) 버전 — sw.js bm-v1.83.0 · app.js v1.83.0 · styles.css?v=20261126-5 · TWA 1.83.0/77 · 5개 탭
+  A) 버전 — sw.js bm-v1.85.0 · app.js v1.85.0 · styles.css?v=20261126-7 · TWA 1.85.0/77 · 5개 탭
   B) 피로 점프 — 컨디션 3 + 스매시 → 진단 '피로 점프 주의' · 드릴 3개가 네트·스텝으로 교체 ·
                  '피로할 때 점프 스매시' 접기가 열리고 문구·참고 논문이 보인다
   C) 연쇄 보호 — 무릎 통증 → 관절 보호 체크 안 '무릎 → 허리 연쇄 보호' · 사이드 플랭크 처방
@@ -136,17 +136,17 @@ with sync_playwright() as p:
         }""")
 
     # ── A. 파일 · 버전 ──
-    check('A sw.js bm-v1.83.0', "var VERSION = 'bm-v1.83.0'" in read('sw.js'))
-    check('A index styles.css?v=20261126-5', 'styles.css?v=20261126-5' in read('index.html'))
-    check('A app.js v1.83.0', "version: 'v1.83.0'" in read('app.js'))
-    check('A push.js v1.83.0', "version: 'v1.83.0'" in read('js/push.js'))
+    check('A sw.js bm-v1.85.0', "var VERSION = 'bm-v1.85.0'" in read('sw.js'))
+    check('A index styles.css?v=20261126-7', 'styles.css?v=20261126-7' in read('index.html'))
+    check('A app.js v1.85.0', "version: 'v1.85.0'" in read('app.js'))
+    check('A push.js v1.85.0', "version: 'v1.85.0'" in read('js/push.js'))
     twa = read('twa-manifest.json')
-    check('A TWA 1.83.0 · 코드 77', '"appVersionName": "1.83.0"' in twa and '"appVersionCode": 77' in twa)
+    check('A TWA 1.85.0 · 코드 77', '"appVersionName": "1.85.0"' in twa and '"appVersionCode": 79' in twa)
 
     page.goto(BASE, wait_until='load')
     page.wait_for_timeout(1600)
     login('승우')
-    check('A 앱 버전 v1.83.0', page.evaluate("() => BM.app.version") == 'v1.83.0',
+    check('A 앱 버전 v1.85.0', page.evaluate("() => BM.app.version") == 'v1.85.0',
           page.evaluate("() => BM.app.version"))
     tabs = page.evaluate("() => BM.app.TABS.map(t => t.id)")
     check('A 5개 탭 그대로', tabs == ['log', 'matching', 'community', 'coach', 'my'], tabs)

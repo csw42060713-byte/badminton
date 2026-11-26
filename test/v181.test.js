@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v181.test.js — bm-v1.84.0
+ * test/v181.test.js — bm-v1.85.0
  *   🏸 실제 배드민턴 라켓 3D · 바디 4종 · 등급 · 효과(연출) · 줄 갈고 며칠째
  *
  *  1) 바디 4종 — 실제 비율(헤드:샤프트:그립 ≈ 25:22:20), 모델마다 실루엣·프레임 두께·데칼이 다르다
@@ -151,23 +151,27 @@
     ok(RC.rarityOf('legend').rank === 3, '레전드가 가장 높다');
   });
 
-  test('v1.81 등급: 해금 가격이 등급 구간을 따라간다(일반 무료~30 · 레어 40~60 · 에픽 80~100 · 레전드 120~150)', function () {
-    var band = { common: [0, 30], rare: [40, 60], epic: [80, 100], legend: [120, 150] };
+  test('v1.84 등급: 해금 가격이 등급을 따라 하트 1~5개다(일반 1 · 레어 2 · 에픽 3 · 레전드 5)', function () {
+    var band = { common: [1, 1], rare: [2, 2], epic: [3, 3], legend: [4, 5] };
     var checked = 0;
     RC.SLOTS.forEach(function (slot) {
       RC.itemsOf(slot).forEach(function (it) {
-        if (it.heart) return;        /* bm-v1.83.0 — 하트로 여는 스페셜 스매시는 포인트 가격표 밖 */
-        var cost = it.free ? 0 : it.cost;
+        var cost = RC.priceOf(slot, it.id);
+        if (!cost) { ok(it.free || it.id === 'none', slot + ':' + it.id + ' 무료는 기본 파츠뿐'); checked++; return; }
+        /* 스매시 연출은 값이 카드에 직접 적혀 있습니다(불꽃 2 · 얼음·번개 3) */
+        if (it.smash) { ok(cost >= 2 && cost <= 3, slot + ':' + it.id + ' 스매시 하트 ' + cost); checked++; return; }
         var range = band[it.rarity];
         ok(range, slot + ':' + it.id + ' 등급 있음');
-        ok(cost >= range[0] && cost <= range[1], slot + ':' + it.id + ' ' + it.rarity + ' 가격 ' + cost);
+        ok(cost >= range[0] && cost <= range[1], slot + ':' + it.id + ' ' + it.rarity + ' 하트 ' + cost);
         checked++;
       });
     });
     RC.BODY_IDS.forEach(function (id) {
       var b = RC.BODIES[id];
+      var cost = RC.priceOf('body', id);
+      if (b.free) { eq(cost, 0, id + ' 무료'); checked++; return; }
       var range = band[b.rarity];
-      ok((b.free ? 0 : b.cost) >= range[0] && (b.free ? 0 : b.cost) <= range[1], id + ' 바디 가격');
+      ok(cost >= range[0] && cost <= range[1], id + ' 바디 하트 ' + cost);
       checked++;
     });
     ok(checked >= 30, '검사한 카드 ' + checked);
@@ -189,24 +193,24 @@
    * 3. 효과(연출)
    * ============================================================ */
 
-  test('v1.81 효과: 효과 칸에 5종, 없음은 무료 · 레어 50P · 에픽 80/100P · 레전드 150P', function () {
+  test('v1.84 효과: 효과 칸에 8종, 없음은 무료 · 나머지는 하트 2~5개', function () {
     eq(RC.SLOTS.indexOf('effect'), 5, '여섯 번째 칸');
     var list = RC.itemsOf('effect');
-    /* bm-v1.83.0 — 하트로 여는 스페셜 스매시(불꽃·번개) 2종이 더해져 일곱 종 */
-    eq(list.length, 7, '일곱 종');
-    eq(list.filter(function (it) { return it.heart; }).length, 2, '하트로 여는 2종');
+    /* bm-v1.85.0 — 하트로 여는 스페셜 스매시(불꽃·얼음·번개)까지 여덟 종 */
+    eq(list.length, 8, '여덟 종');
+    eq(list.filter(function (it) { return it.smash; }).length, 3, '스매시 연출 3종');
     var byId = {};
     list.forEach(function (it) { byId[it.id] = it; });
     eq(byId.none.rarity, 'common', '없음 일반');
     ok(byId.none.free, '없음 무료');
     eq(byId.speed.rarity, 'rare');
-    eq(byId.speed.cost, 50);
+    eq(RC.priceOf('effect', 'speed'), 2);
     eq(byId.spark.rarity, 'epic');
-    eq(byId.spark.cost, 80);
+    eq(RC.priceOf('effect', 'spark'), 3);
     eq(byId.blaze.rarity, 'epic');
-    eq(byId.blaze.cost, 100);
+    eq(RC.priceOf('effect', 'blaze'), 3);
     eq(byId.prism.rarity, 'legend');
-    eq(byId.prism.cost, 150);
+    eq(RC.priceOf('effect', 'prism'), 5);
     eq(RC.PARTS.effect.label, '효과');
     ok(RC.PARTS.effect.fx, '연출 칸');
   });
@@ -218,7 +222,7 @@
     includes(html, 'data-rk-part="effect:speed"', '스피드 링 카드');
     includes(html, 'is-r-legend', '레전드 글로우');
     includes(html, 'is-r-epic', '에픽 글로우');
-    includes(html, '150P', '레전드 가격');
+    includes(html, '❤ 5', '레전드 가격');
   });
 
   test('v1.81 효과: 3D 캔버스에서 실제로 그려진다(연출마다 그리는 횟수가 다르다)', function () {
@@ -385,15 +389,15 @@
 
   test('v1.81 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.84.0'", 'sw.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.85.0'", 'sw.js');
     includes(readRoot('sw.js'), "'./js/racketcustom.js'", 'sw 캐시');
-    includes(readRoot('app.js'), "version: 'v1.84.0'", 'app.js');
-    includes(readRoot('js/push.js'), "version: 'v1.84.0'", 'push.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261126-6', '스타일 캐시 키');
+    includes(readRoot('app.js'), "version: 'v1.85.0'", 'app.js');
+    includes(readRoot('js/push.js'), "version: 'v1.85.0'", 'push.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261126-7', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.84.0', 'TWA 이름');
-    eq(twa.appVersionCode, 78, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.84.0', 'README');
+    eq(twa.appVersionName, '1.85.0', 'TWA 이름');
+    eq(twa.appVersionCode, 79, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.85.0', 'README');
     includes(readRoot('test/run.js'), 'test/v181.test.js', '테스트 목록');
   });
 
