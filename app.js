@@ -1220,7 +1220,7 @@
   /* bm-v1.82.0 — 내 상태(매칭 ON/휴식 중)를 바꾼 화면이 헤더 배지를 바로 다시 그리게 */
   function paintChromeNow() { if (store && store.state && !gated) paintChrome(store.state); }
 
-  BM.app = { boot: boot, repaint: repaint, paintChrome: paintChromeNow, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.89.0' };
+  BM.app = { boot: boot, repaint: repaint, paintChrome: paintChromeNow, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.90.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

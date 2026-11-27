@@ -439,8 +439,20 @@
  *             셔틀콕 임팩트가 터집니다. 네이티브 브리지 → 앱 딥링크(shuttlix://wallpaper) → 안내 순서.
  *             js/wallpaper.js 가 새로 생기고 js/racketcustom.js·styles.css·index.html 이 바뀌어
  *             캐시를 bm-v1.89.0 으로 올립니다.
+ *
+ * 2026-11-27 (bm-v1.90.0): 🔥 3D 효과가 안 보이던 문제 + 스매시 타격감·효과별 소리 —
+ *             파티클 크기를 카메라 거리에 맞게(30~110) 키워 불꽃·얼음·번개·스파크·블레이즈·
+ *             프리즘·스피드가 390px 화면에서도 또렷하게 보이고, 효과마다 불꽃 혀·얼음 결정·
+ *             번개 줄기·광휘가 헤드에 붙어 움직입니다. 스매시는 셔틀이 코트 앞 위 대각선에서
+ *             보이는 궤적·안내선으로 날아와 라켓이 그 방향을 마주 보고 깊은 백스윙 →
+ *             폭발적 프로네이션으로 정타, 3D 충격파 링 2겹 + 빛살 + 큰 섬광 + 두꺼운 스윙 아크 +
+ *             강한 셰이크 + 한 박자 더 긴 히트스톱 뒤 아래 대각선으로 초고속 발사됩니다.
+ *             효과별 소리(불 화르륵 / 얼음 쨍그랑 / 번개 찌릿 / 강타 쿵·충격링 공명)는
+ *             외부 파일 없이 Web Audio 로 합성합니다 — js/smashsound.js 가 새로 생기고
+ *             js/racket3d.js·js/racketcustom.js·styles.css·index.html 이 바뀌어
+ *             캐시를 bm-v1.90.0 으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.89.0';
+var VERSION = 'bm-v1.90.0';
 var SHELL = [
   './',
   './index.html',
@@ -459,6 +471,7 @@ var SHELL = [
   './js/store.js',
   './js/ui.js',
   './js/vendor/three/three.min.js',
+  './js/smashsound.js',
   './js/racket3d.js',
   './js/racketcustom.js',
   './js/wallpaper.js',

@@ -454,12 +454,12 @@
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.89.0'", 'sw.js');
+    includes(sw, "var VERSION = 'bm-v1.90.0'", 'sw.js');
     includes(sw, 'bm-v1.74.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.89.0'", 'app.js');
+    includes(app, "version: 'v1.90.0'", 'app.js');
     ok(/styles\.css\?v=20261127-\d+/.test(index), 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.89.0', 'TWA 이름');
-    eq(twa.appVersion, '1.89.0', 'TWA 버전');
-    eq(twa.appVersionCode, 83, 'TWA 코드');
+    eq(twa.appVersionName, '1.90.0', 'TWA 이름');
+    eq(twa.appVersion, '1.90.0', 'TWA 버전');
+    eq(twa.appVersionCode, 84, 'TWA 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

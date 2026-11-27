@@ -294,11 +294,11 @@
 
   test('v1.50 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.89.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.89.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-3', '스타일 캐시');
-    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.89.0"', 'TWA 버전');
-    includes(readRoot('twa-manifest.json'), '"appVersionCode": 83', '앱 버전 코드 +1');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.90.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.90.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-4', '스타일 캐시');
+    includes(readRoot('twa-manifest.json'), '"appVersionName": "1.90.0"', 'TWA 버전');
+    includes(readRoot('twa-manifest.json'), '"appVersionCode": 84', '앱 버전 코드 +1');
   });
 
   test('v1.50 근거: 논문 수치는 참고 줄에만, 화면 문구는 코트 말투', function () {
