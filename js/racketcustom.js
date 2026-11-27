@@ -4425,7 +4425,7 @@
             /* bm-v1.89.0 — 앱이 있으면 배경화면 선택창으로, 없으면 설치 안내만 */
             var went = BM.wallpaper ? BM.wallpaper.apply(ctx.store.state) : false;
             if (BM.ui) {
-              if (went) BM.ui.toast('셔틀릭스 앱에서 배경화면을 골라 주세요');
+              if (went) BM.ui.toast('셔틀릭스 앱에서 바탕화면을 확인해 주세요');
               else BM.ui.toast('안드로이드 셔틀릭스 앱을 설치하면 폰 바탕화면으로 쓸 수 있어요', 'error');
             }
             if (went && BM.ui && BM.ui.haptic) BM.ui.haptic(12);
