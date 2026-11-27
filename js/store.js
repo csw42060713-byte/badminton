@@ -69,6 +69,9 @@
     (idx.byType['매칭프로필'] || []).forEach(function (m) {
     if (!m.payload) return;
     if (blockedKey(m.userKey)) return;      /* v1.55 — 차단한 사람은 매칭에서도 보이지 않습니다 */
+    /* bm-v1.92.0 — 계정이 이미 지워진 예전 시험용 계정(우승·환비·나래)의 카드는
+     * 실제 회원이 아니므로 탐색·추천 목록에서 뺍니다(js/seed.js isRetiredUser). */
+    if (BM.seed && BM.seed.isRetiredUser && BM.seed.isRetiredUser(m.userKey)) return;
     var pl = m.payload;
     var av = D.normalizeAvatar({
       avatarPhoto: pl.avatarPhoto, avatar: pl.avatar,

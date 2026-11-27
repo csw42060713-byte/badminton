@@ -232,6 +232,16 @@
     return true;
   }
 
+  /* bm-v1.92.0 — 서버에 이미 계정이 없는 경우(회원 탈퇴 직후)의 로그아웃.
+   *  · 탈퇴(delete_my_account)가 성공하면 그 토큰의 사용자는 더 이상 없습니다.
+   *  · 이때 /auth/v1/logout 을 부르면 403(user_not_found)만 콘솔에 남습니다.
+   *  · 그래서 서버 요청 없이 기기 세션(토큰·새로고침 토큰)만 깨끗이 비웁니다. */
+  function signOutLocal() {
+    clearSbAuth();
+    U.storage.removeItem(SESSION_KEY);
+    return true;
+  }
+
   function signOutKeepAccounts() { return signOut(); }
 
   /* ---------- 온보딩 ---------- */
@@ -861,7 +871,7 @@
     bootstrapRecovery: bootstrapRecovery, signInGoogleIdToken: linkGoogleIdToken,
     /* bm-v1.59.0 — 토큰 연결 직후 대기열 한 번 더 보내기 */
     retryPendingSync: retryPendingSync, takeSyncRetry: takeSyncRetry,
-    signOut: signOut, signOutKeepAccounts: signOutKeepAccounts,
+    signOut: signOut, signOutKeepAccounts: signOutKeepAccounts, signOutLocal: signOutLocal,
     needsOnboarding: needsOnboarding, markOnboarded: markOnboarded, profileFor: profileFor,
     googleClientId: googleClientId, setGoogleClientId: setGoogleClientId, isGoogleClientId: isGoogleClientId,
     isDefaultGoogleClientId: isDefaultGoogleClientId, DEFAULT_GOOGLE_CLIENT_ID: DEFAULT_GOOGLE_CLIENT_ID,

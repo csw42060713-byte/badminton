@@ -65,9 +65,29 @@
     return [];
   }
 
+  /* bm-v1.92.0 — 계정이 이미 지워진 '예전 시험용 계정'의 매칭 카드.
+   *  앱을 만들던 2026-11-20~21 에 시험 삼아 만들었던 세 계정(우승 · 환비 · 나래)은
+   *  계정(app_users · auth.users)이 지워졌지만, 그때 남긴 매칭프로필 행이 서버에 남아
+   *  실제 회원처럼 매칭 추천·탐색 목록에 섞여 보였습니다(2계정 실사용 점검 2026-11-27).
+   *  → 계정이 없는 카드는 목록에서 빼서, 실제 가입자만 보이게 합니다.
+   *  (서버에 남은 그 행들은 아래 SQL 로 지울 수 있습니다 — 사용자가 결정할 일)
+   *    delete from app_records where user_key in
+   *      ('u_bd730c28ae44','u_632d2cad4830','u_4f3c0b40e9b0');   -- 80행 */
+  var RETIRED_USERS = {
+    u_bd730c28ae44: 1,     /* 우승 */
+    u_632d2cad4830: 1,     /* 환비 */
+    u_4f3c0b40e9b0: 1      /* 나래 */
+  };
+
+  function isRetiredUser(key) {
+    var k = String(key == null ? '' : key);
+    return !!(k && RETIRED_USERS[k]);
+  }
+
   BM.seed = {
     build: build, ME: ME, PLAYERS: PLAYERS,
     SAMPLE_POSTS: SAMPLE_POSTS, SAMPLE_REPLIES: SAMPLE_REPLIES,
-    isSampleText: isSampleText, isSamplePost: isSamplePost
+    isSampleText: isSampleText, isSamplePost: isSamplePost,
+    RETIRED_USERS: RETIRED_USERS, isRetiredUser: isRetiredUser
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

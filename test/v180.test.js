@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v180.test.js — bm-v1.91.0
+ * test/v180.test.js — bm-v1.92.0
  *   🏸 내 커스텀 라켓 — 상태 연동 · 수집(포인트 해금) · 매칭/공유 노출
  *
  *  1) 파츠 — 배드민턴 용품 감성 5칸(프레임·스트링·그립·스텐실·참), 기본 5종 무료
@@ -119,10 +119,10 @@
   test('v1.80 파츠: 프레임·스트링·그립·스텐실·참 5칸에 각 5종, 기본은 무료', function () {
     /* v1.81에서 '효과'(연출) 칸이 더해져 여섯 칸입니다 */
     eq(RC.SLOTS.join(','), 'frame,string,grip,stencil,charm,effect', '여섯 칸');
-    /* bm-v1.91.0 — 프레임에 레전드 1종(오닉스 티타늄) 6종, 그립에 에픽 2종(타월 베이지·투톤 네온) 7종 */
+    /* bm-v1.92.0 — 프레임에 레전드 1종(오닉스 티타늄) 6종, 그립에 에픽 2종(타월 베이지·투톤 네온) 7종 */
     var counts = { frame: 6, grip: 7, effect: 8 };
     RC.SLOTS.forEach(function (slot) {
-      /* bm-v1.91.0 — '효과' 칸에 하트로 여는 스페셜 스매시 3종(불꽃·얼음·번개)이 더해져 8종입니다 */
+      /* bm-v1.92.0 — '효과' 칸에 하트로 여는 스페셜 스매시 3종(불꽃·얼음·번개)이 더해져 8종입니다 */
       eq(RC.itemsOf(slot).length, counts[slot] || 5, slot + ' ' + (counts[slot] || 5) + '종');
       var free = RC.itemsOf(slot).filter(function (it) { return it.free; });
       eq(free.length, 1, slot + ' 무료 1종');
@@ -589,16 +589,16 @@
 
   test('v1.80 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록이 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.91.0'", 'sw.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.92.0'", 'sw.js');
     includes(readRoot('sw.js'), "'./js/racketcustom.js'", 'sw 캐시에 라켓 모듈');
-    includes(readRoot('app.js'), "version: 'v1.91.0'", 'app.js');
-    includes(readRoot('js/push.js'), "version: 'v1.91.0'", 'push.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-5', '스타일 캐시 키');
+    includes(readRoot('app.js'), "version: 'v1.92.0'", 'app.js');
+    includes(readRoot('js/push.js'), "version: 'v1.92.0'", 'push.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-6', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.91.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.91.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 85, 'TWA 버전 코드');
-    includes(readRoot('README.md'), 'bm-v1.91.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.92.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.92.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 86, 'TWA 버전 코드');
+    includes(readRoot('README.md'), 'bm-v1.92.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v180.test.js', '테스트 목록 배선');
     includes(readRoot('test/run.js'), 'js/racketcustom.js', '테스트 로드');
   });
