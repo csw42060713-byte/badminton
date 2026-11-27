@@ -61,7 +61,7 @@
     includes(js, 'function boltFill', '지그재그 번개 생성');
     includes(js, 't - b.boltAt > 0.08', '번개가 80ms 마다 새로 뻗는다');
     includes(js, "if (id === 'fire' || id === 'ice' || id === 'thunder')", '스매시 효과 3종 분기 그대로');
-    includes(js, 'OctahedronGeometry(6', '얼음 결정 메쉬');
+    includes(js, 'new T.ConeGeometry(4.6', '얼음 결정(뾰족한 조각) 메쉬');
     includes(js, 'new T.Sprite(', '광휘는 카메라를 바라보는 스프라이트');
   });
 

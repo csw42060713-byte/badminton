@@ -1129,17 +1129,17 @@
         /* 얼음 결정 — 헤드 둘레를 천천히 도는 서리 조각 10개 + 서리 링 */
         var crystals = [];
         var iceMat = new T.MeshStandardMaterial({
-          color: new T.Color('#e8fbff'), emissive: new T.Color('#4fbfe8'), emissiveIntensity: 1.1,
-          metalness: 0.1, roughness: 0.06, transparent: true, opacity: 0.92, flatShading: true
+          color: new T.Color('#dff7ff'), emissive: new T.Color('#59c8f2'), emissiveIntensity: 1.5,
+          metalness: 0.15, roughness: 0.05, transparent: true, opacity: 0.94, flatShading: true
         });
-        for (i = 0; i < 12; i++) {
-          var cr = new T.Mesh(new T.OctahedronGeometry(6 + (i % 3) * 2.4, 0), iceMat);
-          /* 길쭉한 얼음 조각 — 종잇조각처럼 보이지 않게 */
-          cr.scale.set(0.55, 1.9 + (i % 3) * 0.5, 0.55);
+        for (i = 0; i < 14; i++) {
+          /* 뾰족한 얼음 조각(4면 피라미드) — 종잇조각 같은 네모가 아니라 가시처럼 */
+          var cr = new T.Mesh(new T.ConeGeometry(4.6 + (i % 3) * 1.6, 22 + (i % 4) * 7, 4, 1), iceMat);
+          cr.userData.spin = (i % 5) - 2;
           host.add(cr);
           crystals.push(cr);
         }
-        var frost = new T.Mesh(new T.TorusGeometry(rx * 1.04, 1.8, 8, 88),
+        var frost = new T.Mesh(new T.TorusGeometry(rx * 1.04, 2.4, 8, 88),
           new T.MeshBasicMaterial({
             color: new T.Color('#a9e8ff'), transparent: true, opacity: 0.7,
             blending: T.AdditiveBlending, depthWrite: false
@@ -1204,10 +1204,10 @@
           var cr0 = b.crystals[k];
           var ang0 = t * 0.55 + (k / b.crystals.length) * Math.PI * 2;
           var rad0 = 1.35 + Math.sin(t * 1.3 + k) * 0.12;
-          cr0.position.set(Math.cos(ang0) * 110 * rad0, Math.sin(ang0) * 128 * rad0 - 6,
+          cr0.position.set(Math.cos(ang0) * 118 * rad0, Math.sin(ang0) * 134 * rad0 - 6,
             -18 + Math.sin(ang0 * 1.7) * 42);
-          cr0.rotation.set(t * (0.6 + k * 0.05), t * (0.8 + k * 0.04), 0);
-          cr0.scale.setScalar(0.9 + Math.sin(t * 3.4 + k) * 0.18);
+          cr0.rotation.set(t * (0.5 + k * 0.06), t * (0.7 + k * 0.05), (cr0.userData.spin || 0) * 0.6 + Math.sin(t + k) * 0.5);
+          cr0.scale.setScalar(0.95 + Math.sin(t * 3.4 + k) * 0.2);
         }
       }
       if (b.frost) {
