@@ -279,15 +279,29 @@
     return out;
   }
 
+  /* ---------- 실전 드라이브·초구 기준 (bm-v1.94.0) ----------
+   * 체전 1등 선수 현장 기준(사용자 제보 2026-11-27)을 그대로 옮겼습니다.
+   *   "드라이브 칠 때 검지 손가락에 신경 써서 힘을 주고, 끊어 치지 않고 스윙을 짧게 한다"
+   *   "초구는 직선(지선) 가운데로 누르는 게 기본"
+   * 드릴·약점 코칭·전술 노트가 같은 문장을 쓰도록 한 곳에 모읍니다.
+   * 실명은 쓰지 않고 '체전 1등 선수 현장 기준'으로만 부릅니다. */
+  var PRO_DRIVE = {
+    source: '체전 1등 선수 현장 기준(2026-11-27)',
+    finger: '검지 손가락에 신경 써서 힘을 실어 주고',
+    short: '라켓을 길게 휘두르거나 툭 끊어 치지 말고 스윙을 짧게',
+    push: '짧은 스윙으로 간결하게 밀어 치기',
+    first: '초구(첫 리턴)는 무리하게 코너를 찌르지 말고 직선 가운데로 눌러 주는 게 기본'
+  };
+
   /* ---------- 기술별 드릴 ----------
    * 각 드릴의 sets는 7급수 전부를 갖습니다. (예전 4단계 문구도 setsFor가 받아 줍니다) */
   var DRILLS = {
     '드라이브': [
       {
         name: '드라이브 기본 반복',
-        method: '같은 코스로 정확하게 반복해 샷 폼을 다집니다. 파트너 없이 벽치기로도 됩니다. 타점은 항상 몸 앞.',
+        method: '포핸드 드라이브는 ' + PRO_DRIVE.finger + ', 툭 끊어 치지 않고 스윙을 짧게 밀듯 칩니다. 같은 코스로 반복하며 타점은 몸 앞, 파트너 없이 벽치기로도 됩니다.',
         sets: vol('회', [20, 25, 30, 35, 40, 45, 50], [2, 3, 3, 3, 4, 4, 4]),
-        point: '라켓을 몸 앞에 두고 마지막 손목 스냅에 집중'
+        point: '검지에 힘 실어 주고 · 짧은 스윙으로 밀어 치기'
       },
       {
         name: '드라이브 코스 변경',
@@ -297,7 +311,7 @@
       },
       {
         name: '드라이브 연결 3구',
-        method: '드라이브 → 드라이브 → 공격(스매시/푸시)으로 이어지는 3구 패턴. 서브 리시브 뒤 드라이브 싸움을 견디는 힘을 만듭니다.',
+        method: '짧은 스윙으로 밀듯 치는 감각 그대로 드라이브 → 드라이브 → 공격(스매시/푸시) 3구를 이어갑니다. 서브 리시브 뒤 드라이브 싸움을 견디는 힘을 만들고, 랠리 중에 크게 휘두르면 다음 공 준비가 늦습니다.',
         sets: vol('랠리', [6, 8, 10, 10, 12, 12, 15], [2, 3, 3, 4, 4, 4, 4]),
         point: '3구째에 반드시 아래로(공격) 바꾸기'
       },
@@ -485,9 +499,9 @@
       },
       {
         name: '서브 리시브 코스',
-        method: '상대 서브를 헤어핀·드라이브·푸시로 받아냅니다. 복식은 네트 앞을 먼저 차지하는 리시브가 가장 좋습니다. 국내 국가대표 복식 분석에서 리시브 기술이 숏 드라이브 ' + rng(DOUBLES_RECEIVE.shortDrivePct, '%') + '·드라이브 ' + rng(DOUBLES_RECEIVE.drivePct, '%') + '·헤어핀 ' + rng(DOUBLES_RECEIVE.hairpinPct, '%') + '에 몰렸으니 한 구질만 반복하지 마세요.',
+        method: '초구(첫 리턴)는 무리하게 코너를 찌르지 말고 직선 가운데로 눌러 주는 게 기본입니다. 상대 서브를 헤어핀·드라이브·푸시로 받아내고, 복식은 네트 앞을 먼저 차지하는 리시브가 가장 좋습니다. 국내 국가대표 복식 분석에서 리시브 기술이 숏 드라이브 ' + rng(DOUBLES_RECEIVE.shortDrivePct, '%') + '·드라이브 ' + rng(DOUBLES_RECEIVE.drivePct, '%') + '·헤어핀 ' + rng(DOUBLES_RECEIVE.hairpinPct, '%') + '에 몰렸으니 한 구질만 반복하지 마세요.',
         sets: vol('랠리', [6, 8, 10, 10, 12, 12, 12], [3, 3, 3, 4, 4, 4, 4]),
-        point: '서브 오기 전에 받을 곳 정해두기'
+        point: '초구는 직선 가운데로 눌러 두고, 서브 오기 전에 받을 곳 정해두기'
       },
       {
         name: '리시브 구질 3종 전환',
@@ -674,7 +688,7 @@
   var TACTICS = {
     '단식': [
       '서브는 낮게 중앙으로(각도 줄이기), 가끔 플릭으로 타이밍 흔들기 (BWF 단식 서브)',
-      '리시브는 네트 앞으로 받아 리프트를 유도한 뒤 공격, 낮게 오면 리프트로 뒤 코너에 깊게',
+      '리시브는 네트 앞으로 받아 리프트를 유도한 뒤 공격, 낮게 오면 리프트로 뒤 코너에 깊게 — ' + PRO_DRIVE.first + ' (' + PRO_DRIVE.source + ')',
       '상대를 백핸드 후위로 길게 밀면 체공 시간이 벌어져 내가 베이스로 돌아와 스플릿 스텝을 준비할 시간이 생깁니다 — 뒤로 몰린 상대에게 백핸드 후위를 한 번 더',
       '중립 상황은 스트레이트 위주로 안전하게, 상대가 회복을 못 하면 긴 대각선으로 이동시키기',
       '공격 기회(짧은 리프트)에는 빠르게 뒤로 들어가 아래로, 압박이 세면 베이스를 앞으로',
@@ -683,11 +697,11 @@
     '복식': [
       '수비에서 공격으로 뒤집을 땐 먼저 공을 세게 한 번 쳐서 상대를 뒤로 밀리게 만들고, 그다음 코스를 틀거나 짧게 놓아 빈틈을 노리세요 — 밀기 전에 방향부터 바꾸면 앞을 지키는 상대에게 걸립니다',
       '숏서브는 T자 부근, 서브 후 전위는 네트를 지키고 후위는 미드/후방 커버 (BWF 복식 서브). 몸쪽만 반복하면 읽힙니다 — 국내 국가대표 분석에서 몸쪽 서브 ' + rng(DOUBLES_SERVE.bodyPct, '%') + '인 조의 서브 실점이 ' + rng(DOUBLES_SERVE.lossPct, '%') + '였습니다',
-      '리시브는 네트 앞으로 차지하기. 숏 드라이브 ' + rng(DOUBLES_RECEIVE.shortDrivePct, '%') + '·드라이브 ' + rng(DOUBLES_RECEIVE.drivePct, '%') + '·헤어핀 ' + rng(DOUBLES_RECEIVE.hairpinPct, '%') + '에 몰리지 말고 구질·코스(중앙/대각/직선)를 섞기',
+      '리시브는 네트 앞으로 차지하기. 숏 드라이브 ' + rng(DOUBLES_RECEIVE.shortDrivePct, '%') + '·드라이브 ' + rng(DOUBLES_RECEIVE.drivePct, '%') + '·헤어핀 ' + rng(DOUBLES_RECEIVE.hairpinPct, '%') + '에 몰리지 말고 구질·코스(중앙/대각/직선)를 섞기 — ' + PRO_DRIVE.first + ' (' + PRO_DRIVE.source + ')',
       '공격은 전후(공격) / 수비는 좌우(수비). 셔틀 높이를 보고 둘이 동시에 바꾸기',
       '전위는 공격 방향 쪽으로 붙는 채널 어택 — 스트레이트·중앙 공격으로 2대1 만들기',
       '수비에서는 블록·드라이브로 앞으로 나가 주도권 회수, 리프트는 스트레이트 공격엔 크로스로 — 코스를 예측한 수비는 앞에서 짧게 잡아 압박하고, 예측 못 한 공은 몸 쪽 뒤로 살짝 당겨 시간을 벌고 여유롭게 받아치기',
-      '드라이브 싸움에서는 중앙(두 선수 사이)과 몸쪽을 먼저 겨냥'
+      '드라이브 싸움에서는 중앙(두 선수 사이)과 몸쪽을 먼저 겨냥 — 포핸드 드라이브는 ' + PRO_DRIVE.finger + ' ' + PRO_DRIVE.push + ', 툭 끊어 치지 않기 (' + PRO_DRIVE.source + ')'
     ],
     '혼합복식': [
       '여성 선수는 전위·미드, 남성 선수는 미드·후위를 맡아 전위에서 결정하는 구조 (BWF 혼합복식)',
@@ -1828,7 +1842,7 @@
   function senseFocus(weakList) {
     var list = weakList || [];
     var has = function (s) { return list.indexOf(s) >= 0; };
-    if (has('드라이브')) return { skill: '드라이브', text: '드라이브가 약점이라면 2대1 드라이브 10분을 한 번 더 도세요. 빠른 공 속에서 라켓면을 세우는 감각이 먼저 붙습니다.' };
+    if (has('드라이브')) return { skill: '드라이브', text: '드라이브가 약점이라면 2대1 드라이브 10분을 한 번 더 도세요. ' + PRO_DRIVE.finger + ' ' + PRO_DRIVE.push + ' — 빠른 공 속에서도 라켓면이 흔들리지 않습니다. (' + PRO_DRIVE.source + ')' };
     if (has('드롭')) return { skill: '드롭', text: '드롭이 약점이라면 2대1 드롭 10분을 한 번 더. 네트 앞에 살짝 떨어뜨리는 감각은 반복 횟수가 만들어 줍니다.' };
     if (has('헤어핀')) return { skill: '헤어핀', text: '헤어핀이 약점이라면 몸풀기에서 헤어핀을 20개 더. 네트에 붙는 발과 손목을 함께 봐 주세요.' };
     if (has('풋워크')) return { skill: '풋워크', text: '풋워크가 약점이라면 뒷코트 감각연습을 5분 더. 뒤쪽 모서리까지 돌아 나오는 발이 먼저예요.' };
@@ -2590,7 +2604,9 @@
     return { grade: g, focus: plan.focus, volume: plan.volume, rules: plan.rules.slice() };
   }
 
-  /* 전술 노트 — 종목(복식/단식/혼합복식)에 맞는 3가지. 급수가 낮으면 기본 2개만. */
+  /* 전술 노트 — 종목(복식/단식/혼합복식)에 맞는 3가지. 급수가 낮으면 기본 2개만.
+   * 복식은 드라이브 싸움 한 줄을 더 붙입니다(4줄) — 체전 1등 선수 현장 기준의
+   * '검지에 힘·짧은 스윙'이 전술 노트에서도 보이게 하기 위해서입니다 (bm-v1.94.0). */
   function playbook(discipline, level) {
     var d = String(discipline || '').trim();
     if (d.indexOf('혼합') >= 0) d = '혼합복식';
@@ -2601,7 +2617,16 @@
     var tier = tierOf(level);
     var n = tier >= 0 && tier <= 1 ? 2 : 3;
     var g = gradeOf(level);
-    return { discipline: d, grade: g, tips: all.slice(0, n) };
+    var tips = all.slice(0, n);
+    /* 복식 드라이브 싸움 — 급수가 올라간 사람에게만 한 줄 더 */
+    if (d !== '단식' && tier > 1 && all.length > n) {
+      var battle = null;
+      for (var i = 0; i < all.length; i++) {
+        if (all[i].indexOf('드라이브 싸움') >= 0) { battle = all[i]; break; }
+      }
+      if (battle && tips.indexOf(battle) < 0) tips.push(battle);
+    }
+    return { discipline: d, grade: g, tips: tips };
   }
 
   /* ---------- 핵심: 분석 ---------- */
@@ -3002,7 +3027,7 @@
 
   BM.ai = {
     analyze: analyze, summarize: summarize,
-    DRILLS: DRILLS, REHAB: INJURY, INJURY: INJURY,
+    DRILLS: DRILLS, REHAB: INJURY, INJURY: INJURY, PRO_DRIVE: PRO_DRIVE,
     GRADE_PLANS: GRADE_PLANS, TACTICS: TACTICS, WARMUP: WARMUP,
     GRADES: GRADES, gradeOf: gradeOf, tierOf: tierOf, setsFor: setsFor,
     gradePlan: gradePlan, playbook: playbook,

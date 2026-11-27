@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v190.test.js — bm-v1.93.0
+ * test/v190.test.js — bm-v1.94.0
  *   🔥 3D 효과가 안 보이던 문제 · 셔틀이 오는 방향으로 세게 치는 스매시 · 효과별 소리
  *
  *   1) 효과 가시성 — 파티클 크기(화면 14~52px) · 효과마다 붙는 3D 연출(불꽃 혀·얼음 결정·번개 줄기)
@@ -42,9 +42,10 @@
     excludes(js, 'pointCloud(T, 64, 5,', '정타 파티클의 5px 크기를 없앴다');
     includes(js, 'var BURST_N = 130', '정타 파티클 130개');
     includes(js, 'pointCloud(T, BURST_N, 36', '정타 파티클 크기 36');
-    includes(js, "pointCloud(T, 96, 70, col", '불·얼음·번개 파티클 크기 70');
-    includes(js, "pointCloud(T, 110, 64, col", '블레이즈 파티클 크기 64');
-    includes(js, "pointCloud(T, 74, 40, col", '스파크 파티클 크기 40');
+    /* v1.94 — 크기는 줄이고 밝기는 올려 '회색 먼지'가 아니라 불티로 보이게 */
+    includes(js, "pointCloud(T, 64, 56, '#ffffff'", '불·얼음·번개 파티클');
+    includes(js, "pointCloud(T, 78, 52, '#ffffff'", '블레이즈 파티클');
+    includes(js, "pointCloud(T, 58, 34, '#ffffff'", '스파크 파티클');
     includes(js, 'sizeAttenuation', '거리에 따른 크기 계산은 그대로');
     includes(js, 'alphaTest: 0.02', '작은 점이 잘려 사라지지 않게');
   });
@@ -328,7 +329,7 @@
     ok(html.indexOf('js/smashsound.js') < html.indexOf('js/racket3d.js'), '소리 모듈이 3D 보다 먼저');
     var sw = readRoot('sw.js');
     includes(sw, "'./js/smashsound.js'", '서비스워커 캐시');
-    includes(sw, "var VERSION = 'bm-v1.93.0'", '캐시 버전');
+    includes(sw, "var VERSION = 'bm-v1.94.0'", '캐시 버전');
   });
 
   test('v1.90 보호: 효과·모션·파츠·폴백이 그대로다', function () {
@@ -354,15 +355,15 @@
 
   test('v1.90 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.93.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.93.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.93.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-6', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.94.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.94.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.94.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-7', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.93.0', 'TWA 이름');
-    eq(twa.appVersion, '1.93.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 87, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.93.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.94.0', 'TWA 이름');
+    eq(twa.appVersion, '1.94.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 88, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.94.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v190.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

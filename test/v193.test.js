@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v193.test.js — bm-v1.93.0
+ * test/v193.test.js — bm-v1.94.0
  *   🔧 '상대 라켓 구경' 시트에 체육관 지도 버튼 태그가 글자로 보이던 문제
  *
  *   1) 원인 — metaHtml(p) 는 등록된 체육관이면 이미 <button class="gymlink"> HTML 을
@@ -164,15 +164,15 @@
 
   test('v1.93 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.93.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.93.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.93.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-6', '스타일 캐시 키(이번엔 CSS 무변경)');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.94.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.94.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.94.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-7', '스타일 캐시 키(이번엔 CSS 무변경)');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.93.0', 'TWA 이름');
-    eq(twa.appVersion, '1.93.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 87, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.93.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.94.0', 'TWA 이름');
+    eq(twa.appVersion, '1.94.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 88, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.94.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v193.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

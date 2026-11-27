@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v188.test.js — bm-v1.93.0
+ * test/v188.test.js — bm-v1.94.0
  *   🎮 커스텀 라켓을 진짜 3D(Three.js WebGL) 쇼룸으로
  *
  *   1) 엔진   — 저장소 안 three.min.js(MIT) · sw 캐시 · CSP 그대로(외부 CDN 없음)
@@ -129,8 +129,9 @@
   test('v1.88 모델: 줄 상태(prime/worn/broken)가 3D 거트에 그대로 반영된다', function () {
     var js = readRoot('js/racket3d.js');
     includes(js, "look.level === 'worn' ? 1.3 : 0", '늘어진 줄은 가운데가 처진다');
-    includes(js, "look.level === 'broken' && mainPts.length", '끊긴 줄 처리');
-    includes(js, 'aHalf[aHalf.length - 1].y -= 7', '끊긴 끝이 벌어진다');
+    includes(js, "look.level === 'broken'", '끊긴 줄 처리');
+    includes(js, 'brokenStringPlan(mainPts.length, crossPts.length)', '끊긴 줄 배치');
+    includes(js, 'line[idx].y += (fromStart ? -1 : 1) * gap * k', '끊긴 끝이 벌어진다');
     includes(js, 'stringRibbon', '줄은 리본 메쉬');
     includes(js, 'function stringRibbon', '리본 정의');
   });
@@ -208,12 +209,12 @@
   test('v1.88 스매시: 3D 셔틀콕은 코르크 반구 + 밴드 + 깃 16장', function () {
     var js = readRoot('js/racket3d.js');
     includes(js, 'function buildShuttle', '셔틀콕 모델');
-    includes(js, 'SphereGeometry(6.4', '코르크 반구');
-    includes(js, 'CylinderGeometry(6.2, 6.4', '밴드');
+    includes(js, 'SphereGeometry(12.0', '코르크 머리');
+    includes(js, 'CylinderGeometry(12.1, 12.35', '밴드');
     includes(js, 'var N = 16', '깃 16장');
-    includes(js, 'var tilt = 0.55', '깃이 원뿔로 퍼지는 각');
+    includes(js, 'var tilt = 0.44', '깃이 원뿔로 퍼지는 각');
     includes(js, 'makeBasis', '깃을 원뿔면에 맞춰 세운다');
-    includes(js, 'TorusGeometry(15.5', '두 줄 스티치 링');
+    includes(js, 'TorusGeometry(20.2', '두 줄 스티치 링');
   });
 
   test('v1.88 스매시: 백스윙 → 프로네이션 풀스윙 → 히트스톱 · 셰이크 · 궤적 · 파티클', function () {
@@ -221,7 +222,7 @@
     includes(js, '프로네이션', '손목 회내');
     includes(js, 'function poseAt', '자세 계산');
     includes(js, 'R2.smashClock(el)', '히트스톱 시계는 기존 규칙 그대로');
-    includes(js, 'camera.position.x = Math.sin(after / 7.5) * amp', '정타 순간 카메라 셰이크(bm-v1.93.0 에서 더 강하게)');
+    includes(js, 'camera.position.x = Math.sin(after / 7.5) * amp', '정타 순간 카메라 셰이크(bm-v1.94.0 에서 더 강하게)');
     includes(js, 'function buildTrail', '스윙 궤적');
     includes(js, 'function spawnBurst', '3D 파티클');
     includes(js, 'function spawnSlam', '바닥 강타');
@@ -303,15 +304,15 @@
 
   test('v1.88 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.93.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.93.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.93.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-6', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.94.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.94.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.94.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-7', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.93.0', 'TWA 이름');
-    eq(twa.appVersion, '1.93.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 87, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.93.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.94.0', 'TWA 이름');
+    eq(twa.appVersion, '1.94.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 88, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.94.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v188.test.js', '테스트 목록');
     includes(readRoot('test/run.js'), 'js/racket3d.js', '테스트가 3D 모듈을 함께 읽는다');
   });

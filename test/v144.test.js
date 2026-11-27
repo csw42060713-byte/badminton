@@ -289,13 +289,13 @@
    * ========================================================= */
   test('v1.44 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.93.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.93.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-6', '스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.94.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.94.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-7', '스타일 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.93.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.93.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 87, 'TWA 버전 코드 유지');
+    eq(twa.appVersionName, '1.94.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.94.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 88, 'TWA 버전 코드 유지');
     includes(readRoot('index.html'), 'js/scoreboard.js', '점수판 스크립트 유지');
     includes(readRoot('sw.js'), "'./js/gyms.js'", '체육관 모듈 캐시 유지');
     includes(readRoot('index.html'), 'js/vendor/leaflet/leaflet.js', '지도 라이브러리 유지');
