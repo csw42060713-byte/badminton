@@ -119,14 +119,17 @@ with sync_playwright() as p:
     page.evaluate("() => { const s = BM.racketcustom._last3d; s.view.yaw = 0.45; s.view.pitch = 0.12; s.fit(); }")
     shot('v188_parts_towel_carbon', 700)
 
-    # 5) 스매시 — 날아오기 · 임팩트 · 발사
+    # 5) 스매시 — 날아오기 · 임팩트 · 발사 (시트를 다시 열어 새 세트로 확실히)
+    page.evaluate("() => BM.ui.closeSheet && BM.ui.closeSheet()")
+    page.wait_for_timeout(500)
     page.evaluate("""() => {
       const st = BM.app.ctx.store.state;
       st.me.theme.gear.custom = { body: 'smash',
         unlocked: ['body:smash', 'frame:onyx', 'string:lime', 'grip:twotone', 'charm:ace', 'effect:fire'],
         frame: 'onyx', string: 'lime', grip: 'twotone', stencil: 'none', charm: 'ace', effect: 'fire' };
-      BM.racketcustom._last3d.paint();
+      BM.racketcustom.openSheet(BM.app.ctx);
     }""")
+    page.wait_for_timeout(1400)
     page.evaluate("() => { const s = BM.racketcustom._last3d; s.view.yaw = -0.46; s.view.pitch = 0.10; s.fit(); }")
     page.wait_for_timeout(400)
     for name, ms in [('v188_smash_incoming', 210), ('v188_smash_impact', 346),
