@@ -18,7 +18,7 @@
   var BM = root.BM || (root.BM = {});
 
   var KEY = 'bm_sound_v1';
-  var VOLUME = 0.42;
+  var VOLUME = 0.46;
   var AC = null, MASTER = null, NOISE = null;
   var MUTED = false;
 
@@ -110,9 +110,11 @@
     return noise(0.01, 0.30, gain == null ? 0.16 : gain, lo, 1.25, 'bandpass', hi);
   }
   function hitCore(out) {
-    out.push(tone(HIT_AT, 0.170, 0.60, 210, 'sine', 62));      /* 손목·몸통이 실린 '퍽' */
-    out.push(noise(HIT_AT, 0.060, 0.55, 1500, 1.1, 'bandpass'));  /* 거트 맞는 '빡' */
-    out.push(noise(HIT_AT - 0.004, 0.022, 0.34, 3400, 0.8, 'highpass')); /* 채찍 끝 스냅 */
+    out.push(tone(HIT_AT, 0.170, 0.62, 210, 'sine', 62));      /* 손목·몸통이 실린 '퍽' */
+    out.push(tone(HIT_AT + 0.004, 0.300, 0.34, 96, 'sine', 44)); /* 몸통에 남는 낮은 울림 */
+    out.push(noise(HIT_AT, 0.060, 0.62, 1500, 1.1, 'bandpass'));  /* 거트 맞는 '빡' */
+    out.push(noise(HIT_AT - 0.004, 0.022, 0.40, 3400, 0.8, 'highpass')); /* 채찍 끝 스냅 */
+    out.push(noise(HIT_AT + 0.012, 0.045, 0.26, 2600, 2.4, 'bandpass')); /* 정타 뒤 거트 찢어지는 잔결 */
     return out;
   }
 

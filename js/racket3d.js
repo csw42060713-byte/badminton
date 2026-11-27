@@ -23,7 +23,7 @@
 
   var BM = root.BM = root.BM || {};
   var hasDom = typeof document !== 'undefined';
-  var REV = '1.88.0';
+  var REV = '1.94.0';
 
   var TEX = {};                 /* 캔버스 텍스처 캐시 (한 번만 굽습니다) */
   var webglProbe = null;        /* null = 아직 확인 전 */
@@ -238,6 +238,34 @@
       rg.addColorStop(0.45, 'rgba(0,0,0,0.42)');
       rg.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = rg; g.fillRect(0, 0, w, h);
+    });
+  }
+
+  /* 정타 별섬광 — 가운데가 뜨겁게 타는 별 모양 스프라이트 (bm-v1.94.0) */
+  function starTexture() {
+    return canvasDraw('impact_star', 256, 256, function (g, w, h) {
+      g.clearRect(0, 0, w, h);
+      var c = w / 2;
+      g.translate(c, c);
+      var rays = 8, i;
+      for (i = 0; i < rays; i++) {
+        g.save();
+        g.rotate((i * Math.PI * 2) / rays);
+        var lg = g.createLinearGradient(0, 0, 0, -c);
+        lg.addColorStop(0, 'rgba(255,255,255,1)');
+        lg.addColorStop(0.45, 'rgba(255,255,255,0.55)');
+        lg.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = lg;
+        g.beginPath();
+        g.moveTo(-6, 0); g.lineTo(0, -c * 0.96); g.lineTo(6, 0);
+        g.closePath(); g.fill();
+        g.restore();
+      }
+      var rg = g.createRadialGradient(0, 0, 0, 0, 0, c * 0.36);
+      rg.addColorStop(0, 'rgba(255,255,255,1)');
+      rg.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = rg;
+      g.beginPath(); g.arc(0, 0, c * 0.36, 0, Math.PI * 2); g.fill();
     });
   }
 
@@ -629,6 +657,30 @@
     };
   }
 
+  /* ---------- 끊어진 거트 배치 (bm-v1.94.0) ----------
+   * 거트 교체 시기(gear.strungAt + cycleDays)가 지나면 conditionOf 가 broken 을 돌려주고,
+   * buildRacket 이 이 배치대로 줄을 끊어 그립니다.
+   *   · 세로줄 3가닥 + 가로줄 1가닥을 가운데 근처에서 끊고
+   *   · 끊긴 끝은 좌우로 벌어지며 밖으로 말려 나오게 (삐져나온 모양)
+   * 순수 함수라 Node 테스트에서 그대로 값을 확인합니다. */
+  function brokenStringPlan(mainCount, crossCount) {
+    var mains = [], crosses = [];
+    var mid = Math.floor((mainCount || 0) / 2);
+    [
+      { d: -2, gap: 8.5, swing: -1 },
+      { d: 0, gap: 11.5, swing: 1 },
+      { d: 2, gap: 7.5, swing: -1 }
+    ].forEach(function (c) {
+      var i = mid + c.d;
+      if (i >= 0 && i < (mainCount || 0)) mains.push({ i: i, gap: c.gap, swing: c.swing });
+    });
+    if (crossCount) {
+      var ci = Math.floor(crossCount / 2) + 1;
+      if (ci < crossCount) crosses.push({ i: ci, gap: 9, swing: 1 });
+    }
+    return { mains: mains, crosses: crosses };
+  }
+
   function buildRacket(T, look) {
     var R = RC();
     var gm = look.gm;
@@ -760,15 +812,54 @@
       var cv2 = chordAt(inner, 'h', sy);
       if (cv2) crossPts.push(linePts(cv2[0], sy, cv2[1], sy, sagZ * 0.85, 7));
     }
-    /* 줄이 끊긴 상태 — 가운데 세로 줄 한 가닥이 끊어져 양쪽 끝만 남습니다 */
-    if (look.level === 'broken' && mainPts.length) {
-      var cut = Math.floor(mainPts.length / 2);
-      var line = mainPts[cut];
-      var half = Math.floor(line.length / 2);
-      var aHalf = line.slice(0, half), bHalf = line.slice(half + 1);
-      if (aHalf.length > 1) aHalf[aHalf.length - 1].y -= 7;
-      if (bHalf.length > 1) bHalf[0].y += 7;
-      mainPts.splice(cut, 1, aHalf, bHalf);
+    /* 줄이 끊긴 상태 — 세로 3가닥·가로 1가닥이 끊어져 끝이 벌어지고 밖으로 말립니다 */
+    if (look.level === 'broken') {
+      var cutPlan = brokenStringPlan(mainPts.length, crossPts.length);
+      var splay = function (line, fromStart, gap, swing, horiz) {
+        if (!line || line.length < 3) return;
+        var n = line.length, i, k, cnt = Math.min(3, n);
+        for (i = 0; i < cnt; i++) {
+          var idx = fromStart ? i : (n - 1 - i);
+          k = (cnt - i) / cnt;
+          if (horiz) line[idx].x += (fromStart ? -1 : 1) * gap * k;
+          else line[idx].y += (fromStart ? -1 : 1) * gap * k;
+          line[idx].x += swing * 1.4 * k;
+          line[idx].z = (line[idx].z || 0) + 0.6 * k;
+        }
+      };
+      var frayTip = function (p, sx, sy, z) {
+        var curl = [
+          { x: p.x, y: p.y, z: p.z || 0 },
+          { x: p.x + sx * 4.4, y: p.y + sy * 3.2, z: (p.z || 0) + 1.1 },
+          { x: p.x + sx * 1.8, y: p.y + sy * 8.2, z: (p.z || 0) + 1.7 }
+        ];
+        var cm = new T.Mesh(stringRibbon(T, curl, 0.33, 0), mainMat);
+        cm.position.z = z;
+        bedGroup.add(cm);
+      };
+      cutPlan.mains.forEach(function (c) {
+        var line = mainPts[c.i];
+        if (!line || line.length < 5) return;
+        var half = Math.floor(line.length / 2);
+        var aHalf = line.slice(0, half), bHalf = line.slice(half + 1);
+        splay(aHalf, false, c.gap, c.swing, false);
+        splay(bHalf, true, c.gap, c.swing, false);
+        mainPts.splice(c.i, 1, aHalf, bHalf);
+        frayTip(aHalf[aHalf.length - 1], c.swing, -1, -0.5);
+        frayTip(bHalf[0], -c.swing, 1, 0.5);
+        cutPlan.mainShift = (cutPlan.mainShift || 0) + 1;
+      });
+      cutPlan.crosses.forEach(function (c) {
+        var line = crossPts[c.i];
+        if (!line || line.length < 5) return;
+        var half = Math.floor(line.length / 2);
+        var aHalf = line.slice(0, half), bHalf = line.slice(half + 1);
+        splay(aHalf, false, c.gap, c.swing, true);
+        splay(bHalf, true, c.gap, c.swing, true);
+        crossPts.splice(c.i, 1, aHalf, bHalf);
+        frayTip(aHalf[aHalf.length - 1], -1, c.swing, -0.4);
+        frayTip(bHalf[0], 1, c.swing, 0.4);
+      });
     }
     crossPts.forEach(function (line, idx) {
       var mesh = new T.Mesh(stringRibbon(T, line, 0.30, 0), crossMat);
@@ -1007,6 +1098,51 @@
     return buf;
   }
 
+  /* ---------- 궤적 스트릭 — 동그란 점 대신 방향이 보이는 빛줄기 (bm-v1.94.0) ----------
+   * PointsMaterial 은 동그란 점만 찍을 수 있어 효과가 '점 뭉치'로 보였습니다.
+   * 헤드 둘레에 가늘고 긴 발광 판(streak)을 세워 두고, 프레임마다 길이·투명도를
+   * 흘려 쓸려 지나가는 궤적처럼 만듭니다. 판 한 장짜리라 60fps 예산을 거의 먹지 않습니다. */
+  function streakTexture(key, rgb) {
+    return canvasDraw('streak_' + key, 32, 128, function (g, w, h) {
+      var lg = g.createLinearGradient(0, 0, 0, h);
+      lg.addColorStop(0, 'rgba(' + rgb + ',0)');
+      lg.addColorStop(0.3, 'rgba(' + rgb + ',0.55)');
+      lg.addColorStop(0.72, 'rgba(' + rgb + ',0.98)');
+      lg.addColorStop(0.92, 'rgba(' + rgb + ',0.75)');
+      lg.addColorStop(1, 'rgba(' + rgb + ',0)');
+      g.fillStyle = lg; g.fillRect(0, 0, w, h);
+      /* 가운데만 남기고 양옆을 지워 칼날 같은 빛줄기로 */
+      var side = g.createLinearGradient(0, 0, w, 0);
+      side.addColorStop(0, 'rgba(0,0,0,0)');
+      side.addColorStop(0.42, 'rgba(0,0,0,1)');
+      side.addColorStop(0.58, 'rgba(0,0,0,1)');
+      side.addColorStop(1, 'rgba(0,0,0,0)');
+      g.globalCompositeOperation = 'destination-in';
+      g.fillStyle = side; g.fillRect(0, 0, w, h);
+      g.globalCompositeOperation = 'source-over';
+    });
+  }
+
+  /* 스트릭 n장 — 각자 씨앗을 받아 animateEffect 가 조금씩 다른 리듬으로 흘립니다 */
+  function buildStreaks(T, host, col, rgb, n, cfg) {
+    cfg = cfg || {};
+    var geo = new T.PlaneGeometry(cfg.w || 7, cfg.h || 84);
+    var map = streakTexture(cfg.key || rgb, rgb);
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var mat = new T.MeshBasicMaterial({
+        map: map, color: new T.Color(i % 3 === 2 ? '#ffffff' : col),
+        transparent: true, opacity: 0.6, blending: T.AdditiveBlending,
+        depthWrite: false, side: T.DoubleSide
+      });
+      var m = new T.Mesh(geo, mat);
+      m.userData.seed = i;
+      host.add(m);
+      out.push(m);
+    }
+    return out;
+  }
+
   function buildEffect(T, host, effect, gm) {
     var id = effect.id || 'none';
     var col = effect.color || '#c6f24e';
@@ -1025,6 +1161,25 @@
     host.add(aura);
     out.bits.push({ aura: aura, mode: 'aura', seed: 0, base: 0.42, aw: rx * 5.2, ah: ry * 4.6 });
 
+    /* 모든 효과 공통 — 헤드 바로 뒤의 작은 코어 광휘.
+     * 번지는 안개(aura)만 있으면 효과가 밋밋해서, 가운데를 짧게 태우는 빛을 또 하나 둡니다. */
+    var core = new T.Sprite(new T.SpriteMaterial({
+      map: glowTexture('fx_core_' + id, hexRgb(col)), color: new T.Color('#ffffff'),
+      transparent: true, opacity: 0.55, blending: T.AdditiveBlending, depthWrite: false
+    }));
+    core.scale.set(rx * 1.9, ry * 1.7, 1);
+    core.position.z = -8;
+    host.add(core);
+    out.bits.push({ core: core, mode: 'fxcore', seed: 1, base: 0.55, aw: rx * 1.9, ah: ry * 1.7 });
+
+    /* 스트릭 — 효과별 색·길이만 다르게, 공통 리듬으로 흘립니다 */
+    var streakRgb = hexRgb(col);
+    var streakN = id === 'blaze' || id === 'fire' ? 14 : (id === 'speed' ? 16 : (id === 'ice' ? 10 : 12));
+    var streaks = buildStreaks(T, host, col, streakRgb, streakN, {
+      key: 'fx_' + id, w: id === 'ice' ? 5 : 6, h: id === 'ice' ? 48 : (id === 'thunder' ? 76 : 62)
+    });
+    out.bits.push({ streaks: streaks, mode: 'streak', seed: 2, rx: rx, ry: ry, fast: id === 'speed' ? 1.8 : (id === 'thunder' ? 1.4 : 1) });
+
     if (id === 'speed') {
       for (var i = 0; i < 4; i++) {
         var ring = new T.Mesh(
@@ -1040,7 +1195,7 @@
         out.bits.push({ ring: ring, i: i });
       }
     } else if (id === 'spark') {
-      var sp = pointCloud(T, 74, 40, col, glowTexture('spark', '159,216,255'), 0.95);
+      var sp = pointCloud(T, 58, 34, '#ffffff', glowTexture('spark', '190,232,255'), 0.95);
       host.add(sp);
       var arcGeo = new T.BufferGeometry();
       var arcBuf = new Float32Array(BOLT_ARMS * BOLT_SEG * 6);
@@ -1055,7 +1210,7 @@
       host.add(arc);
       out.bits.push({ points: sp, mode: 'orbit', seed: 1, bolt: arc, boltSize: [rx, ry], boltAt: -1 });
     } else if (id === 'blaze') {
-      var bl = pointCloud(T, 110, 64, col, glowTexture('blaze', '255,150,70'), 0.9);
+      var bl = pointCloud(T, 78, 52, '#ffffff', glowTexture('blaze', '255,166,96'), 0.95);
       host.add(bl);
       var halo = new T.Mesh(
         new T.PlaneGeometry(rx * 3.8, ry * 3.2),
@@ -1099,12 +1254,12 @@
       );
       band2.position.z = -14;
       host.add(band2);
-      var sparks = pointCloud(T, 46, 34, '#ffe9a8', glowTexture('prism', '255,233,168'), 0.9);
+      var sparks = pointCloud(T, 40, 30, '#ffffff', glowTexture('prism', '255,240,200'), 0.95);
       host.add(sparks);
       out.bits.push({ ring: band, ring2: band2, points: sparks, mode: 'prism', seed: 3 });
     } else if (id === 'fire' || id === 'ice' || id === 'thunder') {
       var mapKey = id === 'fire' ? '255,150,70' : (id === 'ice' ? '170,230,255' : '160,215,255');
-      var em = pointCloud(T, 96, 70, col, glowTexture('sm_' + id, mapKey), 0.95);
+      var em = pointCloud(T, 64, 56, '#ffffff', glowTexture('sm_' + id, mapKey), 0.95);
       host.add(em);
       out.bits.push({ points: em, mode: 'rise', seed: 4, riseH: 330 });
 
@@ -1182,6 +1337,29 @@
         b.aura.material.opacity = (b.base || 0.4) + Math.sin(t * 2.1) * 0.11;
         b.aura.scale.set((b.aw || 480) * ap, (b.ah || 430) * ap, 1);
       }
+      if (b.core) {
+        var cp = 1 + Math.sin(t * 6.4) * 0.09;
+        b.core.scale.set((b.aw || 200) * cp, (b.ah || 180) * cp, 1);
+        b.core.material.opacity = (b.base || 0.5) + Math.sin(t * 7.7) * 0.18;
+      }
+      if (b.streaks) {
+        for (k = 0; k < b.streaks.length; k++) {
+          var sm = b.streaks[k], sd = sm.userData.seed || 0;
+          var nStr = b.streaks.length;
+          var angS = t * (0.85 + (b.fast || 1) * 0.85) + (sd / nStr) * Math.PI * 2;
+          var radS = 1.12 + Math.sin(t * 1.6 + sd) * 0.18;
+          /* 헤드 테두리를 따라 붙어 흐르게 — 멀리 떠다니면 긴 막대처럼 보입니다 */
+          sm.position.set(
+            Math.cos(angS) * (b.rx || 98) * 1.06 * radS,
+            Math.sin(angS) * (b.ry || 120) * 1.0 * radS,
+            -18 + Math.sin(angS * 2.1 + sd) * 16
+          );
+          sm.rotation.z = angS - Math.PI / 2;
+          var pulse = 0.5 + Math.abs(Math.sin(t * 4.2 + sd * 1.7)) * 0.5;
+          sm.scale.set(0.6 + pulse * 0.45, 0.45 + pulse * 0.6, 1);
+          sm.material.opacity = 0.18 + pulse * 0.5;
+        }
+      }
       if (b.ring) {
         b.ring.rotation.z = t * (0.6 + (b.i || 0) * 0.25);
         b.ring.material.opacity = (b.mode === 'prism' ? 0.7 : 0.6) + Math.sin(t * 2.4 + (b.i || 0)) * 0.16;
@@ -1255,23 +1433,69 @@
   }
 
   /* ============================================================
-   * 6. 셔틀콕 — 코르크 반구 + 밴드 + 깃 16장
+   * 6. 셔틀콕 — 흰 코르크 머리 + 빨강·검정 밴드 + 깃 16장 (bm-v1.94.0)
+   *
+   *   예전에는 얇은 반구 하나에 베이지색이었고, 반구 윗부분이 뚫린 채라
+   *   ‘셔틀 머리가 없다’고 느껴졌습니다. 지금은
+   *     · 흰 코르크 덩어리(둥근 아래 · 넓은 어깨)를 크게 키우고
+   *     · 깃이 붙는 자리에 빨강 밴드 → 검정 얇은 링 → 실밥 링을 차례로 두어
+   *       어두운 스튜디오 조명에서도 머리 실루엣과 색 대비가 한눈에 보입니다.
+   *   크기는 깃 길이(62) 대비 실제 셔틀콕 비율(코르크 지름 ≈ 깃 길이의 1/4)에 맞췄습니다.
    * ============================================================ */
 
   function buildShuttle(T) {
     var g = new T.Group();
-    var corkMat = new T.MeshStandardMaterial({ color: new T.Color('#f2e6cf'), roughness: 0.55, metalness: 0.05 });
-    var bandMat = new T.MeshStandardMaterial({ color: new T.Color('#c9b48f'), roughness: 0.4, metalness: 0.08 });
+    /* 흰 코르크 — 살짝 스스로 빛나게 해 어두운 배경에 묻히지 않게 */
+    var corkMat = new T.MeshStandardMaterial({
+      color: new T.Color('#fbf7ec'), roughness: 0.46, metalness: 0.04,
+      emissive: new T.Color('#3a3324'), emissiveIntensity: 0.35
+    });
+    var bandMat = new T.MeshStandardMaterial({
+      color: new T.Color('#cf3b2f'), roughness: 0.42, metalness: 0.06,
+      emissive: new T.Color('#5a0f08'), emissiveIntensity: 0.45
+    });
+    var inkMat = new T.MeshStandardMaterial({
+      color: new T.Color('#17181a'), roughness: 0.34, metalness: 0.12,
+      emissive: new T.Color('#0b0c0d'), emissiveIntensity: 0.2
+    });
+    var threadMat = new T.MeshStandardMaterial({
+      color: new T.Color('#f4efe2'), roughness: 0.85, metalness: 0.0,
+      transparent: true, opacity: 0.92
+    });
     var featherMat = new T.MeshStandardMaterial({
       color: new T.Color('#f7fbf7'), roughness: 0.72, metalness: 0.0,
       side: T.DoubleSide, transparent: true, opacity: 0.96
     });
-    var cork = new T.Mesh(new T.SphereGeometry(6.4, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.62), corkMat);
-    cork.rotation.x = Math.PI;   /* 반구가 아래(코르크)로 */
+
+    /* ① 코르크 몸통 — 아래는 둥글고 위로 갈수록 넓어지는 실제 셔틀콕 머리
+     *    실제 셔틀콕 비율(코르크 지름 약 25mm : 깃 길이 약 62mm)에 맞춰 지름 24 로 키웠습니다.
+     *    예전 반지름 6.4 는 화면에서 머리가 거의 점으로 보였습니다. */
+    var cork = new T.Mesh(new T.SphereGeometry(12.0, 32, 24), corkMat);
+    cork.position.y = -7.0;
+    cork.scale.set(1, 0.92, 1);
     g.add(cork);
-    var band = new T.Mesh(new T.CylinderGeometry(6.2, 6.4, 2.4, 20), bandMat);
-    band.position.y = -2.2;
+    /* 코르크 아래를 살짝 평평하게 깐 밑판 (바닥에 놓았을 때 자국) */
+    var sole = new T.Mesh(new T.CylinderGeometry(5.4, 5.8, 1.0, 26), corkMat);
+    sole.position.y = -17.6;
+    g.add(sole);
+
+    /* ② 빨강 밴드 — 깃이 붙는 자리 */
+    var band = new T.Mesh(new T.CylinderGeometry(12.1, 12.35, 3.4, 34), bandMat);
+    band.position.y = 4.6;
     g.add(band);
+    /* ③ 검정 얇은 링 — 빨강 밴드 위, 깃 뿌리 경계 */
+    var ink = new T.Mesh(new T.CylinderGeometry(12.25, 12.25, 1.3, 34), inkMat);
+    ink.position.y = 6.6;
+    g.add(ink);
+    /* ④ 실밥 링 — 코르크 가운데를 감은 실 (밀가루 빛 띠) */
+    var thread = new T.Mesh(new T.TorusGeometry(11.9, 0.55, 6, 40), threadMat);
+    thread.rotation.x = Math.PI / 2;
+    thread.position.y = 0.4;
+    g.add(thread);
+    var thread2 = new T.Mesh(new T.TorusGeometry(11.7, 0.4, 6, 40), threadMat);
+    thread2.rotation.x = Math.PI / 2;
+    thread2.position.y = 2.1;
+    g.add(thread2);
 
     /* 깃 16장 — 실제 셔틀콕처럼 원뿔 깔때기(약 26°)로 퍼지게 */
     var N = 16, i;
@@ -1283,7 +1507,7 @@
     shape.closePath();
     var featherGeo = new T.ShapeGeometry(shape, 8);
     var upV = new T.Vector3(0, 1, 0);
-    var tilt = 0.55;
+    var tilt = 0.44;
     for (i = 0; i < N; i++) {
       var a = (i / N) * Math.PI * 2;
       var out = new T.Vector3(Math.cos(a), 0, Math.sin(a));
@@ -1293,19 +1517,20 @@
       var mat4 = new T.Matrix4().makeBasis(xAxis, axis, zAxis);
       var m = new T.Mesh(featherGeo, featherMat);
       m.quaternion.setFromRotationMatrix(mat4);
-      m.position.copy(out).multiplyScalar(4.6);
+      m.position.copy(out).multiplyScalar(11.4);
+      m.position.y = 6.0;
       g.add(m);
     }
-    /* 두 줄 스티치 링 */
+    /* 깃 뿌리를 감싸는 한 줄 스티치 — 머리와 깃이 이어지는 경계를 뚜렷하게 */
     var stitch = new T.Mesh(
-      new T.TorusGeometry(15.5, 0.5, 6, 40),
+      new T.TorusGeometry(20.2, 0.5, 6, 44),
       new T.MeshBasicMaterial({ color: new T.Color('#dfe7e2'), transparent: true, opacity: 0.55 })
     );
     stitch.rotation.x = Math.PI / 2;
     stitch.position.y = 26;
     g.add(stitch);
-    g.scale.setScalar(1.0);
     g.userData.cork = cork;
+    g.userData.band = band;
     return g;
   }
 
@@ -1519,7 +1744,7 @@
 
     /* 셔틀콕 꼬리 — 날아올 때와 발사될 때 뒤로 늘어지는 잔상 */
     var SH_N = 34;
-    var shuttleTrail = pointCloud(T, SH_N, 30, '#ffffff', glowTexture('sh_trail', '220,245,255'), 0.6);
+    var shuttleTrail = pointCloud(T, SH_N, 15, '#ffffff', glowTexture('sh_trail', '220,245,255'), 0.4);
     shuttleTrail.visible = false;
     scene.add(shuttleTrail);
     var shHist = [];
@@ -1555,6 +1780,14 @@
     }));
     flash.visible = false;
     scene.add(flash);
+
+    /* 정타 별섬광 — 뜨거운 코어가 한 순간 별처럼 터졌다가 짧게 남습니다 (bm-v1.94.0) */
+    var star = new T.Sprite(new T.SpriteMaterial({
+      map: starTexture(), transparent: true, opacity: 0,
+      blending: T.AdditiveBlending, depthWrite: false, depthTest: false
+    }));
+    star.visible = false;
+    scene.add(star);
 
     /* 강타 — 바닥 충격 링 · 균열 · 먼지 */
     var slamRing = new T.Mesh(
@@ -1721,6 +1954,7 @@
     function resetPose() {
       swingG.rotation.set(0, 0, 0);
       swingG.position.set(0, 0, 0);
+      modelG.position.x = 0;
       modelG.position.y = -spec.span / 2;
     }
 
@@ -1761,12 +1995,15 @@
       shock2.material.color = new T.Color(pal0.core || '#ffffff');
       rays.material.color = new T.Color(pal0.hot || '#ffffff');
       impactGlow.material.color = new T.Color(pal0.core || pal0.hot || '#ffffff');
+      star.material.color = new T.Color(pal0.core || pal0.hot || '#ffffff');
+      star.scale.set(150, 150, 1);
       impactGlow.material.map = glowTexture('impact_glow_' + (smashFx || 'none'), hexRgb(pal0.mid || pal0.hot || '#ffffff'));
       shuttleTrail.material.color = new T.Color(pal0.mid || '#ffffff');
       speedLines.material.color = new T.Color(pal0.hot || '#ffffff');
       impactOn = false;
       burst.visible = false;
       flash.visible = false;
+      star.visible = false;
       shock.visible = false; shock2.visible = false;
       rays.visible = false; impactGlow.visible = false;
       speedLines.visible = false; shuttleTrail.visible = false;
@@ -1787,7 +2024,11 @@
         var tan = new T.Vector3().subVectors(b, a).normalize();
         var side = new T.Vector3().crossVectors(tan, camDir).normalize();
         if (!isFinite(side.x)) side.set(0, 1, 0);
-        var wid = wid0 + (wid1 - wid0) * (i / Math.max(1, pts.length - 1));
+        var u = i / Math.max(1, pts.length - 1);
+        var wid = wid0 + (wid1 - wid0) * u;
+        /* 양 끝은 폭을 0 에 가깝게 줄입니다 — 끝이 칼같이 잘린 판처럼 보이지 않게 (bm-v1.94.0) */
+        var taper = Math.min(1, Math.sin(Math.PI * Math.min(1, u * 1.12)) * 2.6);
+        wid *= 0.12 + 0.88 * Math.max(0, taper);
         pos.push(p.x + side.x * wid, p.y + side.y * wid, p.z + side.z * wid,
           p.x - side.x * wid, p.y - side.y * wid, p.z - side.z * wid);
       }
@@ -2147,6 +2388,7 @@
           if (trail) trail.visible = false;
           if (trailCore) trailCore.visible = false;
           flash.visible = false;
+          star.visible = false;
           shock.visible = false; shock2.visible = false;
           impactGlow.visible = false; speedLines.visible = false;
           rays.visible = false; shuttleTrail.visible = false;
@@ -2181,6 +2423,17 @@
 
           /* 정타 순간 · 강한 카메라 셰이크 (위치 + 살짝 기울기) */
           var after = cl - R2.HIT_AT;
+          /* 정타 반동 — 라켓면이 살짝 휘었다 떨리며 돌아옵니다 (bm-v1.94.0)
+           * 몸통 회전은 그대로 두고 헤드 쪽에만 짧은 진동을 더해 ‘손에 남는 맛’을 만듭니다. */
+          if (after >= 0) {
+            var flexK = Math.max(0, 1 - after / 190);
+            var wob = Math.sin(after / 24) * flexK * flexK;
+            swingG.rotation.z += wob * 0.055;
+            swingG.rotation.x += wob * 0.032;
+            modelG.position.x = wob * 10;
+          } else {
+            modelG.position.x = 0;
+          }
           if (after >= 0) {
             var boom = Math.max(0, 1 - after / 420);
             var amp = (smashKind === 'slam' ? 46 : 40) * boom * boom;
@@ -2229,6 +2482,7 @@
             if (!impactOn) {
               impactOn = true;
               flash.visible = true;
+              star.visible = true;
               spawnImpact();
             }
             var ft = clamp01(after / 220);
@@ -2238,6 +2492,14 @@
               flash.position.copy(hitPos);
               flash.material.opacity = 0.85 * (1 - ft);
               if (ft >= 1) flash.visible = false;
+            }
+            if (star.visible) {
+              var stk = clamp01(after / 150);
+              var sts = 150 + easeOut3(stk) * 460;
+              star.scale.set(sts, sts, 1);
+              star.position.copy(hitPos);
+              star.material.opacity = 0.95 * (1 - stk) * (1 - stk);
+              if (stk >= 1) star.visible = false;
             }
             updateImpact(after);
             updateBurst(after);
@@ -2286,10 +2548,14 @@
         shuttle.quaternion.setFromUnitVectors(FLY_AXIS, dir);
         /* 멀리서도 또렷하게 — 시작 2.6배에서 타점 1.25배로 다가옵니다 */
         shuttle.scale.setScalar(2.6 - 1.35 * t);
-        /* 뒤로 잔상이 늘어지게 */
+        /* 뒤로 잔상이 늘어지게 — 같은 자리에 점이 겹치면 흰 얼룩이 되므로
+         * 충분히 움직였을 때만 잔상을 쌓습니다 (bm-v1.94.0) */
         if (cl > 20) {
-          shHist.push(p0.clone());
-          if (shHist.length > SH_N) shHist.shift();
+          var lastTrail = shHist.length ? shHist[shHist.length - 1] : null;
+          if (!lastTrail || lastTrail.distanceToSquared(p0) > 120) {
+            shHist.push(p0.clone());
+            if (shHist.length > SH_N) shHist.shift();
+          }
           shuttleTrail.visible = shHist.length > 3;
           shuttleTrail.material.opacity = 0.34;
           var stp = shuttleTrail.geometry.attributes.position;
@@ -2298,6 +2564,9 @@
             stp.setXYZ(si, hp0.x, hp0.y, hp0.z);
           }
           stp.needsUpdate = true;
+          /* 아직 쌓인 잔상보다 점이 많으면 나머지는 그리지 않습니다 —
+           * 예전에는 같은 자리에 점이 겹쳐 흰 사각 얼룩처럼 보였습니다 (bm-v1.94.0). */
+          shuttleTrail.geometry.setDrawRange(0, shHist.length);
         }
       } else {
         /* 맞은 뒤 — 코르크가 180° 돌아 앞장서고, 정타 뒤 300ms 만에 화면 밖까지 */
@@ -2308,9 +2577,17 @@
         shuttle.quaternion.setFromUnitVectors(FLY_AXIS, launchDir);
         shuttle.rotateY(Math.PI * easeOut3(k));   /* 코르크가 앞장서며 도는 스핀 */
         shuttle.scale.setScalar(1.25 + tr * 1.2);
-        shHist.push(shuttle.position.clone());
-        if (shHist.length > SH_N) shHist.shift();
+        /* 스쿼시 & 스트레치 — 진행 축(local y)은 눌리고 옆은 부푼 뒤 120ms 에 풀립니다.
+         * 맞는 순간 모양이 일그러져야 ‘공이 실제로 맞았다’는 느낌이 납니다 (bm-v1.94.0). */
+        var sq = 1 - easeOut3(clamp01(after / 120));
+        shuttle.scale.set(1.25 * (1 + sq * 0.62) + tr * 1.2, (1.25 + tr * 1.2) * (1 - sq * 0.62), 1.25 * (1 + sq * 0.62) + tr * 1.2);
+        var lastShot = shHist.length ? shHist[shHist.length - 1] : null;
+        if (!lastShot || lastShot.distanceToSquared(shuttle.position) > 120) {
+          shHist.push(shuttle.position.clone());
+          if (shHist.length > SH_N) shHist.shift();
+        }
         shuttleTrail.visible = shHist.length > 3;
+        shuttleTrail.geometry.setDrawRange(0, shHist.length);
       }
     }
 
@@ -2462,6 +2739,7 @@
     lookOf: lookOf,
     buildRacket: buildRacket,
     buildShuttle: buildShuttle,
+    brokenStringPlan: brokenStringPlan,
     bandGeometry: bandGeometry,
     gripSpiral: gripSpiral,
     _tex: function (k) { return TEX[k] || null; },
