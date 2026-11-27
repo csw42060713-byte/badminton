@@ -819,8 +819,12 @@
           strungAt: patch && patch.strungAt != null ? patch.strungAt : cur.strungAt,
           cycleDays: patch && patch.cycleDays != null ? patch.cycleDays : cur.cycleDays,
           memo: patch && patch.memo != null ? patch.memo : cur.memo,
-          /* bm-v1.80.0 — 커스텀 라켓 색(같은 theme.gear.custom 칸) */
-          custom: patch && patch.custom != null ? patch.custom : cur.custom
+          /* bm-v1.80.0 — 커스텀 라켓 색(같은 theme.gear.custom 칸)
+           * bm-v1.95.0 — 맞춘 히든 조합 발견은 장착 경로(시트·구매·기본값)와 상관없이
+           *   저장되는 순간 기록됩니다(mergeFound). */
+          custom: (BM.racketcustom && BM.racketcustom.mergeFound)
+            ? BM.racketcustom.mergeFound(patch && patch.custom != null ? patch.custom : cur.custom).custom
+            : (patch && patch.custom != null ? patch.custom : cur.custom)
         }) : cur;
         var full = (BM.gear && BM.gear.hasGear(next)) ? [next].concat(list.slice(1)) : list.slice(1);
         var res = actions.saveProfile({ gears: full });
