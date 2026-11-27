@@ -204,7 +204,8 @@
     var w = readRoot('js/wallpaper.js');
     excludes(w, 'storepass', '비밀번호 표현');
     excludes(w, 'keystore', '키스토어');
-    excludes(w, 'fu2CH80bErlZ0CPi9Pn3IXqk', '실제 비밀번호');
+    /* 비밀번호 문자열 자체는 테스트에도 남기지 않습니다 — 길게 이어진 임의 문자열만 확인 */
+    ok(!/[A-Za-z0-9]{28,}/.test(w), '긴 임의 문자열(비밀번호 모양) 없음');
     var html = RC.sheetBody(stateWith(RC.blankCustom()));
     ['김원호', '안세영', '서승재'].forEach(function (n) { excludes(html, n, '실존 선수 이름'); });
   });
