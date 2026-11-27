@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v177.test.js — bm-v1.89.0
+ * test/v177.test.js — bm-v1.90.0
  *   🔔 푸시 토큰 저장 + 채팅·매칭 요청·게스트 신청 발송 서버 틀
  *
  *   1) DB 틀 — push_tokens·push_log, 본인 토큰만(RLS), register/unregister/my_push_tokens
@@ -231,7 +231,7 @@
     ok(bridge, '브리지 생성');
     ok(root.ShuttlixPush, 'window.ShuttlixPush');
     eq(typeof root.ShuttlixPush.register, 'function', 'register');
-    eq(root.ShuttlixPush.version, 'v1.89.0', '버전');
+    eq(root.ShuttlixPush.version, 'v1.90.0', '버전');
     return root.ShuttlixPush.register('native-token-12345678', 'android').then(function (res) {
       ok(res.ok, '등록');
       eq((BM.push.token() || {}).token, 'native-token-12345678', '기기에 남음');
@@ -500,7 +500,7 @@
   test('v1.77 배선: sw 캐시·index 로드·테스트 목록에 반영된다', function () {
     if (!hasNode) return;
     includes(readRoot('sw.js'), "'./js/push.js'", 'sw 캐시');
-    includes(readRoot('sw.js'), 'bm-v1.89.0', 'sw 변경 이력');
+    includes(readRoot('sw.js'), 'bm-v1.90.0', 'sw 변경 이력');
     includes(readRoot('index.html'), 'js/push.js', 'index 로드');
     includes(readRoot('test/run.js'), 'test/v177.test.js', '테스트 목록');
     includes(readRoot('app.js'), 'installBridge', '앱 시작 시 브리지');
@@ -547,15 +547,15 @@
 
   test('v1.77 버전: sw · app · 스타일 캐시 · TWA · README 가 함께', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.89.0'", 'sw 캐시 이름');
-    includes(readRoot('app.js'), "version: 'v1.89.0'", 'app 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-3', '스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.90.0'", 'sw 캐시 이름');
+    includes(readRoot('app.js'), "version: 'v1.90.0'", 'app 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-4', '스타일 캐시');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.89.0', 'TWA 이름');
-    eq(twa.appVersion, '1.89.0', 'TWA 버전');
-    eq(twa.appVersionCode, 83, 'TWA 코드');
+    eq(twa.appVersionName, '1.90.0', 'TWA 이름');
+    eq(twa.appVersion, '1.90.0', 'TWA 버전');
+    eq(twa.appVersionCode, 84, 'TWA 코드');
     var readme = readRoot('README.md');
-    includes(readme, 'bm-v1.89.0', 'README 버전 절');
+    includes(readme, 'bm-v1.90.0', 'README 버전 절');
     includes(readme, 'FCM 연동 가이드', 'README FCM 안내');
     includes(readRoot('styles.css'), '.pushsteps', '상태 두 줄 스타일');
   });

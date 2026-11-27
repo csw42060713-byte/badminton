@@ -1,5 +1,5 @@
 /* ============================================================
- * js/racket3d.js — 진짜 3D 커스텀 라켓 쇼룸 (bm-v1.88.0)
+ * js/racket3d.js — 진짜 3D 커스텀 라켓 쇼룸 (bm-v1.90.0)
  *
  * 예전(js/racketcustom.js draw3d)은 캔버스 2D 에 투영해 그리는 가짜 3D 였습니다.
  * 이 파일은 저장소 안에 직접 넣은 Three.js(WebGL) 엔진으로 **실제 메쉬**를 만들어
@@ -191,6 +191,24 @@
   }
 
   /* 스튜디오 배경 — 가운데만 은은히 밝은 원형 그라데이션 */
+  /* 불꽃 혀 텍스처 — 물방울 모양 그라데이션 (스프라이트라 어느 각도에서도 카메라를 봅니다) */
+  function flameTexture() {
+    return canvasDraw('flame', 128, 256, function (g, w, h) {
+      g.clearRect(0, 0, w, h);
+      var grd = g.createRadialGradient(w / 2, h * 0.82, 1, w / 2, h * 0.66, h * 0.62);
+      grd.addColorStop(0, 'rgba(255,240,190,0.95)');
+      grd.addColorStop(0.22, 'rgba(255,170,60,0.78)');
+      grd.addColorStop(0.55, 'rgba(255,95,25,0.34)');
+      grd.addColorStop(1, 'rgba(255,60,10,0)');
+      g.fillStyle = grd;
+      g.beginPath();
+      g.moveTo(w / 2, h * 0.03);
+      g.bezierCurveTo(w * 0.88, h * 0.42, w * 0.80, h * 0.97, w / 2, h * 0.99);
+      g.bezierCurveTo(w * 0.20, h * 0.97, w * 0.12, h * 0.42, w / 2, h * 0.03);
+      g.fill();
+    });
+  }
+
   function backdropTexture() {
     return canvasDraw('backdrop', 512, 512, function (g, w, h) {
       g.fillStyle = '#05080a'; g.fillRect(0, 0, w, h);
@@ -940,6 +958,9 @@
    * 5. 효과(오라) — 스피드 링 · 스파크 · 블레이즈 · 프리즘 + 스매시 연출
    * ============================================================ */
 
+  /* 파티클 하나의 크기는 '세계 단위'입니다. 카메라가 z≈1200~1600 에서 보므로
+   * 예전 size 5~15 는 화면에서 1~3px 점으로 줄어 사실상 보이지 않았습니다.
+   * (bm-v1.90.0) 화면 14~52px 에 해당하는 30~110 으로 올려 누가 봐도 보이게. */
   function pointCloud(T, count, size, color, map, opacity) {
     var pos = new Float32Array(count * 3);
     var geo = new T.BufferGeometry();
@@ -948,9 +969,42 @@
       size: size, map: map || particleTexture(), color: new T.Color(color),
       transparent: true, opacity: opacity == null ? 0.9 : opacity,
       blending: T.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
-      alphaTest: 0.04
+      alphaTest: 0.02
     });
     return new T.Points(geo, mat);
+  }
+
+  /* #rrggbb → 'r,g,b' — 글로우 스프라이트 열쇠에 씁니다 */
+  function hexRgb(hex) {
+    var h = String(hex || '#ffffff').replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var n = parseInt(h, 16);
+    if (!isFinite(n)) return '255,255,255';
+    return ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255);
+  }
+
+  /* 번개 줄기 — 헤드 둘레에서 사방으로 갈라지는 지그재그 (값을 그 자리에서 다시 씁니다) */
+  var BOLT_ARMS = 6, BOLT_SEG = 9;
+  function boltFill(buf, rx, ry, seed, z) {
+    var k = 0, a, s;
+    for (a = 0; a < BOLT_ARMS; a++) {
+      var ang = (a / BOLT_ARMS) * Math.PI * 2 + Math.sin(seed + a) * 0.5;
+      var x0 = Math.cos(ang) * rx * 0.55, y0 = Math.sin(ang) * ry * 0.5;
+      var x1 = Math.cos(ang) * rx * (1.5 + Math.abs(Math.sin(seed * 1.7 + a)) * 1.1);
+      var y1 = Math.sin(ang) * ry * (1.4 + Math.abs(Math.cos(seed * 1.3 + a)) * 0.9);
+      for (s = 0; s < BOLT_SEG; s++) {
+        var t0 = s / BOLT_SEG, t1 = (s + 1) / BOLT_SEG;
+        var jx = Math.sin(seed * 6.1 + a * 4.3 + s * 2.7) * 16;
+        var jy = Math.cos(seed * 3.7 + a * 2.1 + s * 3.3) * 14;
+        buf[k++] = x0 + (x1 - x0) * t0 + jx * t0;
+        buf[k++] = y0 + (y1 - y0) * t0 + jy * t0;
+        buf[k++] = z + Math.sin(seed + s) * 8;
+        buf[k++] = x0 + (x1 - x0) * t1 + jx * t1;
+        buf[k++] = y0 + (y1 - y0) * t1 + jy * t1;
+        buf[k++] = z + Math.cos(seed + s) * 8;
+      }
+    }
+    return buf;
   }
 
   function buildEffect(T, host, effect, gm) {
@@ -960,55 +1014,160 @@
     var rx = gm.rx, ry = gm.ry;
     if (id === 'none') return out;
 
+    /* 모든 효과 공통 — 헤드 뒤로 번지는 부드러운 광휘.
+     * 검은 스튜디오 배경에서도 '효과를 입었다'는 게 한눈에 보이게 합니다. */
+    var aura = new T.Sprite(new T.SpriteMaterial({
+      map: glowTexture('fx_aura_' + id, hexRgb(col)), color: new T.Color(col),
+      transparent: true, opacity: 0.42, blending: T.AdditiveBlending, depthWrite: false
+    }));
+    aura.scale.set(rx * 5.2, ry * 4.6, 1);
+    aura.position.z = -22;
+    host.add(aura);
+    out.bits.push({ aura: aura, mode: 'aura', seed: 0, base: 0.42, aw: rx * 5.2, ah: ry * 4.6 });
+
     if (id === 'speed') {
-      for (var i = 0; i < 3; i++) {
+      for (var i = 0; i < 4; i++) {
         var ring = new T.Mesh(
-          new T.TorusGeometry(rx * (0.98 + i * 0.06), 0.9, 6, 64),
+          new T.TorusGeometry(rx * (0.98 + i * 0.07), 1.5 - i * 0.16, 8, 72),
           new T.MeshBasicMaterial({
-            color: new T.Color(col), transparent: true, opacity: 0.42 - i * 0.1,
+            color: new T.Color(col), transparent: true, opacity: 0.78 - i * 0.13,
             blending: T.AdditiveBlending, depthWrite: false
           })
         );
-        ring.position.z = -3 - i * 2.4;
+        ring.position.z = -3 - i * 2.6;
         ring.rotation.z = i * 0.4;
         host.add(ring);
         out.bits.push({ ring: ring, i: i });
       }
     } else if (id === 'spark') {
-      var sp = pointCloud(T, 46, 7, col, glowTexture('spark', '159,216,255'), 0.9);
+      var sp = pointCloud(T, 74, 40, col, glowTexture('spark', '159,216,255'), 0.95);
       host.add(sp);
-      out.bits.push({ points: sp, mode: 'orbit', seed: 1 });
+      var arcGeo = new T.BufferGeometry();
+      var arcBuf = new Float32Array(BOLT_ARMS * BOLT_SEG * 6);
+      boltFill(arcBuf, rx, ry, 1.1, -14);
+      arcGeo.setAttribute('position', new T.BufferAttribute(arcBuf, 3));
+      var arc = new T.LineSegments(arcGeo,
+        new T.LineBasicMaterial({
+          color: new T.Color('#dff2ff'), transparent: true, opacity: 0.85,
+          blending: T.AdditiveBlending, depthWrite: false
+        }));
+      arc.frustumCulled = false;
+      host.add(arc);
+      out.bits.push({ points: sp, mode: 'orbit', seed: 1, bolt: arc, boltSize: [rx, ry], boltAt: -1 });
     } else if (id === 'blaze') {
-      var bl = pointCloud(T, 70, 15, col, glowTexture('blaze', '255,150,70'), 0.75);
+      var bl = pointCloud(T, 110, 64, col, glowTexture('blaze', '255,150,70'), 0.9);
       host.add(bl);
       var halo = new T.Mesh(
-        new T.PlaneGeometry(rx * 3.4, ry * 2.9),
+        new T.PlaneGeometry(rx * 3.8, ry * 3.2),
         new T.MeshBasicMaterial({
-          map: glowTexture('halo', '255,140,60'), transparent: true, opacity: 0.25,
+          map: glowTexture('halo', '255,140,60'), transparent: true, opacity: 0.42,
           blending: T.AdditiveBlending, depthWrite: false
         })
       );
-      halo.position.z = -8;
+      halo.position.z = -10;
       host.add(halo);
-      out.bits.push({ points: bl, mode: 'rise', seed: 2, halo: halo });
+      var tongues0 = [];
+      for (i = 0; i < 6; i++) {
+        var cn0 = new T.Sprite(new T.SpriteMaterial({
+          map: flameTexture(),
+          color: new T.Color(i % 2 ? '#ffb347' : '#ff7a2f'),
+          transparent: true, opacity: 0.62, blending: T.AdditiveBlending, depthWrite: false
+        }));
+        var a0 = (i / 6) * Math.PI * 2 - Math.PI / 2;
+        cn0.position.set(Math.cos(a0) * rx * 0.74, Math.sin(a0) * ry * 0.58 - 12, -18);
+        cn0.scale.set(28 + (i % 3) * 7, 58 + (i % 3) * 18, 1);
+        host.add(cn0);
+        tongues0.push(cn0);
+      }
+      out.bits.push({ points: bl, mode: 'rise', seed: 2, halo: halo, flames: tongues0 });
     } else if (id === 'prism') {
       var band = new T.Mesh(
-        new T.TorusGeometry(rx * 1.04, 2.6, 10, 90),
+        new T.TorusGeometry(rx * 1.04, 3.2, 10, 96),
         new T.MeshBasicMaterial({
-          map: rainbowTexture(), transparent: true, opacity: 0.55,
+          map: rainbowTexture(), transparent: true, opacity: 0.85,
           blending: T.AdditiveBlending, depthWrite: false
         })
       );
       band.position.z = -6;
       host.add(band);
-      var sparks = pointCloud(T, 30, 8, '#ffe9a8', glowTexture('prism', '255,233,168'), 0.8);
+      var band2 = new T.Mesh(
+        new T.TorusGeometry(rx * 0.86, 2.2, 10, 80),
+        new T.MeshBasicMaterial({
+          map: rainbowTexture(), transparent: true, opacity: 0.55,
+          blending: T.AdditiveBlending, depthWrite: false
+        })
+      );
+      band2.position.z = -14;
+      host.add(band2);
+      var sparks = pointCloud(T, 46, 34, '#ffe9a8', glowTexture('prism', '255,233,168'), 0.9);
       host.add(sparks);
-      out.bits.push({ ring: band, points: sparks, mode: 'prism', seed: 3 });
+      out.bits.push({ ring: band, ring2: band2, points: sparks, mode: 'prism', seed: 3 });
     } else if (id === 'fire' || id === 'ice' || id === 'thunder') {
       var mapKey = id === 'fire' ? '255,150,70' : (id === 'ice' ? '170,230,255' : '160,215,255');
-      var em = pointCloud(T, 40, 12, col, glowTexture('sm_' + id, mapKey), 0.55);
+      var em = pointCloud(T, 96, 70, col, glowTexture('sm_' + id, mapKey), 0.95);
       host.add(em);
-      out.bits.push({ points: em, mode: 'rise', seed: 4 });
+      out.bits.push({ points: em, mode: 'rise', seed: 4, riseH: 330 });
+
+      if (id === 'fire') {
+        /* 불꽃 혀 — 헤드 위로 살아 움직이는 주황 혀 6개 */
+        var tongues = [];
+        for (i = 0; i < 6; i++) {
+          var cn = new T.Sprite(new T.SpriteMaterial({
+            map: flameTexture(),
+            color: new T.Color(i % 2 ? '#ffb347' : '#ff7a2f'),
+            transparent: true, opacity: 0.52, blending: T.AdditiveBlending,
+            depthWrite: false
+          }));
+          var af = (i / 6) * Math.PI * 2 - Math.PI / 2;
+          cn.position.set(Math.cos(af) * rx * 0.94, Math.sin(af) * ry * 0.76 - 4, -26);
+          cn.scale.set(32 + (i % 3) * 7, 68 + (i % 4) * 18, 1);
+          host.add(cn);
+          tongues.push(cn);
+        }
+        out.bits.push({ flames: tongues, mode: 'fire', seed: 11 });
+      } else if (id === 'ice') {
+        /* 얼음 결정 — 헤드 둘레를 천천히 도는 서리 조각 10개 + 서리 링 */
+        var crystals = [];
+        var iceMat = new T.MeshStandardMaterial({
+          color: new T.Color('#e8fbff'), emissive: new T.Color('#4fbfe8'), emissiveIntensity: 1.1,
+          metalness: 0.1, roughness: 0.06, transparent: true, opacity: 0.92, flatShading: true
+        });
+        for (i = 0; i < 12; i++) {
+          var cr = new T.Mesh(new T.OctahedronGeometry(6 + (i % 3) * 2.4, 0), iceMat);
+          /* 길쭉한 얼음 조각 — 종잇조각처럼 보이지 않게 */
+          cr.scale.set(0.55, 1.9 + (i % 3) * 0.5, 0.55);
+          host.add(cr);
+          crystals.push(cr);
+        }
+        var frost = new T.Mesh(new T.TorusGeometry(rx * 1.04, 1.8, 8, 88),
+          new T.MeshBasicMaterial({
+            color: new T.Color('#a9e8ff'), transparent: true, opacity: 0.7,
+            blending: T.AdditiveBlending, depthWrite: false
+          }));
+        frost.position.z = -10;
+        host.add(frost);
+        out.bits.push({ crystals: crystals, frost: frost, mode: 'ice', seed: 12 });
+      } else {
+        /* 번개 — 헤드에서 사방으로 갈라지는 지그재그 줄기 + 파란 코어 */
+        var boltGeo = new T.BufferGeometry();
+        var boltBuf = new Float32Array(BOLT_ARMS * BOLT_SEG * 6);
+        boltFill(boltBuf, rx, ry, 1.3, -10);
+        boltGeo.setAttribute('position', new T.BufferAttribute(boltBuf, 3));
+        var bolt = new T.LineSegments(boltGeo, new T.LineBasicMaterial({
+          color: new T.Color('#d8efff'), transparent: true, opacity: 0.95,
+          blending: T.AdditiveBlending, depthWrite: false
+        }));
+        bolt.frustumCulled = false;
+        host.add(bolt);
+        var core = new T.Sprite(new T.SpriteMaterial({
+          map: glowTexture('sm_thunder_core', '160,215,255'), color: new T.Color('#bfe4ff'),
+          transparent: true, opacity: 0.6, blending: T.AdditiveBlending, depthWrite: false
+        }));
+        core.scale.set(rx * 2.6, ry * 2.4, 1);
+        core.position.z = -16;
+        host.add(core);
+        out.bits.push({ bolt: bolt, boltAt: -1, boltSize: [rx, ry], core: core, mode: 'thunder', seed: 13 });
+      }
     }
     return out;
   }
@@ -1018,14 +1177,61 @@
     var i, k;
     for (i = 0; i < fx.bits.length; i++) {
       var b = fx.bits[i];
+      if (b.aura) {
+        var ap = 1 + Math.sin(t * 1.9) * 0.055;
+        b.aura.material.opacity = (b.base || 0.4) + Math.sin(t * 2.1) * 0.11;
+        b.aura.scale.set((b.aw || 480) * ap, (b.ah || 430) * ap, 1);
+      }
       if (b.ring) {
         b.ring.rotation.z = t * (0.6 + (b.i || 0) * 0.25);
-        b.ring.material.opacity = (b.mode === 'prism' ? 0.4 : 0.36) + Math.sin(t * 2.4 + (b.i || 0)) * 0.12;
+        b.ring.material.opacity = (b.mode === 'prism' ? 0.7 : 0.6) + Math.sin(t * 2.4 + (b.i || 0)) * 0.16;
       }
-      if (b.halo) b.halo.material.opacity = 0.18 + Math.sin(t * 3.1) * 0.07;
+      if (b.ring2) b.ring2.rotation.z = -t * 0.5;
+      if (b.halo) b.halo.material.opacity = 0.32 + Math.sin(t * 3.1) * 0.1;
+      if (b.flames) {
+        for (k = 0; k < b.flames.length; k++) {
+          var fl = b.flames[k];
+          if (!fl.userData.base) fl.userData.base = [fl.scale.x, fl.scale.y];
+          var bs = fl.userData.base;
+          var wob = 1 + Math.sin(t * 7.4 + k * 1.7) * 0.16 + Math.sin(t * 3.1 + k) * 0.08;
+          fl.scale.set(bs[0] * (1 + (wob - 1) * 0.5), bs[1] * wob, 1);
+          fl.position.y += Math.sin(t * 6.2 + k * 2.1) * 0.6;
+          fl.material.opacity = 0.68 + Math.sin(t * 11 + k * 2) * 0.18;
+        }
+      }
+      if (b.crystals) {
+        for (k = 0; k < b.crystals.length; k++) {
+          var cr0 = b.crystals[k];
+          var ang0 = t * 0.55 + (k / b.crystals.length) * Math.PI * 2;
+          var rad0 = 1.35 + Math.sin(t * 1.3 + k) * 0.12;
+          cr0.position.set(Math.cos(ang0) * 110 * rad0, Math.sin(ang0) * 128 * rad0 - 6,
+            -18 + Math.sin(ang0 * 1.7) * 42);
+          cr0.rotation.set(t * (0.6 + k * 0.05), t * (0.8 + k * 0.04), 0);
+          cr0.scale.setScalar(0.9 + Math.sin(t * 3.4 + k) * 0.18);
+        }
+      }
+      if (b.frost) {
+        b.frost.rotation.z = t * 0.4;
+        b.frost.material.opacity = 0.55 + Math.sin(t * 2.7) * 0.2;
+      }
+      if (b.core) b.core.material.opacity = 0.45 + Math.sin(t * 8.5) * 0.22;
+      if (b.bolt) {
+        /* 80ms 마다 줄기를 새로 뽑아 '찌지직' 떨리는 느낌 */
+        var pa = b.bolt.geometry && b.bolt.geometry.attributes.position;
+        if (pa && t - b.boltAt > 0.08) {
+          b.boltAt = t;
+          var arr = pa.array;
+          var seedv = 1.7 + Math.floor(t * 12) * 0.37;
+          if (b.boltSize) boltFill(arr, b.boltSize[0], b.boltSize[1], seedv, -10);
+          else boltFill(arr, 96, 118, seedv, -14);
+          pa.needsUpdate = true;
+        }
+        b.bolt.material.opacity = 0.55 + Math.abs(Math.sin(t * 21)) * 0.45;
+      }
       if (b.points) {
         var p = b.points.geometry.attributes.position;
         var n = p.count;
+        var spreadMul = b.riseH ? b.riseH / 240 : 1;
         for (k = 0; k < n; k++) {
           var seed = k * 12.9898 + (b.seed || 1) * 78.233;
           var r1 = Math.abs(Math.sin(seed)) % 1;
@@ -1033,14 +1239,14 @@
           var r3 = Math.abs(Math.sin(seed * 2.3)) % 1;
           if (b.mode === 'orbit' || b.mode === 'prism') {
             var ang = t * (0.5 + r1 * 0.9) + r1 * Math.PI * 2;
-            var rad = 100 + r2 * 42;
-            p.setXYZ(k, Math.cos(ang) * rad, Math.sin(ang) * rad * 0.95, -20 + Math.sin(ang * 1.7) * 40);
+            var rad = 118 + r2 * 62;
+            p.setXYZ(k, Math.cos(ang) * rad, Math.sin(ang) * rad * 0.95, -20 + Math.sin(ang * 1.7) * 46);
           } else {
             var life = ((t * (0.28 + r3 * 0.3) + r1) % 1);
-            var y = -110 + life * 240;
+            var y = (-110 + life * 240) * (spreadMul > 1 ? 1.25 : 1);
             var spread = 1 - life * 0.55;
-            p.setXYZ(k, (r2 - 0.5) * 190 * spread + Math.sin(t * 2 + r3 * 6) * 8,
-              y, (r3 - 0.5) * 70);
+            p.setXYZ(k, (r2 - 0.5) * 210 * spread + Math.sin(t * 2 + r3 * 6) * 12,
+              y, (r3 - 0.5) * 84);
           }
         }
         p.needsUpdate = true;
@@ -1258,13 +1464,89 @@
     var shuttle = buildShuttle(T);
     shuttle.visible = false;
     scene.add(shuttle);
+    /* 셔틀콕의 비행 축 — 모델은 깃이 +y, 코르크가 -y 이므로 -y 를 나아가는 쪽에 맞춥니다 */
+    var FLY_AXIS = new T.Vector3(0, -1, 0);
 
-    var trail = null;
-    var burst = pointCloud(T, 64, 5, '#ffffff', particleTexture(), 0.9);
+    var trail = null, trailCore = null;
+    /* 정타 파티클 — 예전 size 5 는 화면 1px 점이라 보이지 않았습니다 (bm-v1.90.0: 36) */
+    var BURST_N = 130;
+    var burst = pointCloud(T, BURST_N, 36, '#ffffff', particleTexture(), 0.95);
     burst.visible = false;
     scene.add(burst);
-    var burstVel = new Float32Array(64 * 3);
+    var burstVel = new Float32Array(BURST_N * 3);
     var burstCol = null;
+
+    /* 정타 3D 충격파 — 카메라를 향해 퍼지는 토러스 2겹 + 사방으로 뻗는 빛살 */
+    var shock = new T.Mesh(
+      new T.TorusGeometry(1, 0.055, 10, 96),
+      new T.MeshBasicMaterial({
+        color: new T.Color('#ffffff'), transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+      })
+    );
+    shock.visible = false;
+    scene.add(shock);
+    var shock2 = new T.Mesh(
+      new T.TorusGeometry(1, 0.032, 8, 96),
+      new T.MeshBasicMaterial({
+        color: new T.Color('#ffffff'), transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+      })
+    );
+    shock2.visible = false;
+    scene.add(shock2);
+    var RAY_N = 20;
+    var rays = new T.LineSegments(
+      new T.BufferGeometry(),
+      new T.LineBasicMaterial({
+        color: new T.Color('#ffffff'), transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false
+      })
+    );
+    rays.frustumCulled = false;
+    rays.visible = false;
+    scene.add(rays);
+    var rayBuf = new Float32Array(RAY_N * 6);
+    var rayAng = new Float32Array(RAY_N);
+    for (var ri = 0; ri < RAY_N; ri++) rayAng[ri] = Math.random() * Math.PI * 2;
+    /* 충격점에서 활짝 터지는 큰 광휘 */
+    var impactGlow = new T.Sprite(new T.SpriteMaterial({
+      map: glowTexture('impact_glow', '255,240,200'), transparent: true, opacity: 0,
+      blending: T.AdditiveBlending, depthWrite: false, depthTest: false
+    }));
+    impactGlow.visible = false;
+    scene.add(impactGlow);
+
+    /* 셔틀콕 꼬리 — 날아올 때와 발사될 때 뒤로 늘어지는 잔상 */
+    var SH_N = 34;
+    var shuttleTrail = pointCloud(T, SH_N, 30, '#ffffff', glowTexture('sh_trail', '220,245,255'), 0.6);
+    shuttleTrail.visible = false;
+    scene.add(shuttleTrail);
+    var shHist = [];
+    /* 발사 속도선 — 타점에서 나가는 방향으로 뻗는 가는 선 */
+    var SPEED_N = 18;
+    var speedLines = new T.LineSegments(
+      new T.BufferGeometry(),
+      new T.LineBasicMaterial({
+        color: new T.Color('#eaffd0'), transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false
+      })
+    );
+    speedLines.frustumCulled = false;
+    speedLines.visible = false;
+    scene.add(speedLines);
+    var speedBuf = new Float32Array(SPEED_N * 6);
+    /* 날아오는 길 안내선 — 셔틀이 어디서 오는지 한눈에 */
+    var inGuide = new T.Line(
+      new T.BufferGeometry(),
+      new T.LineBasicMaterial({
+        color: new T.Color('#dff3ff'), transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false
+      })
+    );
+    inGuide.frustumCulled = false;
+    inGuide.visible = false;
+    scene.add(inGuide);
 
     /* 정타 섬광 — 카메라를 항상 바라보는 스프라이트(네모로 보이지 않게) */
     var flash = new T.Sprite(new T.SpriteMaterial({
@@ -1283,23 +1565,32 @@
       })
     );
     slamRing.rotation.x = -Math.PI / 2;
+    slamRing.visible = false;      /* 바닥 강타에서만 (공중 스매시에 큰 링이 남지 않게) */
     scene.add(slamRing);
     var slamCrack = new T.LineSegments(
       new T.BufferGeometry(),
       new T.LineBasicMaterial({ color: new T.Color('#c9ffe2'), transparent: true, opacity: 0 })
     );
     scene.add(slamCrack);
-    var debris = pointCloud(T, 60, 12, '#dff6e8', particleTexture(), 0.85);
+    var debris = pointCloud(T, 90, 34, '#dff6e8', particleTexture(), 0.9);
     debris.visible = false;
     scene.add(debris);
-    var debrisVel = new Float32Array(60 * 3);
+    var debrisVel = new Float32Array(90 * 3);
 
     /* --- 스매시·모션 상태 --- */
     var smashOn = false, smashAt = 0, smashFx = '', smashKind = 'air';
+    var impactOn = false;      /* 이번 스매시의 정타 연출이 이미 터졌는지 */
     var motionKind = '', motionAt = 0, motionOn = false;
     var holdAt = null;
     var hitPos = new T.Vector3(0, 60, 120);
     var launchDir = new T.Vector3(0.2, -0.9, 0.5).normalize();
+    /* 셔틀이 실제로 날아오는 시작점·방향 (bm-v1.90.0 — 방향을 눈으로 읽게) */
+    var inStart = new T.Vector3(-560, 540, -880);
+    var inCtrl = new T.Vector3(-170, 430, -250);
+    var inDir = new T.Vector3(0, 0, 1);
+    var aimYaw = 0, aimPitch = 0;
+    /* 히트스톱 — 기존 30ms 위에 한 박자 더 (정타 순간이 '멈칫' 하고 박힘) */
+    var EXTRA_STOP = 58;
     var lastMove = 0, idlePhase = 0;
     var vel = { yaw: 0, pitch: 0 };
     var drag = null;
@@ -1355,49 +1646,52 @@
       if (kind === 'slam') {
         if (c < WIND) {
           var e0 = easeOut3(c / WIND);
-          out.rx = -0.62 * e0; out.rz = -0.18 * e0; out.ry = -0.20 * e0;
-          out.py = -14 * e0;
+          out.rx = -0.72 * e0; out.rz = -0.22 * e0; out.ry = -0.26 * e0;
+          out.py = -18 * e0;
         } else if (c < HIT) {
           var u0 = easeIn3((c - WIND) / (HIT - WIND));
-          out.rx = lerp(-0.62, 1.60, u0);
-          out.rz = lerp(-0.18, 0.26, u0);
-          out.ry = lerp(-0.20, 0.42, u0);
-          out.py = lerp(-14, -50, u0);
-          out.pz = lerp(0, 40, u0);
+          out.rx = lerp(-0.72, 1.68, u0);
+          out.rz = lerp(-0.22, 0.30, u0);
+          out.ry = lerp(-0.26, 0.48, u0);
+          out.py = lerp(-18, -54, u0);
+          out.pz = lerp(0, 46, u0);
         } else {
           var v0 = clamp01((c - HIT) / (END - HIT));
           var back0 = easeOut3(clamp01(v0 * 1.5));
-          out.rx = lerp(1.60, 0, back0);
-          out.rz = lerp(0.26, 0, back0);
-          out.ry = lerp(0.42, 0, back0);
-          out.py = lerp(-50, 0, back0);
-          out.pz = lerp(40, 0, back0);
+          out.rx = lerp(1.68, 0, back0);
+          out.rz = lerp(0.30, 0, back0);
+          out.ry = lerp(0.48, 0, back0);
+          out.py = lerp(-54, 0, back0);
+          out.pz = lerp(46, 0, back0);
         }
         return out;
       }
       if (c < WIND) {
+        /* ① 깊은 백스윙 — 라켓 머리가 뒤·위로 크게 젖혀지고 손목이 코킹됩니다 */
         var e = easeOut3(c / WIND);
-        out.rx = -0.30 * e;
-        out.rz = -0.30 * e;
-        out.ry = -0.34 * e;
-        out.py = 10 * e;
-        out.pz = -30 * e;
+        out.rx = -0.62 * e;
+        out.rz = -0.46 * e;
+        out.ry = -0.68 * e;
+        out.py = 26 * e;
+        out.pz = -58 * e;
       } else if (c < HIT) {
-        var u = easeIn3((c - WIND) / (HIT - WIND));
-        out.rx = lerp(-0.30, 0.40, u);
-        out.rz = lerp(-0.30, 0.50, u);
-        out.ry = lerp(-0.34, 0.42, u);      /* 손목 회내(프로네이션) */
-        out.py = lerp(10, -46, u);
-        out.pz = lerp(-30, 30, u);
+        /* ② 폭발적인 풀스윙 — 끝에서 확 빨라지는 채찍(지수 2.2) + 손목 회내(프로네이션) */
+        var u = Math.pow(clamp01((c - WIND) / (HIT - WIND)), 2.2);
+        out.rx = lerp(-0.62, 0.74, u);
+        out.rz = lerp(-0.46, 0.62, u);
+        out.ry = lerp(-0.68, 0.66, u);      /* 손목 회내(프로네이션) */
+        out.py = lerp(26, -56, u);
+        out.pz = lerp(-58, 46, u);
       } else {
+        /* ③ 팔로스루 — 맞은 뒤 손목이 더 돌아가고, 몸이 따라 흐른 뒤 제자리 */
         var v = clamp01((c - HIT) / (END - HIT));
         var back = easeOut3(clamp01(v * 1.6));
-        var over = Math.sin(clamp01(v * 2.6) * Math.PI) * 0.05;
-        out.rx = lerp(0.40, 0, back) + over;
-        out.rz = lerp(0.50, 0, back);
-        out.ry = lerp(0.42, 0, back);
-        out.py = lerp(-46, 0, back);
-        out.pz = lerp(30, 0, back);
+        var over = Math.sin(clamp01(v * 2.6) * Math.PI) * 0.07;
+        out.rx = lerp(0.88, 0, back) + over;
+        out.rz = lerp(0.74, 0, back);
+        out.ry = lerp(0.82, 0, back);
+        out.py = lerp(-56, 0, back);
+        out.pz = lerp(46, 0, back);
       }
       return out;
     }
@@ -1436,42 +1730,56 @@
       aimG.rotation.set(viewMem.pitch, viewMem.yaw, 0);
       aimG.updateMatrixWorld(true);
       hitPos = headWorld(RCx.HIT_AT, kind);
-      /* 나가는 방향 — 들어온 반대(아래 대각선) */
-      launchDir.set(-0.16, -0.86, 0.49).normalize();
+      var pal0 = RCx.smashPalette(smashFx || 'none') || {};
+      /* 셔틀이 실제로 날아오는 길 — 코트 앞쪽 위 대각선에서 타점까지 */
+      inStart.set(-560, 540, -880);
+      inCtrl.set(-180, 430, -250);
+      if (kind === 'slam') { inStart.set(-420, 620, -760); inCtrl.set(-150, 500, -240); }
+      inDir.copy(hitPos).sub(inStart).normalize();
+      /* 라켓은 셔틀이 오는 쪽을 마주 봅니다 (그 방향으로 세게 치는 맛) */
+      aimYaw = clampN(-inDir.x * 0.62, -0.5, 0.5);
+      aimPitch = clampN(-inDir.y * 0.30, -0.26, 0.26);
+      /* 나가는 방향 — 들어온 축을 뒤집어 코트 아래 대각선으로 꽂습니다 */
+      launchDir.set(-inDir.x * 0.55 - 0.30, -Math.abs(inDir.y) * 0.55 - 0.92, 0.46).normalize();
       shuttle.visible = kind !== 'slam';
       shuttle.position.copy(hitPos);
       shuttle.rotation.set(0, 0, 0);
       shuttle.scale.setScalar(1);      /* 지난 연출의 확대가 남지 않게 */
+      shHist = [];
       /* 스윙 궤적 리본 — 실제 헤드가 지나온 자리 */
       buildTrail(kind);
-      /* 파티클 색 */
-      var pal = RCx.smashPalette(smashFx || 'none') || {};
-      burstCol = new T.Color(pal.mid || pal.hot || '#ffffff');
+      /* 날아오는 길 안내선 */
+      buildGuide(kind);
+      /* 파티클·충격파 색 */
+      burstCol = new T.Color(pal0.mid || pal0.hot || '#ffffff');
       burst.material.color = burstCol;
       burst.material.map = particleTexture();
       flash.material.map = glowTexture('hitflash', smashFx === 'ice' ? '200,240,255'
         : (smashFx === 'thunder' ? '200,225,255' : (smashFx === 'fire' ? '255,225,170' : '235,255,190')));
+      var ringCol = new T.Color(pal0.ring || pal0.hot || '#ffffff');
+      shock.material.color = ringCol;
+      shock2.material.color = new T.Color(pal0.core || '#ffffff');
+      rays.material.color = new T.Color(pal0.hot || '#ffffff');
+      impactGlow.material.color = new T.Color(pal0.core || pal0.hot || '#ffffff');
+      impactGlow.material.map = glowTexture('impact_glow_' + (smashFx || 'none'), hexRgb(pal0.mid || pal0.hot || '#ffffff'));
+      shuttleTrail.material.color = new T.Color(pal0.mid || '#ffffff');
+      speedLines.material.color = new T.Color(pal0.hot || '#ffffff');
+      impactOn = false;
       burst.visible = false;
       flash.visible = false;
+      shock.visible = false; shock2.visible = false;
+      rays.visible = false; impactGlow.visible = false;
+      speedLines.visible = false; shuttleTrail.visible = false;
       slamRing.material.opacity = 0;
+      slamRing.visible = false;
       slamCrack.material.opacity = 0;
       slamCrack.visible = false;
       debris.visible = false;
     }
 
-    function buildTrail(kind) {
-      var RCx = RC();
-      if (trail) { scene.remove(trail); trail.geometry.dispose(); trail = null; }
-      if (kind === 'slam') return;
-      var pts = [], i;
-      var N = 12;
-      for (i = 0; i <= N; i++) {
-        var ms = lerp(RCx.WIND_MS, RCx.HIT_AT, i / N);
-        pts.push(headWorld(ms, kind));
-      }
-      resetPose();
-      if (!pts.length) return;
-      var pos = [], idx = [];
+    /* 스윙 궤적 — 실제 헤드가 지나온 자리. 바깥은 넓고 부드럽게, 안쪽은 밝게 두 겹 */
+    function ribbonOf(pts, wid0, wid1) {
+      var pos = [], idx = [], i;
       var camDir = new T.Vector3(0, 0, 1);
       for (i = 0; i < pts.length; i++) {
         var p = pts[i];
@@ -1479,7 +1787,7 @@
         var tan = new T.Vector3().subVectors(b, a).normalize();
         var side = new T.Vector3().crossVectors(tan, camDir).normalize();
         if (!isFinite(side.x)) side.set(0, 1, 0);
-        var wid = 2.2 + i * 0.7;
+        var wid = wid0 + (wid1 - wid0) * (i / Math.max(1, pts.length - 1));
         pos.push(p.x + side.x * wid, p.y + side.y * wid, p.z + side.z * wid,
           p.x - side.x * wid, p.y - side.y * wid, p.z - side.z * wid);
       }
@@ -1490,12 +1798,51 @@
       var geo = new T.BufferGeometry();
       geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
       geo.setIndex(idx);
-      trail = new T.Mesh(geo, new T.MeshBasicMaterial({
+      return geo;
+    }
+
+    function buildTrail(kind) {
+      var RCx = RC();
+      if (trail) { scene.remove(trail); trail.geometry.dispose(); trail = null; }
+      if (trailCore) { scene.remove(trailCore); trailCore.geometry.dispose(); trailCore = null; }
+      if (kind === 'slam') return;
+      var pts = [], i;
+      var N = 16;
+      for (i = 0; i <= N; i++) {
+        var ms = lerp(RCx.WIND_MS, RCx.HIT_AT, i / N);
+        pts.push(headWorld(ms, kind));
+      }
+      resetPose();
+      if (!pts.length) return;
+      /* 굵고 선명한 스윙 아크 — 예전 2~8 은 실오라기 같았습니다 (bm-v1.90.0: 7~34) */
+      trail = new T.Mesh(ribbonOf(pts, 2, 22), new T.MeshBasicMaterial({
         color: new T.Color(burstColorHex()), transparent: true, opacity: 0,
         blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
       }));
       trail.visible = false;
       scene.add(trail);
+      trailCore = new T.Mesh(ribbonOf(pts, 0.7, 4.6), new T.MeshBasicMaterial({
+        color: new T.Color('#ffffff'), transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+      }));
+      trailCore.visible = false;
+      scene.add(trailCore);
+    }
+
+    /* 날아오는 길 — 점선 같은 안내선(어디서 오는지 눈으로 읽게) */
+    function buildGuide(kind) {
+      inGuide.visible = false;
+      if (kind === 'slam') return;
+      var pts = [], i;
+      for (i = 0; i <= 26; i++) {
+        pts.push(quadratic(inStart, inCtrl, hitPos, i / 26));
+      }
+      inGuide.geometry.dispose();
+      inGuide.geometry = new T.BufferGeometry();
+      inGuide.geometry.setAttribute('position', new T.Float32BufferAttribute(
+        pts.reduce(function (acc, p) { return acc.concat([p.x, p.y, p.z]); }, []), 3));
+      inGuide.visible = true;
+      inGuide.material.opacity = 0;
     }
 
     function burstColorHex() {
@@ -1503,23 +1850,125 @@
       return pal.hot || '#ffffff';
     }
 
+    /* 정타 파티클 — 타점에서 사방으로 크게 터지는 알갱이 */
     function spawnBurst() {
       var p = burst.geometry.attributes.position;
       var n = p.count;
       for (var i = 0; i < n; i++) {
         var a = Math.random() * Math.PI * 2, b = Math.random();
         var up = 0.15 + Math.random() * 0.95;
-        burstVel[i * 3] = Math.cos(a) * (90 + Math.random() * 260) * (1 - b * 0.4);
-        burstVel[i * 3 + 1] = up * (140 + Math.random() * 320);
-        burstVel[i * 3 + 2] = Math.sin(a) * (90 + Math.random() * 240) + 60;
-        var spread = 70;
+        burstVel[i * 3] = Math.cos(a) * (140 + Math.random() * 420) * (1 - b * 0.35);
+        burstVel[i * 3 + 1] = up * (200 + Math.random() * 470);
+        burstVel[i * 3 + 2] = Math.sin(a) * (140 + Math.random() * 380) + 90;
+        var spread = 84;
         p.setXYZ(i, hitPos.x + (Math.random() - 0.5) * spread,
           hitPos.y + (Math.random() - 0.5) * spread,
           hitPos.z + (Math.random() - 0.5) * spread);
       }
       p.needsUpdate = true;
       burst.visible = true;
-      burst.material.opacity = 0.95;
+      burst.material.opacity = 1;
+    }
+
+    /* 정타 한 방 — 3D 충격파 링 두 겹 + 빛살 + 큰 섬광 (모든 스매시 공통) */
+    function spawnImpact() {
+      spawnBurst();
+      shock.position.copy(hitPos);
+      shock.rotation.set(0, 0, 0);
+      shock.scale.setScalar(1);
+      shock.material.opacity = 1;
+      shock.visible = true;
+      shock2.position.copy(hitPos);
+      shock2.rotation.set(Math.PI * 0.34, 0.5, 0.2);
+      shock2.scale.setScalar(1);
+      shock2.material.opacity = 0.9;
+      shock2.visible = true;
+      /* 빛살 — 타점에서 사방으로 뻗는 가는 선 */
+      for (var i = 0; i < RAY_N; i++) {
+        var a = rayAng[i];
+        var r0 = 30, r1 = 96 + Math.random() * 74;
+        rayBuf[i * 6] = hitPos.x + Math.cos(a) * r0;
+        rayBuf[i * 6 + 1] = hitPos.y + Math.sin(a) * r0;
+        rayBuf[i * 6 + 2] = hitPos.z + 4;
+        rayBuf[i * 6 + 3] = hitPos.x + Math.cos(a) * r1;
+        rayBuf[i * 6 + 4] = hitPos.y + Math.sin(a) * r1;
+        rayBuf[i * 6 + 5] = hitPos.z + 4;
+      }
+      rays.geometry.dispose();
+      rays.geometry = new T.BufferGeometry();
+      rays.geometry.setAttribute('position', new T.BufferAttribute(rayBuf.slice(0), 3));
+      rays.material.opacity = 0.85;
+      rays.visible = true;
+      impactGlow.position.copy(hitPos);
+      impactGlow.scale.set(74, 74, 1);
+      impactGlow.material.opacity = 0.8;
+      impactGlow.visible = true;
+      /* 발사 속도선 — 나가는 쪽으로 길게 뻗는 선 18개 */
+      for (var k = 0; k < SPEED_N; k++) {
+        var sp = 40 + Math.random() * 90;
+        var side = new T.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+        side.addScaledVector(launchDir, -side.dot(launchDir)).normalize().multiplyScalar(sp);
+        speedBuf[k * 6] = hitPos.x + side.x;
+        speedBuf[k * 6 + 1] = hitPos.y + side.y;
+        speedBuf[k * 6 + 2] = hitPos.z + side.z;
+        speedBuf[k * 6 + 3] = hitPos.x + side.x + launchDir.x * 40;
+        speedBuf[k * 6 + 4] = hitPos.y + side.y + launchDir.y * 40;
+        speedBuf[k * 6 + 5] = hitPos.z + side.z + launchDir.z * 40;
+      }
+      speedLines.geometry.dispose();
+      speedLines.geometry = new T.BufferGeometry();
+      speedLines.geometry.setAttribute('position', new T.BufferAttribute(speedBuf.slice(0), 3));
+      speedLines.material.opacity = 0.9;
+      speedLines.visible = true;
+      /* 발사 잔상 씨앗 — 타점에서 나가는 쪽으로 미리 깔아 두면 첫 프레임부터 꼬리가 보입니다 */
+      shHist = [];
+      for (var q = 0; q < SH_N; q++) {
+        shHist.push(hitPos.clone().addScaledVector(launchDir, -(q / SH_N) * 260));
+      }
+      shuttleTrail.visible = true;
+      shuttleTrail.material.opacity = 0.5;
+    }
+
+    /* 충격파·빛살·섬광·속도선의 시간 변화 (after = 정타 뒤 ms) */
+    function updateImpact(after) {
+      var t = clamp01(after / 460);
+      if (shock.visible) {
+        var s1 = 40 + easeOut3(clamp01(after / 300)) * 320;
+        shock.scale.setScalar(s1);
+        shock.material.opacity = 0.95 * (1 - t);
+        var s2 = 30 + easeOut3(clamp01(after / 380)) * 460;
+        shock2.scale.setScalar(s2);
+        shock2.material.opacity = 0.85 * (1 - t) * (1 - t);
+        if (t >= 1) { shock.visible = false; shock2.visible = false; }
+      }
+      if (rays.visible) {
+        rays.material.opacity = 0.85 * Math.max(0, 1 - after / 190);
+        if (after > 190) rays.visible = false;
+      }
+      if (impactGlow.visible) {
+        var g = clamp01(after / 240);
+        var gs = 74 + easeOut3(g) * 360;
+        impactGlow.scale.set(gs, gs, 1);
+        impactGlow.material.opacity = 0.8 * (1 - g);
+        if (g >= 1) impactGlow.visible = false;
+      }
+      if (speedLines.visible) {
+        var sl = clamp01(after / 260);
+        speedLines.material.opacity = 0.9 * (1 - sl);
+        speedLines.scale.setScalar(1 + sl * 2.6);
+        if (sl >= 1) { speedLines.visible = false; speedLines.scale.setScalar(1); }
+      }
+      /* 셔틀콕 잔상 — 최근 위치를 점으로 남깁니다 */
+      if (shuttleTrail.visible && shHist.length) {
+        var sp = shuttleTrail.geometry.attributes.position;
+        for (var i = 0; i < sp.count; i++) {
+          var hp = shHist[Math.min(shHist.length - 1, Math.floor(i * shHist.length / sp.count))];
+          sp.setXYZ(i, hp.x, hp.y, hp.z);
+        }
+        sp.needsUpdate = true;
+        shuttleTrail.material.opacity = 0.55 * Math.max(0, 1 - after / 420);
+        if (after > 420) shuttleTrail.visible = false;
+      }
     }
 
     function spawnSlam(where) {
@@ -1572,6 +2021,8 @@
         vel.yaw = 0; vel.pitch = 0;
         lastMove = Date.now();
         prepareSmash(smashKind === 'slam' ? 'slam' : 'air');
+        /* 효과마다 다른 소리 — 스윙은 지금, 정타음은 임팩트 시각에 맞춰 예약 */
+        if (BM.smashsound) BM.smashsound.play(smashFx, smashKind);
         if (BM.ui) BM.ui.haptic(smashKind === 'slam' ? 22 : 14);
         renderFrame(nowMs());
         return true;
@@ -1600,11 +2051,11 @@
         holdAt = Math.max(0, Number(ms) || 0);
         if (kind) smashKind = kind === 'slam' ? 'slam' : 'air';
         smashFx = smashFx || lookOf(ctx).effect.id;
-        if (!smashOn || !parts) {
-          smashOn = true;
-          smashAt = nowMs();
-          prepareSmash(smashKind);
-        }
+        smashOn = true;
+        smashAt = nowMs();
+        /* 잡아 둔 프레임은 그 순간의 정확한 모습이어야 합니다 —
+         * 앞선 연출의 충격파·파티클이 남지 않게 매번 처음부터 준비합니다. */
+        prepareSmash(smashKind);
         renderFrame(nowMs());
         return true;
       },
@@ -1694,66 +2145,101 @@
         if (holdAt == null && el >= R2.SMASH_MS) {
           smashOn = false; el = 0; resetPose(); shuttle.visible = false;
           if (trail) trail.visible = false;
+          if (trailCore) trailCore.visible = false;
           flash.visible = false;
+          shock.visible = false; shock2.visible = false;
+          impactGlow.visible = false; speedLines.visible = false;
+          rays.visible = false; shuttleTrail.visible = false;
+          inGuide.visible = false;
         } else {
-          cl = R2.smashClock(el);
-          phase = R2.smashPhase(el);
-          var pose = poseAt(el, smashKind);
+          /* 히트스톱 — 기존 30ms 위에 EXTRA_STOP 한 박자. 정타 뒤 이 시간 동안
+           * 자세·파티클·카메라가 그 자리에 '박혀' 있어 타격감이 확실해집니다. */
+          /* 히트스톱 — 기존 30ms(R2.smashClock(el)) 에 bm-v1.90.0 한 박자(EXTRA_STOP)를 더해
+           * 정타 뒤 88ms 동안 자세·셔틀·카메라가 그 자리에 '박혀' 있습니다. */
+          var STOP_TOTAL = 30 + EXTRA_STOP;
+          cl = el <= R2.HIT_AT
+            ? R2.smashClock(el)
+            : (el <= R2.HIT_AT + STOP_TOTAL ? R2.HIT_AT : R2.smashClock(el - EXTRA_STOP));
+          var poseMs = cl <= R2.HIT_AT ? cl : cl + 30;
+          phase = R2.smashPhase(poseMs);
+          var pose = poseAt(poseMs, smashKind);
           applySwing(pose, smashKind);
           /* 스매시 중에는 살짝 앞으로 당겨 라켓이 화면을 향하게 */
-          airG.position.y += (R2.smashPhase(el) === 1 ? -4 : 0);
+          airG.position.y += (phase === 1 ? -4 : 0);
+          var aimK = easeInOut3(clamp01(cl / R2.HIT_AT));
+          if (cl > R2.HIT_AT) aimK = Math.max(0, 1 - (cl - R2.HIT_AT) / 240);
           if (smashKind === 'slam') {
             /* 바닥 강타는 라켓이 눕기 때문에 시선을 조금 올려 코트와 머리가 함께 보이게 */
             airG.position.y += 90 * easeInOut3(clamp01(cl / R2.HIT_AT));
             /* 강타는 옆에서 눕기 때문에, 얼굴(거트)이 보이게 살짝 돌려 줍니다 */
             aimG.rotation.y += 0.55 * easeInOut3(clamp01(cl / R2.HIT_AT));
+          } else {
+            /* 셔틀이 날아오는 쪽을 마주 봅니다 — 그 방향으로 세게 치는 맛 */
+            aimG.rotation.y = yaw + aimYaw * aimK;
+            aimG.rotation.x = pitch + aimPitch * aimK;
           }
 
-          /* 정타 순간 · 카메라 셰이크 */
+          /* 정타 순간 · 강한 카메라 셰이크 (위치 + 살짝 기울기) */
           var after = cl - R2.HIT_AT;
           if (after >= 0) {
-            var boom = Math.max(0, 1 - after / 340);
-            var amp = (smashKind === 'slam' ? 26 : 18) * boom * boom;
-            camera.position.x = Math.sin(after / 9) * amp;
-            camera.position.y = Math.cos(after / 13) * amp * 0.6;
+            var boom = Math.max(0, 1 - after / 420);
+            var amp = (smashKind === 'slam' ? 46 : 40) * boom * boom;
+            camera.position.x = Math.sin(after / 7.5) * amp;
+            camera.position.y = Math.cos(after / 10.5) * amp * 0.7;
             camera.lookAt(0, 0, 0);
+            camera.rotation.z += Math.sin(after / 6.2) * amp * (smashKind === 'slam' ? 0.0014 : 0.0011);
           } else {
             camera.position.x = 0; camera.position.y = 0;
             camera.lookAt(0, 0, 0);
           }
-          /* 스윙 동안 카메라가 살짝 물러나 헤드가 화면 밖으로 나가지 않게 */
+          /* 스윙 동안 카메라가 살짝 물러나 헤드가 화면 밖으로 나가지 않게
+           * (+ 정타 순간 아주 짧게 밀고 들어오는 펀치) */
           var dollyMax = smashKind === 'slam' ? 0.62 : 0.10;
           var dollyT = cl < R2.HIT_AT
             ? 1 + dollyMax * easeInOut3(clamp01(cl / R2.HIT_AT))
             : 1 + dollyMax * (1 - easeOut3(clamp01(after / 700)));
+          if (after >= 0) dollyT -= 0.045 * Math.max(0, 1 - after / 170);
           var baseZ = camera.userData.baseZ || camera.position.z;
           camera.position.z = baseZ * dollyT;
           camera.updateProjectionMatrix();
 
-          /* 셔틀콕 — 날아오기 → 임팩트 → 코르크 반전 발사 */
+          /* 셔틀콕 — 날아오기 → 임팩트 → 코르크 반전 초고속 발사 */
           if (smashKind !== 'slam') {
-            updateShuttle(el, cl, after);
+            updateShuttle(poseMs, cl, after);
           } else if (after >= 0 && after < 30 && !slamRing.visible) {
             spawnSlam(hitPos);
           }
-          /* 히트스톱 프레임에서 궤적·파티클·플래시 */
+          /* 히트스톱 프레임에서 궤적·파티클·플래시·충격파 */
           if (trail) {
-            trail.visible = cl >= R2.WIND_MS && after < 420;
-            trail.material.opacity = 0.72 * Math.max(0, 1 - after / 380);
+            trail.visible = cl >= R2.WIND_MS && after < 440;
+            trail.material.opacity = 0.30 * Math.max(0, 1 - after / 420);
+          }
+          if (trailCore) {
+            trailCore.visible = trail ? trail.visible : false;
+            trailCore.material.opacity = 0.95 * Math.max(0, 1 - after / 380);
+          }
+          if (inGuide.visible) {
+            inGuide.material.opacity = cl < R2.HIT_AT
+              ? 0.38 * Math.min(1, cl / 100)
+              : 0.38 * Math.max(0, 1 - after / 180);
+            if (after > 180) inGuide.visible = false;
           }
           if (after >= 0) {
-            if (!flash.visible && after < 30) {
+            /* 한 프레임이 크게 밀려도(느린 기기) 정타 연출은 딱 한 번 반드시 터집니다 */
+            if (!impactOn) {
+              impactOn = true;
               flash.visible = true;
-              spawnBurst();
+              spawnImpact();
             }
-            var ft = clamp01(after / 200);
+            var ft = clamp01(after / 220);
             if (flash.visible) {
-              var fs = 60 + ft * 210;
+              var fs = 90 + ft * 320;
               flash.scale.set(fs, fs, 1);
               flash.position.copy(hitPos);
-              flash.material.opacity = 0.8 * (1 - ft);
+              flash.material.opacity = 0.85 * (1 - ft);
               if (ft >= 1) flash.visible = false;
             }
+            updateImpact(after);
             updateBurst(after);
           }
           if (slamRing.visible) {
@@ -1769,9 +2255,11 @@
         resetPose();
         shuttle.visible = false;
         if (trail) trail.visible = false;
+        if (trailCore) trailCore.visible = false;
         camera.position.x = 0; camera.position.y = 0;
         camera.position.z = (camera.userData.baseZ || camera.position.z) * (mo ? 1.10 : 1);
         camera.lookAt(0, 0, 0);
+        camera.rotation.z = 0;
       }
 
       /* 오라 */
@@ -1784,26 +2272,45 @@
       ready = true;
     }
 
+    /* 셔틀콕 — 코트 앞 위 대각선에서 실제 궤적으로 날아와, 정타 뒤
+     * 들어온 축을 뒤집어 아래 대각선으로 초고속 직선 발사됩니다. */
     function updateShuttle(el, cl, after) {
       var R2 = RC();
       shuttle.visible = true;
       if (cl < R2.HIT_AT) {
         var t = smooth(cl / R2.HIT_AT);
-        /* 코트 먼 쪽 상단에서 포물선으로 */
-        var start = new T.Vector3(-520, 520, -900);
-        var ctrl = new T.Vector3(-160, 420, -260);
-        var p0 = quadratic(start, ctrl, hitPos, t);
+        var p0 = quadratic(inStart, inCtrl, hitPos, t);
         shuttle.position.copy(p0);
-        var dir = new T.Vector3().subVectors(hitPos, p0);
-        shuttle.rotation.set(Math.atan2(dir.y, -dir.z) * 0.5, 0, Math.atan2(dir.x, -dir.z) * 0.4);
+        var dir = new T.Vector3().subVectors(hitPos, p0).normalize();
+        /* 깃은 +y, 코르크는 -y — 코르크가 날아가는 쪽을 정확히 보게 */
+        shuttle.quaternion.setFromUnitVectors(FLY_AXIS, dir);
+        /* 멀리서도 또렷하게 — 시작 2.6배에서 타점 1.25배로 다가옵니다 */
+        shuttle.scale.setScalar(2.6 - 1.35 * t);
+        /* 뒤로 잔상이 늘어지게 */
+        if (cl > 20) {
+          shHist.push(p0.clone());
+          if (shHist.length > SH_N) shHist.shift();
+          shuttleTrail.visible = shHist.length > 3;
+          shuttleTrail.material.opacity = 0.34;
+          var stp = shuttleTrail.geometry.attributes.position;
+          for (var si = 0; si < stp.count; si++) {
+            var hp0 = shHist[Math.min(shHist.length - 1, si)];
+            stp.setXYZ(si, hp0.x, hp0.y, hp0.z);
+          }
+          stp.needsUpdate = true;
+        }
       } else {
-        /* 맞은 뒤 — 코르크가 180° 돌아 앞장서고 반대 아래 대각선으로 */
-        var k = clamp01(after / 420);
-        var dist = easeOut3(k) * 1500;
+        /* 맞은 뒤 — 코르크가 180° 돌아 앞장서고, 정타 뒤 300ms 만에 화면 밖까지 */
+        var k = clamp01(after / 150);
+        var tr = clamp01(after / 420);
+        var dist = easeOut3(tr) * 1700;
         shuttle.position.copy(hitPos).addScaledVector(launchDir, dist);
-        shuttle.rotation.set(Math.PI * easeOut3(k), 0, Math.PI * 0.28 * k);
-        var sc = 1 + k * 1.6;
-        shuttle.scale.setScalar(1.0 * sc);
+        shuttle.quaternion.setFromUnitVectors(FLY_AXIS, launchDir);
+        shuttle.rotateY(Math.PI * easeOut3(k));   /* 코르크가 앞장서며 도는 스핀 */
+        shuttle.scale.setScalar(1.25 + tr * 1.2);
+        shHist.push(shuttle.position.clone());
+        if (shHist.length > SH_N) shHist.shift();
+        shuttleTrail.visible = shHist.length > 3;
       }
     }
 
@@ -1887,6 +2394,8 @@
     }
 
     cv.addEventListener('pointerdown', function (ev) {
+      /* 이 손짓 안에서 소리를 깨웁니다 (브라우저 자동재생 규칙) */
+      if (BM.smashsound) BM.smashsound.unlock();
       if (ev.button && ev.button !== 0) return;
       drag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, sx: ev.clientX, sy: ev.clientY, moved: 0 };
       lastMove = Date.now();

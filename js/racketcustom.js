@@ -3430,9 +3430,9 @@
       /* 연출을 원하는 순간에 멈춰 두기(화면 캡처·자동 점검) — 사용자 동작과는 무관합니다 */
       hold: function (ms, kind) {
         holdAt = Math.max(0, Number(ms) || 0);
-        if (kind) { smashKind = kind === 'slam' ? 'slam' : 'air'; smashFx = smashFx || customOf(ctx.store.state.me).effect; }
-        if (!smashOn) { smashFx = smashFx || customOf(ctx.store.state.me).effect; }
-        smashOn = true; paint(); return true;
+        if (kind) smashKind = kind === 'slam' ? 'slam' : 'air';
+        smashFx = smashFx || customOf(ctx.store.state.me).effect;
+        smashOn = true; smashAt = nowMs(); paint(); return true;
       },
       resume: function () { holdAt = null; smashAt = nowMs(); smashOn = true; paint(); return true; } };
 
@@ -3474,6 +3474,8 @@
       smashOn = true;
       vel.yaw = 0; vel.pitch = 0;
       lastMove = Date.now();          /* 스매시 동안에는 자동 회전을 잠깐 멈춥니다 */
+      /* bm-v1.90.0 — 3D 를 못 여는 기기에서도 효과별 타격음은 그대로 */
+      if (BM.smashsound) BM.smashsound.play(smashFx, smashKind);
       if (BM.ui) BM.ui.haptic(smashKind === 'slam' ? 22 : 14);
       paint();
       return true;
@@ -3631,6 +3633,7 @@
     raf = root.requestAnimationFrame(loop);
 
     cv.addEventListener('pointerdown', function (ev) {
+      if (BM.smashsound) BM.smashsound.unlock();
       if (ev.button && ev.button !== 0) return;
       drag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, sx: ev.clientX, sy: ev.clientY, moved: 0 };
       lastMove = Date.now();
@@ -3886,6 +3889,18 @@
   }
 
   /* 3D 위 조작 줄 — 스매시 / 꾸미기 모드 + ⚡ 스매시 테스트 버튼 (bm-v1.82.0) */
+  /* bm-v1.90.0 — 스매시 소리 켜기/끄기 (불·얼음·번개 소리가 서로 다릅니다) */
+  function soundMuted() {
+    return !!(BM.smashsound && BM.smashsound.muted && BM.smashsound.muted());
+  }
+  function soundBtnHtml() {
+    var off = soundMuted();
+    return '<button type="button" class="rk3d__sound' + (off ? ' is-off' : '') + '" data-rk-sound="1"' +
+      ' aria-pressed="' + (off ? 'false' : 'true') + '"' +
+      ' aria-label="' + (off ? '스매시 소리 켜기' : '스매시 소리 끄기') + '">' +
+      '<span aria-hidden="true">' + (off ? '🔇' : '🔊') + '</span></button>';
+  }
+
   function stageHtml(state) {
     var c = customOf(state && state.me);
     var big = c.effect === 'fire' || c.effect === 'thunder';
@@ -3982,6 +3997,7 @@
       /* 3D 라켓 — 끌어서 360°, 톡 치면 스매시 */
       '<div class="rk3d' + (stageMode === 'paint' ? ' is-paint' : '') + '" data-rk-3d>' +
         '<canvas class="rk3d__cv" width="600" height="760" aria-label="내 라켓 3D 보기 · 끌어서 돌리고 톡 치면 스매시 임팩트"></canvas>' +
+        soundBtnHtml() +
         bodyHtml(state) +
         stageHtml(state) +
         '<p class="rk3d__hint"><span aria-hidden="true">↔</span> 끌어서 360° 돌려보기 · ' +
@@ -4218,6 +4234,23 @@
               BM.ui.haptic(6);
               refreshSheet(host, ctx);
             }
+            return;
+          }
+          /* ---- 스매시 소리 켜기/끄기 (bm-v1.90.0) ---- */
+          if (ev.target.closest('[data-rk-sound]')) {
+            ev.preventDefault();
+            if (!BM.smashsound) return;
+            var nowOff = BM.smashsound.toggle();
+            var sbtn = ev.target.closest('[data-rk-sound]');
+            if (sbtn) {
+              sbtn.classList.toggle('is-off', nowOff);
+              sbtn.setAttribute('aria-pressed', nowOff ? 'false' : 'true');
+              sbtn.setAttribute('aria-label', nowOff ? '스매시 소리 켜기' : '스매시 소리 끄기');
+              var sico = sbtn.querySelector('span');
+              if (sico) sico.textContent = nowOff ? '🔇' : '🔊';
+            }
+            if (!nowOff) BM.smashsound.play(customOf(ctx.store.state.me).effect, 'air');
+            if (BM.ui) BM.ui.haptic(6);
             return;
           }
           if (ev.target.closest('[data-rk-smash]')) {
