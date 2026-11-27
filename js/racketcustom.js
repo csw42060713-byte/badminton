@@ -44,7 +44,14 @@
         { id: 'navy', name: '로열 네이비', color: '#22409f', heart: 3, rarity: 'epic' },
         { id: 'red', name: '파이어 레드', color: '#e0433c', heart: 3, rarity: 'epic' },
         /* bm-v1.87.0 — 레전드 프레임: 검은 티타늄에 푸른 금속 광택(finish: 'metal') */
-        { id: 'onyx', name: '오닉스 티타늄', color: '#1b1f26', heart: 4, rarity: 'legend', finish: 'metal', shine: '#b8c8d8' }
+        { id: 'onyx', name: '오닉스 티타늄', color: '#1b1f26', heart: 4, rarity: 'legend', finish: 'metal', shine: '#b8c8d8' },
+        /* bm-v1.95.0 — 세트 조합용 프레임: 골드 · 빙하 · 에메랄드 · 바이올렛 · 로즈
+         *  금속 광택(finish: 'metal')은 3D 에서 실제 메탈 소재(거친 정도·환경 반사)로 그려집니다. */
+        { id: 'gold', name: '챔피언 골드', color: '#e6b53c', heart: 4, rarity: 'legend', finish: 'metal', shine: '#fff4c2', note: '금빛 메탈 광택' },
+        { id: 'ice', name: '글레이셔 블루', color: '#8fc9e6', heart: 3, rarity: 'epic', finish: 'metal', shine: '#e8f8ff', note: '서리 낀 메탈' },
+        { id: 'emerald', name: '에메랄드 티탄', color: '#1f9d78', heart: 3, rarity: 'epic', finish: 'metal', shine: '#b6ffe6', note: '초록빛 메탈' },
+        { id: 'violet', name: '미드나잇 바이올렛', color: '#4a3aa8', heart: 3, rarity: 'epic', finish: 'metal', shine: '#d9ccff', note: '보랏빛 메탈' },
+        { id: 'rose', name: '로즈 쿼츠', color: '#d97d95', heart: 3, rarity: 'epic', finish: 'metal', shine: '#ffe3ea', note: '분홍빛 메탈' }
       ]
     },
     string: {
@@ -54,7 +61,13 @@
         { id: 'white', name: '화이트', color: '#f3f7ef', heart: 1, rarity: 'common' },
         { id: 'gold', name: '골드', color: '#f2c14e', heart: 2, rarity: 'rare' },
         { id: 'cobalt', name: '코발트 블루', color: '#3f7cf2', heart: 2, rarity: 'rare' },
-        { id: 'pink', name: '핑크', color: '#ff7fb0', heart: 2, rarity: 'rare' }
+        { id: 'pink', name: '핑크', color: '#ff7fb0', heart: 2, rarity: 'rare' },
+        /* bm-v1.95.0 — 세트 조합용 거트: 크림슨 · 미드나잇 · 아이스 · 바이올렛 · 에메랄드 */
+        { id: 'crimson', name: '크림슨', color: '#d63c3c', heart: 2, rarity: 'rare' },
+        { id: 'black', name: '미드나잇 블랙', color: '#2b3036', heart: 2, rarity: 'rare' },
+        { id: 'ice', name: '아이스 블루', color: '#a9e8ff', heart: 2, rarity: 'rare' },
+        { id: 'violet', name: '바이올렛', color: '#8f7bf2', heart: 2, rarity: 'rare' },
+        { id: 'emerald', name: '에메랄드', color: '#2fd6a5', heart: 2, rarity: 'rare' }
       ]
     },
     grip: {
@@ -67,7 +80,17 @@
         { id: 'purple', name: '퍼플', color: '#8f7bf2', heart: 2, rarity: 'rare' },
         /* bm-v1.87.0 — 에픽 그립: 실제 오버그립 감성의 타월 결 · 투톤 랩핑 (weave) */
         { id: 'towel', name: '타월 베이지', color: '#d9c6a5', heart: 3, rarity: 'epic', weave: 'towel', note: '보송보송 타월 결' },
-        { id: 'twotone', name: '투톤 네온', color: '#c6f24e', color2: '#20252b', heart: 3, rarity: 'epic', weave: 'twotone', note: '네온 + 블랙 두 색' }
+        { id: 'twotone', name: '투톤 네온', color: '#c6f24e', color2: '#20252b', heart: 3, rarity: 'epic', weave: 'twotone', note: '네온 + 블랙 두 색' },
+        /* bm-v1.95.0 — 세트 조합용 그립: 프레임·거트 색과 짝이 맞는 8색 전부
+         *  weave: 'perf' 는 실제 오버그립처럼 촘촘한 천공(구멍) 결이 돋보이는 질감입니다. */
+        { id: 'gold', name: '골드', color: '#e8b93f', heart: 2, rarity: 'rare', weave: 'perf', note: '금빛 천공 오버그립' },
+        { id: 'crimson', name: '크림슨', color: '#c9302c', heart: 2, rarity: 'rare' },
+        { id: 'ice', name: '아이스 블루', color: '#a9e8ff', heart: 2, rarity: 'rare', weave: 'perf', note: '서리빛 천공 오버그립' },
+        { id: 'emerald', name: '에메랄드', color: '#2fbf92', heart: 2, rarity: 'rare' },
+        { id: 'violet', name: '바이올렛', color: '#6f55d6', heart: 3, rarity: 'epic', weave: 'perf', note: '보랏빛 천공 오버그립' },
+        { id: 'rose', name: '로즈 핑크', color: '#ffb0c6', heart: 2, rarity: 'rare' },
+        { id: 'white', name: '아크 화이트', color: '#eef2f4', heart: 1, rarity: 'common', weave: 'towel', note: '보송보송 타월 결' },
+        { id: 'sunset', name: '선셋 오렌지', color: '#ff8a5c', heart: 2, rarity: 'rare' }
       ]
     },
     stencil: {
@@ -102,7 +125,14 @@
         /* bm-v1.82.0 — 하트로 바로 여는 스페셜 스매시(포인트 아니라 하트) */
         { id: 'fire', name: '불꽃 스매시', color: '#ff7a2f', heart: 2, rarity: 'epic', smash: true, note: '터치하면 불꽃이 활짝' },
         { id: 'ice', name: '얼음 스매시', color: '#a9e8ff', heart: 3, rarity: 'epic', smash: true, note: '얼음 결정이 사방으로' },
-        { id: 'thunder', name: '번개 셔틀', color: '#8fd0ff', heart: 3, rarity: 'legend', smash: true, note: '번개와 함께 셔틀 발사' }
+        { id: 'thunder', name: '번개 셔틀', color: '#8fd0ff', heart: 3, rarity: 'legend', smash: true, note: '번개와 함께 셔틀 발사' },
+        /* bm-v1.95.0 — 세트 색에 맞춘 임팩트(스매시) 6종 + 세트 연출과 짝을 이루는 색 */
+        { id: 'goldbolt', name: '골드 번개', color: '#ffd84a', heart: 3, rarity: 'epic', smash: true, note: '금빛 번개가 사방으로' },
+        { id: 'void', name: '보이드 스파크', color: '#8f6bff', heart: 3, rarity: 'epic', smash: true, note: '보랏빛 어둠 스파크' },
+        { id: 'wind', name: '에메랄드 윈드', color: '#45e0b0', heart: 3, rarity: 'epic', smash: true, note: '초록 바람 소용돌이' },
+        { id: 'blossom', name: '체리 블라썸', color: '#ff9ec4', heart: 3, rarity: 'epic', smash: true, note: '분홍 꽃잎이 흩날려' },
+        { id: 'snow', name: '스노우 스톰', color: '#dff3ff', heart: 3, rarity: 'epic', smash: true, note: '눈보라가 몰아쳐' },
+        { id: 'aurora', name: '오로라', color: '#9be7ff', heart: 3, rarity: 'legend', smash: true, note: '초록·보라 오로라' }
       ]
     }
   };
@@ -252,10 +282,170 @@
 
   function isHeartItem(slot, id) { return heartCostOf(slot, id) > 0; }
 
+  /* ============================================================
+   * 파츠 풀세트 조합 보너스 (bm-v1.95.0)
+   *
+   *  프레임 · 거트 · 그립(히든은 효과·참까지)을 한 계열로 맞추면 3D 쇼룸에서
+   *  라켓 아래 바닥 오라 색이 바뀌고, 세트마다 다른 특수 연출이 켜집니다.
+   *
+   *  · 공개 4종 — 조건을 화면에 그대로 보여 줍니다(무엇을 사면 되는지 바로 보임).
+   *  · 히든 7종 — 조건을 숨기고 '??? 히든 조합 (0/7 발견)'으로만 표시합니다.
+   *    맞추는 순간 축하 토스트 + 3D 연출 + 발견 목록에 영구 기록(found).
+   *  · 모든 조건은 실제로 존재하는 파츠 id 만 씁니다 — 어떤 조합도 100% 발동 가능합니다
+   *    (test/v195.test.js 가 SETS 의 모든 need 를 PARTS 와 대조합니다).
+   *  · 저장은 지금처럼 theme.gear.custom 한 칸 — 그 안에 found 배열만 더합니다
+   *    (새 시트 칸·새 DB 컬럼 없음, 예전 저장값과 그대로 호환).
+   * ============================================================ */
+  var SETS = [
+    /* ---------- 히든 7 (먼저 — 같은 조합이면 히든이 우선) ---------- */
+    {
+      id: 'phantom', name: '팬텀 라이트닝', emoji: '🌩', hidden: true, fx: 'voidbolt',
+      color: '#a487ff', color2: '#efe6ff', tag: '보랏빛 낙뢰', hint: '어둠 · 티타늄 · 번개',
+      desc: '보랏빛 번개가 어둠 속에서 라켓으로 떨어져요',
+      need: [['frame', 'onyx'], ['string', 'black'], ['grip', 'violet'], ['effect', 'void']]
+    },
+    {
+      id: 'blizzard', name: '블리자드', emoji: '🌨', hidden: true, fx: 'snowstorm',
+      color: '#d5f0ff', color2: '#9ed8ff', tag: '절대영도 눈보라', hint: '얼음 · 하얀 거트',
+      desc: '쇼룸 전체에 눈보라가 몰아치고 바닥이 얼어붙어요',
+      need: [['frame', 'ice'], ['string', 'white'], ['grip', 'white'], ['effect', 'snow']]
+    },
+    {
+      id: 'phoenix', name: '불사조', emoji: '🔥', hidden: true, fx: 'pillar',
+      color: '#ff8a2f', color2: '#ffd166', tag: '불꽃 기둥', hint: '붉은 프레임 · 불꽃',
+      desc: '바닥에서 불꽃 기둥이 솟아오르고 불티가 흩날려요',
+      need: [['frame', 'red'], ['string', 'crimson'], ['grip', 'crimson'], ['effect', 'fire']]
+    },
+    {
+      id: 'cyclone', name: '사이클론', emoji: '🌪', hidden: true, fx: 'cyclone',
+      color: '#45e0b0', color2: '#c6ffe9', tag: '태풍 소용돌이', hint: '초록 · 바람',
+      desc: '라켓 둘레로 바람 링이 돌고 초록 소용돌이가 솟아요',
+      need: [['frame', 'emerald'], ['string', 'lime'], ['grip', 'emerald'], ['effect', 'wind']]
+    },
+    {
+      id: 'champion', name: '챔피언 골드', emoji: '🏆', hidden: true, fx: 'confetti',
+      color: '#ffd166', color2: '#fff3c4', tag: '금가루 컨페티', hint: '하얀 프레임 · 금빛 · 메달',
+      desc: '금가루가 눈처럼 내리고 챔피언 메달이 빛나요',
+      need: [['frame', 'white'], ['string', 'gold'], ['grip', 'gold'], ['charm', 'medal']]
+    },
+    {
+      id: 'cyber', name: '네온 사이버', emoji: '🟩', hidden: true, fx: 'cyber',
+      color: '#7cffd4', color2: '#c6f24e', tag: '네온 그리드', hint: '카본 · 민트 · 스피드',
+      desc: '바닥에 네온 그리드가 켜지고 빛줄기가 돌아요',
+      need: [['frame', 'carbon'], ['string', 'lime'], ['grip', 'mint'], ['effect', 'speed']]
+    },
+    {
+      id: 'aurora', name: '프리즘 오로라', emoji: '🌌', hidden: true, fx: 'aurora',
+      color: '#9be7ff', color2: '#b48cff', tag: '오로라 커튼', hint: '보랏빛 · 오로라',
+      desc: '라켓 뒤로 초록·보라 오로라 커튼이 흘러요',
+      need: [['frame', 'violet'], ['string', 'violet'], ['grip', 'violet'], ['effect', 'aurora']]
+    },
+    /* ---------- 공개 4 (조건을 화면에 그대로) ---------- */
+    {
+      id: 'thunderGold', name: '썬더 골드', emoji: '⚡', hidden: false, fx: 'lightning',
+      color: '#ffd200', color2: '#fff6c2', tag: '전체 낙뢰', tone: '노랑',
+      desc: '화면 위에서 노란 번개가 라켓으로 내리쳐요',
+      need: [['frame', 'gold'], ['string', 'gold'], ['grip', 'gold']]
+    },
+    {
+      id: 'blazeRed', name: '블레이즈 레드', emoji: '🔥', hidden: false, fx: 'flame',
+      color: '#ff5a2f', color2: '#ffc36b', tag: '불꽃 오라', tone: '레드',
+      desc: '바닥에서 불티가 솟고 라켓이 붉게 달아올라요',
+      need: [['frame', 'red'], ['string', 'crimson'], ['grip', 'coral']]
+    },
+    {
+      id: 'frostIce', name: '프로스트 아이스', emoji: '❄', hidden: false, fx: 'frost',
+      color: '#a9e8ff', color2: '#ffffff', tag: '서리 오라', tone: '블루',
+      desc: '바닥이 얼어붙고 서리 결정이 천천히 떠다녀요',
+      need: [['frame', 'white'], ['string', 'cobalt'], ['grip', 'ice']]
+    },
+    {
+      id: 'darkOnyx', name: '다크 오닉스', emoji: '🌑', hidden: false, fx: 'void',
+      color: '#8a6cff', color2: '#d9ccff', tag: '어둠 스파크', tone: '블랙',
+      desc: '보랏빛 어둠 스파크가 라켓을 감싸요',
+      need: [['frame', 'onyx'], ['string', 'black'], ['grip', 'black']]
+    }
+  ];
+  var HIDDEN_SETS = SETS.filter(function (s) { return s.hidden; });
+
+  function setById(id) {
+    for (var i = 0; i < SETS.length; i++) if (SETS[i].id === id) return SETS[i];
+    return null;
+  }
+
+  /* 이 세트에서 지금 몇 파츠가 맞았는지 — 화면의 '2/3 노랑 파츠' 숫자 */
+  function setHit(c, set) {
+    c = normalizeCustom(c);
+    var out = [];
+    for (var i = 0; i < set.need.length; i++) {
+      var need = set.need[i];
+      var it = itemOf(need[0], need[1]);
+      out.push({
+        slot: need[0], id: need[1], got: c[need[0]] === need[1],
+        name: it ? it.name : need[1], label: (PARTS[need[0]] && PARTS[need[0]].label) || need[0]
+      });
+    }
+    var hits = out.filter(function (n) { return n.got; }).length;
+    return { need: out, hits: hits, total: out.length, complete: hits === out.length };
+  }
+
+  /* 지금 입은 조합에서 발동한 세트(여럿이면 히든 우선, 그다음 파츠가 많이 맞은 것) */
+  function activeSet(c) {
+    c = normalizeCustom(c);
+    var best = null, bestScore = -1;
+    for (var i = 0; i < SETS.length; i++) {
+      var h = setHit(c, SETS[i]);
+      if (!h.complete) continue;
+      var score = (SETS[i].hidden ? 100 : 0) + h.hits;
+      if (score > bestScore) { best = { set: SETS[i], hit: h }; bestScore = score; }
+    }
+    return best;
+  }
+
+  /* 공개 세트 중 가장 가까운 것 — 아직 아무것도 발동하지 않았을 때 'N/M' 안내 */
+  function nextSet(c) {
+    c = normalizeCustom(c);
+    var best = null, bestHits = -1;
+    for (var i = 0; i < SETS.length; i++) {
+      if (SETS[i].hidden) continue;
+      var h = setHit(c, SETS[i]);
+      if (h.complete) continue;
+      if (h.hits > bestHits) { best = { set: SETS[i], hit: h }; bestHits = h.hits; }
+    }
+    return best;
+  }
+
+  /* 발견한 히든 세트 id 목록 — 저장값(found)은 아는 id 만 남깁니다 */
+  function foundOf(c) {
+    c = normalizeCustom(c);
+    return (c.found && c.found.length) ? c.found.slice(0) : [];
+  }
+
+  function hiddenFoundCount(c) { return foundOf(c).length; }
+
+  /* 방금 새로 맞춘 히든 세트 — 저장 직후 축하 연출에 씁니다 */
+  function newlyFound(c) {
+    var have = foundOf(c);
+    var out = [];
+    for (var i = 0; i < HIDDEN_SETS.length; i++) {
+      var s = HIDDEN_SETS[i];
+      if (have.indexOf(s.id) >= 0) continue;
+      if (setHit(c, s).complete) out.push(s);
+    }
+    return out;
+  }
+
+  function needText(set) {
+    return set.need.map(function (n) {
+      var it = itemOf(n[0], n[1]);
+      return ((PARTS[n[0]] && PARTS[n[0]].label) || n[0]) + ' ' + (it ? it.name : n[1]);
+    }).join(' · ');
+  }
+
   /* ---------- 저장 모양 ---------- */
 
   function blankCustom() {
-    var o = { unlocked: [], body: DEFAULT_BODY };
+    var o = { unlocked: [], body: DEFAULT_BODY, found: [] };
     SLOTS.forEach(function (slot) { o[slot] = freeId(slot); });
     return o;
   }
@@ -269,6 +459,16 @@
       var want = String(o[slot] == null ? '' : o[slot]).trim();
       /* 열지 않은 파츠를 입고 있으면 기본 파츠로 되돌립니다(기록이 깨져도 화면은 안전) */
       out[slot] = itemOf(slot, want) ? want : freeId(slot);
+    });
+    /* bm-v1.95.0 — 발견한 히든 조합(찾은 것만, 아는 id 만). 예전 저장값에는 없으므로 빈 배열 */
+    out.found = [];
+    var fseen = {};
+    (Array.isArray(o.found) ? o.found : []).forEach(function (raw) {
+      var id = String(raw == null ? '' : raw).trim();
+      var st = setById(id);
+      if (!st || !st.hidden || fseen[id]) return;
+      fseen[id] = 1;
+      out.found.push(id);
     });
     var seen = {};
     var list = Array.isArray(o.unlocked) ? o.unlocked : [];
@@ -311,7 +511,7 @@
 
   function hasCustom(c) {
     c = normalizeCustom(c);
-    if (c.unlocked.length) return true;
+    if (c.unlocked.length || c.found.length) return true;
     for (var i = 0; i < SLOTS.length; i++) {
       if (c[SLOTS[i]] !== freeId(SLOTS[i])) return true;
     }
@@ -1618,6 +1818,27 @@
         pushLines(prims, v, fine, 'rgba(0,0,0,0.17)', Math.max(0.5, 0.5 * v.k * 1.3), 1, 1.55);
       }
     }
+    /* 천공 결 — 8각 면마다 작은 구멍을 규칙적으로 (bm-v1.95.0 천공 오버그립) */
+    if (weave === 'perf') {
+      var rowsP = 7, rp, offp, cx3, cz3, sxp, szp;
+      for (k = 0; k < 8; k++) {
+        var pp3 = verts[k], pq3 = verts[(k + 1) % 8];
+        for (rp = 0; rp < rowsP; rp++) {
+          var yyP = y0 + 14 + (y1 - y0 - 28) * (rp / (rowsP - 1));
+          offp = (rp % 2) ? 0.45 : 0.72;
+          cx3 = (pp3.c + (pq3.c - pp3.c) * offp) * R * 1.007;
+          cz3 = (pp3.s + (pq3.s - pp3.s) * offp) * R * 1.007;
+          sxp = (pq3.c - pp3.c) * R * 0.09;
+          szp = (pq3.s - pp3.s) * R * 0.09;
+          pushFace(prims, v, [
+            { x: cx3, y: yyP - 2.4, z: cz3 },
+            { x: cx3 + sxp, y: yyP, z: cz3 + szp },
+            { x: cx3, y: yyP + 2.4, z: cz3 },
+            { x: cx3 - sxp, y: yyP, z: cz3 - szp }
+          ], '#000000', { tone: 0, gloss: false, alpha: 0.2, zBias: 0.7 });
+        }
+      }
+    }
     /* 오버그립 감김 — 한 줄로 이어지는 나선 이음매(실제 오버그립을 감은 모습).
      * 사각형을 겹쳐 찍던 예전 방식은 '사다리'처럼, 한 바퀴마다 선을 그으면 '용수철'처럼
      * 보여서, 나선 하나만 얇게 얹습니다. */
@@ -2171,12 +2392,23 @@
     fire: { core: '#fff7dc', hot: '#ffd166', mid: '#ff8a2f', deep: '#ff3b2f', ring: '#ffb347', tail: 'rgba(255,120,40,', mist: 'rgba(255,180,90,' },
     ice: { core: '#ffffff', hot: '#d8f6ff', mid: '#7fd8ff', deep: '#4aa9ff', ring: '#a9e8ff', tail: 'rgba(150,225,255,', mist: 'rgba(200,240,255,' },
     thunder: { core: '#ffffff', hot: '#d6ecff', mid: '#7fd8ff', deep: '#3f7cf2', ring: '#9fd8ff', tail: 'rgba(150,210,255,', mist: 'rgba(190,225,255,' },
+    /* bm-v1.95.0 — 세트 색과 짝을 이루는 임팩트 6종 */
+    goldbolt: { core: '#fffce0', hot: '#fff2a8', mid: '#ffd84a', deep: '#c99000', ring: '#ffe98a', tail: 'rgba(255,216,74,', mist: 'rgba(255,240,170,' },
+    void: { core: '#f2ecff', hot: '#cbb8ff', mid: '#8f6bff', deep: '#4a2fb0', ring: '#b49aff', tail: 'rgba(143,107,255,', mist: 'rgba(200,180,255,' },
+    wind: { core: '#f0fff8', hot: '#b6ffe6', mid: '#45e0b0', deep: '#0f8f68', ring: '#8ff5d2', tail: 'rgba(69,224,176,', mist: 'rgba(190,255,232,' },
+    blossom: { core: '#fff6fa', hot: '#ffd3e6', mid: '#ff9ec4', deep: '#c94a7a', ring: '#ffc2da', tail: 'rgba(255,158,196,', mist: 'rgba(255,220,235,' },
+    snow: { core: '#ffffff', hot: '#eafaff', mid: '#c6ecff', deep: '#7fb6d9', ring: '#dff3ff', tail: 'rgba(223,243,255,', mist: 'rgba(235,250,255,' },
+    aurora: { core: '#f4ffff', hot: '#c6ffe9', mid: '#7ce7d0', deep: '#4f7be0', ring: '#9be7ff', tail: 'rgba(124,231,208,', mist: 'rgba(190,235,255,' },
     none: { core: '#ffffff', hot: '#eaffb0', mid: '#c6f24e', deep: '#7fd8ff', ring: '#c6f24e', tail: 'rgba(198,242,78,', mist: 'rgba(220,255,170,' }
   };
   function smashPalette(id) { return SMASH_PALETTE[id] || SMASH_PALETTE.none; }
   function fxKind(id) {
     var f = String(id || '');
     if (f === 'fire' || f === 'ice' || f === 'thunder') return f;
+    /* 새 임팩트도 결은 가장 가까운 연출(불·얼음·번개)을 빌려 그리고, 색은 팔레트가 정합니다 */
+    if (f === 'goldbolt' || f === 'void' || f === 'aurora') return 'thunder';
+    if (f === 'wind' || f === 'snow') return 'ice';
+    if (f === 'blossom') return 'fire';
     return 'none';
   }
 
@@ -3991,6 +4223,82 @@
       '</div>';
   }
 
+  /* ---------- 세트 조합 배지 + 도감 (bm-v1.95.0) ----------
+   *  · 발동 중이면 맨 위에 '⚡ 썬더 골드 풀세트 발동! (전체 낙뢰)'를 크게,
+   *  · 아직이면 가장 가까운 공개 세트의 '2/3 노랑 파츠'를 보여 줘서 모을 맛을 냅니다.
+   *  · 도감은 <details>로 접어 둬 시트가 길어지지 않게 — 공개 4종은 조건을 그대로,
+   *    히든 7종은 발견 전엔 '??? 히든 조합'과 아주 짧은 힌트만 보입니다. */
+  function setChipsHtml(hit) {
+    return '<div class="rkset__need">' + hit.need.map(function (n) {
+      return '<span class="rkset__chip' + (n.got ? ' is-got' : '') + '">' +
+        '<i aria-hidden="true">' + (n.got ? '✓' : '·') + '</i>' + U.esc(n.label + ' ' + n.name) + '</span>';
+    }).join('') + '</div>';
+  }
+
+  function setBonusHtml(state) {
+    var c = customOf(state && state.me);
+    var cur = activeSet(c);
+    var next = cur ? null : nextSet(c);
+    var found = hiddenFoundCount(c);
+    var head, tag, desc, hit, pct, prog;
+    if (cur) {
+      head = cur.set.emoji + ' ' + cur.set.name + ' 풀세트 발동!';
+      tag = cur.set.tag;
+      desc = cur.set.desc;
+      hit = cur.hit;
+      pct = 100;
+      prog = hit.total + '/' + hit.total + ' 파츠 완성';
+    } else if (next) {
+      head = '다음 조합까지 ' + next.hit.hits + '/' + next.hit.total + ' ' + (next.set.tone || '') + ' 파츠';
+      tag = next.set.name + ' · ' + next.set.tag;
+      desc = '파츠를 ' + next.set.name + ' 세트로 맞추면 ' + next.set.tag + ' 연출이 켜져요';
+      hit = next.hit;
+      pct = Math.round(next.hit.hits / Math.max(1, next.hit.total) * 100);
+      prog = next.hit.total - next.hit.hits + '개 더 맞추면 발동';
+    } else {
+      head = '조합 보너스 11종';
+      tag = '프레임 · 거트 · 그립을 같은 색으로';
+      desc = '같은 계열 파츠를 맞추면 3D 쇼룸에 특별한 연출이 켜져요';
+      hit = { need: [], hits: 0, total: 1 };
+      pct = 0;
+      prog = '';
+    }
+    var rows = SETS.map(function (s) {
+      var h = setHit(c, s);
+      var got = s.hidden ? (foundOf(c).indexOf(s.id) >= 0) : h.complete;
+      if (s.hidden && !got) {
+        return '<li class="rkset__row is-secret">' +
+          '<b class="rkset__n">??? 히든 조합</b>' +
+          '<span class="rkset__t">' + U.esc(s.hint || '???') + '</span>' +
+          '<i class="rkset__s">미발견</i></li>';
+      }
+      return '<li class="rkset__row' + (got ? ' is-found' : '') + '">' +
+        '<b class="rkset__n">' + s.emoji + ' ' + U.esc(s.name) + '</b>' +
+        '<span class="rkset__t">' + U.esc(s.tag + (s.hidden ? ' · 히든' : '')) + '</span>' +
+        '<i class="rkset__s">' + (got ? '발동 중' : h.hits + '/' + h.total) + '</i>' +
+        '<em class="rkset__c">' + U.esc(needText(s)) + '</em></li>';
+    }).join('');
+    return '<div class="rkset' + (cur ? ' is-on' : '') + '" data-rk-set="' + (cur ? cur.set.id : '') + '"' +
+      ' style="--sc:' + (cur ? cur.set.color : (next ? next.set.color : '#c6f24e')) +
+        ';--sc2:' + (cur ? (cur.set.color2 || cur.set.color) : (next ? (next.set.color2 || next.set.color) : '#c6f24e')) + '">' +
+      '<div class="rkset__top">' +
+        '<b class="rkset__h">' + U.esc(head) + '</b>' +
+        '<span class="rkset__tg">' + U.esc(tag) + '</span>' +
+      '</div>' +
+      '<p class="rkset__d">' + U.esc(desc) + '</p>' +
+      '<div class="rkset__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct +
+        '" aria-label="세트 조합 진행 ' + pct + '%"><i style="--p:' + pct + '%"></i></div>' +
+      '<div class="rkset__meta"><span>' + U.esc(prog) + '</span>' +
+        '<span class="rkset__cnt">🔒 히든 ' + found + '/' + HIDDEN_SETS.length + ' 발견</span></div>' +
+      setChipsHtml(hit) +
+      '<details class="rkset__book">' +
+        '<summary>조합 도감 <b>' + SETS.filter(function (s) { return !s.hidden; }).length + '종 공개</b>' +
+          ' · 히든 <b>' + found + '/' + HIDDEN_SETS.length + '</b></summary>' +
+        '<ul class="rkset__list">' + rows + '</ul>' +
+      '</details>' +
+      '</div>';
+  }
+
   function sheetBody(state) {
     var cond = conditionOf(state);
     var c = customOf(state.me);
@@ -4011,6 +4319,8 @@
             ? '<b>거트 · 테두리 · 그립</b>을 눌러 바로 바꿔요'
             : '라켓을 <b>톡</b> 치면 스매시!') + '</p>' +
       '</div>' +
+      /* 세트 조합 배지 + 도감 — 3D 바로 아래, 파츠를 고르기 전에 눈에 들어오게 */
+      setBonusHtml(state) +
       /* 거트·그립 선택창은 탭 바로 아래 — 3D에서 탭을 누르면 눈이 바로 밑에서 고릅니다 */
       '<div class="rkpick" data-rk-pick>' +
         tabHtml() +
@@ -4055,10 +4365,40 @@
     if (!body) return;
     body.innerHTML = sheetBody(ctx.store.state);
     mount3d(host, ctx);
+    firePendingBurst();
+  }
+
+  /* 새로 발견한 히든 조합 — 시트를 다시 그린 뒤 3D 연출을 한 번 크게 터뜨립니다 */
+  var pendingBurst = '';
+  function firePendingBurst() {
+    if (!pendingBurst) return;
+    var id = pendingBurst;
+    pendingBurst = '';
+    setTimeout(function () {
+      var api = BM.racketcustom && BM.racketcustom._last3d;
+      if (api && typeof api.setburst === 'function') api.setburst(id);
+    }, 40);
+  }
+
+  /* 히든 조합 발견 축하 — 토스트 + 진동 + 3D 연출 (발견은 found 에 영구 기록) */
+  function celebrateSets(ctx, list) {
+    if (!list || !list.length) return;
+    var s = list[0];
+    pendingBurst = s.id;
+    if (BM.ui) {
+      BM.ui.haptic(list.length > 1 ? 26 : 18);
+      BM.ui.toast('🔓 히든 조합 발견! ' + s.emoji + ' ' + s.name + ' · ' + s.tag);
+    }
   }
 
   function saveCustom(ctx, next, opts) {
-    var res = ctx.actions.setGear ? ctx.actions.setGear({ custom: next }) : { ok: false };
+    var nx = normalizeCustom(next);
+    /* 맞춘 히든 조합은 저장하는 순간 발견 목록에 영구 기록합니다 */
+    var newly = newlyFound(nx);
+    if (newly.length) {
+      newly.forEach(function (s) { if (nx.found.indexOf(s.id) < 0) nx.found.push(s.id); });
+    }
+    var res = ctx.actions.setGear ? ctx.actions.setGear({ custom: nx }) : { ok: false };
     if (!res || !res.ok) {
       if (BM.ui) BM.ui.toast(res && res.reason === 'locked' ? '잠시만요, 저장 중이에요' : '저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.', 'error');
       return false;
@@ -4070,6 +4410,7 @@
     } else if (BM.ui) {
       BM.ui.toast('라켓 색을 바꿨어요');
     }
+    if (newly.length) celebrateSets(ctx, newly);
     if (BM.ui) BM.ui.haptic(10);
     paintHeader(ctx.store.state);
     if (ctx.repaint) ctx.repaint();
@@ -4618,6 +4959,10 @@
     pointsToday: pointsToday,
     lastLogDate: lastLogDate, conditionOf: conditionOf,
     svg: svg, drawRacket: drawRacket, miniHtml: miniHtml, personHtml: personHtml, peekOf: peekOf,
+    /* bm-v1.95.0 — 세트 조합 보너스 (공개 4 · 히든 7) */
+    SETS: SETS, HIDDEN_SETS: HIDDEN_SETS, setById: setById, setHit: setHit, activeSet: activeSet,
+    nextSet: nextSet, foundOf: foundOf, hiddenFoundCount: hiddenFoundCount, newlyFound: newlyFound,
+    needText: needText, setBonusHtml: setBonusHtml,
     stageState: stageState, stageBadgeHtml: stageBadgeHtml,
     bodyDecalSvg: bodyDecalSvg, fxSvg: fxSvg, headArc: headArc, decalAt: decalAt, stringChords: stringChords,
     _parts: { head: addHead, edge: addFrameEdge, decals: addDecals, strings: addStrings, stencil: addStencil,

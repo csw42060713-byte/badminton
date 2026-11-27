@@ -8504,3 +8504,81 @@ button.post__rk {
   cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 button.post__rk:active { transform: scale(0.94); }
+
+/* ============================================================
+ * bm-v1.95.0 — 세트 조합 보너스 배지 + 도감 (라켓 꾸미기 시트)
+ *  3D 쇼룸 바로 아래에 붙어, 지금 발동 중인 세트와 남은 파츠를 한눈에.
+ * ============================================================ */
+.rkset {
+  margin: 10px 0 2px; padding: 11px 12px 10px;
+  border-radius: 16px; border: 1px solid var(--line);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--sc, #c6f24e) 9%, var(--card)), var(--card));
+  transition: border-color 240ms ease, box-shadow 240ms ease;
+}
+.rkset.is-on {
+  border-color: color-mix(in srgb, var(--sc, #c6f24e) 55%, var(--line));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc, #c6f24e) 26%, transparent) inset,
+    0 8px 22px -14px color-mix(in srgb, var(--sc, #c6f24e) 70%, transparent);
+}
+.rkset__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.rkset__h { font-size: 13.6px; font-weight: 900; letter-spacing: -0.3px; color: var(--text); }
+.rkset.is-on .rkset__h {
+  color: color-mix(in srgb, var(--sc, #c6f24e) 70%, #ffffff);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--sc, #c6f24e) 38%, transparent);
+}
+.rkset__tg {
+  flex: none; max-width: 46%; text-align: right;
+  font-size: 10.2px; font-weight: 800; padding: 2px 7px; border-radius: 999px;
+  background: color-mix(in srgb, var(--sc, #c6f24e) 15%, transparent);
+  color: color-mix(in srgb, var(--sc, #c6f24e) 78%, #ffffff);
+}
+.rkset__d { margin: 5px 0 8px; font-size: 11.4px; font-weight: 600; color: var(--text-2); line-height: 1.45; word-break: keep-all; }
+.rkset__bar { height: 5px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.rkset__bar i {
+  display: block; height: 100%; width: var(--p, 0%); border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sc, #c6f24e) 55%, #ffffff), var(--sc, #c6f24e));
+  transition: width 340ms ease;
+}
+.rkset__meta {
+  display: flex; justify-content: space-between; gap: 8px;
+  margin: 5px 0 7px; font-size: 10.6px; font-weight: 800; color: var(--muted);
+}
+.rkset__cnt { color: color-mix(in srgb, var(--sc, #c6f24e) 52%, var(--muted)); }
+.rkset__need { display: flex; flex-wrap: wrap; gap: 4px; }
+.rkset__chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 7px; border-radius: 8px; border: 1px solid var(--line);
+  font-size: 10.2px; font-weight: 800; color: var(--muted);
+  background: rgba(255,255,255,0.04);
+}
+.rkset__chip i { font-style: normal; opacity: 0.65; }
+.rkset__chip.is-got {
+  color: color-mix(in srgb, var(--sc, #c6f24e) 68%, #ffffff);
+  border-color: color-mix(in srgb, var(--sc, #c6f24e) 38%, var(--line));
+  background: color-mix(in srgb, var(--sc, #c6f24e) 11%, transparent);
+}
+.rkset__chip.is-got i { opacity: 1; }
+.rkset__book { margin-top: 9px; border-top: 1px dashed var(--line); padding-top: 7px; }
+.rkset__book summary {
+  list-style: none; cursor: pointer; font-size: 11px; font-weight: 800;
+  color: var(--text-2); -webkit-tap-highlight-color: transparent;
+}
+.rkset__book summary::-webkit-details-marker { display: none; }
+.rkset__book summary::after { content: ' ▾'; opacity: 0.55; }
+.rkset__book[open] summary::after { content: ' ▴'; }
+.rkset__book summary b { font-weight: 900; color: color-mix(in srgb, var(--sc, #c6f24e) 62%, #ffffff); }
+.rkset__list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 5px; }
+.rkset__row {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 3px 8px;
+  padding: 6px 8px; border-radius: 10px; border: 1px solid transparent;
+  background: rgba(255,255,255,0.03);
+}
+.rkset__row.is-found {
+  border-color: color-mix(in srgb, var(--sc, #c6f24e) 28%, transparent);
+  background: color-mix(in srgb, var(--sc, #c6f24e) 7%, transparent);
+}
+.rkset__row.is-secret { opacity: 0.7; border-style: dashed; border-color: var(--line); }
+.rkset__n { font-size: 11.4px; font-weight: 900; color: var(--text); letter-spacing: -0.2px; }
+.rkset__t { font-size: 10.4px; font-weight: 700; color: var(--muted); align-self: center; }
+.rkset__s { font-size: 10.2px; font-weight: 900; color: color-mix(in srgb, var(--sc, #c6f24e) 58%, var(--muted)); align-self: center; white-space: nowrap; }
+.rkset__c { grid-column: 1 / -1; font-style: normal; font-size: 9.8px; font-weight: 700; color: var(--muted); opacity: 0.82; word-break: keep-all; }

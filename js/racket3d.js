@@ -23,7 +23,7 @@
 
   var BM = root.BM = root.BM || {};
   var hasDom = typeof document !== 'undefined';
-  var REV = '1.94.0';
+  var REV = '1.95.0';
 
   var TEX = {};                 /* 캔버스 텍스처 캐시 (한 번만 굽습니다) */
   var webglProbe = null;        /* null = 아직 확인 전 */
@@ -132,6 +132,32 @@
         g.fillStyle = 'rgba(255,255,255,0.22)'; g.fillRect(0, y + 1, w, 1);
       }
     }, { srgb: false, repeat: [1, 6] });
+  }
+
+  /* 천공(구멍) 오버그립 — 실제 그립처럼 규칙적으로 뚫린 작은 구멍 + 눌린 테두리 (bm-v1.95.0) */
+  function perfTexture() {
+    return canvasDraw('perf', 128, 128, function (g, w, h) {
+      g.fillStyle = '#808080'; g.fillRect(0, 0, w, h);
+      for (var y = 0; y < h; y += 16) {
+        var ox = (y / 16) % 2 ? 8 : 0;
+        for (var x = 0; x < w; x += 16) {
+          var cx = x + ox + 8, cy = y + 8;
+          var rg = g.createRadialGradient(cx, cy, 0, cx, cy, 5.2);
+          rg.addColorStop(0, 'rgba(0,0,0,0.6)');
+          rg.addColorStop(0.62, 'rgba(0,0,0,0.22)');
+          rg.addColorStop(0.82, 'rgba(255,255,255,0.26)');
+          rg.addColorStop(1, 'rgba(255,255,255,0)');
+          g.fillStyle = rg;
+          g.beginPath(); g.arc(cx, cy, 5.6, 0, Math.PI * 2); g.fill();
+        }
+      }
+    }, { srgb: false, repeat: [3, 10] });
+  }
+
+  function gripBumpOf(weave) {
+    if (weave === 'towel') return towelTexture();
+    if (weave === 'perf') return perfTexture();
+    return ribTexture();
   }
 
   /* 스튜디오 환경맵 — 금속·카본이 비출 소프트박스 (등거리 원통) */
@@ -349,9 +375,18 @@
       side: T.DoubleSide
     });
     if (metal) {
-      mat.color = new T.Color('#12161c');
-      mat.metalness = 1.0;
-      mat.emissive = new T.Color(look.frame.shine || '#b8c8d8').multiplyScalar(0.015);
+      /* bm-v1.95.0 — 금속 프레임도 제 색을 띱니다.
+       *  예전에는 모든 메탈을 거의 검정(#12161c)으로 덮어 오닉스만 의도대로 보였고,
+       *  새로 넣은 골드·빙하·에메랄드·바이올렛·로즈가 전부 검게 나왔습니다.
+       *  금속 고유색을 살리고(반사가 그 색으로 물들도록) 아주 옅은 자체 발광을 더합니다. */
+      mat.color = c.clone().multiplyScalar(0.96);
+      mat.metalness = 0.86;
+      mat.roughness = 0.24;
+      mat.envMapIntensity = 1.55;
+      mat.emissive = c.clone().multiplyScalar(0.10);
+      mat.emissiveIntensity = 1;
+      mat.clearcoat = 0.55;
+      mat.clearcoatRoughness = 0.10;
     }
     return mat;
   }
@@ -385,10 +420,10 @@
     return new T.MeshStandardMaterial({
       color: new T.Color(hex || '#1d2124'),
       metalness: 0.05,
-      roughness: towel ? 0.96 : (weave === 'twotone' ? 0.58 : 0.74),
-      bumpMap: towel ? towelTexture() : ribTexture(),
-      bumpScale: towel ? 0.9 : 0.45,
-      envMapIntensity: 0.8,
+      roughness: towel ? 0.96 : (weave === 'perf' ? 0.52 : (weave === 'twotone' ? 0.58 : 0.74)),
+      bumpMap: gripBumpOf(weave),
+      bumpScale: towel ? 0.9 : (weave === 'perf' ? 0.62 : 0.45),
+      envMapIntensity: weave === 'perf' ? 1.5 : 0.8,
       side: T.DoubleSide
     });
   }
@@ -555,13 +590,15 @@
       geo.setIndex(bk.idx);
       geo.computeVertexNormals();
       var mat = new T.MeshPhysicalMaterial({
-        color: new T.Color(colors[ci]),
+        /* bm-v1.95.0 — 스튜디오 조명이 세서 밝은 그립 색이 하얗게 타 버렸습니다.
+         *  천(오버그립)은 빛을 조금 먹는 재질이라 색을 0.72 로 낮춰 실제 색이 보이게. */
+        color: new T.Color(colors[ci]).multiplyScalar(0.48),
         metalness: 0.04,
         roughness: opts.roughness == null ? 0.88 : opts.roughness,
         bumpMap: opts.bump || ribTexture(),
         bumpScale: opts.bumpScale == null ? 0.3 : opts.bumpScale,
         envMapIntensity: 0.12,
-        specularIntensity: 0.16,
+        specularIntensity: 0.1,
         side: T.DoubleSide
       });
       var mesh = new T.Mesh(geo, mat);
@@ -645,15 +682,23 @@
     var stencilIt = R.itemOf('stencil', c.stencil) || {};
     var charmIt = R.itemOf('charm', c.charm) || {};
     var effectIt = R.itemOf('effect', c.effect) || {};
+    /* bm-v1.95.0 — 세트 조합 보너스(공개 4 · 히든 7)가 발동 중이면 바닥 오라·특수 연출이 켜집니다 */
+    var setHit = R.activeSet ? R.activeSet(c) : null;
+    var setInfo = setHit && setHit.set ? {
+      id: setHit.set.id, fx: setHit.set.fx, color: setHit.set.color,
+      color2: setHit.set.color2 || setHit.set.color, name: setHit.set.name,
+      tag: setHit.set.tag, hidden: !!setHit.set.hidden
+    } : null;
     return {
       custom: c, gm: gm, level: level,
+      set: setInfo,
       frame: { id: c.frame, color: frameIt.color || '#23272b', finish: frameIt.finish || '', shine: frameIt.shine || '#cfd8e4' },
       string: { color: stringIt.color || '#c6f24e' },
       grip: { color: gripIt.color || '#1d2124', color2: gripIt.color2 || '', weave: gripIt.weave || '' },
       stencil: { id: c.stencil, color: stencilIt.color || '#f2c14e' },
       charm: { id: c.charm, color: charmIt.color || '#f2c14e' },
       effect: { id: c.effect, color: effectIt.color || '#c6f24e' },
-      sig: [c.body, c.frame, c.string, c.grip, c.stencil, c.charm, c.effect, level].join('|')
+      sig: [c.body, c.frame, c.string, c.grip, c.stencil, c.charm, c.effect, level, setInfo ? setInfo.id : ''].join('|')
     };
   }
 
@@ -943,7 +988,7 @@
       new T.CylinderGeometry(gm.gripR * 0.86, gm.gripR * 0.92, gripLen - 4, 10, 1, false),
       new T.MeshPhysicalMaterial({
         color: new T.Color('#12151a'), metalness: 0.1, roughness: 0.9,
-        envMapIntensity: 0.12, specularIntensity: 0.16, flatShading: true
+        envMapIntensity: 0.12, specularIntensity: 0.1, flatShading: true
       })
     );
     handle.position.y = (gripLen - 4) / 2 + 2;
@@ -967,13 +1012,13 @@
       y0: 5.5, len: gripLen - 12,
       pitch: 11.4, thick: 0.6,
       colors: gripColors,
-      bump: look.grip.weave === 'towel' ? towelTexture() : ribTexture(),
+      bump: gripBumpOf(look.grip.weave),
       material: new T.MeshStandardMaterial({
         vertexColors: true, metalness: 0.05,
-        roughness: look.grip.weave === 'towel' ? 0.96 : 0.6,
-        bumpMap: look.grip.weave === 'towel' ? towelTexture() : ribTexture(),
-        bumpScale: look.grip.weave === 'towel' ? 0.85 : 0.4,
-        envMapIntensity: 0.32, side: T.DoubleSide
+        roughness: look.grip.weave === 'towel' ? 0.96 : (look.grip.weave === 'perf' ? 0.74 : 0.62),
+        bumpMap: gripBumpOf(look.grip.weave),
+        bumpScale: look.grip.weave === 'towel' ? 0.85 : (look.grip.weave === 'perf' ? 0.6 : 0.4),
+        envMapIntensity: look.grip.weave === 'perf' ? 1.4 : 0.32, side: T.DoubleSide
       })
     });
     group.add(spiral);
@@ -1257,6 +1302,79 @@
       var sparks = pointCloud(T, 40, 30, '#ffffff', glowTexture('prism', '255,240,200'), 0.95);
       host.add(sparks);
       out.bits.push({ ring: band, ring2: band2, points: sparks, mode: 'prism', seed: 3 });
+    } else if (id === 'goldbolt' || id === 'void') {
+      /* bm-v1.95.0 — 금빛/보랏빛 번개 임팩트: 헤드에서 갈라지는 아크 + 도는 불티 */
+      var gb = pointCloud(T, 46, 32, '#ffffff', glowTexture('fx_' + id, hexRgb(col)), 0.95);
+      host.add(gb);
+      var gArcGeo = new T.BufferGeometry();
+      var gArcBuf = new Float32Array(BOLT_ARMS * BOLT_SEG * 6);
+      boltFill(gArcBuf, rx, ry, 1.9, -12);
+      gArcGeo.setAttribute('position', new T.BufferAttribute(gArcBuf, 3));
+      var gArc = new T.LineSegments(gArcGeo, new T.LineBasicMaterial({
+        color: new T.Color(id === 'goldbolt' ? '#fff6c2' : '#e8dcff'), transparent: true, opacity: 0.9,
+        blending: T.AdditiveBlending, depthWrite: false
+      }));
+      gArc.frustumCulled = false;
+      host.add(gArc);
+      out.bits.push({ points: gb, mode: 'orbit', seed: 5, bolt: gArc, boltSize: [rx, ry], boltAt: -1 });
+    } else if (id === 'wind') {
+      /* 에메랄드 윈드 — 헤드 주변을 감아 도는 바람 링 + 솟아오르는 잎 같은 빛 */
+      var wRings = [];
+      for (i = 0; i < 3; i++) {
+        var wr = new T.Mesh(new T.TorusGeometry(rx * (1.0 + i * 0.1), 1.6 - i * 0.3, 8, 80),
+          new T.MeshBasicMaterial({
+            color: new T.Color(col), transparent: true, opacity: 0.5 - i * 0.1,
+            blending: T.AdditiveBlending, depthWrite: false
+          }));
+        wr.position.z = -4 - i * 6;
+        host.add(wr);
+        wRings.push(wr);
+      }
+      var wPts = pointCloud(T, 64, 30, '#ffffff', glowTexture('fx_wind', hexRgb(col)), 0.95);
+      host.add(wPts);
+      out.bits.push({ ring: wRings[0], ring2: wRings[1], wind: wRings[2], points: wPts, mode: 'prism', seed: 6 });
+    } else if (id === 'blossom') {
+      /* 체리 블라썸 — 꽃잎이 흩날리듯 떨어지는 분홍 판 + 부드러운 광휘 */
+      var petals = [];
+      var petalMat = new T.MeshBasicMaterial({
+        color: new T.Color('#ffd7e8'), transparent: true, opacity: 0.85,
+        blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+      });
+      for (i = 0; i < 14; i++) {
+        var pt2 = new T.Mesh(new T.PlaneGeometry(13, 8), petalMat.clone());
+        host.add(pt2);
+        petals.push(pt2);
+      }
+      out.bits.push({ petals: petals, mode: 'petal', seed: 7, rx: rx, ry: ry });
+    } else if (id === 'snow') {
+      /* 스노우 스톰 — 헤드 주변에 눈이 몰아치는 임팩트 */
+      var snowPts = pointCloud(T, 120, 22, '#ffffff', glowTexture('fx_snow', '235,250,255'), 0.95);
+      host.add(snowPts);
+      var snowRing = new T.Mesh(new T.TorusGeometry(rx * 1.03, 2.2, 8, 88),
+        new T.MeshBasicMaterial({
+          color: new T.Color(col), transparent: true, opacity: 0.6,
+          blending: T.AdditiveBlending, depthWrite: false
+        }));
+      snowRing.position.z = -9;
+      host.add(snowRing);
+      out.bits.push({ points: snowPts, mode: 'fall', seed: 8, rx: rx, ry: ry, frost: snowRing });
+    } else if (id === 'aurora') {
+      /* 오로라 — 헤드를 감싸는 초록·보라 빛 리본 두 겹 */
+      var aBands = [];
+      for (i = 0; i < 2; i++) {
+        var ab = new T.Mesh(new T.TorusGeometry(rx * (0.95 + i * 0.14), 4.4 - i * 1.2, 8, 96),
+          new T.MeshBasicMaterial({
+            map: auroraTexture('fx_aur' + i + hexRgb(col), hexRgb(col), hexRgb(id === 'aurora' ? '#b48cff' : col), i),
+            transparent: true, opacity: 0.55 - i * 0.15, blending: T.AdditiveBlending, depthWrite: false
+          }));
+        ab.position.z = -8 - i * 8;
+        ab.rotation.z = i * 0.6;
+        host.add(ab);
+        aBands.push(ab);
+      }
+      var aPts = pointCloud(T, 50, 26, '#ffffff', glowTexture('fx_aur_pts', hexRgb(col)), 0.9);
+      host.add(aPts);
+      out.bits.push({ ring: aBands[0], ring2: aBands[1], points: aPts, mode: 'orbit', seed: 9 });
     } else if (id === 'fire' || id === 'ice' || id === 'thunder') {
       var mapKey = id === 'fire' ? '255,150,70' : (id === 'ice' ? '170,230,255' : '160,215,255');
       var em = pointCloud(T, 64, 56, '#ffffff', glowTexture('sm_' + id, mapKey), 0.95);
@@ -1365,6 +1483,25 @@
         b.ring.material.opacity = (b.mode === 'prism' ? 0.7 : 0.6) + Math.sin(t * 2.4 + (b.i || 0)) * 0.16;
       }
       if (b.ring2) b.ring2.rotation.z = -t * 0.5;
+      if (b.wind) b.wind.rotation.z = -t * 1.5;
+      if (b.frost) {
+        b.frost.rotation.z = t * 0.5;
+        b.frost.material.opacity = 0.5 + Math.sin(t * 2.4) * 0.2;
+      }
+      if (b.petals) {
+        for (k = 0; k < b.petals.length; k++) {
+          var pe = b.petals[k];
+          var lf = ((t * (0.24 + (k % 5) * 0.03) + k * 0.17) % 1);
+          pe.position.set(
+            Math.sin(k * 2.1) * (b.rx || 98) * 1.5 + Math.sin(t * 1.6 + k) * 26,
+            (b.ry || 120) * (1.25 - lf * 2.6),
+            -24 + Math.cos(k * 1.7 + t) * 40
+          );
+          pe.rotation.set(t * 1.1 + k, t * 0.8 + k * 0.3, t * 1.6 + k);
+          pe.material.opacity = 0.35 + 0.5 * Math.abs(Math.sin(t * 1.3 + k));
+          pe.scale.setScalar(0.7 + 0.5 * Math.abs(Math.sin(t * 0.9 + k)));
+        }
+      }
       if (b.halo) b.halo.material.opacity = 0.32 + Math.sin(t * 3.1) * 0.1;
       if (b.flames) {
         for (k = 0; k < b.flames.length; k++) {
@@ -1419,6 +1556,11 @@
             var ang = t * (0.5 + r1 * 0.9) + r1 * Math.PI * 2;
             var rad = 118 + r2 * 62;
             p.setXYZ(k, Math.cos(ang) * rad, Math.sin(ang) * rad * 0.95, -20 + Math.sin(ang * 1.7) * 46);
+          } else if (b.mode === 'fall') {
+            /* 눈 — 헤드 위에서 아래로 흘러내리며 좌우로 흔들립니다 */
+            var lifeF = ((t * (0.3 + r3 * 0.28) + r1) % 1);
+            p.setXYZ(k, (r2 - 0.5) * (b.rx || 98) * 2.4 + Math.sin(t * 2 + r3 * 6) * 14,
+              (b.ry || 120) * (1.2 - lifeF * 2.4), -22 + (r3 - 0.5) * 80);
           } else {
             var life = ((t * (0.28 + r3 * 0.3) + r1) % 1);
             var y = (-110 + life * 240) * (spreadMul > 1 ? 1.25 : 1);
@@ -1430,6 +1572,710 @@
         p.needsUpdate = true;
       }
     }
+  }
+
+  /* ============================================================
+   * 6. 세트 조합 연출 (bm-v1.95.0)
+   *
+   *  · 라켓 바로 아래 바닥 오라 — 촌스러운 단색 원판 대신
+   *      다층 방사형 글로우 → 라이트 풀 → 도는 에너지 링 → 바닥을 쓸고 도는 빛줄기 → 빛기둥
+   *    을 겹쳐 실제 쇼룸 스포트라이트가 바닥에 반사된 느낌을 냅니다.
+   *  · 공개 4종(낙뢰 · 불꽃 · 서리 · 어둠) + 히든 7종(보랏빛 낙뢰 · 눈보라 · 불꽃 기둥 ·
+   *    소용돌이 · 금가루 · 네온 · 오로라)은 서로 확실히 구분되는 재료(번개 줄기 · 눈 · 불티 ·
+   *    바람 링 · 금가루 · 그리드 · 커튼)로 그립니다.
+   *  · 모든 재료는 가산(Additive) 합성 + 한 번 구운 텍스처라 프레임당 비용이 작습니다.
+   * ============================================================ */
+
+  function rgbaOf(rgb, a) { return 'rgba(' + rgb + ',' + a + ')'; }
+
+  /* 바닥 오라의 가장 큰 층 — 가운데가 밝고 가장자리로 부드럽게 사라지는 원판 */
+  function auraDiscTexture(col) {
+    var rgb = hexRgb(col);
+    return canvasDraw('aura_disc_' + rgb, 256, 256, function (g, w, h) {
+      var rg = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+      rg.addColorStop(0, rgbaOf(rgb, 0.92));
+      rg.addColorStop(0.16, rgbaOf(rgb, 0.5));
+      rg.addColorStop(0.36, rgbaOf(rgb, 0.22));
+      rg.addColorStop(0.62, rgbaOf(rgb, 0.07));
+      rg.addColorStop(1, rgbaOf(rgb, 0));
+      g.fillStyle = rg; g.fillRect(0, 0, w, h);
+    });
+  }
+
+  /* 회전하는 에너지 링 — 가는 호를 끊어 그린 여러 겹의 고리(회전이 눈에 보입니다) */
+  function auraRingTexture(key, col) {
+    var rgb = hexRgb(col);
+    return canvasDraw('aura_ring_' + key, 256, 256, function (g, w, h) {
+      var cx = w / 2, cy = h / 2, R = w / 2;
+      g.clearRect(0, 0, w, h);
+      var rings = [
+        { r: 0.86, n: 30, dash: 0.62, a: 0.55, lw: 5 },
+        { r: 0.72, n: 22, dash: 0.44, a: 0.4, lw: 4 },
+        { r: 0.58, n: 16, dash: 0.3, a: 0.3, lw: 3 }
+      ];
+      for (var i = 0; i < rings.length; i++) {
+        var rg = rings[i];
+        var rad = R * rg.r;
+        var step = Math.PI * 2 / rg.n;
+        g.strokeStyle = rgbaOf(rgb, rg.a);
+        g.lineWidth = rg.lw;
+        g.lineCap = 'round';
+        for (var k = 0; k < rg.n; k++) {
+          var a0 = k * step;
+          var a1 = a0 + step * rg.dash;
+          /* 층마다 밝기를 조금씩 흔들어 손으로 그린 듯한 결 */
+          g.globalAlpha = 0.55 + 0.45 * ((k * 7 + i * 3) % 5) / 5;
+          g.beginPath();
+          g.arc(cx, cy, rad, a0, a1);
+          g.stroke();
+        }
+        g.globalAlpha = 1;
+      }
+      /* 링마다 아주 옅은 번짐 */
+      var glow = g.createRadialGradient(cx, cy, R * 0.5, cx, cy, R);
+      glow.addColorStop(0, rgbaOf(rgb, 0));
+      glow.addColorStop(0.62, rgbaOf(rgb, 0.10));
+      glow.addColorStop(1, rgbaOf(rgb, 0));
+      g.fillStyle = glow; g.fillRect(0, 0, w, h);
+    });
+  }
+
+  /* 위로 은은하게 번지는 빛기둥(스포트라이트 반사) */
+  function shaftTexture(col) {
+    var rgb = hexRgb(col);
+    return canvasDraw('aura_shaft_' + rgb, 32, 128, function (g, w, h) {
+      var lg = g.createLinearGradient(0, h, 0, 0);
+      lg.addColorStop(0, rgbaOf(rgb, 0.6));
+      lg.addColorStop(0.3, rgbaOf(rgb, 0.2));
+      lg.addColorStop(1, rgbaOf(rgb, 0));
+      g.fillStyle = lg; g.fillRect(0, 0, w, h);
+      var side = g.createLinearGradient(0, 0, w, 0);
+      side.addColorStop(0, 'rgba(0,0,0,0)');
+      side.addColorStop(0.5, 'rgba(0,0,0,1)');
+      side.addColorStop(1, 'rgba(0,0,0,0)');
+      g.globalCompositeOperation = 'destination-in';
+      g.fillStyle = side; g.fillRect(0, 0, w, h);
+      g.globalCompositeOperation = 'source-over';
+    });
+  }
+
+  /* 바닥 오라 한 벌 — info 는 {color,color2,fx} (발동한 세트) */
+  function buildFloorAura(T, info, y) {
+    var g = new T.Group();
+    g.position.set(0, y, 0);
+    var col = (info && info.color) || '#7fd8ff';
+    var col2 = (info && info.color2) || col;
+    var out = { group: g, rings: [], rays: [], base: null, pool: null, shaft: null, color: col };
+
+    function flat(w, h, tex, op) {
+      var m = new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({
+        map: tex, transparent: true, opacity: op, blending: T.AdditiveBlending,
+        depthWrite: false, side: T.DoubleSide
+      }));
+      m.rotation.x = -Math.PI / 2;
+      g.add(m);
+      return m;
+    }
+
+    /* ① 가장 큰 방사형 글로우 (바닥에 번지는 빛) */
+    out.base = flat(1300, 1300, auraDiscTexture(col), 0.5);
+    /* ② 가운데 라이트 풀 — 발밑이 가장 밝게 젖은 느낌 */
+    out.pool = flat(720, 720, floorPoolTexture(), 0.62);
+    out.pool.material.color = new T.Color(col);
+    out.pool.position.y = 1.6;
+    /* ③ 서로 반대로 도는 에너지 링 2겹 */
+    var ringA = flat(900, 900, auraRingTexture('a' + hexRgb(col), col), 0.62);
+    var ringB = flat(640, 640, auraRingTexture('b' + hexRgb(col2), col2), 0.48);
+    ringA.position.y = 2.4; ringB.position.y = 3.2;
+    out.rings.push({ mesh: ringA, sp: 0.22, base: 0.62 }, { mesh: ringB, sp: -0.34, base: 0.48 });
+    /* ④ 바닥을 쓸고 도는 빛줄기 8개 */
+    var rayTex = streakTexture('aura_ray_' + hexRgb(col), hexRgb(col));
+    for (var i = 0; i < 8; i++) {
+      var ray = new T.Mesh(new T.PlaneGeometry(8, 430), new T.MeshBasicMaterial({
+        map: rayTex, color: new T.Color(i % 2 ? col2 : col), transparent: true,
+        opacity: 0.24, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+      }));
+      ray.rotation.x = -Math.PI / 2;
+      ray.rotation.z = (i / 8) * Math.PI * 2;
+      ray.position.y = 4.0;
+      g.add(ray);
+      out.rays.push({ mesh: ray, z0: (i / 8) * Math.PI * 2, sp: 0.26 + (i % 3) * 0.07 });
+    }
+    /* ⑤ 위로 은은하게 번지는 빛기둥 */
+    out.shaft = new T.Mesh(
+      new T.CylinderGeometry(155, 330, 560, 28, 1, true),
+      new T.MeshBasicMaterial({
+        map: shaftTexture(col), transparent: true, opacity: 0.15,
+        blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+      })
+    );
+    out.shaft.position.y = 282;
+    g.add(out.shaft);
+    return out;
+  }
+
+  function animateFloorAura(fa, t) {
+    if (!fa) return;
+    var i;
+    if (fa.base) fa.base.material.opacity = 0.44 + Math.sin(t * 1.1) * 0.06;
+    if (fa.pool) fa.pool.material.opacity = 0.5 + Math.sin(t * 1.7 + 0.6) * 0.1;
+    for (i = 0; i < fa.rings.length; i++) {
+      var r = fa.rings[i];
+      r.mesh.rotation.z = t * r.sp;
+      var p = 1 + Math.sin(t * 1.35 + i) * 0.028;
+      r.mesh.scale.set(p, p, 1);
+      r.mesh.material.opacity = r.base + Math.sin(t * 2.1 + i * 1.7) * 0.12;
+    }
+    for (i = 0; i < fa.rays.length; i++) {
+      var ry = fa.rays[i];
+      ry.mesh.rotation.z = ry.z0 + t * ry.sp;
+      ry.mesh.material.opacity = 0.12 + 0.18 * Math.abs(Math.sin(t * 1.15 + i * 0.9));
+    }
+    if (fa.shaft) fa.shaft.material.opacity = 0.11 + Math.sin(t * 1.4) * 0.045;
+  }
+
+  /* ---------- 번개 줄기 — 실제 번개처럼 꺾이는 다단 지그재그 ----------
+   *  가운데를 흔들며 내려오는 주 줄기 + 중간에서 갈라지는 잔가지.
+   *  배열(pairs)에 [x0,y0,z0, x1,y1,z1] 을 이어 붙입니다. */
+  function boltArm(seed, x0, y0, z0, x1, y1, z1, segs, amp, pairs, spread) {
+    var px = x0, py = y0, pz = z0;
+    for (var s = 1; s <= segs; s++) {
+      var t = s / segs;
+      var nx = x0 + (x1 - x0) * t;
+      var ny = y0 + (y1 - y0) * t;
+      var nz = z0 + (z1 - z0) * t;
+      /* 가운데가 가장 크게 흔들리고 양 끝은 제자리 (자연스러운 번개 모양) */
+      var bend = Math.sin(t * Math.PI) * amp;
+      /* 낮은 주파수의 큰 꺾임 + 높은 주파수의 잔떨림 — 실제 번개처럼 불규칙하게 */
+      nx += Math.sin(seed * 3.7 + s * 2.9) * bend + Math.sin(seed * 7.9 + s * 5.3) * bend * 0.32
+        + (Math.abs(Math.sin(seed * 11.3 + s * 7.7)) - 0.5) * bend * 0.5;
+      ny += Math.cos(seed * 2.3 + s * 2.1) * bend * 0.35 + Math.cos(seed * 6.1 + s * 4.7) * bend * 0.16;
+      nz += Math.cos(seed * 4.1 + s * 3.3) * (spread || 0) * bend * 0.5;
+      pairs.push(px, py, pz, nx, ny, nz);
+      px = nx; py = ny; pz = nz;
+      /* 중간 지점에서 잔가지가 갈라져 나감 */
+      if (s > 2 && s < segs - 1 && (s * 7 + Math.floor(seed * 100)) % 6 === 0) {
+        var bx = nx + (Math.sin(seed + s) > 0 ? 1 : -1) * (26 + amp * 0.9);
+        var by = ny - (10 + amp * 0.5);
+        var bz = nz + Math.cos(seed + s) * 30;
+        boltArm(seed * 1.7 + s, nx, ny, nz, bx, by, bz, 3, amp * 0.55, pairs, spread);
+      }
+    }
+  }
+
+  /* 줄기의 한 지점 — 빛덩이를 줄기 위에 정확히 앉히려고 같은 흔들림 식을 씁니다 */
+  function boltPointAt(seed, def, fr) {
+    var segs = 18;
+    var s = Math.max(1, Math.min(segs, Math.round(fr * segs)));
+    var t = s / segs;
+    var bend = Math.sin(t * Math.PI) * def.amp;
+    var x0 = def.x, x1 = def.x * 0.35, z0 = def.z, z1 = def.z * 0.4;
+    return {
+      x: x0 + (x1 - x0) * t + Math.sin(seed * 3.7 + s * 2.9) * bend,
+      y: 640 + (-352 - 640) * t + Math.cos(seed * 2.3 + s * 2.1) * bend * 0.35,
+      z: z0 + (z1 - z0) * t + Math.cos(seed * 4.1 + s * 3.3) * bend * 0.5
+    };
+  }
+
+  /* 낙뢰 연출 한 벌 — 위(화면 밖)에서 바닥까지 내려치는 줄기 3개 + 착지 섬광 + 스파크 */
+  function buildBolts(T, col, col2, tall) {
+    var out = { kind: 'bolts', arms: [], coreMat: null, glowMat: null, land: null, sparks: null, beads: [] };
+    var group = new T.Group();
+    var rgb = hexRgb(col);
+    var armDefs = [
+      { x: -18, z: -34, amp: 46, w: 1.0 },
+      { x: tall ? -300 : -170, z: -120, amp: 36, w: 0.66 },
+      { x: tall ? 310 : 180, z: -86, amp: 40, w: 0.6 },
+      { x: tall ? -120 : -90, z: -160, amp: 30, w: 0.42 },
+      { x: tall ? 140 : 110, z: -140, amp: 32, w: 0.4 }
+    ];
+    for (var i = 0; i < armDefs.length; i++) {
+      var d = armDefs[i];
+      var geo = new T.BufferGeometry();
+      var pairs = [];
+      boltArm(i * 3.1 + 1.3, d.x, 640, d.z, d.x * 0.35, -352, d.z * 0.4, 24, d.amp, pairs, 1);
+      var arr = new Float32Array(pairs);
+      geo.setAttribute('position', new T.BufferAttribute(arr, 3));
+      var glowMat = new T.LineBasicMaterial({
+        color: new T.Color(col), transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false
+      });
+      var coreMat = new T.LineBasicMaterial({
+        color: new T.Color(idx0White(i)), transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false
+      });
+      var glow = new T.LineSegments(geo, glowMat);
+      var core = new T.LineSegments(geo, coreMat);
+      glow.frustumCulled = false; core.frustumCulled = false;
+      core.scale.setScalar(1.004);
+      /* 1px 선은 아무리 밝아도 가늘어서, 좌우로 아주 조금 어긋난 복사본을 겹쳐 굵게 보이게 */
+      var haloMat = new T.LineBasicMaterial({
+        color: new T.Color(col), transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false
+      });
+      var halos = [];
+      var HALO_OFF = [[1.9, 1.2, 0.34], [4.6, 3.0, 0.18], [9.0, 6.0, 0.1]];
+      for (var ho = 0; ho < HALO_OFF.length; ho++) {
+        var hm = new T.LineBasicMaterial({
+          color: new T.Color(col), transparent: true, opacity: 0,
+          blending: T.AdditiveBlending, depthWrite: false
+        });
+        var hl = new T.LineSegments(geo, hm);
+        var hr = new T.LineSegments(geo, hm.clone());
+        hl.frustumCulled = false; hr.frustumCulled = false;
+        hl.position.set(HALO_OFF[ho][0], HALO_OFF[ho][1], 0);
+        hr.position.set(-HALO_OFF[ho][0], -HALO_OFF[ho][1], 0);
+        group.add(hl); group.add(hr);
+        halos.push({ l: hl, r: hr, k: HALO_OFF[ho][2] });
+      }
+      group.add(glow); group.add(core);
+      out.arms.push({ geo: geo, seed: i * 2.3, def: d, glowMat: glowMat, coreMat: coreMat, halos: halos });
+      /* 줄기를 따라 붙는 빛덩이 — 1px 선만으로는 얇아서, 실제 번개처럼 굵게 빛나게 */
+      for (var j = 0; j < 5; j++) {
+        var bead = new T.Sprite(new T.SpriteMaterial({
+          map: glowTexture('bolt_bead_' + i, rgb),
+          color: new T.Color(j % 2 ? col2 : col),
+          transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false
+        }));
+        group.add(bead);
+        out.beads.push({ m: bead, arm: i, j: j, w: d.w || 1 });
+      }
+    }
+    /* 착지 섬광 — 바닥에 번지는 빛 */
+    out.land = new T.Mesh(new T.PlaneGeometry(900, 900), new T.MeshBasicMaterial({
+      map: auraDiscTexture(col2), color: new T.Color(col), transparent: true, opacity: 0,
+      blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+    }));
+    out.land.rotation.x = -Math.PI / 2;
+    out.land.position.set(0, -348, 30);
+    group.add(out.land);
+    /* 착지 스파크 — 바닥에서 사방으로 튀는 작은 불티 */
+    out.sparks = pointCloud(T, 90, 22, '#ffffff', glowTexture('set_spark_' + rgb, rgb), 0.95);
+    out.sparks.visible = false;
+    group.add(out.sparks);
+    /* 화면을 하얗게 덮는 순간 섬광 (가산이라 배경을 태우지 않음) */
+    out.flash = new T.Sprite(new T.SpriteMaterial({
+      map: glowTexture('set_flash_' + rgb, rgb), color: new T.Color(col2),
+      transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, depthTest: false
+    }));
+    out.flash.position.set(0, 40, 700);
+    out.flash.scale.set(1500, 1500, 1);
+    group.add(out.flash);
+    out.group = group;
+    return out;
+  }
+
+  /* 줄기마다 아주 살짝 다른 흰색 — 완전히 같으면 한 덩어리로 보입니다 */
+  function idx0White(i) { return i === 0 ? '#ffffff' : (i === 1 ? '#eef6ff' : '#fff6e6'); }
+
+  /* ---------- 세트 특수 연출 한 벌 ---------- */
+  function buildSetScene(T, info, floorY) {
+    var fx = (info && info.fx) || '';
+    if (!fx) return null;
+    var col = info.color || '#ffd200';
+    var col2 = info.color2 || col;
+    var rgb = hexRgb(col), rgb2 = hexRgb(col2);
+    var out = { fx: fx, color: col, color2: col2, bits: {}, strikeAt: -1e9, group: null };
+    var g = new T.Group();
+    out.group = g;
+
+    if (fx === 'lightning' || fx === 'voidbolt') {
+      var tall = fx === 'lightning';
+      out.bolts = buildBolts(T, col, col2, tall);
+      g.add(out.bolts.group);
+      /* 하늘 높은 곳의 충전된 구름 빛 — 번개가 떨어지기 전 노리는 느낌 */
+      var cloud = new T.Sprite(new T.SpriteMaterial({
+        map: glowTexture('set_cloud_' + rgb, rgb), color: new T.Color(col),
+        transparent: true, opacity: 0.18, blending: T.AdditiveBlending, depthWrite: false
+      }));
+      cloud.position.set(0, 430, -160);
+      cloud.scale.set(1100, 420, 1);
+      g.add(cloud);
+      out.cloud = cloud;
+      out.gap = tall ? 2.9 : 3.8;
+      out.strikeMs = tall ? 2.9 : 3.6;
+    } else if (fx === 'snowstorm' || fx === 'frost') {
+      var n = fx === 'snowstorm' ? 460 : 200;
+      var snow = pointCloud(T, n, fx === 'snowstorm' ? 22 : 16, '#ffffff',
+        glowTexture('set_snow_' + rgb, '255,255,255'), 0.95);
+      g.add(snow);
+      out.bits.snow = { pts: snow, n: n, speed: fx === 'snowstorm' ? 1 : 0.45 };
+      /* 서리 결정 — 헤드 둘레를 천천히 도는 반투명 조각 */
+      var iceMat = new T.MeshStandardMaterial({
+        color: new T.Color('#e8faff'), emissive: new T.Color(col), emissiveIntensity: 0.9,
+        metalness: 0.1, roughness: 0.1, transparent: true, opacity: 0.7, flatShading: true
+      });
+      var crystals = [];
+      var cn = fx === 'snowstorm' ? 10 : 14;
+      for (var i = 0; i < cn; i++) {
+        var cr = new T.Mesh(new T.ConeGeometry(3.6 + (i % 3), 15 + (i % 4) * 5, 4, 1), iceMat);
+        g.add(cr);
+        crystals.push(cr);
+      }
+      out.bits.crystals = crystals;
+      /* 바닥에 깔리는 한기 — 옅게 퍼지는 안개 */
+      var mist = new T.Mesh(new T.PlaneGeometry(1400, 1400), new T.MeshBasicMaterial({
+        map: auraDiscTexture(col2), transparent: true, opacity: 0.22,
+        blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+      }));
+      mist.rotation.x = -Math.PI / 2;
+      mist.position.set(0, floorY + 26, 0);
+      g.add(mist);
+      out.bits.mist = mist;
+    } else if (fx === 'pillar' || fx === 'flame') {
+      var pillar = fx === 'pillar';
+      var tongues = [];
+      var count = pillar ? 26 : 14;
+      for (var j = 0; j < count; j++) {
+        var sp = new T.Sprite(new T.SpriteMaterial({
+          map: flameTexture(),
+          color: new T.Color(j % 3 === 0 ? col2 : (j % 3 === 1 ? col : '#ff5a18')),
+          transparent: true, opacity: 0.5, blending: T.AdditiveBlending, depthWrite: false
+        }));
+        /* 기둥은 위로 길게, 불꽃 오라는 바닥 둘레에 낮게 */
+        var ang = (j / count) * Math.PI * 2;
+        var rad = pillar ? 60 + (j % 4) * 34 : 230 + (j % 3) * 30;
+        sp.position.set(Math.cos(ang) * rad, floorY + 30 + (pillar ? (j / count) * 260 : (j % 3) * 26), Math.sin(ang) * rad * 0.55 - 30);
+        sp.scale.set(pillar ? 90 : 120, pillar ? 190 : 150, 1);
+        g.add(sp);
+        tongues.push({ m: sp, seed: j * 1.7, y0: sp.position.y, amp: pillar ? 40 + (j % 5) * 16 : 18 });
+      }
+      out.bits.flames = tongues;
+      /* 솟아오르는 불티 */
+      var embers = pointCloud(T, pillar ? 120 : 70, 30, '#ffffff',
+        glowTexture('set_ember_' + rgb, '255,190,110'), 0.95);
+      g.add(embers);
+      out.bits.embers = { pts: embers, n: pillar ? 120 : 70 };
+      var warm = new T.Mesh(new T.PlaneGeometry(1100, 1100), new T.MeshBasicMaterial({
+        map: auraDiscTexture(col2), color: new T.Color(col), transparent: true, opacity: 0.32,
+        blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+      }));
+      warm.rotation.x = -Math.PI / 2;
+      warm.position.set(0, floorY + 30, -10);
+      g.add(warm);
+      out.bits.warm = warm;
+    } else if (fx === 'cyclone' || fx === 'cyber') {
+      var rings = [];
+      var rn = fx === 'cyclone' ? 3 : 2;
+      for (var k = 0; k < rn; k++) {
+        var tor = new T.Mesh(
+          new T.TorusGeometry(150 + k * 62, fx === 'cyclone' ? 2.4 : 1.8, 8, 110),
+          new T.MeshBasicMaterial({
+            color: new T.Color(k % 2 ? col2 : col), transparent: true, opacity: 0.5,
+            blending: T.AdditiveBlending, depthWrite: false
+          })
+        );
+        tor.rotation.x = Math.PI / 2 + (fx === 'cyclone' ? 0.24 - k * 0.17 : 0.05);
+        tor.position.set(0, floorY + 80 + k * 120, -20);
+        g.add(tor);
+        rings.push({ m: tor, sp: (k % 2 ? -1 : 1) * (fx === 'cyclone' ? 1.5 : 0.7) });
+      }
+      out.bits.rings = rings;
+      var swirl = pointCloud(T, fx === 'cyclone' ? 190 : 130, 26, '#ffffff',
+        glowTexture('set_swirl_' + rgb, rgb), 0.95);
+      g.add(swirl);
+      out.bits.swirl = { pts: swirl, n: fx === 'cyclone' ? 190 : 130 };
+      if (fx === 'cyber') {
+        /* 바닥 네온 그리드 — 라켓 발밑에 켜지는 전광판 */
+        var pos = [];
+        var half = 640, step = 80;
+        for (var gg = -half; gg <= half; gg += step) {
+          pos.push(-half, floorY + 18, gg, half, floorY + 18, gg);
+          pos.push(gg, floorY + 18, -half, gg, floorY + 18, half);
+        }
+        var grid = new T.LineSegments(new T.BufferGeometry(), new T.LineBasicMaterial({
+          color: new T.Color(col), transparent: true, opacity: 0.24,
+          blending: T.AdditiveBlending, depthWrite: false
+        }));
+        grid.geometry.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+        grid.frustumCulled = false;
+        g.add(grid);
+        out.bits.grid = grid;
+      }
+    } else if (fx === 'confetti') {
+      var gold = pointCloud(T, 260, 26, '#ffffff', glowTexture('set_confetti_' + rgb, rgb), 0.95);
+      g.add(gold);
+      out.bits.confetti = { pts: gold, n: 260 };
+      /* 큰 금가루 반짝임 — 회전하며 내려오는 작은 판 */
+      var flakes = [];
+      var flakeMat = new T.MeshBasicMaterial({
+        color: new T.Color(col2), transparent: true, opacity: 0.85,
+        blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+      });
+      for (var f = 0; f < 16; f++) {
+        var fl = new T.Mesh(new T.PlaneGeometry(16, 9), flakeMat);
+        g.add(fl);
+        flakes.push({ m: fl, seed: f * 1.3 });
+      }
+      out.bits.flakes = flakes;
+    } else if (fx === 'aurora') {
+      var ribbons = [];
+      for (var rb = 0; rb < 3; rb++) {
+        var geo2 = new T.PlaneGeometry(1500, 300, 36, 2);
+        var mesh = new T.Mesh(geo2, new T.MeshBasicMaterial({
+          map: auroraTexture('aur' + rb + rgb, rgb, rgb2, rb),
+          transparent: true, opacity: 0.34 - rb * 0.06, blending: T.AdditiveBlending,
+          depthWrite: false, side: T.DoubleSide
+        }));
+        mesh.position.set((rb - 1) * 90, 90 - rb * 60, -420 - rb * 90);
+        mesh.rotation.z = (rb - 1) * 0.12;
+        g.add(mesh);
+        ribbons.push({ m: mesh, base: mesh.geometry.attributes.position.array.slice(0), seed: rb * 2.1 });
+      }
+      out.bits.ribbons = ribbons;
+      var shimmer = pointCloud(T, 110, 22, '#ffffff', glowTexture('set_aur_' + rgb, rgb2), 0.9);
+      g.add(shimmer);
+      out.bits.shimmer = { pts: shimmer, n: 110 };
+    } else if (fx === 'void') {
+      var dark = pointCloud(T, 150, 26, '#ffffff', glowTexture('set_void_' + rgb, rgb), 0.95);
+      g.add(dark);
+      out.bits.void = { pts: dark, n: 150 };
+      var dim = new T.Sprite(new T.SpriteMaterial({
+        map: glowTexture('set_voiddim_' + rgb, rgb), color: new T.Color(col2),
+        transparent: true, opacity: 0.2, blending: T.AdditiveBlending, depthWrite: false
+      }));
+      dim.position.set(0, 40, -260);
+      dim.scale.set(900, 900, 1);
+      g.add(dim);
+      out.bits.dim = dim;
+    }
+    return out;
+  }
+
+  /* 오로라 커튼 텍스처 — 아래에서 위로 옅어지는 빛줄기 */  function auroraTexture(key, rgbA, rgbB, i) {
+    return canvasDraw('aurora_' + key, 256, 128, function (g, w, h) {
+      g.clearRect(0, 0, w, h);
+      var lg = g.createLinearGradient(0, h, 0, 0);
+      var a = i % 2 ? rgbB : rgbA;
+      var b = i % 2 ? rgbA : rgbB;
+      lg.addColorStop(0, rgbaOf(a, 0.55));
+      lg.addColorStop(0.42, rgbaOf(b, 0.3));
+      lg.addColorStop(1, rgbaOf(b, 0));
+      g.fillStyle = lg;
+      for (var x = 0; x < w; x += 8) {
+        var hh = 0.55 + 0.45 * Math.abs(Math.sin(x * 0.06 + i));
+        g.globalAlpha = 0.35 + 0.4 * hh;
+        g.fillRect(x, h - h * hh, 7, h * hh);
+      }
+      g.globalAlpha = 1;
+      var side = g.createLinearGradient(0, 0, w, 0);
+      side.addColorStop(0, 'rgba(0,0,0,0)');
+      side.addColorStop(0.12, 'rgba(0,0,0,1)');
+      side.addColorStop(0.88, 'rgba(0,0,0,1)');
+      side.addColorStop(1, 'rgba(0,0,0,0)');
+      g.globalCompositeOperation = 'destination-in';
+      g.fillStyle = side; g.fillRect(0, 0, w, h);
+      g.globalCompositeOperation = 'source-over';
+    });
+  }
+
+  /* 세트 연출을 걷어낼 때 지오메트리·재질만 정리합니다(텍스처는 캐시라 그대로) */
+  function disposeGroup(g) {
+    if (!g) return;
+    try {
+      g.traverse(function (o) {
+        if (o.geometry) { try { o.geometry.dispose(); } catch (e) { /* 무시 */ } }
+        if (o.material) {
+          var mats = Array.isArray(o.material) ? o.material : [o.material];
+          for (var i = 0; i < mats.length; i++) { try { mats[i].dispose(); } catch (e2) { /* 무시 */ } }
+        }
+      });
+    } catch (e3) { /* 무시 */ }
+  }
+
+  /* 세트 연출 시간 변화 */
+  function animateSetScene(ss, t, burstAt) {
+    if (!ss) return;
+    var b = ss.bits || {}, i, k;
+    if (ss.bolts) {
+      var B = ss.bolts;
+      var gap = ss.gap || 2.9;
+      var el = t - ss.strikeAt;
+      if (burstAt > 0) {
+        /* 발견 축하 — 1.4초 동안 줄기가 쉬지 않고 내리칩니다 */
+        el = Math.min(0.45, (1400 - burstAt) / 1000 + 0.06);
+        if (t - ss.strikeAt > gap) ss.strikeAt = t;
+      } else if (el > gap) {
+        ss.strikeAt = t;
+        el = 0;
+      }
+      var on = el >= 0 && el < 0.46;
+      if (burstAt > 0) on = true;
+      var inten = on ? (1 - el / 0.46) * (0.55 + 0.45 * Math.abs(Math.sin(t * 43 + el * 31))) : 0;
+      if (burstAt > 0) inten = 0.72 + 0.28 * Math.abs(Math.sin(t * 37));
+      for (i = 0; i < B.arms.length; i++) {
+        var arm = B.arms[i];
+        if (on && Math.floor(el * 14) % 2 === 0) {
+          /* 70ms 마다 줄기를 새로 뽑아 '찌지직' 떨리는 느낌 */
+          var pairs = [];
+          arm.curSeed = arm.seed + Math.floor(t * 12) * 0.71;
+          boltArm(arm.curSeed, arm.def.x, 640, arm.def.z,
+            arm.def.x * 0.35, -352, arm.def.z * 0.4, 24, arm.def.amp, pairs, 1);
+          var pa = arm.geo.attributes.position;
+          if (pa.count * 3 === pairs.length) { pa.array.set(pairs); pa.needsUpdate = true; }
+        }
+        arm.glowMat.opacity = inten * (arm.def.w || 1) * 0.9;
+        arm.coreMat.opacity = inten * (arm.def.w || 1) * 0.95;
+        if (arm.halos) {
+          for (k = 0; k < arm.halos.length; k++) {
+            arm.halos[k].l.material.opacity = inten * (arm.def.w || 1) * arm.halos[k].k;
+            arm.halos[k].r.material.opacity = inten * (arm.def.w || 1) * arm.halos[k].k;
+          }
+        }
+      }
+      if (B.land) B.land.material.opacity = inten * 0.55;
+      if (B.flash) B.flash.material.opacity = inten * 0.16;
+      if (B.beads) {
+        for (i = 0; i < B.beads.length; i++) {
+          var bd = B.beads[i];
+          var armB = B.arms[bd.arm];
+          var fr = (bd.j + 0.5) / 5;
+          var by2 = 640 + (-352 - 640) * fr;
+          var bx2 = armB.def.x + (armB.def.x * 0.35 - armB.def.x) * fr;
+          var bz2 = armB.def.z + (armB.def.z * 0.4 - armB.def.z) * fr;
+          var bp = boltPointAt(armB.seed, armB.def, fr);
+          bd.m.position.set(bp.x + Math.sin(t * 9 + bd.j) * 12, bp.y, bp.z - 2);
+          /* 줄기 방향으로 길게 늘인 빛 — 동그란 덩어리(보케)가 아니라 굵은 줄기로 보이게 */
+          var bs = (46 + (bd.j % 3) * 7) * (bd.w || 1);
+          bd.m.scale.set(bs, bs * 5.4, 1);
+          bd.m.material.rotation = Math.sin(t * 5 + bd.j) * 0.12;
+          bd.m.material.opacity = inten * (0.3 + 0.16 * Math.abs(Math.sin(t * 23 + bd.j)));
+        }
+      }
+      if (B.sparks) {
+        B.sparks.visible = on;
+        if (on) {
+          var sp = B.sparks.geometry.attributes.position;
+          for (k = 0; k < sp.count; k++) {
+            var a = (k / sp.count) * Math.PI * 2 + k * 0.37;
+            var sp2 = 40 + (k % 7) * 26 + el * 620;
+            sp.setXYZ(k, Math.cos(a) * sp2, -346 + Math.sin(el * 9 + k) * 8 + (k % 5) * 6,
+              Math.sin(a) * sp2 * 0.5 + 30);
+          }
+          sp.needsUpdate = true;
+        }
+      }
+      if (ss.cloud) ss.cloud.material.opacity = 0.1 + inten * 0.16 + Math.sin(t * 0.9) * 0.04;
+    }
+    if (b.snow) {
+      var sn = b.snow.pts.geometry.attributes.position;
+      for (k = 0; k < b.snow.n; k++) {
+        var r1 = Math.abs(Math.sin(k * 12.9898)) % 1;
+        var r2 = Math.abs(Math.sin(k * 7.233)) % 1;
+        var life = ((t * (0.07 + r1 * 0.06) * b.snow.speed + r1) % 1);
+        var yy = 470 - life * 900;
+        var drift = Math.sin(t * 0.9 + k) * 40 + life * 120;
+        sn.setXYZ(k, (r2 - 0.5) * 1000 + drift, yy, (r1 - 0.5) * 420 - 60);
+      }
+      sn.needsUpdate = true;
+    }
+    if (b.crystals) {
+      for (i = 0; i < b.crystals.length; i++) {
+        var cr = b.crystals[i];
+        var ang = t * 0.32 + (i / b.crystals.length) * Math.PI * 2;
+        var rad = 170 + Math.sin(t * 0.7 + i) * 26;
+        cr.position.set(Math.cos(ang) * rad, 10 + Math.sin(ang * 1.6 + i) * 150 - 40, -30 + Math.sin(ang) * 72);
+        cr.rotation.set(t * 0.4 + i, t * 0.55 + i * 0.2, Math.sin(t + i) * 0.5);
+        cr.scale.setScalar(0.9 + Math.sin(t * 2.2 + i) * 0.18);
+      }
+    }
+    if (b.mist) b.mist.material.opacity = 0.16 + Math.sin(t * 0.8) * 0.06;
+    if (b.flames) {
+      for (i = 0; i < b.flames.length; i++) {
+        var F = b.flames[i];
+        var wob = Math.sin(t * (3.6 + (i % 3) * 0.7) + F.seed) * 0.16;
+        F.m.position.y = F.y0 + Math.sin(t * 1.8 + F.seed) * F.amp * 0.4 + ((t * 26 + F.seed * 10) % 40);
+        F.m.scale.set(1 + wob * 0.5, 1 + wob, 1);
+        F.m.material.opacity = 0.38 + Math.abs(Math.sin(t * 4.2 + F.seed)) * 0.3;
+      }
+    }
+    if (b.embers) {
+      var em = b.embers.pts.geometry.attributes.position;
+      for (k = 0; k < b.embers.n; k++) {
+        var e1 = Math.abs(Math.sin(k * 9.71)) % 1;
+        var e2 = Math.abs(Math.sin(k * 4.13)) % 1;
+        var lifeE = ((t * (0.16 + e1 * 0.16) + e1) % 1);
+        var ey = -340 + lifeE * 620;
+        var spreadE = 70 + lifeE * 190;
+        em.setXYZ(k, Math.cos(k * 2.3 + t * 0.9) * spreadE, ey, Math.sin(k * 1.7 + t * 0.7) * spreadE * 0.5 - 30);
+      }
+      em.needsUpdate = true;
+    }
+    if (b.warm) b.warm.material.opacity = 0.26 + Math.sin(t * 3.1) * 0.08;
+    if (b.rings) {
+      for (i = 0; i < b.rings.length; i++) {
+        b.rings[i].m.rotation.z = t * b.rings[i].sp;
+        b.rings[i].m.material.opacity = 0.36 + Math.abs(Math.sin(t * 1.7 + i)) * 0.28;
+      }
+    }
+    if (b.swirl) {
+      var sw = b.swirl.pts.geometry.attributes.position;
+      for (k = 0; k < b.swirl.n; k++) {
+        var s1 = Math.abs(Math.sin(k * 6.31)) % 1;
+        var s2 = Math.abs(Math.sin(k * 3.17)) % 1;
+        var lifeS = ((t * (0.24 + s1 * 0.2) + s1) % 1);
+        var angS = t * (2.2 + s2 * 1.8) + s1 * Math.PI * 2;
+        var radS = 90 + (1 - lifeS) * 260 + s2 * 40;
+        sw.setXYZ(k, Math.cos(angS) * radS, -330 + lifeS * 560, Math.sin(angS) * radS * 0.4 - 20);
+      }
+      sw.needsUpdate = true;
+    }
+    if (b.grid) b.grid.material.opacity = 0.14 + Math.abs(Math.sin(t * 1.5)) * 0.14;
+    if (b.confetti) {
+      var cf = b.confetti.pts.geometry.attributes.position;
+      for (k = 0; k < b.confetti.n; k++) {
+        var c1 = Math.abs(Math.sin(k * 8.41)) % 1;
+        var c2 = Math.abs(Math.sin(k * 2.77)) % 1;
+        var lifeC = ((t * (0.06 + c1 * 0.05) + c1) % 1);
+        var cx = (c2 - 0.5) * 900 + Math.sin(t * 1.1 + k) * 34;
+        cf.setXYZ(k, cx, 460 - lifeC * 880, (c1 - 0.5) * 320 - 40);
+      }
+      cf.needsUpdate = true;
+    }
+    if (b.flakes) {
+      for (i = 0; i < b.flakes.length; i++) {
+        var FL = b.flakes[i];
+        var lf = ((t * 0.12 + (FL.seed % 1)) % 1);
+        FL.m.position.set(Math.sin(FL.seed * 3 + t * 0.8) * 300 + (i - 8) * 34, 450 - lf * 860, -60 + Math.cos(FL.seed + t) * 90);
+        FL.m.rotation.set(t * 1.2 + FL.seed, t * 0.9, t * 1.6 + i);
+        FL.m.material.opacity = 0.55 + Math.sin(t * 3 + i) * 0.3;
+      }
+    }
+    if (b.ribbons) {
+      for (i = 0; i < b.ribbons.length; i++) {
+        var RB = b.ribbons[i];
+        var pa2 = RB.m.geometry.attributes.position;
+        var base = RB.base;
+        for (k = 0; k < pa2.count; k++) {
+          var bx = base[k * 3], by = base[k * 3 + 1];
+          var wave = Math.sin(t * 0.7 + bx * 0.004 + RB.seed) * 26 + Math.sin(t * 1.1 + k * 0.12) * 8;
+          pa2.setXYZ(k, bx, by + wave, base[k * 3 + 2]);
+        }
+        pa2.needsUpdate = true;
+        RB.m.material.opacity = 0.26 + Math.sin(t * 0.8 + i) * 0.12;
+      }
+    }
+    if (b.shimmer) {
+      var sh = b.shimmer.pts.geometry.attributes.position;
+      for (k = 0; k < b.shimmer.n; k++) {
+        var h1 = Math.abs(Math.sin(k * 5.13)) % 1;
+        var h2 = Math.abs(Math.sin(k * 2.41)) % 1;
+        sh.setXYZ(k, (h1 - 0.5) * 800, 300 - ((t * 0.1 + h2) % 1) * 600, -300 - h2 * 200);
+      }
+      sh.needsUpdate = true;
+    }
+    if (b.void) {
+      var vd = b.void.pts.geometry.attributes.position;
+      for (k = 0; k < b.void.n; k++) {
+        var v1 = Math.abs(Math.sin(k * 7.77)) % 1;
+        var v2 = Math.abs(Math.sin(k * 3.31)) % 1;
+        var angV = t * (0.6 + v1 * 0.9) + v1 * Math.PI * 2;
+        var radV = 120 + v2 * 190 + Math.sin(t * 1.3 + k) * 20;
+        vd.setXYZ(k, Math.cos(angV) * radV, 20 + Math.sin(angV * 1.3) * 220, -40 + Math.sin(angV * 0.9) * 110);
+      }
+      vd.needsUpdate = true;
+    }
+    if (b.dim) b.dim.material.opacity = 0.14 + Math.sin(t * 1.2) * 0.06;
   }
 
   /* ============================================================
@@ -1655,6 +2501,8 @@
     var spec = { span: 675, headCY: 500, rx: 98, ry: 120 };
     var looksig = '', parts = null;
     var floorY = -360;
+    /* bm-v1.95.0 — 라켓 아래 바닥 오라 + 세트 특수 연출 */
+    var floorAura = null, setScene = null, setBurstAt = 0, setBurstMs = 1400;
 
     var shadow = new T.Mesh(
       new T.PlaneGeometry(760, 300),
@@ -1849,6 +2697,28 @@
       shadow.position.y = floorY + 6;
       pool.position.y = floorY + 8;
       poolRing.position.y = floorY + 9;
+      /* 세트 조합 — 바닥 오라와 특수 연출을 다시 만듭니다 */
+      if (floorAura) { scene.remove(floorAura.group); disposeGroup(floorAura.group); floorAura = null; }
+      if (setScene) { scene.remove(setScene.group); disposeGroup(setScene.group); setScene = null; }
+      if (look.set) {
+        floorAura = buildFloorAura(T, look.set, floorY + 4);
+        scene.add(floorAura.group);
+        setScene = buildSetScene(T, look.set, floorY);
+        if (setScene) {
+          scene.add(setScene.group);
+          setScene.strikeAt = (nowMs() % 100000) / 1000 + 0.1;
+        }
+        /* 스포트라이트 바닥도 세트 색으로 젖게 */
+        pool.material.color = new T.Color(look.set.color);
+        pool.material.opacity = 0.62;
+        poolRing.material.color = new T.Color(look.set.color2 || look.set.color);
+        poolRing.material.opacity = 0.26;
+      } else {
+        pool.material.color = new T.Color('#ffffff');
+        pool.material.opacity = 0.5;
+        poolRing.material.color = new T.Color('#d8ffd0');
+        poolRing.material.opacity = 0.14;
+      }
       airG.position.y = 0;
       fitCamera();
       return look;
@@ -2270,6 +3140,17 @@
         return true;
       },
       slam: function (fxId) { return api.smash(fxId, 'slam'); },
+      /* bm-v1.95.0 — 히든 조합을 발견한 순간 그 세트 연출을 한 번 크게 터뜨립니다 */
+      setburst: function (setId, holdMs) {
+        var look = lookOf(ctx);
+        if (setId && (!look.set || look.set.id !== setId)) return false;
+        if (!setScene) return false;
+        setBurstMs = Math.max(600, Math.min(8000, Number(holdMs) || 1400));
+        setBurstAt = nowMs();
+        setScene.strikeAt = (nowMs() % 100000) / 1000 - 0.05;
+        renderFrame(nowMs());
+        return true;
+      },
       motion: function (kind) {
         var k = String(kind || '');
         if (!RC().MOTIONS || RC().MOTIONS.indexOf(k) < 0) return false;
@@ -2526,7 +3407,13 @@
       }
 
       /* 오라 */
-      animateEffect(parts.fx, (now % 100000) / 1000);
+      var tFx = (now % 100000) / 1000;
+      animateEffect(parts.fx, tFx);
+      /* 세트 조합 — 바닥 오라 + 특수 연출 (발견 직후에는 한 번 크게) */
+      animateFloorAura(floorAura, tFx);
+      var burstLeft = setBurstAt ? Math.max(0, setBurstMs - (now - setBurstAt)) : 0;
+      if (setBurstAt && !burstLeft) setBurstAt = 0;
+      animateSetScene(setScene, tFx, burstLeft);
 
       /* 접지 그림자 — 라켓이 기울면 살짝 흐려집니다 */
       shadow.material.opacity = 0.7 + Math.sin(now / 1400) * 0.04;
@@ -2644,7 +3531,11 @@
         }
       }
       var busy = smashOn || motionOn || (Date.now() - lastMove < 2000);
-      if (busy || (now - lastFrame > 60)) {
+      /* bm-v1.95.0 — 세트 조합 연출(바닥 오라 회전·번개·눈)이 켜져 있으면
+       * 쉬는 동안에도 30fps 로 계속 그립니다. 번개 연출은 놓치면 눈에 띄므로
+       * 60ms(16fps) 대신 32ms 간격 — 스매시 중에는 그대로 매 프레임(60fps). */
+      var idleGap = setScene ? 32 : 60;
+      if (busy || (now - lastFrame > idleGap)) {
         renderFrame(now);
         lastFrame = now;
       }
