@@ -12,11 +12,13 @@
 package io.github.csw42060713_byte.badminton;
 
 import android.app.Activity;
+import android.app.WallpaperInfo;
+import android.app.WallpaperManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.app.WallpaperManager;
+import android.widget.Toast;
 
 public class WallpaperSetupActivity extends Activity {
 
@@ -38,8 +40,30 @@ public class WallpaperSetupActivity extends Activity {
         }
         if (json != null) WallpaperStore.save(this, json);
 
+        if (isAlreadyWallpaper()) {
+            /* 이미 셔틀릭스 배경화면이 떠 있으면 색만 바꿔 주고 끝냅니다
+             * (배경화면이 SharedPreferences 를 지켜보고 있어 바로 다시 그립니다) */
+            if (json != null) Toast.makeText(this, "바탕화면 라켓 색을 바꿨어요", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
         openLiveWallpaperChooser();
         finish();
+    }
+
+    /* 지금 떠 있는 라이브 배경화면이 우리 서비스인가? */
+    private boolean isAlreadyWallpaper() {
+        try {
+            WallpaperManager wm = WallpaperManager.getInstance(this);
+            WallpaperInfo info = wm.getWallpaperInfo();
+            if (info == null) return false;
+            ComponentName cn = new ComponentName(this, ShuttlixWallpaperService.class);
+            return getPackageName().equals(info.getPackageName())
+                    && cn.getClassName().equals(info.getServiceName());
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     private void openLiveWallpaperChooser() {
