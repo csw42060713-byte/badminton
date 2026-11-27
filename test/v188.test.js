@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v188.test.js — bm-v1.90.0
+ * test/v188.test.js — bm-v1.91.0
  *   🎮 커스텀 라켓을 진짜 3D(Three.js WebGL) 쇼룸으로
  *
  *   1) 엔진   — 저장소 안 three.min.js(MIT) · sw 캐시 · CSP 그대로(외부 CDN 없음)
@@ -221,7 +221,7 @@
     includes(js, '프로네이션', '손목 회내');
     includes(js, 'function poseAt', '자세 계산');
     includes(js, 'R2.smashClock(el)', '히트스톱 시계는 기존 규칙 그대로');
-    includes(js, 'camera.position.x = Math.sin(after / 7.5) * amp', '정타 순간 카메라 셰이크(bm-v1.90.0 에서 더 강하게)');
+    includes(js, 'camera.position.x = Math.sin(after / 7.5) * amp', '정타 순간 카메라 셰이크(bm-v1.91.0 에서 더 강하게)');
     includes(js, 'function buildTrail', '스윙 궤적');
     includes(js, 'function spawnBurst', '3D 파티클');
     includes(js, 'function spawnSlam', '바닥 강타');
@@ -303,15 +303,15 @@
 
   test('v1.88 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.90.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.90.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.90.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-4', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.91.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.91.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.91.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-5', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.90.0', 'TWA 이름');
-    eq(twa.appVersion, '1.90.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 84, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.90.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.91.0', 'TWA 이름');
+    eq(twa.appVersion, '1.91.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 85, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.91.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v188.test.js', '테스트 목록');
     includes(readRoot('test/run.js'), 'js/racket3d.js', '테스트가 3D 모듈을 함께 읽는다');
   });

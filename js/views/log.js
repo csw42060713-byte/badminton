@@ -478,14 +478,24 @@
   function preventFold(an) {
     var pv = an && an.prevent;
     var lg = an && an.loadGuide;
-    if (!pv || !pv.items || !pv.items.length) return '';
+    var cool = an && an.cool;
+    var coolHtml = coolBlock(cool);
+    /* 워밍업 항목이 없는 경우에도 쿨다운만 따로 보여 줍니다 */
+    if (!pv || !pv.items || !pv.items.length) {
+      return coolHtml
+        ? '<details class="fold fold--ai" data-fold="prevent"><summary class="fold__sum"><span>부상 예방 · 종목 부하' +
+          ' <small>마무리 ' + U.esc(cool.label) + '</small></span><i class="fold__val">쿨다운</i>' +
+          UI.icon('arrow', 'fold__car') + '</summary><div class="fold__body">' + coolHtml + '</div></details>'
+        : '';
+    }
     var areas = (pv.areas && pv.areas.length ? pv.areas.join('·') : '전신');
     var items = pv.items.map(function (it, i) {
       return '<li class="warm"><span class="warm__text"><b>' + U.esc(it.name) + '</b> — ' + U.esc(it.how) + '</span>' +
         timerWidget('warm:' + i, it.name) + '</li>';
     }).join('');
     return '<details class="fold fold--ai" data-fold="prevent">' +
-      '<summary class="fold__sum"><span>부상 예방 · 종목 부하 <small>코트 전 ' + U.esc(pv.label) + ' · ' + U.esc(areas) + '</small></span>' +
+      '<summary class="fold__sum"><span>부상 예방 · 종목 부하 <small>코트 전 ' + U.esc(pv.label) + ' · ' + U.esc(areas) +
+      (coolHtml ? ' · 마무리 ' + U.esc(cool.label) : '') + '</small></span>' +
       '<i class="fold__val">' + pv.items.length + '가지</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
       '<div class="fold__body">' +
       '<div class="planbox"><p class="planbox__t">' + U.esc(pv.title) + ' · ' + U.esc(pv.label) + '</p>' +
@@ -501,7 +511,27 @@
           '<p class="planbox__v">' + U.esc(lg.levelNote) + '</p>' +
           '<p class="planbox__v">근거 · ' + U.esc(lg.sourceShort || lg.source) + '</p></div>'
         : '') +
+      coolHtml +
       '</div></details>';
+  }
+
+  /* 운동 후 5분 종아리·아킬레스 쿨다운 (bm-v1.91.0)
+   *   발목·종아리·아킬레스 통증이 있거나, 60분 이상·강도 8 이상으로 친 날에만 나옵니다.
+   *   코트 전 워밍업과 같은 '부상 예방' 접기 안에 두어 — 준비 → 마무리 순서로 읽힙니다.
+   *   (새 접기를 하나 더 만들지 않아 첫 화면 접기 수는 그대로입니다.) */
+  function coolBlock(c) {
+    if (!c || !c.on) return '';
+    var items = (c.items || []).map(function (it, i) {
+      return '<li class="warm"><span class="warm__text"><b>' + U.esc(it.name) + '</b> — ' + U.esc(it.how) + '</span>' +
+        timerWidget('cool:' + i, it.name) + '</li>';
+    }).join('');
+    return '<div class="planbox mt8" data-cool="' + U.esc(c.level) + '">' +
+      '<p class="planbox__t">' + U.esc(c.title) + ' · ' + U.esc(c.label) + '</p>' +
+      '<p class="planbox__v">' + U.esc(c.reason) + '</p>' +
+      (items ? '<ul class="bullets">' + items + '</ul>' : '') +
+      (c.advice ? '<p class="planbox__t mt8">오늘 강도</p><p class="planbox__v">' + U.esc(c.advice) + '</p>' : '') +
+      (c.note ? '<p class="planbox__v">' + U.esc(c.note) + '</p>' : '') +
+      '<p class="planbox__src">' + U.esc(c.sourceShort || c.source) + '</p></div>';
   }
 
   /* 관절 보호 체크 — 어깨·무릎/발목을 쉬운 코트 말투로 점검하는 접기

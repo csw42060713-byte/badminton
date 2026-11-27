@@ -189,6 +189,17 @@
  *        12(5):01-06, 2025 (DOI: 10.9790/6737-1205010612) — 허리 통증이 4주 이상 이어진 여성 동호인 128명.
  *        몸통 회전 버티기(오른쪽) 시간이 길수록 일상 동작 불편 점수도 높았습니다(r = 0.174, p = 0.049).
  *        → 일반 코어 운동만으로는 부족하고, 좌우를 같은 시간으로 채우는 사이드 플랭크가 필요합니다.
+ * [INGLE25] Ingle R.K., Vishwakarma B., Ganvir S., <Prevalence of calf muscle tightness and correlation between
+ *        warm-up and cool-down with calf muscle tightness in recreational badminton players: A cross-sectional
+ *        study>, Sri Ramachandra J Health Sci 5(2):65-70, 2025 (DOI: 10.25259/srjhs_14_2025) — 동호인 158명.
+ *        무릎 벽 런지 검사(MWBLT)에서 26.6%(42명)가 종아리 뻣뻣함(발목 배측굴곡 제한)이었고, 이는 발목
+ *        생체역학을 바꿔 아킬레스건 병증·발목 부상 위험을 올립니다. 경기 전 웜업은 상관이 거의 없었고
+ *        (r = -0.006, p > 0.05), 경기 후 쿨다운·종아리 스트레칭은 강한 음의 상관(r = -0.890, p < 0.05)이었습니다.
+ * [FAHL02] Fahlström M., Lorentzon R., Alfredson H., <Painful Conditions in the Achilles Tendon Region in Elite
+ *        Badminton Players>, Am J Sports Med 30(1):51-54, 2002 (DOI: 10.1177/03635465020300012201) —
+ *        스웨덴 엘리트부 66명(남 41·여 25). 32%(21명)가 최근 5년 안에 아킬레스건 부위 통증을 겪었고(지속 17%),
+ *        겪은 선수는 주당 총 훈련 시간(전체·배드민턴·지구력·근력)이 유의하게 많았습니다.
+ *        → 주간 누적 훈련량이 많을수록 아킬레스건 부하가 쌓이는 근거로 씁니다.
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -828,6 +839,119 @@
       source: PREVENT_SRC,
       sourceShort: PREVENT_SRC_SHORT,
       stats: PREVENT
+    };
+  }
+
+  /* ---------- 운동 후 5분 종아리·아킬레스 쿨다운 (bm-v1.91.0) ----------
+   * [INGLE25] 동호인 배드민턴 선수 158명 단면조사 — 26.6%(42명)가 종아리 근육이 뻣뻣해
+   *   발목을 위로 당기는 각도(배측굴곡)가 제한됐습니다. 이 뻣뻣함은 발목 생체역학을 바꿔
+   *   아킬레스건 병증·발목 부상 위험을 올립니다.
+   *   경기 전 웜업(r = -0.006, p > 0.05)보다 경기 후 쿨다운·종아리 스트레칭(r = -0.890, p < 0.05)이
+   *   뻣뻣함과 훨씬 강하게 이어졌습니다 → 웜업만 하고 끝내면 쿨다운 몫이 그대로 남습니다.
+   * [FAHL02] 스웨덴 엘리트 선수 66명 중 32%(21명)가 최근 5년 안에 아킬레스건 부위 통증을 겪었고,
+   *   겪은 선수는 주당 총 훈련 시간(전체·배드민턴·지구력·근력)이 유의하게 많았습니다
+   *   → 주간 누적 훈련량이 많을수록 아킬레스건 부하가 쌓입니다.
+   * 화면에는 '동호인 네 명 중 한 명', '웜업보다 쿨다운' 같은 쉬운 말만 쓰고 수치는 stats에 둡니다. */
+  var CALF = {
+    tightN: 158,               /* [INGLE25] 동호인 단면조사 표본 */
+    tightPct: 26.6,            /* [INGLE25] 종아리 뻣뻣함 26.6% */
+    tightCount: 42,
+    cooldownR: -0.89,          /* [INGLE25] 쿨다운 ↔ 종아리 뻣뻣함 */
+    warmupR: -0.006,           /* [INGLE25] 웜업 ↔ 종아리 뻣뻣함(유의하지 않음) */
+    achillesN: 66,             /* [FAHL02] 엘리트 선수 66명 */
+    achillesPct: 32,           /* [FAHL02] 아킬레스건 부위 통증 32% */
+    achillesCount: 21,
+    cooldownMin: 5,            /* 마무리 쿨다운 5분 */
+    longMinutes: 60,           /* 60분 이상이면 쿨다운 팁 */
+    hardIntensity: 8,          /* 강도 10점 중 8 이상 = 고강도(기존 하지 피로 기준과 동일) */
+    items: [
+      {
+        name: '벽 짚고 종아리 스트레칭 (무릎 펴고)',
+        how: '벽을 짚고 한 발을 뒤로 딛어 뒤꿈치를 바닥에 붙인 채 몸을 앞으로 — 무릎을 편 채 30초, 좌우 2번씩.',
+        min: 2
+      },
+      {
+        name: '가자미근 스트레칭 (무릎 굽히고)',
+        how: '같은 자세에서 뒷무릎만 살짝 굽히면 발목 아래 깊은 종아리가 늘어나요 — 30초씩 좌우 2번.',
+        min: 2
+      },
+      {
+        name: '계단 끝 뒤꿈치 내리기 · 발목 돌리기',
+        how: '계단 모서리에 앞발을 걸치고 뒤꿈치를 천천히 아래로 10회, 이어 발목을 안·밖으로 10회씩.',
+        min: 1
+      }
+    ]
+  };
+  var CALF_STATS = {
+    tightN: CALF.tightN, tightPct: CALF.tightPct, tightCount: CALF.tightCount,
+    cooldownR: CALF.cooldownR, warmupR: CALF.warmupR,
+    achillesN: CALF.achillesN, achillesPct: CALF.achillesPct, achillesCount: CALF.achillesCount,
+    cooldownMin: CALF.cooldownMin, longMinutes: CALF.longMinutes, hardIntensity: CALF.hardIntensity
+  };
+  var CALF_SRC = 'Ingle et al., Sri Ramachandra J Health Sci 5(2):65-70, 2025 (DOI 10.25259/srjhs_14_2025) · ' +
+    'Fahlström et al., Am J Sports Med 30(1):51-54, 2002 (DOI 10.1177/03635465020300012201)';
+  var CALF_SRC_SHORT = '참고 논문 · Ingle 2025 Sri Ramachandra J Health Sci · Fahlström 2002 Am J Sports Med';
+  /* 쿨다운이 필요한 부위 — 통증 칩에 있는 '발목·아킬레스건'과 기록에 남을 수 있는 '종아리·발' */
+  var CALF_AREAS = ['발목', '아킬레스건', '종아리', '발'];
+
+  /* coolDown(painList, ctx)
+   *   → { on, level, title, label, minutes, items, reason, advice, note, source, sourceShort, stats }
+   * 발목·종아리·아킬레스건 통증이 있거나, 60분 이상·강도 8 이상으로 친 날에 켜집니다.
+   * 같은 입력이면 항상 같은 결과 (순수 함수) */
+  function coolDown(painList, ctx) {
+    ctx = ctx || {};
+    var pains = (painList || []).filter(Boolean);
+    var calfPain = pains.filter(function (p) { return CALF_AREAS.indexOf(p) >= 0; });
+    var minutes = ctx.minutes == null ? null : Number(ctx.minutes);
+    var intensity = ctx.intensity == null ? null : Number(ctx.intensity);
+    var zone = (ctx.load && ctx.load.zone) || '';
+    var longDay = minutes != null && minutes >= CALF.longMinutes;
+    var hardDay = intensity != null && intensity >= CALF.hardIntensity;
+    /* 주간 누적 훈련량이 평소보다 높은 주 — 아킬레스건 부하가 겹치는 구간 */
+    var heavyWeek = zone === 'spike' || zone === 'watch';
+    var on = calfPain.length > 0 || longDay || hardDay;
+    var level = calfPain.length ? 'pain' : (longDay || hardDay ? 'load' : '');
+
+    var reason = '';
+    if (level === 'pain') {
+      reason = '오늘 ' + calfPain.join('·') + ' 쪽이 불편하다고 남겼어요. 배드민턴 동호인 네 명 중 한 명은 종아리가 뻣뻣해 발목을 위로 당기는 각도가 줄어 있고, 그대로 계속 뛰면 발목이 바뀌면서 아킬레스건에 부담이 몰려요. 운동 끝나고 5분 종아리 스트레칭을 남겨 두세요.' +
+        (heavyWeek ? ' 이번 주 훈련량이 평소보다 많아 아킬레스 부하가 겹친 주예요.' : '');
+    } else if (level === 'load') {
+      reason = (longDay ? '오늘 ' + minutes + '분' : '오늘 강도 ' + intensity) + '으로 길거나 세게 친 날이에요. 웜업은 열심히 해도 운동 후 쿨다운을 건너뛰면 종아리 뻣뻣함이 그대로 쌓여요 — 웜업보다 경기 후 종아리 스트레칭이 뻣뻣함 예방에 훨씬 크게 이어졌어요.' +
+        (heavyWeek ? ' 이번 주 훈련량이 이미 높으니 마무리 5분을 빼먹지 마세요.' : '');
+    }
+
+    var advice = '';
+    if (calfPain.length) {
+      advice = (heavyWeek ? '이번 주 누적 훈련량이 많아요 — ' : '') +
+        '아킬레스건은 주당 훈련 시간이 많을수록 통증이 늘었어요. 오늘은 강도를 한 칸 낮추고 점프·급정지 개수를 줄이세요.';
+    } else if (heavyWeek) {
+      advice = '이번 주 훈련량이 이미 높아요 — 오늘은 강도를 한 칸 낮추고 마무리 5분을 꼭 남기세요.';
+    }
+
+    var items = on ? CALF.items.map(function (it) {
+      return { name: it.name, how: it.how, min: it.min };
+    }) : [];
+
+    return {
+      on: on,
+      level: level,
+      title: '운동 후 5분 종아리·아킬레스 쿨다운',
+      label: CALF.cooldownMin + '분',
+      minutes: CALF.cooldownMin,
+      areas: calfPain.slice(),
+      heavyWeek: heavyWeek,
+      longDay: longDay,
+      hardDay: hardDay,
+      items: items,
+      reason: reason,
+      advice: advice,
+      /* 처방(스트레칭·회복)에 한 줄로 들어가는 문장 */
+      stretchLine: '운동 끝나고 5분 — 벽 짚고 종아리 스트레칭(무릎 펴고·굽히고) 30초씩 좌우 2번 + 계단 끝 뒤꿈치 내리기 10회. 웜업보다 이 마무리 5분이 종아리 뻣뻣함을 막는 데 훨씬 크게 이어졌어요.',
+      note: '웜업만 하고 끝내면 종아리 뻣뻣함이 그대로 남아요. 운동 후 5분이면 충분하니 코트에서 나오기 전에 꼭 하고 나오세요.',
+      source: CALF_SRC,
+      sourceShort: CALF_SRC_SHORT,
+      stats: CALF_STATS
     };
   }
 
@@ -2722,6 +2846,8 @@
     /* 통증 부위·종목에 맞춘 예방 워밍업과 종목별 인터벌 기준 (논문 근거) */
     var prevent = preventionWarmup(painList, discipline);
     var guard = jointGuard(painList, weakSkills, { intensity: intensity, minutes: minutes, load: load });
+    /* 종아리·아킬레스 쿨다운 — 발목·종아리·아킬레스 통증, 60분 이상·고강도, 주간 부하로 켜집니다 (bm-v1.91.0) */
+    var cool = coolDown(painList, { minutes: minutes, intensity: intensity, load: load });
     /* 선수 7대 훈련 밸런스 · 주간 부하 리듬 (bm-v1.49.0) */
     var balance = proBalance(history, draft);
     var rhythm = loadRhythm(history, draft);
@@ -2745,6 +2871,11 @@
     /* 무릎·허리 연쇄 예방은 스트레칭 처방에도 한 줄로 함께 넣습니다 (bm-v1.83.0) */
     if (guard.chain && guard.chain.on) {
       care.stretch = U.uniq([FATIGUE_JUMP.chainStretch].concat(care.stretch)).slice(0, 4);
+    }
+    /* 종아리·아킬레스 쿨다운은 스트레칭·회복 처방에도 한 줄씩 들어갑니다 (bm-v1.91.0) */
+    if (cool.on) {
+      care.stretch = U.uniq(care.stretch.concat([cool.stretchLine])).slice(0, 5);
+      if (cool.advice) care.rehab = U.uniq(care.rehab.concat([cool.advice])).slice(0, 6);
     }
     care.stop = painToday.length ? PAIN_RULE.stop : '';
 
@@ -2833,6 +2964,7 @@
       care: care,
       prevent: prevent,
       guard: guard,
+      cool: cool,
       jump: jump,
       balance: balance,
       rhythm: rhythm,
@@ -2876,6 +3008,7 @@
     gradePlan: gradePlan, playbook: playbook,
     gameFlow: gameFlow, loadIndex: loadIndex, scoreModeOf: scoreModeOf,
     preventionWarmup: preventionWarmup, disciplineLoadGuide: disciplineLoadGuide,
+    coolDown: coolDown, CALF: CALF, CALF_STATS: CALF_STATS,
     jointGuard: jointGuard, guardChain: guardChain, CHAIN: CHAIN,
     fatigueJump: fatigueJump, FATIGUE_JUMP: FATIGUE_JUMP, jumpSafeDrills: jumpSafeDrills,
     SHOULDER_RISK: SHOULDER_RISK, LOWER_RISK: LOWER_RISK,

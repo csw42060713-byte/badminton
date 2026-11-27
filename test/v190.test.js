@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v190.test.js — bm-v1.90.0
+ * test/v190.test.js — bm-v1.91.0
  *   🔥 3D 효과가 안 보이던 문제 · 셔틀이 오는 방향으로 세게 치는 스매시 · 효과별 소리
  *
  *   1) 효과 가시성 — 파티클 크기(화면 14~52px) · 효과마다 붙는 3D 연출(불꽃 혀·얼음 결정·번개 줄기)
@@ -328,7 +328,7 @@
     ok(html.indexOf('js/smashsound.js') < html.indexOf('js/racket3d.js'), '소리 모듈이 3D 보다 먼저');
     var sw = readRoot('sw.js');
     includes(sw, "'./js/smashsound.js'", '서비스워커 캐시');
-    includes(sw, "var VERSION = 'bm-v1.90.0'", '캐시 버전');
+    includes(sw, "var VERSION = 'bm-v1.91.0'", '캐시 버전');
   });
 
   test('v1.90 보호: 효과·모션·파츠·폴백이 그대로다', function () {
@@ -354,15 +354,15 @@
 
   test('v1.90 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.90.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.90.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.90.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-4', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.91.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.91.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.91.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-5', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.90.0', 'TWA 이름');
-    eq(twa.appVersion, '1.90.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 84, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.90.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.91.0', 'TWA 이름');
+    eq(twa.appVersion, '1.91.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 85, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.91.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v190.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
