@@ -165,6 +165,18 @@
     eq(RC.foundOf(pub).length, 0, '공개는 found 에 안 들어감');
   });
 
+  test('v1.95 발견: 저장 경로(setGear)에서도 발견이 기록된다 — 구매·3D 탭 모두', function () {
+    var c = wearSet(hidden[0]);
+    var merged = RC.mergeFound(c);
+    ok(merged.added.length === 1 && merged.added[0].id === hidden[0].id, '처음 저장할 때 발견');
+    eq(merged.custom.found.join(','), hidden[0].id, 'found 에 기록');
+    var again = RC.mergeFound(merged.custom);
+    eq(again.added.length, 0, '두 번째 저장은 조용히');
+    if (!hasNode) return;
+    /* store.setGear 가 같은 함수를 부릅니다 — 어떤 장착 경로든 기록이 남게 */
+    includes(readRoot('js/store.js'), 'BM.racketcustom.mergeFound', 'store.setGear 연결');
+  });
+
   test('v1.95 발견: 예전 저장값(없는 히든 id)은 조용히 버리고, found 는 보존된다', function () {
     var c = RC.normalizeCustom({ frame: 'gold', string: 'gold', grip: 'gold',
       unlocked: ['frame:gold', 'string:gold', 'grip:gold'],

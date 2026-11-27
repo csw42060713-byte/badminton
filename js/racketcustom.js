@@ -442,6 +442,18 @@
     }).join(' · ');
   }
 
+  /* 저장하는 순간 맞춘 히든 조합을 발견 목록에 합칩니다.
+   *  · 파츠를 사면서(setGear) 바로 완성되는 경우도 있어, 화면 저장 경로뿐 아니라
+   *    store.setGear 한 곳에서도 부르도록 내보냅니다(모든 장착 경로가 같은 기록). */
+  function mergeFound(next) {
+    var c = normalizeCustom(next);
+    var added = newlyFound(c);
+    if (added.length) {
+      added.forEach(function (s) { if (c.found.indexOf(s.id) < 0) c.found.push(s.id); });
+    }
+    return { custom: c, added: added };
+  }
+
   /* ---------- 저장 모양 ---------- */
 
   function blankCustom() {
@@ -4392,12 +4404,11 @@
   }
 
   function saveCustom(ctx, next, opts) {
-    var nx = normalizeCustom(next);
-    /* 맞춘 히든 조합은 저장하는 순간 발견 목록에 영구 기록합니다 */
-    var newly = newlyFound(nx);
-    if (newly.length) {
-      newly.forEach(function (s) { if (nx.found.indexOf(s.id) < 0) nx.found.push(s.id); });
-    }
+    /* 맞춘 히든 조합은 저장하는 순간 발견 목록에 영구 기록합니다
+     * (store.setGear 도 같은 mergeFound 를 불러 어떤 장착 경로든 기록이 남습니다) */
+    var merged = mergeFound(next);
+    var nx = merged.custom;
+    var newly = merged.added;
     var res = ctx.actions.setGear ? ctx.actions.setGear({ custom: nx }) : { ok: false };
     if (!res || !res.ok) {
       if (BM.ui) BM.ui.toast(res && res.reason === 'locked' ? '잠시만요, 저장 중이에요' : '저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.', 'error');
@@ -4962,7 +4973,7 @@
     /* bm-v1.95.0 — 세트 조합 보너스 (공개 4 · 히든 7) */
     SETS: SETS, HIDDEN_SETS: HIDDEN_SETS, setById: setById, setHit: setHit, activeSet: activeSet,
     nextSet: nextSet, foundOf: foundOf, hiddenFoundCount: hiddenFoundCount, newlyFound: newlyFound,
-    needText: needText, setBonusHtml: setBonusHtml,
+    needText: needText, setBonusHtml: setBonusHtml, mergeFound: mergeFound,
     stageState: stageState, stageBadgeHtml: stageBadgeHtml,
     bodyDecalSvg: bodyDecalSvg, fxSvg: fxSvg, headArc: headArc, decalAt: decalAt, stringChords: stringChords,
     _parts: { head: addHead, edge: addFrameEdge, decals: addDecals, strings: addStrings, stencil: addStencil,
