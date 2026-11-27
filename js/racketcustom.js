@@ -4015,6 +4015,11 @@
       '<div class="rkactions">' +
         '<button type="button" class="btn btn--primary grow" data-rk-share="1">공유 카드에 넣기</button>' +
       '</div>' +
+      /* bm-v1.89.0 — 지금 고른 색 그대로 안드로이드 폰 바탕화면(라이브 배경화면)으로 */
+      '<div class="rkwp">' +
+        '<button type="button" class="btn btn--ghost grow" data-rk-wallpaper="1">📱 폰 바탕화면으로 설정하기</button>' +
+        '<p class="rkwp__hint">' + U.esc(BM.wallpaper ? BM.wallpaper.hintText() : '안드로이드 셔틀릭스 앱에서 쓸 수 있어요.') + '</p>' +
+      '</div>' +
       '<p class="hint">고른 색은 바로 저장되고, 1:1 매칭 카드·프로필·공유 카드에 그대로 보여요. 운동을 3일 넘게 쉬면 줄이 느슨해지고, 7일을 넘기거나 스트링 교체 시기가 지나면 끊어진 모습으로 바뀝니다.</p>' +
       '</div>';
   }
@@ -4413,6 +4418,17 @@
           if (ev.target.closest('[data-rk-gear]') || ev.target.closest('[data-rk-open-gear]')) {
             ev.preventDefault();
             if (BM.gear) BM.gear.openSheet(ctx);
+            return;
+          }
+          if (ev.target.closest('[data-rk-wallpaper]')) {
+            ev.preventDefault();
+            /* bm-v1.89.0 — 앱이 있으면 배경화면 선택창으로, 없으면 설치 안내만 */
+            var went = BM.wallpaper ? BM.wallpaper.apply(ctx.store.state) : false;
+            if (BM.ui) {
+              if (went) BM.ui.toast('셔틀릭스 앱에서 배경화면을 골라 주세요');
+              else BM.ui.toast('안드로이드 셔틀릭스 앱을 설치하면 폰 바탕화면으로 쓸 수 있어요', 'error');
+            }
+            if (went && BM.ui && BM.ui.haptic) BM.ui.haptic(12);
             return;
           }
           if (ev.target.closest('[data-rk-share]')) {

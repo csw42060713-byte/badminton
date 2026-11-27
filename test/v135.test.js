@@ -401,12 +401,12 @@
   test('v1.35 버전: sw.js·app.js·index.html·twa-manifest가 모두 v1.35', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.88.0'", 'sw.js');
-    includes(app, "version: 'v1.88.0'", 'app.js');
-    includes(index, 'styles.css?v=20261127-2', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.88.0', 'twa appVersionName');
-    eq(twa.appVersion, '1.88.0', 'twa appVersion');
-    eq(twa.appVersionCode, 82, 'twa appVersionCode');
+    includes(sw, "var VERSION = 'bm-v1.89.0'", 'sw.js');
+    includes(app, "version: 'v1.89.0'", 'app.js');
+    includes(index, 'styles.css?v=20261127-3', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.89.0', 'twa appVersionName');
+    eq(twa.appVersion, '1.89.0', 'twa appVersion');
+    eq(twa.appVersionCode, 83, 'twa appVersionCode');
   });
 
   test('v1.35 캐시: 새 파일 없이 기존 목록 그대로', function () {

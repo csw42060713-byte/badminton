@@ -7720,6 +7720,10 @@ body {
 .rkpart__lock { position: absolute; top: 4px; right: 4px; font-size: 8px; opacity: 0.75; }
 .rkactions { display: flex; gap: 8px; }
 .rkactions .btn { min-height: 42px; }
+/* bm-v1.89.0 — 폰 바탕화면(안드로이드 라이브 배경화면) 설정 줄 */
+.rkwp { margin-top: 8px; }
+.rkwp .btn { width: 100%; min-height: 42px; }
+.rkwp__hint { margin: 6px 2px 0; font-size: 12px; line-height: 1.45; color: var(--muted); text-align: center; word-break: keep-all; }
 
 /* 저장 직후 화면 아래 공유 바 */
 .saveshare {
