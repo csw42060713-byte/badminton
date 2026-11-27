@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ko" data-theme="th_night" style="background:#0b1220">
+<head>
+<meta charset="utf-8">
+<title>v1.29 화면 미리보기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html, body { margin: 0; background: #0b1220; }
+  body { display: flex; justify-content: center; }
+  .frame {
+    position: relative;
+    width: 100%;
+    max-width: 430px;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+  .frame .dm { position: absolute; inset: 0; }
+  .frame .main { height: 100dvh; overflow-y: auto; padding: 0 0 40px; }
+  .frame .view { padding: 12px 14px 0; }
+</style>
+</head>
+<body>
+<div class="frame" id="frame"></div>
+
+<script src="../js/util.js"></script>
+<script src="../js/domain.js"></script>
+<script src="../js/seed.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/views/profile.js"></script>
+<script src="../js/views/chat.js"></script>
+<script src="../js/views/community.js"></script>
+<script src="fixtures.js"></script>
+<script>
+/* v1.29.0 화면 미리보기 — 매너 한 줄 태그 · 모집 정원 자동 마감.
+ * 테스트용 fixture로 실제 화면 코드(js/views/*)를 그대로 그립니다.
+ * (앱 번들·gh-pages 배포에는 들어가지 않습니다.)
+ *   ?view=chat        매칭 대화방 상단 매너 태그 4칩
+ *   ?view=chat-done   오늘 이미 남긴 상태
+ *   ?view=profile     프로필 시트의 받은 매너 배지
+ *   ?view=meet        마감된 번개 카드 + 글쓴이 참여자 명단 (기본)
+ */
+(function () {
+  var BM = window.BM, U = BM.util, D = BM.domain;
+  var frame = document.getElementById('frame');
+  var now = new Date();
+  function at(minAgo) { return U.stamp(new Date(now.getTime() - (minAgo || 0) * 60000)); }
+
+  var rows = BM.fixtures.demo();
+  var POST_MINE = '920000000000001';   /* 내가 올린 번개 (정원 3, 마감) */
+  var POST_OTHER = '920000000000002';  /* 남의 번개 (정원 2, 마감) */
+
+  /* 내 번개 — 정원 3명, 이미 두 명이 참여 문의 */
+  rows.push(D.toRow({
+    id: POST_MINE, type: '소셜', createdAt: at(95), date: U.ymd(), nick: '나래',
+    userKey: BM.seed.ME, text: '이번 주 금요일 저녁 7시에 번개 칠 분! 초보 환영이에요. 같이 기본기 돌려요.',
+    plan: { topic: '번개', meet: { when: '11/21(금) 19:00', place: '나래울 체육관 3번 코트', cap: '3' } }
+  }));
+  rows.push(D.toRow({
+    id: POST_OTHER, type: '소셜', createdAt: at(50), date: U.ymd(), nick: '발놀림장인',
+    userKey: 'demo_foot', text: '토요일 아침 2:2 복식 한 팀 구합니다. B조 이상이면 좋아요.',
+    plan: { topic: '번개', meet: { when: '11/22(토) 08:00', place: '강서 SH 체육관', cap: '2' } }
+  }));
+  [
+    ['920000000000011', POST_MINE, 'demo_suttle', '셔틀버스', 80, '번개 참여하고 싶어요!'],
+    ['920000000000012', POST_MINE, 'demo_net', '네트앞여우', 70, '저도 갈게요. 혼복도 가능해요!'],
+    ['920000000000013', POST_OTHER, 'demo_koala', '콕콕이', 40, '참여하고 싶어요!']
+  ].forEach(function (m) {
+    rows.push(D.toRow({
+      id: m[0], type: '매칭채팅', createdAt: at(m[4]), date: U.ymd(),
+      nick: m[3], userKey: m[2], target: BM.seed.ME, team: m[1], text: m[5]
+    }));
+  });
+
+  /* 받은 매너 태그 — 다른 사람들이 demo_net에게 남긴 태그(프로필 배지용).
+   * 내가 demo_net에게 남긴 태그는 'chat-done' 미리보기에서만 따로 넣습니다. */
+  var mannerRows = [
+    ['920000000000021', 'demo_chi', 'demo_net', 'care', 200],
+    ['920000000000022', 'demo_foot', 'demo_net', 'care', 160],
+    ['920000000000024', 'demo_suttle', 'demo_net', 'good', 90],
+    ['920000000000025', 'demo_koala', 'demo_net', 'time', 60]
+  ];
+  mannerRows.forEach(function (m) {
+    rows.push(D.toRow({
+      id: m[0], type: '매너', createdAt: at(m[4]), date: U.ymd(),
+      userKey: m[1], target: m[2], team: m[3], likes: 1
+    }));
+  });
+
+  var view = (location.search.match(/view=([a-z-]+)/) || [])[1] || 'meet';
+
+  if (view === 'interact') {
+    /* 저장소·이벤트까지 실제로 돌려 보는 점검용 (칩을 누르면 행이 생기고 화면이 바뀝니다) */
+    ['bm_rows_v1', 'bm_queue_v1', 'bm_cache_v1', 'bm_me_v1', 'bm_mode_v1', 'bm_auth_v1'].forEach(function (k) {
+      U.storage.removeItem(k);
+    });
+    U.writeJSON('bm_rows_v1', BM.fixtures.demo());
+    var store = BM.store.createStore({ api: BM.api.createLocal({ latency: 0 }) });
+    store.actions.init().then(function () {
+      var st = store.state;
+      var th = st.data.threads.filter(function (x) { return x.kind === 'match' && x.other === 'demo_net'; })[0];
+      store.actions.openChat(th.roomId, th.other);
+      var host = document.createElement('div');
+      host.className = 'dm';
+      host.style.cssText = 'position:absolute;inset:0;';
+      frame.appendChild(host);
+      var ictx = { store: store, actions: store.actions, refresh: function () {} };
+      BM.views.chat.bind(host, ictx);
+      BM.views.chat.render(host, store.state);
+      store.subscribe(function () {
+        BM.views.chat.render(host, store.state);
+        var sc = host.querySelector('[data-dm-scroll]');
+        if (sc) sc.scrollTop = sc.scrollHeight;
+      });
+      window.__store = store;
+      document.title = '매너 태그 누름 점검';
+    });
+    return;
+  }
+
+  if (view === 'interact-meet') {
+    /* 정원이 찬 남의 번개 글에서 '대기 문의'를 누르면 대기 문구가 채워지는지 */
+    ['bm_rows_v1', 'bm_queue_v1', 'bm_cache_v1', 'bm_me_v1', 'bm_mode_v1', 'bm_auth_v1'].forEach(function (k) {
+      U.storage.removeItem(k);
+    });
+    var mrows = BM.fixtures.demo();
+    mrows.push(D.toRow({
+      id: '930000000000001', type: '소셜', createdAt: U.stamp(), date: U.ymd(),
+      nick: '발놀림장인', userKey: 'demo_foot', text: '토요일 아침 2:2 복식 한 팀 구합니다.',
+      plan: { topic: '번개', meet: { when: '11/22(토) 08:00', place: '강서 SH 체육관', cap: '2' } }
+    }));
+    mrows.push(D.toRow({
+      id: '930000000000002', type: '매칭채팅', createdAt: U.stamp(), date: U.ymd(),
+      nick: '셔틀버스', userKey: 'demo_suttle', target: BM.seed.ME, team: '930000000000001', text: '참여하고 싶어요!'
+    }));
+    U.writeJSON('bm_rows_v1', mrows);
+    var mstore = BM.store.createStore({ api: BM.api.createLocal({ latency: 0 }) });
+    mstore.actions.init().then(function () {
+      var main = document.createElement('div');
+      main.className = 'main';
+      main.innerHTML = '<div class="view">' + BM.views.community.render(mstore.state) + '</div>';
+      frame.appendChild(main);
+      var mctx = { store: mstore, actions: mstore.actions, refresh: function () {} };
+      BM.views.community.mount(main, mctx);
+      window.__store = mstore;
+      document.title = '대기 문의 점검';
+    });
+    return;
+  }
+
+  var me = { key: BM.seed.ME, nick: '나래', level: 'C조', discipline: '복식', theme: { theme: 'th_night', avatar: '🦋' } };
+  var data = BM.store.derive(rows, me.key, me);
+  var state = {
+    me: me, ready: true, data: data,
+    ui: { tab: 'community', chatRoom: null, chatOther: '', chatDraft: '' },
+    prefs: { notify: true, letter: true }
+  };
+  var ctx = { store: { state: state }, actions: {}, refresh: function () {} };
+
+  if (view === 'chat' || view === 'chat-done') {
+    var room = data.threads.filter(function (t) { return t.kind === 'match' && t.other === 'demo_net'; })[0];
+    if (view === 'chat-done') {
+      rows.push(D.toRow({
+        id: '920000000000031', type: '매너', createdAt: at(20), date: U.ymd(),
+        userKey: BM.seed.ME, target: 'demo_net', team: 'care', likes: 1
+      }));
+      data = BM.store.derive(rows, me.key, me);
+      state.data = data;
+      room = data.threads.filter(function (t) { return t.kind === 'match' && t.other === 'demo_net'; })[0];
+    }
+    state.ui.chatRoom = room ? room.roomId : '';
+    state.ui.chatOther = 'demo_net';
+    frame.innerHTML = '<div class="dm"><div class="dm__panel">' + BM.views.chat.roomHtml(state) + '</div></div>';
+    var scroll = frame.querySelector('[data-dm-scroll]');
+    if (scroll) scroll.scrollTop = scroll.scrollHeight;
+    document.title = view === 'chat-done' ? '매너 태그 남긴 뒤' : '매너 한 줄 태그';
+    return;
+  }
+
+  if (view === 'profile') {
+    frame.innerHTML = '<div class="main"><div class="view">' + BM.views.community.render(state) + '</div></div>';
+    BM.views.profile.open('demo_net', ctx);
+    document.title = '받은 매너 배지';
+    return;
+  }
+
+  if (view === 'members') {
+    frame.innerHTML = '<div class="main"><div class="view">' + BM.views.community.render(state) + '</div></div>';
+    /* 글쓴이 명단 시트를 실제 코드로 그립니다 */
+    (function () {
+      var post = state.data.posts.filter(function (p) { return String(p.id) === '920000000000001'; })[0];
+      var st = D.meetStatus(state.data.idx, post, me.key);
+      var list = st.members.map(function (mem) {
+        var isAuthor = String(mem.key) === String(post.userKey);
+        return '<li><button type="button" class="members__who">' +
+          BM.ui.avatar(BM.ui.person(state, mem.key), 34) +
+          '<span><strong>' + U.esc(mem.nick) + '</strong><small>' + (isAuthor ? '글쓴이' : '참여 문의') + (mem.me ? ' · 나' : '') + '</small></span></button></li>';
+      }).join('');
+      BM.ui.openSheet({
+        title: '참여자 명단',
+        body: '<div class="members"><p class="members__t">' + BM.ui.icon('users') + '참여자 <b>' + st.count + '명</b>' +
+          (st.cap ? ' · 정원 ' + st.cap + '명' : '') + (st.closed ? ' · <b>마감</b>' : '') + '</p>' +
+          '<ul class="members__list">' + list + '</ul></div>'
+      });
+    })();
+    document.title = '참여자 명단';
+    return;
+  }
+
+  /* meet — 커뮤니티 글 목록에서 번개 카드만 보이게 정리 */
+  frame.innerHTML = '<div class="main"><div class="view">' + BM.views.community.render(state) + '</div></div>';
+  ['.card--composer', '[data-topicfilterbar]', '[data-sort]'].forEach(function (sel) {
+    var n = frame.querySelector(sel);
+    if (n) n.remove();
+  });
+  document.title = '모집 정원 자동 마감';
+})();
+</script>
+</body>
+</html>

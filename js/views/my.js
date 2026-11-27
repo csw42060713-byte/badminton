@@ -224,6 +224,10 @@
       '<div><strong>' + hearts.balance + '</strong><span>잔액</span></div>' +
       '<div><strong data-ad-stat>' + hearts.adUsedToday + '/' + hearts.adLimit + '</strong><span>오늘 광고</span></div>' +
       '</div>' +
+      /* bm-v1.87.0 — 오늘 남은 광고 시청 횟수를 한 줄로 또렷하게('오늘 N/5회 남음') */
+      '<p class="adleft" data-ad-left>' +
+      '<span data-ad-left-t>' + U.esc(BM.ads && typeof BM.ads.adLeftText === 'function'
+        ? BM.ads.adLeftText(live) : ('오늘 ' + live.adRemaining + '/' + live.adLimit + '회 남음')) + '</span></p>' +
 
       /* 오늘 남은 무료 적립분을 한 줄로 — 이 숫자가 광고 쿨타임과 함께 1초마다 갱신됩니다 */
       '<p class="freeline" data-free-line' + (live.freeHeartsLeft > 0 ? '' : ' is-done') + '>' + UI.icon('spark') +
@@ -370,6 +374,8 @@
       if (free && BM.ads && typeof BM.ads.freeText === 'function') free.textContent = BM.ads.freeText(h);
       var freeD = root.querySelector('[data-free-d]');
       if (freeD && BM.ads && typeof BM.ads.freeDetail === 'function') freeD.textContent = BM.ads.freeDetail(h);
+      var leftT = root.querySelector('[data-ad-left-t]');
+      if (leftT && BM.ads && typeof BM.ads.adLeftText === 'function') leftT.textContent = BM.ads.adLeftText(h);
       if (h.nextAdInSec > 0) return;
 
       /* 0초 — 버튼을 바로 열고, 잔액·오늘 남은 무료 하트를 다시 계산합니다 */

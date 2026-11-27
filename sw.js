@@ -418,7 +418,7 @@
  *             · 매 프레임 그라데이션·shadowBlur 를 없애고 스프라이트 drawImage 로 바꿔 60fps 유지
  *             js/racketcustom.js·js/store.js·styles.css·index.html 이 바뀌어 캐시를 bm-v1.86.0 으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.86.0';
+var VERSION = 'bm-v1.87.0';
 var SHELL = [
   './',
   './index.html',

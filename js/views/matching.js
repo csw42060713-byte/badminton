@@ -174,11 +174,13 @@
     var balance = hearts.balance || 0;
     return { cost: cost, balance: balance, short: balance < cost };
   }
-  /* bm-v1.80.0 — 다른 사람의 커스텀 라켓 한 자루 (급수·지역 옆에 작게) */
+  /* bm-v1.80.0 — 다른 사람의 커스텀 라켓 한 자루 (급수·지역 옆에 작게)
+   *  bm-v1.87.0 — 탭하면 그 사람 라켓 구경 시트(응원 · 1:1 매칭)로 이어집니다 */
   function racketMini(state, userKey) {
     if (!BM.racketcustom) return '';
-    return '<span class="pcard__rk" data-rk-person="' + U.esc(userKey) + '">' +
-      BM.racketcustom.personHtml(state, userKey) + '</span>';
+    return '<button type="button" class="pcard__rk" data-rk-person="' + U.esc(userKey) + '"' +
+      ' aria-label="커스텀 라켓 구경">' +
+      BM.racketcustom.personHtml(state, userKey) + '</button>';
   }
 
   function playerCard(p, state) {
@@ -219,7 +221,7 @@
       '<button type="button" class="cheerbtn cheerbtn--sm" data-cheer="' + key + '"' +
       ' aria-label="' + U.esc(p.nick) + '님에게 응원 하트 ' + D.HEART_RULES.GIFT_COST + '개 보내기">' +
       '<span class="cheerbtn__ico" aria-hidden="true">💛</span>응원</button></div></div>' +
-      (p.discipline || p.style || spec ? '<p class="pcard__spec">' +
+      (p.discipline || p.style || spec ? '<p class="pcard__spec" data-rk-person="' + key + '">' +
         (p.discipline ? '<span class="eventchip is-on">' + U.esc(p.discipline) + '</span>' : '') +
         (p.style ? '<span class="pill pill--style">' + U.esc(p.style) + '</span>' : '') +
         (spec ? '<span class="pcard__spec-t">' + U.esc(spec) + '</span>' : '') + '</p>' : '') +
@@ -915,6 +917,99 @@
     });
   }
 
+  /* ---------- 상대 라켓 구경 시트 (bm-v1.87.0) ----------
+   *  · 매칭 카드·커뮤니티 글의 미니 라켓(스펙 배지)을 탭하면 열리는 가벼운 미리보기.
+   *  · 상대가 꾸민 라켓(바디 · 등급 · 효과 · 줄 상태)을 보여 주고,
+   *    그 안에서 바로 '💛 응원 하트 1개' · '1:1 매칭 신청'으로 이어집니다.
+   *  · 하트는 기존 서버 RPC(gift · match)만 씁니다(새 RPC 없음). */
+  function peekBody(state, p) {
+    var rc = BM.racketcustom;
+    var info = rc.peekOf(state, p.userKey);
+    var key = U.esc(p.userKey);
+    var mine = !!(state.me && state.me.key === p.userKey);
+    var st = statusOf(state, p);
+    var shop = info.rarity;
+    var rows = [
+      ['바디', info.body.name + ' · ' + info.body.note],
+      ['등급', shop.name],
+      ['효과', info.effectName || '없음'],
+      ['꾸민 파츠', info.spec || '아직 기본 라켓이에요'],
+      ['줄 상태', info.gearText]
+    ].map(function (r) {
+      return '<div><dt>' + U.esc(r[0]) + '</dt><dd>' + U.esc(r[1]) + '</dd></div>';
+    }).join('');
+
+    var acts;
+    if (mine) {
+      acts = '<button type="button" class="btn btn--primary btn--big" data-peek-mine="1">내 라켓 꾸미기</button>';
+    } else if (st.canChat) {
+      acts = '<div class="row gap8">' +
+        '<button type="button" class="btn btn--ghost grow" data-peek-cheer="' + key + '">💛 응원 하트 ' + D.HEART_RULES.GIFT_COST + '개</button>' +
+        '<button type="button" class="btn btn--primary grow" data-peek-chat="' + key + '"' +
+        (st.roomId ? ' data-peek-room="' + U.esc(st.roomId) + '"' : '') + '>1:1 대화하기</button></div>';
+    } else {
+      acts = '<div class="row gap8">' +
+        '<button type="button" class="btn btn--ghost grow" data-peek-cheer="' + key + '">💛 응원 하트 ' + D.HEART_RULES.GIFT_COST + '개</button>' +
+        '<button type="button" class="btn btn--primary grow" data-peek-match="' + key + '">1:1 매칭 신청</button></div>' +
+        '<p class="hint mt8">매칭은 상대가 수락할 때 하트 ' + D.HEART_RULES.MATCH_COST + '개가 차감돼요.</p>';
+    }
+
+    return '<div class="peek" data-racket-peek="' + key + '">' +
+      '<div class="peek__top">' +
+        '<span class="peek__art">' + rc.svg(info.custom, { level: info.level }) + '</span>' +
+        '<div class="peek__who">' +
+          '<div class="peek__name">' + U.esc(p.nick) + gradePill(p) + genderPill(p) + '</div>' +
+          '<p class="peek__meta">' + U.esc((metaHtml(p) || '지역 미입력')) + '</p>' +
+          '<span class="rkrar rkrar--' + shop.id + '">' + U.esc(shop.name) + ' 등급</span>' +
+        '</div></div>' +
+      '<dl class="pp__spec peek__spec">' + rows + '</dl>' +
+      '<div class="peek__acts">' + acts + '</div>' +
+      '</div>';
+  }
+
+  function openRacketPeek(ctx, userKey) {
+    if (!BM.racketcustom) return null;
+    var state = ctx.store.state;
+    var p = profileOf(state, userKey) || personOf(state, userKey);
+    if (!p || !p.userKey) { UI.toast('라켓 주인을 찾지 못했어요', 'error'); return null; }
+    return UI.openSheet({
+      title: '🏸 ' + (p.nick || '이 사람') + '님의 라켓',
+      body: peekBody(state, p),
+      onMount: function (wrap) {
+        wrap.addEventListener('click', function (ev) {
+          if (ev.target.closest('[data-peek-mine]')) {
+            ev.preventDefault();
+            UI.closeSheet();
+            BM.racketcustom.openSheet(ctx);
+            return;
+          }
+          if (ev.target.closest('[data-peek-cheer]')) {
+            ev.preventDefault();
+            cheerSend(ctx, p);
+            return;
+          }
+          if (ev.target.closest('[data-peek-chat]')) {
+            ev.preventDefault();
+            var roomId = ev.target.closest('[data-peek-chat]').getAttribute('data-peek-room') || (statusOf(ctx.store.state, p).roomId || '');
+            UI.closeSheet();
+            if (!roomId) { UI.toast('대화방을 찾지 못했어요', 'error'); return; }
+            ctx.actions.openChat(roomId, p.userKey);
+            ctx.actions.markChatRead(roomId, p.userKey);
+            return;
+          }
+          if (ev.target.closest('[data-peek-match]')) {
+            ev.preventDefault();
+            UI.closeSheet();
+            var letterOn = !(ctx.store.state.prefs && ctx.store.state.prefs.letter === false);
+            if (letterOn) openLetterCompose(ctx, p);
+            else releaseRequest(ctx, p, noteDrafts[p.userKey] || '', { letter: false });
+            return;
+          }
+        });
+      }
+    });
+  }
+
   function openProfile(p, ctx) {
     UI.openSheet({
       title: '선수 프로필',
@@ -1385,6 +1480,16 @@
           return;
         }
 
+        /* 상대 미니 라켓 · 스펙 배지 → 라켓 구경 시트 (프로필보다 먼저) — bm-v1.87.0 */
+        var rkTap = ev.target.closest('[data-rk-person]');
+        if (rkTap) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          var rkKey = rkTap.getAttribute('data-rk-person');
+          if (rkKey) openRacketPeek(ctx, rkKey);
+          return;
+        }
+
         var profileTarget = ev.target.closest('[data-open-profile]');
         if (profileTarget) {
           ev.preventDefault();
@@ -1685,6 +1790,9 @@
   view.playerCard = playerCard;
   view.cheerSend = cheerSend;
   view.inviteBar = inviteBar;
+  /* v1.87 — 상대 라켓 구경 시트(응원 · 1:1 매칭) — 커뮤니티 카드에서도 같은 시트를 씁니다 */
+  view.openRacketPeek = openRacketPeek;
+  view._peekBody = peekBody;
 
   /* ---------- 다른 화면(체육관 지도)에서 매칭 흐름으로 이어지는 입구 (2026-11-23)
    *  · 매칭 탭의 프로필 시트·매칭 신청(편지지)·1:1 대화를 그대로 재사용합니다.

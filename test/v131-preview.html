@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ko" data-theme="th_night" style="background:#0b1220">
+<head>
+<meta charset="utf-8">
+<title>v1.31 화면 미리보기 — 주간 약점 3회 챌린지</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html, body { margin: 0; background: #0b1220; }
+  body { display: flex; justify-content: center; }
+  .frame {
+    position: relative;
+    width: 100%;
+    max-width: 430px;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+  .frame .dm { position: absolute; inset: 0; }
+  .frame .main { height: 100dvh; overflow-y: auto; padding: 0 0 40px; }
+  .frame .view { padding: 12px 14px 0; }
+</style>
+</head>
+<body>
+<div class="frame" id="frame"></div>
+
+<script src="../js/util.js"></script>
+<script src="../js/domain.js"></script>
+<script src="../js/routine.js"></script>
+<script src="../js/beginner.js"></script>
+<script src="../js/ai.js"></script>
+<script src="../js/seed.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/ads.js"></script>
+<script src="../js/scoreboard.js"></script>
+<script src="../js/timer.js"></script>
+<script src="../js/views/profile.js"></script>
+<script src="../js/views/chat.js"></script>
+<script src="../js/views/log.js"></script>
+<script src="../js/views/matching.js"></script>
+<script src="../js/views/community.js"></script>
+<script src="fixtures.js"></script>
+<script>
+/* v1.31.0 화면 미리보기 — 주간 약점 3회 챌린지 · 디자인 폴리싱.
+ * 실제 화면 코드(js/views/*)를 그대로 그립니다. (앱 번들·gh-pages 배포에는 들어가지 않습니다.)
+ *   ?view=log        일지 & AI — 루틴 요약 아래 2/3 스탬프 (기본)
+ *   ?view=done       3회를 채운 축하 배지
+ *   ?view=profile    프로필 시트 — '플레이 스타일' 한 줄 정렬
+ *   ?view=letter     매칭 받은 요청 — 편지지 카드
+ *   ?view=scoreboard 코트 점수판 시트
+ *   ?view=chat       1:1 대화방
+ */
+(function () {
+  var BM = window.BM, U = BM.util, D = BM.domain;
+  var frame = document.getElementById('frame');
+  var view = (location.search.match(/view=([a-z-]+)/) || [])[1] || 'log';
+  var meKey = BM.seed.ME;
+
+  ['bm_rows_v1', 'bm_queue_v1', 'bm_cache_v1', 'bm_me_v1', 'bm_mode_v1', 'bm_auth_v1'].forEach(function (k) {
+    U.storage.removeItem(k);
+  });
+
+  /* 예시 데이터 — 내 기록은 챌린지가 '이번 주 2/3'으로 보이게 직접 만듭니다 */
+  var rows = BM.fixtures.demo().filter(function (r) {
+    return !(r[D.COL['유형']] === '기록' && r[D.COL['사용자ID']] === meKey);
+  });
+
+  function dayAgo(n) { return U.ymd(U.addDays(new Date(), -n)); }
+  function stampAgo(n, h, m) { return dayAgo(n) + ' ' + U.pad2(h) + ':' + U.pad2(m || 0) + ':00'; }
+  function pushLog(n, weak, done, opts) {
+    opts = opts || {};
+    rows.push(D.toRow({
+      id: U.uid(), type: '기록', createdAt: stampAgo(n, 19, 10), date: dayAgo(n),
+      nick: '나래', level: 'C조', discipline: '복식', userKey: meKey,
+      cond: opts.cond || 7, intensity: opts.intensity || 7, minutes: opts.minutes || 70,
+      done: done || ['스트록', '풋워크', '게임'],
+      score: opts.score === null ? null : (opts.score || { a: 21, b: 18 }),
+      result: opts.score === null ? '' : '승',
+      pain: opts.pain || [], weakness: weak || []
+    }));
+  }
+  /* 이번 주(월~일) 안의 날짜로 잡습니다 — 오늘은 금요일 2026-11-20 */
+  pushLog(8, ['헤어핀'], ['스트록', '벽치기']);          /* 지난주 — 약점 집계에만 */
+  pushLog(6, ['헤어핀', '클리어'], ['스트록', '풋워크']);
+  pushLog(4, ['헤어핀'], ['스트록', '게임']);            /* 이번 주 월 */
+  pushLog(2, ['헤어핀', '드라이브'], ['스트록', '게임']); /* 이번 주 수 */
+  pushLog(1, [], ['풋워크', '게임']);                    /* 이번 주 목 */
+  if (view === 'done') pushLog(0, ['헤어핀'], ['스트록', '게임']);   /* 오늘 → 3/3 */
+
+  /* '플레이 스타일'이 채워진 매칭 프로필 (프로필 시트 정렬 확인용) */
+  rows.push(D.toRow({
+    id: U.uid(), type: '매칭프로필', createdAt: stampAgo(0, 8, 0), userKey: 'demo_net', nick: '네트앞여우',
+    payload: {
+      region: '경기', level: '선수부', discipline: '혼합복식', club: '나래울',
+      availability: '주말', experience: '5년 이상', bio: '혼복 전문. 네트 앞 플레이와 헤어핀 세밀하게 잡아드려요.',
+      avatar: '🦉', gender: '여성', style: '올라운드',
+      avatarFrame: 'sakura', avatarBg: 'plain', avatarBadge: '🏸'
+    }
+  }));
+
+  U.writeJSON('bm_rows_v1', rows);
+
+  var store = BM.store.createStore({ api: BM.api.createLocal({ latency: 0 }) });
+  store.actions.init().then(function () {
+    var state = store.state;
+    /* C조 · 4주 루틴 1주차를 끝낸 상태 → 루틴 요약줄 아래 챌린지가 보입니다 */
+    state.me = { key: meKey, nick: '나래', level: 'C조', discipline: '복식', theme: { theme: 'th_night', avatar: '🦋' } };
+    state.routine = BM.routine.normalize({ w1_grip: true, w1_ready: true, w1_warmup: true });
+    state.routinePref = true;
+    state.drafts.log.cond = 7;
+    state.drafts.log.intensity = 6;
+    state.drafts.log.minutes = 65;
+    state.drafts.log.weakness = view === 'done' ? ['헤어핀'] : [];
+    state.data = BM.store.derive(rows, meKey, state.me);
+    state.analysis = BM.ai.analyze({
+      draft: state.drafts.log, records: state.data.records,
+      level: 'C조', discipline: '복식', nick: '나래'
+    });
+
+    var ctx = {
+      store: store, actions: store.actions,
+      saveLog: function () { return store.actions.saveLog({ keepDraft: true }); },
+      repaint: function () {
+        frame.innerHTML = '<div class="main"><div class="view">' + BM.views.log.render(state) + '</div></div>';
+      },
+      refresh: function () {}, auth: BM.auth
+    };
+
+    if (view === 'profile') {
+      frame.innerHTML = '<div class="main"><div class="view">' + BM.views.community.render(state) + '</div></div>';
+      BM.views.profile.open('demo_net', ctx);
+      document.title = '프로필 시트';
+      return;
+    }
+
+    if (view === 'letter-sheet') {
+      state.ui.matchTab = 'in';
+      frame.innerHTML = '<div class="main"><div class="view" id="mhost">' + BM.views.matching.render(state) + '</div></div>';
+      BM.views.matching.mount(document.getElementById('mhost'), ctx);
+      var openBtn = document.querySelector('[data-open-letter]');
+      if (openBtn) openBtn.click();
+      document.title = '받은 편지지 시트';
+      return;
+    }
+
+    if (view === 'letter') {
+      state.ui.matchTab = 'in';
+      frame.innerHTML = '<div class="main"><div class="view">' + BM.views.matching.render(state) + '</div></div>';
+      document.title = '받은 매칭 편지지';
+      return;
+    }
+
+    if (view === 'scoreboard') {
+      frame.innerHTML = '<div class="main"><div class="view">' + BM.views.log.render(state) + '</div></div>';
+      BM.views.log.scoreboardOpen(ctx);
+      document.title = '코트 점수판';
+      return;
+    }
+
+    if (view === 'chat') {
+      var room = state.data.threads.filter(function (t) { return t.kind === 'match'; })[0];
+      state.ui.chatRoom = room ? room.roomId : '';
+      state.ui.chatOther = room ? room.other : '';
+      frame.innerHTML = '<div class="dm"><div class="dm__panel">' + BM.views.chat.roomHtml(state) + '</div></div>';
+      var scroll = frame.querySelector('[data-dm-scroll]');
+      if (scroll) scroll.scrollTop = scroll.scrollHeight;
+      document.title = '1:1 대화방';
+      return;
+    }
+
+    ctx.repaint();
+    document.title = view === 'done' ? '3회 달성' : '주간 약점 챌린지';
+    window.__store = store;
+    window.__ctx = ctx;
+  });
+})();
+</script>
+</body>
+</html>

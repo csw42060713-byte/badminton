@@ -117,6 +117,12 @@
       '<span class="post__who"><strong>' + U.esc(p.nick) + '</strong>' +
       '<time>' + U.timeAgo(p.createdAt) + '</time></span></button>' +
       '<span class="pill pill--ghost post__topic">' + U.esc(p.topic || '자유') + '</span>' +
+      /* bm-v1.87.0 — 글쓴이의 미니 라켓. 탭하면 라켓 구경 시트(응원 · 1:1 매칭) */
+      (BM.racketcustom && p.userKey
+        ? '<button type="button" class="post__rk" data-rk-person="' + U.esc(p.userKey) + '"' +
+          ' aria-label="' + U.esc(p.nick) + '님 라켓 구경">' +
+          BM.racketcustom.personHtml(state, p.userKey) + '</button>'
+        : '') +
       (mine
         ? '<button type="button" class="post__del" data-post-del="' + U.esc(p.id) + '" aria-expanded="false"' +
           ' aria-label="내 글 삭제" title="삭제">' + UI.icon('trash') + '</button>'
@@ -912,6 +918,16 @@
           var bKey = blockYes.getAttribute('data-block-yes');
           if (BM.safety) BM.safety.doBlock(ctx, bKey);
           else ctx.actions.blockUser(bKey);
+          return;
+        }
+        /* 글쓴이의 미니 라켓 → 라켓 구경 시트 — bm-v1.87.0 */
+        var rkBtn = ev.target.closest('[data-rk-person]');
+        if (rkBtn) {
+          ev.preventDefault();
+          var rkKey = rkBtn.getAttribute('data-rk-person');
+          if (rkKey && BM.views.matching && BM.views.matching.openRacketPeek) {
+            BM.views.matching.openRacketPeek(ctx, rkKey);
+          }
           return;
         }
         /* 글쓴이 아바타·닉네임을 누르면 프로필(친구 상태·채팅 — 친구 추가는 친구 코드로만, v1.38) */

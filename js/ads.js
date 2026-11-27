@@ -248,6 +248,16 @@
       (extra > 0 ? ' = 광고 ' + base + ' + 보너스 ' + extra : '');
   }
 
+  /* 오늘 남은 광고 시청 횟수 한 줄 — '오늘 N/5회 남음' (bm-v1.87.0)
+   *  · MY 하트 지갑 · 꾸미기 시트 하트 지갑 · 공용 충전 시트가 같은 말을 씁니다.
+   *  · 광고가 아예 꺼진 환경(단위 ID 없음)에서는 '오늘 볼 수 있는 광고가 없어요'. */
+  function adLeftText(s) {
+    if (!s) return '';
+    var limit = Math.max(0, numVal(s.adLimit, 0));
+    if (limit <= 0) return '오늘 볼 수 있는 광고가 없어요';
+    return '오늘 ' + Math.max(0, numVal(s.adRemaining, 0)) + '/' + limit + '회 남음';
+  }
+
   function freeText(s) {
     if (!s) return '';
     if (s.freeHeartsLeft <= 0) return '오늘 무료 하트를 모두 받았어요';
@@ -541,6 +551,9 @@
       var pct = Math.min(100, Math.round((s.balance / need) * 100));
       var enough = short <= 0;
       return introHtml(s) +
+        /* bm-v1.87.0 — 오늘 남은 광고 시청 횟수를 한 줄로 또렷하게 */
+        '<p class="adleft" data-ad-left>' + UI.icon('spark') +
+        '<span data-ad-left-t>' + escText(adLeftText(s)) + '</span></p>' +
         '<div class="chargemeter"><i style="width:' + pct + '%"></i></div>' +
         '<p class="freeline" data-free-line>' + UI.icon('spark') +
         '<span data-free>' + escText(freeText(s)) + '</span>' +
@@ -575,6 +588,8 @@
         /* 남은 횟수(N/5)와 쿨타임 초를 1초마다 다시 — '지금 눌러도 되는지'가 바로 보입니다 */
         var sub = wrap.querySelector('[data-ad-sub]');
         if (sub) sub.textContent = adMeterText(s);
+        var alt = wrap.querySelector('[data-ad-left-t]');
+        if (alt) alt.textContent = adLeftText(s);
         var row = wrap.querySelector('[data-ad-row]');
         if (row) row.disabled = !s.canWatchAd;
         var free = wrap.querySelector('[data-free]');
@@ -719,6 +734,7 @@
     getStatus: getStatus,
     adText: adText,
     adMeterText: adMeterText,
+    adLeftText: adLeftText,
     freeText: freeText,
     freeDetail: freeDetail,
     streakText: streakText,
