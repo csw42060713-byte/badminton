@@ -487,9 +487,52 @@
     return patch;
   }
 
+  /* bm-v1.92.0 — 1:1 매칭 응답은 '받은 사람'이 씁니다.
+   *  · 요청 행(유형=매칭신청)의 주인은 신청자입니다. 그런데 상대가 수락/거절을 누르면
+   *    수락자 이름(user_key)으로 '수정' 행이 붙습니다(anon 은 UPDATE 권한이 없어서).
+   *  · 아래 겹쳐 읽기는 원래 행 주인의 수정만 인정해 왔기 때문에, 그 응답은 저장은 됐지만
+   *    모든 기기에서 영원히 무시됐습니다(새로고침하면 다시 '대기', 하트 차감·대화방도 풀림).
+   *  · 그래서 매칭신청 행에 한해, 그 요청을 받은 사람(행의 '대상' = payload.toId/toEmail)이
+   *    쓴 응답만 정당하게 겹쳐 읽습니다.
+   *  · 인정하는 값은 '수락'·'거절' 두 가지뿐이고, 행에 쓰는 칸도 '승패'와
+   *    하트 차감값(charged·short, 0~heartCost 로 잘라서)뿐입니다. 다른 칸은 건드리지 못합니다.
+   *  · 기록·프로필처럼 남의 행에 붙은 수정·삭제는 예전 그대로 무시합니다. */
+  var MATCH_TYPE = '매칭신청';
+  var MATCH_REPLY = { '수락': 1, '거절': 1 };
+
+  function matchReplyCells(orig, author, cells) {
+    if (!orig || String(orig.type || '') !== MATCH_TYPE || !author || !cells) return null;
+    var pl = (orig.payload && typeof orig.payload === 'object') ? orig.payload : {};
+    var to = String(orig.target || '');
+    var toOther = String(pl.toId || pl.toEmail || '');
+    /* 받은 사람 본인만 (신청자는 여기로 오지 않습니다 — 신청자는 행 주인이라 위에서 처리) */
+    if (!(author === to || (toOther && author === toOther))) return null;
+    var body = null;
+    if (typeof cells['소셜글'] === 'string') {
+      try { body = JSON.parse(cells['소셜글']); } catch (e) { body = null; }
+    }
+    if (!body || typeof body !== 'object') body = {};
+    var status = String(cells['승패'] || '');
+    if (!MATCH_REPLY[status]) status = String(body.status || '');
+    if (!MATCH_REPLY[status]) return null;          /* 수락·거절 외의 값은 무시 */
+    var cost = Number(pl.heartCost) || D.HEART_RULES.MATCH_COST;
+    var next = {};
+    Object.keys(pl).forEach(function (k) { next[k] = pl[k]; });
+    next.status = status;
+    if (status === '수락' && pl.payOn === 'accept') {
+      var charged = body.charged == null ? cost : Number(body.charged);
+      if (!isFinite(charged)) charged = cost;
+      charged = Math.max(0, Math.min(cost, Math.round(charged)));
+      next.charged = charged;
+      if (charged < cost) next.short = cost - charged; else delete next.short;
+    }
+    return { '승패': status, '소셜글': jsonText(next) };
+  }
+
   /* DB 행 전체 → 화면에 넘길 26칸 행 배열
    * '수정' 행은 원래 행에 겹쳐 읽고, '삭제' 행은 원래 행을 가립니다.
-   * (같은 user_key 의 행에만 적용 — 남의 기록은 손댈 수 없습니다) */
+   * (같은 user_key 의 행에만 적용 — 남의 기록은 손댈 수 없습니다.
+   *  단, 매칭신청 응답은 받은 사람이 쓰므로 그 한 가지만 예외 — matchReplyCells) */
   function reconcileRecords(records) {
     var patches = [], gone = {}, base = [];
     (records || []).forEach(function (rec) {
@@ -500,12 +543,14 @@
       else base.push(rec);
     });
 
-    var rows = [], byId = {};
+    var rows = [], byId = {}, origById = {};
     base.forEach(function (rec) {
       var row = recordToRow(rec);
       if (!row || !row[0]) return;
       rows.push(row);
       byId[String(row[0])] = row;
+      /* 응답 검증은 '지금까지 겹쳐 읽은 값'이 아니라 처음 행을 기준으로 합니다 */
+      if (!origById[String(row[0])]) origById[String(row[0])] = rec;
     });
 
     var hidden = {};
@@ -524,9 +569,18 @@
       var id = String(rec.target || '');
       var row = byId[id];
       if (!row || hidden[id]) return;
-      if (String(rec.user_key || '') !== String(row[D.COL['사용자ID']] || '')) return;
       var cells = (rec.payload && rec.payload.cells) || null;
       if (!cells) return;
+      var author = String(rec.user_key || '');
+      if (author !== String(row[D.COL['사용자ID']] || '')) {
+        var reply = matchReplyCells(origById[id], author, cells);
+        if (!reply) return;
+        Object.keys(reply).forEach(function (name) {
+          var idx = D.COL[name];
+          if (idx != null) row[idx] = reply[name];
+        });
+        return;
+      }
       Object.keys(cells).forEach(function (name) {
         var idx = D.COL[name];
         if (idx != null) row[idx] = String(cells[name] == null ? '' : cells[name]);

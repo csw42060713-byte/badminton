@@ -775,7 +775,9 @@
       wipeAccountLocal(sess);
       var guest = sess.kind === 'guest';
       var serverGone = !!(res && res.authDeleted);
-      signOut();
+      /* bm-v1.92.0 — 서버 계정이 이미 지워진 탈퇴라면 /auth/v1/logout 을 부르지 않습니다.
+       * (부르면 403 user_not_found 만 남습니다) 기기 세션만 비우고 시작화면으로 돌아갑니다. */
+      signOut(serverGone);
       UI.toast(guest ? '이 기기에 저장된 기록을 모두 지웠어요' : '탈퇴가 완료됐어요. 그동안 함께해서 즐거웠어요!');
       return { ok: true, removed: (res && res.removed) || 0, authDeleted: serverGone };
     }).catch(function (err) {
@@ -956,8 +958,9 @@
     });
   }
 
-  /* ---------- 계정 전환 ---------- */
-  function signOut() {
+  /* ---------- 계정 전환 ----------
+   * skipRemote: 서버 계정이 이미 없는 경우(탈퇴 직후) — 서버 로그아웃 요청을 건너뜁니다. */
+  function signOut(skipRemote) {
     var sess = BM.auth.session();
     if (store) store.actions.stopListening();
     if (sess && sess.kind !== 'guest') {
@@ -967,7 +970,8 @@
       }
       U.storage.removeItem(BM.api.SESSION_KEY);
     }
-    BM.auth.signOut();
+    if (skipRemote && BM.auth.signOutLocal) BM.auth.signOutLocal();
+    else BM.auth.signOut();
     var dm = el('dm');
     if (dm) { dm.hidden = true; dm.innerHTML = ''; }
     store = null;
@@ -1220,7 +1224,7 @@
   /* bm-v1.82.0 — 내 상태(매칭 ON/휴식 중)를 바꾼 화면이 헤더 배지를 바로 다시 그리게 */
   function paintChromeNow() { if (store && store.state && !gated) paintChrome(store.state); }
 
-  BM.app = { boot: boot, repaint: repaint, paintChrome: paintChromeNow, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.91.0' };
+  BM.app = { boot: boot, repaint: repaint, paintChrome: paintChromeNow, TABS: TABS, ctx: ctx, onRewardAdResult: onRewardAdResult, pendingRewardAd: null, signOut: signOut, netBarText: netBarText, version: 'v1.92.0' };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

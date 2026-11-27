@@ -1,5 +1,5 @@
 /* ============================================================
- * test/ux1125.test.js — 2026-11-25 점심·저녁 사용성 점검 6건 (bm-v1.91.0)
+ * test/ux1125.test.js — 2026-11-25 점심·저녁 사용성 점검 6건 (bm-v1.92.0)
  *
  *   1) MY → 하트 부스트 문구·무료 하트 계산 정비
  *      · 오늘 받을 수 있는 무료 하트 합계 = 출석 + 광고 + 첫 광고 보너스 (괄호 안 합과 일치)
@@ -483,19 +483,19 @@
   });
 
   /* =========================================================
-   * 버전 — bm-v1.91.0 (sw · app · push · 스타일 캐시 · TWA · README)
+   * 버전 — bm-v1.92.0 (sw · app · push · 스타일 캐시 · TWA · README)
    * ========================================================= */
 
   test('v1.84 버전: sw · app · push · 스타일 캐시 · TWA · README', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.91.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.91.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.91.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-5', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.92.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.92.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.92.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-6', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.91.0', 'TWA 이름');
-    eq(twa.appVersion, '1.91.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 85, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.91.0', 'README');
+    eq(twa.appVersionName, '1.92.0', 'TWA 이름');
+    eq(twa.appVersion, '1.92.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 86, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.92.0', 'README');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

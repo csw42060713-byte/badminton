@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v191.test.js — bm-v1.91.0
+ * test/v191.test.js — bm-v1.92.0
  *   🦶 종아리 쿨다운 · 아킬레스 보호 AI 고도화
  *
  *   1) 근거     — 동호인 158명 종아리 뻣뻣함 26.6% · 웜업 r=-0.006 vs 쿨다운 r=-0.890 (Ingle 2025)
@@ -231,15 +231,15 @@
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), idx = readRoot('index.html');
     var twa = readJson('twa-manifest.json'), readme = readRoot('README.md'), run = readRoot('test/run.js');
-    includes(sw, "var VERSION = 'bm-v1.91.0'", 'sw 버전');
-    includes(sw, 'bm-v1.91.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.91.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.91.0'", 'push 버전');
-    includes(idx, 'styles.css?v=20261127-5', '스타일 캐시 키');
-    eq(twa.appVersionName, '1.91.0', 'TWA 이름');
-    eq(twa.appVersion, '1.91.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 85, 'TWA 코드');
-    includes(readme, 'bm-v1.91.0', 'README');
+    includes(sw, "var VERSION = 'bm-v1.92.0'", 'sw 버전');
+    includes(sw, 'bm-v1.92.0', 'sw 변경 이력');
+    includes(app, "version: 'v1.92.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.92.0'", 'push 버전');
+    includes(idx, 'styles.css?v=20261127-6', '스타일 캐시 키');
+    eq(twa.appVersionName, '1.92.0', 'TWA 이름');
+    eq(twa.appVersion, '1.92.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 86, 'TWA 코드');
+    includes(readme, 'bm-v1.92.0', 'README');
     includes(run, 'test/v191.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
