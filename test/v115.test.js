@@ -227,9 +227,9 @@
   test('v1.15 버전: sw·app·화면 캐시가 함께 올라간다', function () {
     if (!hasNode()) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
-    includes(sw, "var VERSION = 'bm-v1.94.0'", 'sw.js');
-    includes(app, "version: 'v1.94.0'", 'app.js');
-    includes(index, 'styles.css?v=20261127-7', '스타일 캐시');
+    includes(sw, "var VERSION = 'bm-v1.95.0'", 'sw.js');
+    includes(app, "version: 'v1.95.0'", 'app.js');
+    includes(index, 'styles.css?v=20261128-1', '스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

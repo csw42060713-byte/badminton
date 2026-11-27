@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v192.test.js — bm-v1.94.0
+ * test/v192.test.js — bm-v1.95.0
  *   1) 1:1 매칭 수락/거절이 서버 저장 후에도 유지된다 (치명 버그)
  *      · 원인: 요청 행 주인(신청자)의 '수정' 행만 겹쳐 읽어, 수락자의 응답이 영원히 무시됨
  *      · 수정: 매칭신청 행에 한해 '받은 사람'의 응답(수락·거절)만 정당하게 병합
@@ -79,7 +79,7 @@
       created_at: '2026-11-27T05:01:00+00:00'
     };
   }
-  /* bm-v1.94.0 실제 저장 형태 — 받은 사람이 신청자 주소(target=신청자)로 보내고,
+  /* bm-v1.95.0 실제 저장 형태 — 받은 사람이 신청자 주소(target=신청자)로 보내고,
    * 어느 요청의 응답인지는 payload.match 에 적습니다(RLS 상 양쪽이 읽을 수 있는 주소). */
   function replyToSender(author, status, charged) {
     var rec = replyRecord(author, status, charged);
@@ -355,9 +355,10 @@
     eq((sql.match(/\$\$/g) || []).length % 2, 0, '$$ 짝이 맞는다');
   });
 
-  test('v1.92 SQL: 가격표가 앱(js/racketcustom.js)의 하트 가격 43개와 모두 일치한다', function () {
+  test('v1.92 SQL: 가격표가 앱(js/racketcustom.js)의 하트 가격 전부와 일치한다', function () {
     if (!hasNode()) return;
-    var sql = readRoot('supabase/heart-rpc-v1.92-all.sql');
+    /* bm-v1.95.0 — 새 그립·임팩트 파츠가 들어간 통합 SQL(v1.95)이 최신 가격표입니다 */
+    var sql = readRoot('supabase/heart-rpc-v1.95-all.sql');
     var m = sql.match(/create or replace function public\.bm_racket_price[\s\S]*?end;/);
     ok(m, 'bm_racket_price 본문');
     var db = {};
@@ -376,7 +377,7 @@
       var b = RC.BODIES[id];
       app['body:' + id] = b.heart == null ? 0 : b.heart;
     });
-    eq(Object.keys(app).length, 43, '앱 품목 43개');
+    ok(Object.keys(app).length >= 67, '앱 품목 ' + Object.keys(app).length + '개');
     Object.keys(app).forEach(function (key) {
       eq(db[key], app[key], key + ' 가격');
     });
@@ -391,15 +392,15 @@
 
   test('v1.92 버전: sw · app · push · 스타일 캐시 · TWA · README', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.94.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.94.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.94.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-7', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.95.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.95.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.95.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261128-1', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.94.0', 'TWA 이름');
-    eq(twa.appVersion, '1.94.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 88, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.94.0', 'README');
+    eq(twa.appVersionName, '1.95.0', 'TWA 이름');
+    eq(twa.appVersion, '1.95.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 89, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.95.0', 'README');
     includes(readRoot('test/run.js'), 'test/v192.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

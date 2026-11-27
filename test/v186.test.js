@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v186.test.js — bm-v1.94.0
+ * test/v186.test.js — bm-v1.95.0
  *   🔥 실제 타격 순서(날아오기→백스윙→스윙·임팩트→폭발·발사) · 진짜 불·얼음 · 실제 규격 라켓·셔틀콕
  *   · 라켓 모션 칩 3종(하트로 열기, 관리자 전체 해금) · 버벅임(프레임) 개선
  *
@@ -89,7 +89,7 @@
     ok(c.y > a.y, '위에서 아래(타점)로 내려온다');
     ok(c.x > a.x, '왼쪽에서 오른쪽으로 들어온다');
     ok(Math.abs(c.x - imp.x) < 1 && Math.abs(c.y - imp.y) < 1, '정타 순간 타점에 정확히');
-    /* 에어 스매시 — bm-v1.94.0: 날아온 방향의 반대로 되받아치며 원근으로 작아져 퇴장
+    /* 에어 스매시 — bm-v1.95.0: 날아온 방향의 반대로 되받아치며 원근으로 작아져 퇴장
      * (예전에는 화면 앞으로 커지며 오른쪽으로 나갔습니다 — 지시에 따라 되받아치기로 바꿈) */
     var l0 = RC.launchPath(imp, 352, 356, 0, false);
     var l1 = RC.launchPath(imp, 352, 356, 1, false);
@@ -240,7 +240,7 @@
     var tw = [0, 0.15, 0.3, 0.45].map(function (p) { return RC.motionPose('twist', p * RC.MOTION_MS.twist); });
     ok(tw[1].yaw > 0.2 && tw[3].yaw < -0.2, '좌우로 8자');
     ok(Math.abs(tw[0].dy) < 1.2, '시작은 제자리');
-    /* bm-v1.94.0 — 쇼케이스는 손목으로 한 바퀴(roll 360°): 중간엔 반 바퀴, 끝엔 제자리(2π)
+    /* bm-v1.95.0 — 쇼케이스는 손목으로 한 바퀴(roll 360°): 중간엔 반 바퀴, 끝엔 제자리(2π)
      * (yaw 로만 돌리면 90°/270° 에서 라켓이 칼날처럼 얇아져 사라진 것처럼 보였습니다) */
     var sc = RC.motionPose('showcase', RC.MOTION_MS.showcase * 0.5);
     ok(sc.roll > 2.4 && sc.roll < 4.4, '중간엔 반 바퀴 남짓 ' + sc.roll.toFixed(2));
@@ -308,15 +308,15 @@
 
   test('v1.86 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.94.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.94.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.94.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-7', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.95.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.95.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.95.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261128-1', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.94.0', 'TWA 이름');
-    eq(twa.appVersion, '1.94.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 88, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.94.0', 'README');
+    eq(twa.appVersionName, '1.95.0', 'TWA 이름');
+    eq(twa.appVersion, '1.95.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 89, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.95.0', 'README');
     includes(readRoot('test/run.js'), 'test/v186.test.js', '테스트 목록');
   });
 

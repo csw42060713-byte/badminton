@@ -267,12 +267,12 @@
    * ========================================================= */
   test('v1.27 버전: sw · app · index · README · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.94.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.94.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-7', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.95.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.95.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261128-1', 'index.html 스타일 캐시');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.94.0', 'TWA 버전 이름');
-    eq(twa.appVersionCode, 88, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.95.0', 'TWA 버전 이름');
+    eq(twa.appVersionCode, 89, 'TWA 버전 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

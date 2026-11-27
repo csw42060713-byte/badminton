@@ -22,7 +22,8 @@ const files = [
   'test/v191.test.js',
   'test/v192.test.js',
   'test/v193.test.js',
-  'test/v194.test.js'
+  'test/v194.test.js',
+  'test/v195.test.js'
 ];
 
 const sandbox = {

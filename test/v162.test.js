@@ -252,13 +252,13 @@
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.94.0'", 'sw.js');
+    includes(sw, "var VERSION = 'bm-v1.95.0'", 'sw.js');
     includes(sw, 'bm-v1.74.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.94.0'", 'app.js');
-    includes(index, 'styles.css?v=20261127-7', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.94.0', 'TWA 이름');
-    eq(twa.appVersion, '1.94.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 88, 'TWA 코드');
+    includes(app, "version: 'v1.95.0'", 'app.js');
+    includes(index, 'styles.css?v=20261128-1', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.95.0', 'TWA 이름');
+    eq(twa.appVersion, '1.95.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 89, 'TWA 코드');
   });
 
   test('v1.62 배선: 새 입구 스타일 · 테스트 목록 · 서비스워커 캐시', function () {
