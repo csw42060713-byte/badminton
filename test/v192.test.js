@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v192.test.js — bm-v1.92.0
+ * test/v192.test.js — bm-v1.93.0
  *   1) 1:1 매칭 수락/거절이 서버 저장 후에도 유지된다 (치명 버그)
  *      · 원인: 요청 행 주인(신청자)의 '수정' 행만 겹쳐 읽어, 수락자의 응답이 영원히 무시됨
  *      · 수정: 매칭신청 행에 한해 '받은 사람'의 응답(수락·거절)만 정당하게 병합
@@ -79,7 +79,7 @@
       created_at: '2026-11-27T05:01:00+00:00'
     };
   }
-  /* bm-v1.92.0 실제 저장 형태 — 받은 사람이 신청자 주소(target=신청자)로 보내고,
+  /* bm-v1.93.0 실제 저장 형태 — 받은 사람이 신청자 주소(target=신청자)로 보내고,
    * 어느 요청의 응답인지는 payload.match 에 적습니다(RLS 상 양쪽이 읽을 수 있는 주소). */
   function replyToSender(author, status, charged) {
     var rec = replyRecord(author, status, charged);
@@ -391,15 +391,15 @@
 
   test('v1.92 버전: sw · app · push · 스타일 캐시 · TWA · README', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.92.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.92.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.92.0'", 'push 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.93.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.93.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.93.0'", 'push 버전');
     includes(readRoot('index.html'), 'styles.css?v=20261127-6', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.92.0', 'TWA 이름');
-    eq(twa.appVersion, '1.92.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 86, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.92.0', 'README');
+    eq(twa.appVersionName, '1.93.0', 'TWA 이름');
+    eq(twa.appVersion, '1.93.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 87, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.93.0', 'README');
     includes(readRoot('test/run.js'), 'test/v192.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

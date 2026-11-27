@@ -478,8 +478,16 @@
  *             supabase/heart-rpc-v1.92-all.sql(v1.82·v1.84·v1.86 통합)도 함께 넣었습니다.
  *             js/api.js·js/auth.js·js/seed.js·js/store.js·app.js 가 바뀌어
  *             styles.css?v=20261127-6 캐시 키와 함께 bm-v1.92.0 으로 올립니다.
+ *
+ * 2026-11-27 (bm-v1.93.0): 🔧 '상대 라켓 구경' 시트에 체육관 지도 버튼 태그가 글자로 보이던 문제 —
+ *             지역·주 체육관 줄(metaHtml)은 등록된 체육관이면 이미 <button ... class="gymlink"> HTML 을
+ *             돌려주는데, 그 위에 U.esc 를 한 번 더 씌워 &lt;button ...&gt; 가 글자 그대로 노출됐습니다
+ *             (1:1 매칭 → 상대 라켓 구경). U.esc 감싸기를 벗겨 지역·체육관 줄이 원래처럼 그려지게
+ *             했습니다(js/views/matching.js). js/ 전체에서 HTML 을 돌려주는 함수를 U.esc 로 감싼
+ *             같은 실수가 더 없는지 확인했고 이 한 곳뿐이었습니다. 회귀 테스트 test/v193.test.js 추가.
+ *             js 만 바뀌어 styles.css 캐시 키는 그대로 두고 bm-v1.93.0 으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.92.0';
+var VERSION = 'bm-v1.93.0';
 var SHELL = [
   './',
   './index.html',

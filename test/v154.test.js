@@ -510,13 +510,13 @@
   test('v1.54 버전: sw·app·TWA·styles.css가 bm-v1.74.0으로 맞는다', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js');
-    includes(sw, "var VERSION = 'bm-v1.92.0'", '서비스워커 버전');
+    includes(sw, "var VERSION = 'bm-v1.93.0'", '서비스워커 버전');
     includes(sw, 'bm-v1.74.0', '변경 이력');
-    includes(readRoot('app.js'), "version: 'v1.92.0'", '앱 버전');
+    includes(readRoot('app.js'), "version: 'v1.93.0'", '앱 버전');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.92.0', 'TWA 이름');
-    eq(twa.appVersion, '1.92.0', 'TWA 버전');
-    eq(twa.appVersionCode, 86, '업로드 번호 +1');
+    eq(twa.appVersionName, '1.93.0', 'TWA 이름');
+    eq(twa.appVersion, '1.93.0', 'TWA 버전');
+    eq(twa.appVersionCode, 87, '업로드 번호 +1');
     var html = readRoot('index.html');
     ok(/styles\.css\?v=20261127-\d+/.test(html), '스타일 캐시 키');
     includes(html, 'js/views/log.js', '일지 화면 스크립트');
