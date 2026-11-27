@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v184.test.js — bm-v1.92.0
+ * test/v184.test.js — bm-v1.93.0
  *   🤝 1:1 매칭 실시간(토큰) · 3D 라켓 실루엣·모션·임팩트 · 하트로 파츠 열기 · 라켓 기록 유지
  *
  *   1) 실시간  — Realtime join 에 로그인 access_token 을 싣는다(문자열·Promise 모두),
@@ -539,15 +539,15 @@
 
   test('v1.84 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.92.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.92.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.92.0'", 'push 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.93.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.93.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.93.0'", 'push 버전');
     includes(readRoot('index.html'), 'styles.css?v=20261127-6', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.92.0', 'TWA 이름');
-    eq(twa.appVersion, '1.92.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 86, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.92.0', 'README');
+    eq(twa.appVersionName, '1.93.0', 'TWA 이름');
+    eq(twa.appVersion, '1.93.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 87, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.93.0', 'README');
     includes(readRoot('test/run.js'), 'test/v185.test.js', '테스트 목록');
   });
 

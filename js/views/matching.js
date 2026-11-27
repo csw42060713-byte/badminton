@@ -959,7 +959,7 @@
         '<span class="peek__art">' + rc.svg(info.custom, { level: info.level }) + '</span>' +
         '<div class="peek__who">' +
           '<div class="peek__name">' + U.esc(p.nick) + gradePill(p) + genderPill(p) + '</div>' +
-          '<p class="peek__meta">' + U.esc((metaHtml(p) || '지역 미입력')) + '</p>' +
+          '<p class="peek__meta">' + (metaHtml(p) || '지역 미입력') + '</p>' +
           '<span class="rkrar rkrar--' + shop.id + '">' + U.esc(shop.name) + ' 등급</span>' +
         '</div></div>' +
       '<dl class="pp__spec peek__spec">' + rows + '</dl>' +
