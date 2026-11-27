@@ -79,6 +79,15 @@
       created_at: '2026-11-27T05:01:00+00:00'
     };
   }
+  /* bm-v1.92.0 실제 저장 형태 — 받은 사람이 신청자 주소(target=신청자)로 보내고,
+   * 어느 요청의 응답인지는 payload.match 에 적습니다(RLS 상 양쪽이 읽을 수 있는 주소). */
+  function replyToSender(author, status, charged) {
+    var rec = replyRecord(author, status, charged);
+    rec.target = A;
+    rec.payload.match = ROOM;
+    rec.created_at = '2026-11-27T05:03:00+00:00';
+    return rec;
+  }
   function rowOf(rows, id) {
     return rows.filter(function (r) { return String(r[0]) === String(id); })[0] || [];
   }
@@ -135,6 +144,62 @@
     eq(got.status, '수락', '받은 요청도 수락으로 표시');
   });
 
+  test('v1.92 매칭: 신청자 주소로 온 응답(payload.match)도 신청자 화면에서 수락으로 반영된다', function () {
+    /* 실서버에서는 요청 행에 붙은 '수정' 행을 신청자가 읽을 수 없어(RLS),
+     * 받은 사람이 신청자 주소(target=신청자)로 응답을 보냅니다. */
+    var rows = BM.api.reconcileRecords([requestRowForHearts(), replyToSender(B, '수락', 2)]);
+    var row = rowOf(rows, ROOM);
+    eq(String(row[D.COL['승패']]), '수락', '신청자 시야에서도 수락');
+    eq(payloadOf(row).charged, 2, '차감 2개');
+    var st = BM.store.derive(rows, A);
+    eq(st.hearts.balance, 1, '신청자 하트 3 - 2 = 1');
+    ok((st.threads || []).some(function (t) { return t.roomId === ROOM; }), '대화방도 생긴다');
+  });
+
+  test('v1.92 매칭: 신청자 본인이 응답 형식으로 자기 요청을 수락해 차감을 피할 수 없다', function () {
+    var self = replyToSender(A, '수락', 0);
+    var rows = BM.api.reconcileRecords([requestRowForHearts(), self]);
+    eq(String(rowOf(rows, ROOM)[D.COL['승패']]), '대기', '신청자 자신의 응답은 무시');
+    eq(BM.store.derive(rows, A).hearts.balance, 3, '하트도 그대로');
+  });
+
+  test('v1.92 매칭: 제3자가 신청자 주소로 보낸 응답도 무시한다', function () {
+    var rows = BM.api.reconcileRecords([requestRowForHearts(), replyToSender(C, '수락', 2)]);
+    eq(String(rowOf(rows, ROOM)[D.COL['승패']]), '대기', '제3자는 병합되지 않는다');
+  });
+
+  test('v1.92 매칭: 저장 요청이 신청자 주소(target)와 payload.match 로 나간다', function () {
+    var sent = [];
+    var fake = {
+      mode: 'supabase',
+      bootstrap: function () {
+        return Promise.resolve({
+          me: { key: B, nick: '수락자' },
+          rows: [D.toRow({
+            id: ROOM, type: '매칭신청', userKey: A, nick: '신청A', target: B, status: '대기',
+            createdAt: '2026-11-27 14:00:00', date: '2026-11-27',
+            payload: { note: '같이 쳐요', heartCost: 2, payOn: 'accept', status: '대기' }
+          })],
+          syncedAt: ''
+        });
+      },
+      update: function (id, cells, clientId, reply) { sent.push({ id: id, reply: reply, cells: cells }); return Promise.resolve({ id: id }); },
+      append: function () { return Promise.resolve({ id: 'x' }); },
+      remove: function () { return Promise.resolve({ id: 'x' }); },
+      resetDemo: function () { return Promise.resolve({ ok: false }); }
+    };
+    var store = BM.store.createStore({ api: fake });
+    return store.actions.init().then(function () {
+      var res = store.actions.respondMatch(ROOM, '수락');
+      ok(res.ok, '수락 처리');
+      /* flush 는 큐 한 건을 같은 틱에 바로 보냅니다(테스트에는 타이머가 없습니다) */
+      eq(sent.length, 1, '한 번 저장');
+      eq(sent[0].id, ROOM, '요청 행 ID');
+      eq(sent[0].reply, A, '신청자 주소로 보낸다');
+      eq(sent[0].cells['승패'], '수락', '상태 칸');
+    });
+  });
+
   test('v1.92 매칭: 제3자(C)가 남의 요청 행에 붙인 수락은 무시한다', function () {
     var rows = BM.api.reconcileRecords([requestRowForHearts(), replyRecord(C, '수락', 2)]);
     var row = rowOf(rows, ROOM);
@@ -176,7 +241,7 @@
   test('v1.92 매칭: 서버에서 다시 받아도(bootstrap) 수락과 대화방이 유지된다', function () {
     var prev = root.fetch;
     var f = useFetch(function () {
-      return { status: 200, body: [requestRowForHearts(), replyRecord(B, '수락', 2)] };
+      return { status: 200, body: [requestRowForHearts(), replyToSender(B, '수락', 2)] };
     });
     var api = BM.api.createSupabase({ meKey: A, me: { nick: '신청A' }, timeout: 0 });
     return api.bootstrap().then(function (res) {

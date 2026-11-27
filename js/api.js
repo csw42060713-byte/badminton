@@ -566,12 +566,24 @@
       return ka === kb ? 0 : (ka < kb ? -1 : 1);
     });
     patches.forEach(function (rec) {
-      var id = String(rec.target || '');
+      /* bm-v1.92.0 — 받은 사람이 신청자 주소로 보낸 매칭 응답(payload.match = 요청 행 ID) */
+      var matchId = String((rec.payload && rec.payload.match) || '');
+      var id = matchId || String(rec.target || '');
       var row = byId[id];
       if (!row || hidden[id]) return;
       var cells = (rec.payload && rec.payload.cells) || null;
       if (!cells) return;
       var author = String(rec.user_key || '');
+      if (matchId) {
+        /* 이 형태는 '받은 사람의 응답' 전용 — 주인이 쓴 것은 받지 않습니다(차감 회피 방지) */
+        var mined = matchReplyCells(origById[id], author, cells);
+        if (!mined) return;
+        Object.keys(mined).forEach(function (name) {
+          var idx = D.COL[name];
+          if (idx != null) row[idx] = mined[name];
+        });
+        return;
+      }
       if (author !== String(row[D.COL['사용자ID']] || '')) {
         var reply = matchReplyCells(origById[id], author, cells);
         if (!reply) return;
@@ -775,8 +787,9 @@
       });
     }
 
-    function writeMark(type, target, cells) {
+    function writeMark(type, target, cells, extra) {
       var payload = cells ? { cells: cells, at: U.stamp() } : { at: U.stamp() };
+      if (extra) Object.keys(extra).forEach(function (k) { payload[k] = extra[k]; });
       return insertRow({
         id: U.uid(), type: type, user_key: meKey || 'anon', target: String(target), payload: payload
       }, true).then(function () { return { id: target, marked: true }; });
@@ -976,9 +989,21 @@
           return out;
         });
       },
-      update: function (id, cells, clientId) {
+      update: function (id, cells, clientId, replyTo) {
         var patch = cellsToPatch(cells);
         if (!Object.keys(patch).length) return Promise.resolve({ id: id, noop: true });
+        /* bm-v1.92.0 — 받은 사람이 쓰는 1:1 매칭 응답(수락·거절)
+         *  · 요청 행은 신청자 소유라 내 이름으로는 PATCH 도, '수정' 행도 요청 행에 붙일 수 없고
+         *    (bm_shadow_locked), 요청 행에 붙은 남의 '수정' 행은 신청자에게 보이지 않습니다(RLS).
+         *  · 그래서 신청자 주소(target=신청자)로 '수정' 행을 보내고, 어느 요청의 응답인지는
+         *    payload.match 에 적습니다. target=내 키 → 둘 다 읽을 수 있어 양쪽 화면에 반영됩니다. */
+        if (replyTo) {
+          return writeMark(PATCH_TYPE, replyTo, cells, { match: String(id) }).then(function (res) {
+            res.clientId = clientId || null;
+            res.reply = true;
+            return res;
+          });
+        }
         return rest('PATCH', SB.table + '?id=eq.' + enc(id) + ownerFilter(), {
           body: patch, prefer: 'return=representation'
         }).then(function (data) {
