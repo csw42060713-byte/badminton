@@ -373,9 +373,10 @@
     return null;
   }
 
-  /* 이 세트에서 지금 몇 파츠가 맞았는지 — 화면의 '2/3 노랑 파츠' 숫자 */
-  function setHit(c, set) {
-    c = normalizeCustom(c);
+  /* 이 세트에서 지금 몇 파츠가 맞았는지 — 화면의 '2/3 노랑 파츠' 숫자
+   *  · setHitRaw 는 이미 정리된 custom 을 그대로 받습니다(3D 가 매 프레임 부를 때
+   *    정리(normalizeCustom)를 되풀이하지 않도록). */
+  function setHitRaw(c, set) {
     var out = [];
     for (var i = 0; i < set.need.length; i++) {
       var need = set.need[i];
@@ -388,19 +389,20 @@
     var hits = out.filter(function (n) { return n.got; }).length;
     return { need: out, hits: hits, total: out.length, complete: hits === out.length };
   }
+  function setHit(c, set) { return setHitRaw(normalizeCustom(c), set); }
 
   /* 지금 입은 조합에서 발동한 세트(여럿이면 히든 우선, 그다음 파츠가 많이 맞은 것) */
-  function activeSet(c) {
-    c = normalizeCustom(c);
+  function activeSetRaw(c) {
     var best = null, bestScore = -1;
     for (var i = 0; i < SETS.length; i++) {
-      var h = setHit(c, SETS[i]);
+      var h = setHitRaw(c, SETS[i]);
       if (!h.complete) continue;
       var score = (SETS[i].hidden ? 100 : 0) + h.hits;
       if (score > bestScore) { best = { set: SETS[i], hit: h }; bestScore = score; }
     }
     return best;
   }
+  function activeSet(c) { return activeSetRaw(normalizeCustom(c)); }
 
   /* 공개 세트 중 가장 가까운 것 — 아직 아무것도 발동하지 않았을 때 'N/M' 안내 */
   function nextSet(c) {
@@ -408,7 +410,7 @@
     var best = null, bestHits = -1;
     for (var i = 0; i < SETS.length; i++) {
       if (SETS[i].hidden) continue;
-      var h = setHit(c, SETS[i]);
+      var h = setHitRaw(c, SETS[i]);
       if (h.complete) continue;
       if (h.hits > bestHits) { best = { set: SETS[i], hit: h }; bestHits = h.hits; }
     }
@@ -4973,7 +4975,7 @@
     lastLogDate: lastLogDate, conditionOf: conditionOf,
     svg: svg, drawRacket: drawRacket, miniHtml: miniHtml, personHtml: personHtml, peekOf: peekOf,
     /* bm-v1.95.0 — 세트 조합 보너스 (공개 4 · 히든 7) */
-    SETS: SETS, HIDDEN_SETS: HIDDEN_SETS, setById: setById, setHit: setHit, activeSet: activeSet,
+    SETS: SETS, HIDDEN_SETS: HIDDEN_SETS, setById: setById, setHit: setHit, setHitRaw: setHitRaw, activeSet: activeSet, activeSetRaw: activeSetRaw,
     nextSet: nextSet, foundOf: foundOf, hiddenFoundCount: hiddenFoundCount, newlyFound: newlyFound,
     needText: needText, setBonusHtml: setBonusHtml, mergeFound: mergeFound,
     stageState: stageState, stageBadgeHtml: stageBadgeHtml,
