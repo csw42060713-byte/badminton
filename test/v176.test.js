@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v176.test.js — bm-v1.87.0
+ * test/v176.test.js — bm-v1.88.0
  *   🏸 내 라켓 · 스트링 장력 메모 & 교체 알림
  *
  *   1) 계산 — 장력·주기 정리, 경과일(D+N)·남은 날, ok/soon/due 경계
@@ -229,7 +229,7 @@
       return flush(store).then(function () {
         var prof = profRows();
         var theme = U.jsonParse(prof[prof.length - 1][D.COL['꾸미기']], null) || {};
-        /* bm-v1.87.0 — gear 칸은 남기되 비어 있습니다('지운 기록'을 명시해, 예전 행의 값을
+        /* bm-v1.88.0 — gear 칸은 남기되 비어 있습니다('지운 기록'을 명시해, 예전 행의 값을
          * 이어받아 되살아나지 않게). 그래서 '기록이 없다'로 확인합니다. */
         ok(!theme.gear || !G.hasGear(theme.gear), 'theme.gear 에 라켓 기록이 없다');
       });
@@ -391,17 +391,17 @@
    * ========================================================= */
   test('v1.76 버전: sw · app · 스타일 캐시 · TWA · README · 테스트 목록이 함께', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.87.0';", 'sw 캐시 이름');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.88.0';", 'sw 캐시 이름');
     includes(readRoot('sw.js'), "'./js/gear.js'", '새 파일도 오프라인 캐시에');
-    includes(readRoot('app.js'), "version: 'v1.87.0'", 'app 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-1', '스타일 캐시');
+    includes(readRoot('app.js'), "version: 'v1.88.0'", 'app 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-2', '스타일 캐시');
     includes(readRoot('index.html'), 'js/gear.js', 'index.html 로드');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.87.0', 'TWA 이름');
-    eq(twa.appVersionCode, 81, 'TWA 코드');
-    eq(twa.appVersion, '1.87.0', 'TWA 버전');
+    eq(twa.appVersionName, '1.88.0', 'TWA 이름');
+    eq(twa.appVersionCode, 82, 'TWA 코드');
+    eq(twa.appVersion, '1.88.0', 'TWA 버전');
     var readme = readRoot('README.md');
-    includes(readme, 'bm-v1.87.0', 'README 버전 절');
+    includes(readme, 'bm-v1.88.0', 'README 버전 절');
     includes(readme, '내 라켓 · 스트링', 'README 요약');
     includes(readRoot('test/run.js'), 'test/v176.test.js', '테스트 목록');
   });
