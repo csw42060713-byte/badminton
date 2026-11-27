@@ -1441,6 +1441,7 @@
       shuttle.visible = kind !== 'slam';
       shuttle.position.copy(hitPos);
       shuttle.rotation.set(0, 0, 0);
+      shuttle.scale.setScalar(1);      /* 지난 연출의 확대가 남지 않게 */
       /* 스윙 궤적 리본 — 실제 헤드가 지나온 자리 */
       buildTrail(kind);
       /* 파티클 색 */

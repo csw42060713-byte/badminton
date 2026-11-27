@@ -120,7 +120,14 @@ with sync_playwright() as p:
     page.evaluate("() => { const s = BM.racketcustom._last3d; s.view.yaw = -0.46; s.view.pitch = 0.10; s.fit(); }")
     shot('parts_onyx_twotone', 800)
 
-    # 4) 스매시 임팩트
+    # 4) 스매시 임팩트 (스텐실은 빼고 — 셔틀이 가리는 자리라 연출이 안 보입니다)
+    page.evaluate("""() => {
+      const st = BM.app.ctx.store.state;
+      st.me.theme.gear.custom = { body: 'smash',
+        unlocked: ['body:smash', 'frame:onyx', 'string:lime', 'grip:twotone', 'charm:ace', 'effect:fire'],
+        frame: 'onyx', string: 'lime', grip: 'twotone', stencil: 'none', charm: 'ace', effect: 'fire' };
+      BM.racketcustom._last3d.paint();
+    }""")
     page.evaluate("() => { const s = BM.racketcustom._last3d; s.smash('fire'); s.hold(346); }")
     shot('smash_impact', 340)
 
