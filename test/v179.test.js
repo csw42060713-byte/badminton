@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v179.test.js — bm-v1.87.0
+ * test/v179.test.js — bm-v1.88.0
  *   💛 매칭 응원 하트 1개 · ⚡ 지난 운동 그대로 채우기 · 🏟️ 체육관 후기
  *
  *  1) 응원 — 매칭 카드·프로필 시트의 1하트 응원이 기존 store.giftHeart(서버 RPC
@@ -414,15 +414,15 @@
 
   test('v1.79 버전: sw · app · 스타일 캐시 · TWA · README · 테스트 목록이 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.87.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.87.0'", 'app.js');
-    includes(readRoot('js/push.js'), "version: 'v1.87.0'", 'push.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-1', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.88.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.88.0'", 'app.js');
+    includes(readRoot('js/push.js'), "version: 'v1.88.0'", 'push.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-2', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.87.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.87.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 81, 'TWA 버전 코드');
-    includes(readRoot('README.md'), 'bm-v1.87.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.88.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.88.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 82, 'TWA 버전 코드');
+    includes(readRoot('README.md'), 'bm-v1.88.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v179.test.js', '테스트 목록 배선');
     includes(readRoot('styles.css'), '.cheerbtn', '응원 버튼 스타일');
     includes(readRoot('styles.css'), '.quickfill', '채우기 버튼 스타일');

@@ -3387,6 +3387,23 @@
   /* 시트 안의 3D 뷰를 붙입니다 — 드래그 회전 · 짧은 탭은 스매시(꾸미기 모드에선 부위 선택) */
   function mount3d(host, ctx) {
     if (!hasDom) return null;
+    /* bm-v1.88.0 — 저장소에 넣은 Three.js(WebGL)로 진짜 3D 라켓을 먼저 그립니다.
+     *  · WebGL 이 없는 곳(Node 테스트·구형 기기)이나 엔진 로드에 실패하면
+     *    아래 2D 캔버스 렌더러로 조용히 돌아갑니다 — 화면이 비지 않습니다. */
+    if (BM.racket3d && typeof BM.racket3d.available === 'function' && BM.racket3d.available()) {
+      try {
+        var a3 = BM.racket3d.create(host, ctx);
+        if (a3) {
+          a3.view.yaw = viewMem.yaw;
+          a3.view.pitch = viewMem.pitch;
+          a3.fit();
+          if (BM.racketcustom) BM.racketcustom._last3d = a3;
+          return a3;
+        }
+      } catch (e) {
+        if (root.console && root.console.warn) root.console.warn('3D 엔진을 열지 못해 기본 뷰로 갑니다', e && e.message);
+      }
+    }
     var cv = host.querySelector('.rk3d__cv');
     if (!cv || !cv.getContext) return null;
     var g = cv.getContext('2d');
@@ -4553,6 +4570,8 @@
       fxFront: fxFront, draw: draw3d },
     headerHtml: headerHtml, paintHeader: paintHeader,
     sheetBody: sheetBody, stageHtml: stageHtml, openSheet: openSheet, pickSlot: pickSlot, mount3d: mount3d,
+    /* bm-v1.88.0 — 3D 뷰가 '지금 스매시/꾸미기 모드인지' 물어볼 수 있게 */
+    stageModeGet: function () { return stageMode; },
     stringAge: stringAge, stringAgeHtml: stringAgeHtml,
     /* 3D 뷰 (테스트·재사용) */
     G3: G3, rot3: rot3, project3: project3, hitSlot: hitSlot, draw3d: draw3d, inPoly: inPoly,

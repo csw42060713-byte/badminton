@@ -417,8 +417,22 @@
  *             · 라켓 모션 칩 3종(🌀 손목 트위스트 · ✨ 쇼케이스 스핀 · ⚡ 공중 360° 플립) 하트로 열기
  *             · 매 프레임 그라데이션·shadowBlur 를 없애고 스프라이트 drawImage 로 바꿔 60fps 유지
  *             js/racketcustom.js·js/store.js·styles.css·index.html 이 바뀌어 캐시를 bm-v1.86.0 으로 올립니다.
+ *
+ * 2026-11-27 (bm-v1.88.0): 커스텀 라켓 3D 를 진짜 3D 엔진(Three.js WebGL)으로 —
+ *             ① 저장소 안에 넣은 js/vendor/three/three.min.js 로 그립니다(외부 CDN·CSP·오프라인 걱정 없음).
+ *             ② 헤드 단면(박스/에어로)을 쓸어 만든 프레임 + 그로밋 + 12·3·9시/T 데칼 + 카본 직조 결,
+ *               6.8mm 슬림 샤프트·콘·엔드캡, 겹쳐 감긴 오버그립 나선과 마감 테이프,
+ *               17×19 거트(prime/worn/broken 실제 처짐·끊김), 스텐실·참·효과까지 3D 메쉬로.
+ *             ③ 어두운 스튜디오 배경 + 3점 조명(키·림·필) + 바닥 스포트라이트 원형 반사로
+ *               오닉스 티타늄(금속)·타월/투톤 그립·블레이즈/프리즘 효과가 소장하고 싶게 보입니다.
+ *             ④ 3D 셔틀콕(코르크 반구·밴드·깃 16장)이 코트 먼 쪽에서 날아와,
+ *               백스윙 → 프로네이션 풀스윙 → 히트스톱·카메라 셰이크·스윙 궤적·3D 파티클 →
+ *               코르크가 180° 돌아 반대 아래 대각선으로 꽂힙니다. 바닥 강타·모션 3종도 3D.
+ *             ⑤ WebGL 이 없는 곳(Node 테스트·구형 기기)은 기존 2D 렌더러로 안전하게 폴백.
+ *             js/vendor/three/three.min.js·js/racket3d.js 가 새로 들어오고
+ *             js/racketcustom.js·styles.css·index.html 이 바뀌어 캐시를 bm-v1.88.0 으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.87.0';
+var VERSION = 'bm-v1.88.0';
 var SHELL = [
   './',
   './index.html',
@@ -436,6 +450,8 @@ var SHELL = [
   './js/auth.js',
   './js/store.js',
   './js/ui.js',
+  './js/vendor/three/three.min.js',
+  './js/racket3d.js',
   './js/racketcustom.js',
   './js/gear.js',
   './js/gyms.js',
