@@ -683,7 +683,8 @@
     var charmIt = R.itemOf('charm', c.charm) || {};
     var effectIt = R.itemOf('effect', c.effect) || {};
     /* bm-v1.95.0 — 세트 조합 보너스(공개 4 · 히든 7)가 발동 중이면 바닥 오라·특수 연출이 켜집니다 */
-    var setHit = R.activeSet ? R.activeSet(c) : null;
+    /* 매 프레임 부르므로 이미 정리된 c 를 그대로 쓰는 activeSetRaw (정리 반복 없음) */
+    var setHit = R.activeSetRaw ? R.activeSetRaw(c) : (R.activeSet ? R.activeSet(c) : null);
     var setInfo = setHit && setHit.set ? {
       id: setHit.set.id, fx: setHit.set.fx, color: setHit.set.color,
       color2: setHit.set.color2 || setHit.set.color, name: setHit.set.name,
