@@ -947,7 +947,8 @@
     var mat = new T.PointsMaterial({
       size: size, map: map || particleTexture(), color: new T.Color(color),
       transparent: true, opacity: opacity == null ? 0.9 : opacity,
-      blending: T.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+      blending: T.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+      alphaTest: 0.04
     });
     return new T.Points(geo, mat);
   }
@@ -1259,19 +1260,17 @@
     scene.add(shuttle);
 
     var trail = null;
-    var burst = pointCloud(T, 80, 9, '#ffffff', particleTexture(), 0.9);
+    var burst = pointCloud(T, 64, 5, '#ffffff', particleTexture(), 0.9);
     burst.visible = false;
     scene.add(burst);
-    var burstVel = new Float32Array(80 * 3);
+    var burstVel = new Float32Array(64 * 3);
     var burstCol = null;
 
-    var flash = new T.Mesh(
-      new T.PlaneGeometry(1, 1),
-      new T.MeshBasicMaterial({
-        map: glowTexture('hitflash', '255,255,240'), transparent: true, opacity: 0,
-        blending: T.AdditiveBlending, depthWrite: false
-      })
-    );
+    /* 정타 섬광 — 카메라를 항상 바라보는 스프라이트(네모로 보이지 않게) */
+    var flash = new T.Sprite(new T.SpriteMaterial({
+      map: glowTexture('hitflash', '255,255,240'), transparent: true, opacity: 0,
+      blending: T.AdditiveBlending, depthWrite: false, depthTest: false
+    }));
     flash.visible = false;
     scene.add(flash);
 
@@ -1512,7 +1511,7 @@
         burstVel[i * 3] = Math.cos(a) * (90 + Math.random() * 260) * (1 - b * 0.4);
         burstVel[i * 3 + 1] = up * (140 + Math.random() * 320);
         burstVel[i * 3 + 2] = Math.sin(a) * (90 + Math.random() * 240) + 60;
-        var spread = 26;
+        var spread = 70;
         p.setXYZ(i, hitPos.x + (Math.random() - 0.5) * spread,
           hitPos.y + (Math.random() - 0.5) * spread,
           hitPos.z + (Math.random() - 0.5) * spread);
@@ -1748,10 +1747,10 @@
             }
             var ft = clamp01(after / 200);
             if (flash.visible) {
-              var fs = 90 + ft * 260;
+              var fs = 60 + ft * 210;
               flash.scale.set(fs, fs, 1);
               flash.position.copy(hitPos);
-              flash.material.opacity = 0.85 * (1 - ft);
+              flash.material.opacity = 0.8 * (1 - ft);
               if (ft >= 1) flash.visible = false;
             }
             updateBurst(after);
@@ -1829,7 +1828,7 @@
           p.getZ(i) + burstVel[i * 3 + 2] * 0.016);
       }
       p.needsUpdate = true;
-      burst.material.opacity = Math.max(0, 0.95 * (1 - after / 780));
+      burst.material.opacity = Math.max(0, 0.9 * (1 - after / 700));
       if (after > 780) burst.visible = false;
     }
 
