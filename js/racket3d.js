@@ -1484,8 +1484,9 @@
     band.position.y = 4.6;
     g.add(band);
     /* ③ 검정 얇은 링 — 빨강 밴드 위, 깃 뿌리 경계 */
-    var ink = new T.Mesh(new T.CylinderGeometry(12.25, 12.25, 1.3, 34), inkMat);
-    ink.position.y = 6.6;
+    /* 검정 링은 밴드와 겹치지 않게 조금 위·조금 넓게 — 겹치면 점선처럼 지글거립니다 */
+    var ink = new T.Mesh(new T.CylinderGeometry(12.42, 12.46, 1.2, 34), inkMat);
+    ink.position.y = 7.0;
     g.add(ink);
     /* ④ 실밥 링 — 코르크 가운데를 감은 실 (밀가루 빛 띠) */
     var thread = new T.Mesh(new T.TorusGeometry(11.9, 0.55, 6, 40), threadMat);

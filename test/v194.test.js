@@ -176,7 +176,7 @@
     includes(js, "'#cf3b2f'", '빨강 밴드');
     includes(js, "'#17181a'", '검정 얇은 링');
     includes(js, 'CylinderGeometry(12.1, 12.35, 3.4, 34)', '빨강 밴드 크기');
-    includes(js, 'CylinderGeometry(12.25, 12.25, 1.3, 34)', '검정 링');
+    includes(js, 'CylinderGeometry(12.42, 12.46, 1.2, 34)', '검정 링');
     includes(js, 'TorusGeometry(11.9, 0.55, 6, 40)', '실밥 링');
     includes(js, 'emissiveIntensity: 0.35', '어두운 배경에서도 보이는 코르크 발광');
     includes(js, 'var N = 16', '깃 16장 유지');
