@@ -507,7 +507,7 @@
         var op = state.queue[0];
         var call;
         if (op.kind === 'append') call = apiRef.append(op.row, op.clientId);
-        else if (op.kind === 'update') call = apiRef.update(op.id, op.cells, op.clientId);
+        else if (op.kind === 'update') call = apiRef.update(op.id, op.cells, op.clientId, op.reply);
         else if (op.kind === 'remove') call = apiRef.remove(op.id, op.clientId);
         else call = Promise.resolve();
 
@@ -1704,7 +1704,7 @@
           }
         }
         patchRowById(reqId, { '소셜글': JSON.stringify(payload), '승패': status });
-        enqueue({ kind: 'update', id: reqId, clientId: U.clientId(), cells: { '소셜글': JSON.stringify(payload), '승패': status } });
+        enqueue({ kind: 'update', id: reqId, clientId: U.clientId(), cells: { '소셜글': JSON.stringify(payload), '승패': status }, reply: req.userKey || '' });
         commit();
         return { ok: true, roomId: reqId, charged: charged, short: short };
       },

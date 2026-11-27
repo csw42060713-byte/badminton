@@ -118,17 +118,26 @@ with sync_playwright() as p:
       const rows = BM.api.reconcileRecords([rec, rep]);
       const after = BM.store.derive(rows, 'u_192_a');
       const third = BM.api.reconcileRecords([rec, bad]);
+      /* 실제 저장 형태: 받은 사람이 신청자 주소(target)로 보내고 payload.match 로 요청을 가리킴 */
+      const addr = { id: 'p192s', type: '수정', user_key: 'u_192_b', target: 'u_192_a',
+        payload: { match: 'room192', cells: { '승패': '수락', '소셜글': JSON.stringify({ note: '토요일 오전 어때요?', heartCost: 2, payOn: 'accept', status: '수락', charged: 2 }) } },
+        created_at: '2026-11-27T05:03:00+00:00' };
+      const viaAddr = BM.api.reconcileRecords([rec, addr]);
+      const self = BM.api.reconcileRecords([rec, Object.assign({}, addr, { user_key: 'u_192_a' })]);
       return {
         status: String(rows[0][BM.domain.COL['승패']]),
         charged: JSON.parse(String(rows[0][BM.domain.COL['소셜글']])).charged,
         hearts: after.hearts.balance,
         room: (after.threads || []).some(function (t) { return t.roomId === 'room192'; }),
-        thirdParty: String(third[0][BM.domain.COL['승패']])
+        thirdParty: String(third[0][BM.domain.COL['승패']]),
+        addrStatus: String(viaAddr[0][BM.domain.COL['승패']]),
+        selfStatus: String(self[0][BM.domain.COL['승패']])
       };
     }""")
     print('reconcile', res)
     print('  수락 유지:', res['status'] == '수락', '· 하트 3-2 =', res['hearts'], '· 대화방:', res['room'],
           '· 제3자 무시:', res['thirdParty'] == '대기')
+    print('  신청자 주소 응답 반영:', res['addrStatus'] == '수락', '· 본인 자기수락 차단:', res['selfStatus'] == '대기')
 
     # ---------- 3) MY 탭 · 탈퇴 안내 문구(기존 기능 보호) ----------
     page.evaluate("() => { location.hash = '#/my'; }")
