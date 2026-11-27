@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AndroidManifest.xml 에 그대로 붙여 넣는 조각입니다.
+     · <uses-feature> 는 <manifest> 바로 아래(다른 <application> 앞)
+     · <service>/<activity> 는 <application> 안 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 라이브 배경화면 — 없는 기기에서도 앱은 그대로 설치됩니다 -->
+    <uses-feature
+        android:name="android.software.live_wallpaper"
+        android:required="false" />
+
+    <application>
+
+        <!-- 셔틀릭스 라이브 배경화면(폰 바탕화면) -->
+        <service
+            android:name=".ShuttlixWallpaperService"
+            android:exported="true"
+            android:label="@string/launcherName"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/shuttlix_wallpaper" />
+        </service>
+
+        <!-- 웹앱 '📱 폰 바탕화면으로 설정하기' 를 받는 문 (shuttlix://wallpaper?c=...) -->
+        <activity
+            android:name=".WallpaperSetupActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="shuttlix"
+                    android:host="wallpaper" />
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>
