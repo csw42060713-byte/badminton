@@ -431,8 +431,16 @@
  *             ⑤ WebGL 이 없는 곳(Node 테스트·구형 기기)은 기존 2D 렌더러로 안전하게 폴백.
  *             js/vendor/three/three.min.js·js/racket3d.js 가 새로 들어오고
  *             js/racketcustom.js·styles.css·index.html 이 바뀌어 캐시를 bm-v1.88.0 으로 올립니다.
+ *
+ * 2026-11-27 (bm-v1.89.0): 📱 폰 바탕화면(안드로이드 라이브 배경화면) —
+ *             커스텀 라켓 시트 맨 아래 '📱 폰 바탕화면으로 설정하기' 단추. 지금 입은 라켓의
+ *             테두리·거트·그립·스텐실·효과·바디 색을 JSON 으로 넘기면 앱(ShuttlixWallpaperService)이
+ *             어두운 스튜디오에 라켓을 띄운 배경화면을 그리고, 바탕화면을 톡 치면 불꽃·얼음·번개
+ *             셔틀콕 임팩트가 터집니다. 네이티브 브리지 → 앱 딥링크(shuttlix://wallpaper) → 안내 순서.
+ *             js/wallpaper.js 가 새로 생기고 js/racketcustom.js·styles.css·index.html 이 바뀌어
+ *             캐시를 bm-v1.89.0 으로 올립니다.
  * ============================================================ */
-var VERSION = 'bm-v1.88.0';
+var VERSION = 'bm-v1.89.0';
 var SHELL = [
   './',
   './index.html',
@@ -453,6 +461,7 @@ var SHELL = [
   './js/vendor/three/three.min.js',
   './js/racket3d.js',
   './js/racketcustom.js',
+  './js/wallpaper.js',
   './js/gear.js',
   './js/gyms.js',
   './js/nearby.js',

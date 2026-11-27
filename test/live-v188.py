@@ -1,4 +1,4 @@
-"""bm-v1.88.0 라이브 점검 — 390×844 · WebGL 3D 실측 · 콘솔 0 · CSP 0 · 가로 넘침 0 + 캡처.
+"""bm-v1.89.0 라이브 점검 — 390×844 · WebGL 3D 실측 · 콘솔 0 · CSP 0 · 가로 넘침 0 + 캡처.
 
   LD_LIBRARY_PATH=/workspace/tmp/syslibs/usr/lib/x86_64-linux-gnu python3 test/live-v188.py
 """

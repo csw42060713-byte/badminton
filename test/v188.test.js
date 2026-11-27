@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v188.test.js — bm-v1.88.0
+ * test/v188.test.js — bm-v1.89.0
  *   🎮 커스텀 라켓을 진짜 3D(Three.js WebGL) 쇼룸으로
  *
  *   1) 엔진   — 저장소 안 three.min.js(MIT) · sw 캐시 · CSP 그대로(외부 CDN 없음)
@@ -197,7 +197,7 @@
     includes(js, 'ColorManagement', '색 관리(실제 색 그대로)');
     includes(js, 'setupColor', '색 관리 켜기');
     /* 화면 배경도 어두운 스튜디오 */
-    includes(readRoot('styles.css'), 'bm-v1.88.0 — 어두운 프리미엄 스튜디오', '시트 배경 스튜디오 톤');
+    includes(readRoot('styles.css'), '어두운 프리미엄 스튜디오', '시트 배경 스튜디오 톤');
     includes(readRoot('styles.css'), '.rk3d::after', '유리 진열장 비네트');
   });
 
@@ -303,15 +303,15 @@
 
   test('v1.88 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.88.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.88.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.88.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-2', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.89.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.89.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.89.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-3', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.88.0', 'TWA 이름');
-    eq(twa.appVersion, '1.88.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 82, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.88.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.89.0', 'TWA 이름');
+    eq(twa.appVersion, '1.89.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 83, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.89.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v188.test.js', '테스트 목록');
     includes(readRoot('test/run.js'), 'js/racket3d.js', '테스트가 3D 모듈을 함께 읽는다');
   });

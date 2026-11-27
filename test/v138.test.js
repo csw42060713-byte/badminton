@@ -470,13 +470,13 @@
    * ========================================================= */
   test('v1.38 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.88.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.88.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-2', 'index.html 스타일 캐시');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.89.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.89.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-3', 'index.html 스타일 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.88.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.88.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 82, 'TWA 버전 코드(웹만 바뀌면 그대로)');
+    eq(twa.appVersionName, '1.89.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.89.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 83, 'TWA 버전 코드(웹만 바뀌면 그대로)');
   });
 
   test('v1.38 파일: friends.js 가 실제로 있고 화면·캐시에 들어 있다', function () {

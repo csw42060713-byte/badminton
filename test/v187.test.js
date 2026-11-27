@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v187.test.js — bm-v1.88.0
+ * test/v187.test.js — bm-v1.89.0
  *   🏸 레전드 프레임·타월/투톤 그립 · 라켓 상태 배지 + 원톡 회복
  *   · 하트 부족 → 광고로 바로 열기 · 오늘 N/5회 남음 · 상대 라켓 구경 → 응원·매칭
  *
@@ -442,15 +442,15 @@
 
   test('v1.87 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.88.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.88.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.88.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-2', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.89.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.89.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.89.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-3', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.88.0', 'TWA 이름');
-    eq(twa.appVersion, '1.88.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 82, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.88.0', 'README');
+    eq(twa.appVersionName, '1.89.0', 'TWA 이름');
+    eq(twa.appVersion, '1.89.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 83, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.89.0', 'README');
     includes(readRoot('test/run.js'), 'test/v187.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

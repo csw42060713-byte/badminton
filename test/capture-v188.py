@@ -1,4 +1,4 @@
-"""bm-v1.88.0 캡처 — 진짜 3D(Three.js WebGL) 라켓 쇼룸 · 스매시 · 모션 · 파츠.
+"""bm-v1.89.0 캡처 — 진짜 3D(Three.js WebGL) 라켓 쇼룸 · 스매시 · 모션 · 파츠.
 
 실행(저장소 루트에서):
   LD_LIBRARY_PATH=/workspace/tmp/syslibs/usr/lib/x86_64-linux-gnu python3 test/capture-v188.py

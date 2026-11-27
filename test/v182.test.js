@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v182.test.js — bm-v1.88.0
+ * test/v182.test.js — bm-v1.89.0
  *   🗺️ 지도 길찾기 · 매칭 ON 배지 · 라켓 창 초기화 수정 · 터치 불꽃 스매시
  *
  *   1) 지도  — 방위(8방위)·거리 표기·예상 시간·길찾기 링크, 검색 후보, 내 위치(GPS) 버튼
@@ -280,7 +280,7 @@
     eq(RC.heartCostOf('effect', 'fire'), 2, '불꽃 스매시 하트 2');
     eq(RC.heartCostOf('effect', 'ice'), 3, '얼음 스매시 하트 3');
     eq(RC.heartCostOf('effect', 'thunder'), 3, '번개 셔틀 하트 3');
-    eq(RC.heartCostOf('effect', 'blaze'), 3, 'bm-v1.88.0 — 나머지 효과도 하트로 산다');
+    eq(RC.heartCostOf('effect', 'blaze'), 3, 'bm-v1.89.0 — 나머지 효과도 하트로 산다');
     eq(RC.itemOf('effect', 'fire').name, '불꽃 스매시', '이름');
     eq(RC.itemOf('effect', 'ice').name, '얼음 스매시', '이름');
     eq(RC.itemOf('effect', 'thunder').name, '번개 셔틀', '이름');
@@ -447,14 +447,14 @@
    * 6. 버전 정합
    * ========================================================= */
   test('v1.82 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.88.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.88.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.88.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261127-2', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.89.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.89.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.89.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-3', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.88.0', 'TWA 이름');
-    eq(twa.appVersionCode, 82, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.88.0', 'README');
+    eq(twa.appVersionName, '1.89.0', 'TWA 이름');
+    eq(twa.appVersionCode, 83, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.89.0', 'README');
     includes(readRoot('test/run.js'), 'test/v182.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
