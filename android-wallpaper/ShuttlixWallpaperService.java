@@ -513,7 +513,7 @@ public class ShuttlixWallpaperService extends WallpaperService {
         /* ---------- 바닥 그림자 ---------- */
         private void drawContactShadow(Canvas c, float cx, float cy, float scale, float bob) {
             if (glow == null) return;
-            float bottom = cy + bob + (cfg.totalLength() / 2f - 40f) * scale;
+            float bottom = cy + bob + (cfg.totalLength() / 2f + 14f) * scale;  /* 그립 끝 바로 아래 바닥 */
             float rw = cfg.rx * scale * 1.15f;
             rect.set(cx - rw, bottom - rw * 0.26f, cx + rw, bottom + rw * 0.26f);
             shadowPaint.setAlpha(120);
