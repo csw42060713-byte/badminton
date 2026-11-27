@@ -257,6 +257,19 @@
     eq(RC.itemsOf('string').length, 10, '거트 10종');
   });
 
+  test('v1.95 보호: 파츠가 늘어도 열림 기록이 잘리지 않는다(상한 80)', function () {
+    var all = [];
+    RC.SLOTS.forEach(function (slot) {
+      RC.itemsOf(slot).forEach(function (it) { if (!it.free) all.push(slot + ':' + it.id); });
+    });
+    RC.BODY_IDS.forEach(function (id) { if (!RC.BODIES[id].free) all.push('body:' + id); });
+    RC.MOTIONS.forEach(function (id) { all.push('motion:' + id); });
+    ok(all.length > 40, '열 수 있는 파츠 ' + all.length + '개(예전 상한 40 초과)');
+    var c = RC.normalizeCustom({ unlocked: all });
+    eq(c.unlocked.length, all.length, '전부 남는다');
+    includes(readRoot('js/racketcustom.js'), 'out.unlocked.length >= 80', '상한 80');
+  });
+
   test('v1.95 관리자: csw42060713@gmail.com 은 새 파츠도 전부 열려 있다', function () {
     var admin = stateOf(null, { me: { key: 'k1', nick: '차승우', email: 'csw42060713@gmail.com' } });
     ok(RC.isAdminUser(admin), '관리자 판정');
