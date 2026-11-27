@@ -123,8 +123,8 @@ with sync_playwright() as p:
     page.evaluate("""() => {
       const st = BM.app.ctx.store.state;
       st.me.theme.gear.custom = { body: 'smash',
-        unlocked: ['body:smash', 'frame:onyx', 'string:lime', 'grip:twotone', 'stencil:crown', 'charm:ace', 'effect:fire'],
-        frame: 'onyx', string: 'lime', grip: 'twotone', stencil: 'crown', charm: 'ace', effect: 'fire' };
+        unlocked: ['body:smash', 'frame:onyx', 'string:lime', 'grip:twotone', 'charm:ace', 'effect:fire'],
+        frame: 'onyx', string: 'lime', grip: 'twotone', stencil: 'none', charm: 'ace', effect: 'fire' };
       BM.racketcustom._last3d.paint();
     }""")
     page.evaluate("() => { const s = BM.racketcustom._last3d; s.view.yaw = -0.46; s.view.pitch = 0.10; s.fit(); }")
