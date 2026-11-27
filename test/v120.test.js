@@ -388,7 +388,7 @@
     if (!hasNode()) return;
     var index = readRoot('index.html');
     includes(index, 'id="notifbar"', '알림 배너 자리');
-    includes(index, 'styles.css?v=20261126-8', '스타일 캐시');
+    includes(index, 'styles.css?v=20261127-1', '스타일 캐시');
     var app = readRoot('app.js');
     includes(app, 'setInterval', '폴링');
     includes(app, 'Notification', '브라우저 알림');
@@ -408,13 +408,13 @@
 
   test('v1.20 버전: sw · app · 스타일 캐시 · README · TWA가 함께 올라간다', function () {
     if (!hasNode()) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.86.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.86.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261126-8', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.87.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.87.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-1', '스타일 캐시 키');
     includes(readRoot('README.md'), 'v1.31.0', 'README 변경 이력');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.86.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.86.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 80, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.87.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.87.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 81, 'TWA 버전 코드');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -599,13 +599,13 @@
 
   test('v1.67 버전: sw · app · 스타일 캐시 · TWA가 함께 bm-v1.74.0', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.86.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.86.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261126-8', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.87.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.87.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261127-1', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.86.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.86.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 80, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.87.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.87.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 81, 'TWA 버전 코드');
   });
 
   test('v1.67 배선: 테스트 목록에 v167이 들어 있다', function () {

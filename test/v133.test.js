@@ -305,12 +305,12 @@
   test('v1.33 버전: sw.js·app.js·index.html·twa-manifest가 모두 v1.33', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.86.0'", 'sw.js');
-    includes(app, "version: 'v1.86.0'", 'app.js');
-    includes(index, 'styles.css?v=20261126-8', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.86.0', 'twa appVersionName');
-    eq(twa.appVersion, '1.86.0', 'twa appVersion');
-    eq(twa.appVersionCode, 80, 'twa appVersionCode');
+    includes(sw, "var VERSION = 'bm-v1.87.0'", 'sw.js');
+    includes(app, "version: 'v1.87.0'", 'app.js');
+    includes(index, 'styles.css?v=20261127-1', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.87.0', 'twa appVersionName');
+    eq(twa.appVersion, '1.87.0', 'twa appVersion');
+    eq(twa.appVersionCode, 81, 'twa appVersionCode');
   });
 
   test('v1.33 캐시: art.js가 index.html과 sw.js 캐시 목록에 있다', function () {

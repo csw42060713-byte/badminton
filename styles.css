@@ -8377,3 +8377,102 @@ body {
 .rkstage__go { padding: 0 5px; font-size: 10px; }
 .rkbody__chip .rkpart__lock { top: 2px; right: 3px; font-size: 7.5px; opacity: 0.85; }
 .rkbody__chip .rkrar { margin-right: 9px; }
+
+/* ============================================================
+ * bm-v1.87.0 — ① 라켓 상태 배지 + 원톡 회복 ② 하트 부족 → 광고로 바로 열기
+ *              ③ 상대 라켓 구경 시트
+ * ============================================================ */
+
+/* 3D 시트 맨 위 상태 배지 — 🔥 최상 / 💧 줄 느슨 / ✂️ 줄 끊김 */
+.rkstate {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 9px 11px; border-radius: 15px;
+  border: 1px solid var(--line);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 72%);
+}
+.rkstate--worn { background: linear-gradient(135deg, color-mix(in srgb, var(--warn) 15%, transparent), transparent 72%); }
+.rkstate--broken { background: linear-gradient(135deg, color-mix(in srgb, var(--bad) 15%, transparent), transparent 72%); }
+.rkstate__top { flex: 1 1 auto; min-width: 0; display: grid; gap: 2px; }
+.rkstate__b {
+  font-size: 12.4px; font-weight: 900; letter-spacing: -0.3px; color: var(--text);
+}
+.rkstate__s { font-size: 10.6px; font-weight: 700; color: var(--text-2); line-height: 1.4; }
+.rkstate__go {
+  flex: none; min-height: 30px; padding: 0 10px;
+  border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text); font: inherit; font-size: 10.6px; font-weight: 900;
+  cursor: pointer; -webkit-tap-highlight-color: transparent; white-space: nowrap;
+}
+.rkstate__go:active { transform: scale(0.97); }
+.rkstate--worn .rkstate__go {
+  border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+  background: color-mix(in srgb, var(--warn) 20%, transparent);
+}
+.rkstate--broken .rkstate__go {
+  border-color: color-mix(in srgb, var(--bad) 55%, transparent);
+  background: color-mix(in srgb, var(--bad) 20%, transparent);
+}
+
+/* 하트가 모자란 파츠·모션 — '몇 개 부족'을 칸 안에, 탭하면 광고 충전 시트로 */
+.rkpart.is-short { border-color: rgba(255,122,140,0.45); border-style: dashed; }
+.rkpart__ad {
+  font-size: 7.6px; font-weight: 900; line-height: 1.15; color: #ffb0bf;
+  letter-spacing: -0.2px; text-align: center;
+}
+.rkmotion.is-short {
+  flex-wrap: wrap; row-gap: 1px; padding: 3px 4px; min-height: 36px;
+  white-space: normal; text-align: center;
+}
+.rkmotion.is-short b { flex: 1 1 auto; min-width: 0; }
+.rkmotion__ad {
+  flex: 0 0 100%;
+  font-style: normal; font-size: 7.8px; font-weight: 900; color: #ffb0bf; line-height: 1;
+}
+.rkhearts__ad {
+  margin: 0; font-size: 10.8px; font-weight: 900; color: #ff9fb0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 오늘 남은 광고 횟수 한 줄 — MY 하트 카드 · 공용 충전 시트 */
+.adleft {
+  display: flex; align-items: center; gap: 6px;
+  margin: 8px 0; padding: 7px 10px; border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-size: 11.4px; font-weight: 900; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.adleft .ico { width: 14px; height: 14px; color: var(--accent); flex: none; }
+
+/* 상대 라켓 구경 시트 */
+.peek { display: grid; gap: 12px; }
+.peek__top { display: flex; align-items: center; gap: 12px; }
+.peek__art {
+  flex: none; width: 62px; height: 92px; transform: rotate(-12deg);
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.45));
+}
+.peek__art .rksvg { width: 100%; height: 100%; display: block; }
+.peek__who { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.peek__name {
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  font-size: 15px; font-weight: 900; color: var(--text); letter-spacing: -0.4px;
+}
+.peek__meta { margin: 0; font-size: 11.6px; font-weight: 700; color: var(--muted); }
+.peek__who .rkrar { justify-self: start; align-self: start; }
+.peek__spec { margin: 0; }
+.peek__spec dd { word-break: keep-all; }
+.peek__acts { display: grid; gap: 6px; }
+
+/* 카드 안 미니 라켓은 이제 '누르는 버튼' */
+button.pcard__rk {
+  padding: 0; border: 0; background: none; font: inherit;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.pcard__spec[data-rk-person] { cursor: pointer; }
+button.post__rk {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  padding: 2px 3px; margin-left: 2px;
+  border: 0; border-radius: 8px; background: none;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+button.post__rk:active { transform: scale(0.94); }

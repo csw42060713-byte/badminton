@@ -33,6 +33,7 @@ returns int language sql immutable set search_path = public as $$
     when 'frame:white'    then 2
     when 'frame:navy'     then 3
     when 'frame:red'      then 3
+    when 'frame:onyx'     then 4   -- bm-v1.87.0 레전드(오닉스 티타늄)
     -- 거트(스트링)
     when 'string:lime'    then 0
     when 'string:white'   then 1
@@ -45,6 +46,8 @@ returns int language sql immutable set search_path = public as $$
     when 'grip:mint'      then 1
     when 'grip:coral'     then 2
     when 'grip:purple'    then 2
+    when 'grip:towel'     then 3   -- bm-v1.87.0 에픽(타월 베이지)
+    when 'grip:twotone'   then 3   -- bm-v1.87.0 에픽(투톤 네온)
     -- 스텐실
     when 'stencil:none'   then 0
     when 'stencil:x'      then 2
