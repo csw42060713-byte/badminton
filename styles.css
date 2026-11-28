@@ -8785,3 +8785,26 @@ button.rkset__chip:active { transform: scale(0.97); }
   .rk3d.is-mini { -webkit-clip-path: inset(0 0 calc(100% - 216px) 0 round 20px); clip-path: inset(0 0 calc(100% - 216px) 0 round 20px); }
   .rk3d.is-mini .rk3d__cv { height: 216px; }
 }
+
+/* ============================================================
+ * bm-v1.99.0 — 체육관 후기 좋아요 → 후기 주인 하트 +1 (하루 최대 3개)
+ *   · 후기 카드 안 한 줄: 남의 후기면 '❤ 누르면 후기 주인에게 하트 +1',
+ *     내 후기면 오늘 받은 수(N/3).
+ *   · MY 하트 카드 한 줄: 오늘 후기 좋아요로 받은 수.
+ * ============================================================ */
+.gymreview__hb {
+  display: flex; align-items: center; gap: 5px;
+  margin: 8px 0 0;
+  font-size: 11px; font-weight: 700; letter-spacing: -0.15px;
+  color: var(--muted);
+}
+.gymreview__hb .ico { flex: none; width: 12px; height: 12px; color: var(--accent); }
+
+.hint.reviewline {
+  display: flex; align-items: center; gap: 6px;
+  margin: 6px 0 0; padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--text-2); font-size: 11.5px; font-weight: 800; letter-spacing: -0.1px;
+}
+.hint.reviewline .ico { flex: none; width: 13px; height: 13px; color: var(--accent); }

@@ -258,15 +258,15 @@
    * ========================================================= */
   test('v1.83 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.98.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.98.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.98.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261128-4', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.99.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.99.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.99.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261128-5', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.98.0', 'TWA 이름');
-    eq(twa.appVersion, '1.98.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 92, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.98.0', 'README');
+    eq(twa.appVersionName, '1.99.0', 'TWA 이름');
+    eq(twa.appVersion, '1.99.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 93, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.99.0', 'README');
     includes(readRoot('test/run.js'), 'test/v183.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

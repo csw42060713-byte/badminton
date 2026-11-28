@@ -362,12 +362,12 @@
     if (!hasNode()) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.98.0'", 'sw.js');
-    includes(app, "version: 'v1.98.0'", 'app.js');
-    includes(index, 'styles.css?v=20261128-4', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.98.0', 'TWA 이름');
-    eq(twa.appVersion, '1.98.0', 'TWA 버전');
-    eq(twa.appVersionCode, 92, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.99.0'", 'sw.js');
+    includes(app, "version: 'v1.99.0'", 'app.js');
+    includes(index, 'styles.css?v=20261128-5', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.99.0', 'TWA 이름');
+    eq(twa.appVersion, '1.99.0', 'TWA 버전');
+    eq(twa.appVersionCode, 93, 'TWA 코드');
     includes(sw, '14일', 'sw 변경 이력');
     var run = readRoot('test/run.js');
     includes(run, 'test/v159.test.js', '테스트 목록');

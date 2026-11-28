@@ -1855,9 +1855,17 @@
 
   /* --- 하트 경제 ---
    * 시트의 행이 곧 원장(ledger)입니다. 캐시 값이 아니라 행을 세어 계산합니다.
-   *   적립: 출석하트 / 광고하트 / 선물하트(받음) / 하트합치기
+   *   적립: 출석하트 / 광고하트 / 선물하트(받음) / 하트합치기 / 후기하트(내 후기 좋아요)
    *   사용: 선물하트(보냄) / 내하트사용(매칭) / 꾸미기구매(테마)
+   *
+   * bm-v1.99.0 — '후기하트'는 **다른 사람이 내 체육관 후기에 ❤ 좋아요를 누를 때**
+   * 좋아요를 누른 사람(userKey)이 남기는 행입니다. 후기 주인(target)의 원장만 +1로 셉니다.
+   *   · 본인 글 + 본인 좋아요는 0 (행을 쓰지 않고, 설령 있어도 세지 않습니다)
+   *   · 같은 사람이 같은 후기에 취소 후 다시 눌러도 1회 (사람+글 기준 1줄만 인정)
+   *   · 하루 최대 3개 (KST 날짜 기준 — 4번째부터는 좋아요 수만 오르고 하트는 안 옵니다)
+   *   · 서버(supabase/heart-rpc-v1.99-review-like.sql)가 같은 규칙으로 heart_balance 를 셉니다
    */
+  var REVIEW_LIKE = { type: '후기하트', gain: 1, perDay: 3 };
   function dateKeyOf(row) {
     return row.date || (row.createdAt || '').slice(0, 10);
   }
@@ -1875,6 +1883,35 @@
 
   function listOf(idx, type, userKey) {
     return (idx.byType[type] || []).filter(function (r) { return r.userKey === userKey; });
+  }
+
+  /* 내 후기에 눌린 좋아요 중 '하트로 인정되는 줄'만 골라 돌려줍니다 (bm-v1.99.0)
+   *  · ① 다른 사람이 누른 것만 (본인 글에 본인이 누른 것은 제외)
+   *  · ② 같은 사람 × 같은 후기는 처음 한 번만 (취소 후 다시 눌러도 늘지 않음)
+   *  · ③ 하루 3개까지 — 그날 네 번째부터는 인정하지 않습니다(좋아요 수는 그대로)
+   */
+  function reviewLikeCredits(idx, userKey) {
+    var key = String(userKey || '');
+    if (!key) return [];
+    var rows = (idx.byType[REVIEW_LIKE.type] || []).filter(function (r) {
+      if (String(r.target || '') !== key) return false;
+      if (!r.userKey || String(r.userKey) === key) return false;
+      return Number(r.likes == null ? REVIEW_LIKE.gain : r.likes) > 0;
+    });
+    var seen = {};
+    var uniq = [];
+    U.sortBy(rows, function (r) { return (r.createdAt || '') + '|' + (r.id || ''); }).forEach(function (r) {
+      var k = String(r.userKey) + '|' + String(r.team || '');
+      if (seen[k]) return;
+      seen[k] = 1;
+      uniq.push(r);
+    });
+    var perDay = {};
+    return uniq.filter(function (r) {
+      var day = dateKeyOf(r) || '';
+      var n = perDay[day] = (perDay[day] || 0) + 1;
+      return n <= REVIEW_LIKE.perDay;
+    });
   }
 
   function heartLedger(idx, userKey) {
@@ -1939,6 +1976,12 @@
     });
     listOf(idx, '하트합치기', userKey).forEach(function (h) {
       add('merge', '하트 합치기', h.likes || 1, h);
+    });
+    /* 내 체육관 후기에 다른 사람이 누른 ❤ 좋아요 (bm-v1.99.0) — 사람·글당 1회, 하루 3개
+     *  · 메모에는 누른 사람 닉네임(행에 적힌 값 → 프로필)을 붙여 누가 눌렀는지 보이게 합니다. */
+    reviewLikeCredits(idx, userKey).forEach(function (h) {
+      var who = String(h.nick || '').trim() || nickOf(idx, h.userKey);
+      add('review-like', '내 후기 좋아요', REVIEW_LIKE.gain, h, who);
     });
     (idx.byType['선물하트'] || []).forEach(function (h) {
       var amount = h.likes || R.GIFT_COST;
@@ -2097,6 +2140,10 @@
       if (h.date !== today) return;
       if (h.delta > 0) todayEarned += h.delta; else todaySpent += -h.delta;
     });
+    /* 오늘 후기 좋아요로 받은 하트 — 하루 3개 안내에 씁니다 (bm-v1.99.0) */
+    var reviewToday = ledger.history.filter(function (h) {
+      return h.kind === 'review-like' && h.date === today;
+    }).length;
 
     var streak = checkinStreak(idx, userKey, now);
     var boost = heartBoost(idx, userKey, theme);
@@ -2144,7 +2191,15 @@
       boost: boost,
 
       todayEarned: todayEarned,
-      todaySpent: todaySpent
+      todaySpent: todaySpent,
+
+      /* 내 후기 좋아요 보상 (bm-v1.99.0) — MY 하트 카드·후기 카드가 함께 씁니다 */
+      reviewLike: {
+        today: reviewToday,
+        perDay: REVIEW_LIKE.perDay,
+        gain: REVIEW_LIKE.gain,
+        remaining: Math.max(0, REVIEW_LIKE.perDay - reviewToday)
+      }
     };
   }
 
@@ -3693,6 +3748,8 @@
     resultFromScore: resultFromScore, splitList: splitList,
     index: index, profileOf: profileOf, gearCarryFrom: gearCarryFrom, displayName: displayName, latestPerUser: latestPerUser,
     heartLedger: heartLedger, heartStatus: heartStatus,
+    /* bm-v1.99.0 — 체육관 후기 좋아요 → 후기 주인 하트 +1 (사람·글당 1회, 하루 3개) */
+    REVIEW_LIKE: REVIEW_LIKE, reviewLikeCredits: reviewLikeCredits,
     ownsTheme: ownsTheme, themeById: themeById, themePrice: themePrice,
     /* v1.56 — 컨디션 5단계 · 시작 화면 앱 분위기 3종 */
     CONDITION_BANDS: CONDITION_BANDS, condBandOf: condBandOf, condBandById: condBandById,

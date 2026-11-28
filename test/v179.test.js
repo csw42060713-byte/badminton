@@ -414,15 +414,15 @@
 
   test('v1.79 버전: sw · app · 스타일 캐시 · TWA · README · 테스트 목록이 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.98.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.98.0'", 'app.js');
-    includes(readRoot('js/push.js'), "version: 'v1.98.0'", 'push.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261128-4', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.99.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.99.0'", 'app.js');
+    includes(readRoot('js/push.js'), "version: 'v1.99.0'", 'push.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261128-5', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.98.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.98.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 92, 'TWA 버전 코드');
-    includes(readRoot('README.md'), 'bm-v1.98.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.99.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.99.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 93, 'TWA 버전 코드');
+    includes(readRoot('README.md'), 'bm-v1.99.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v179.test.js', '테스트 목록 배선');
     includes(readRoot('styles.css'), '.cheerbtn', '응원 버튼 스타일');
     includes(readRoot('styles.css'), '.quickfill', '채우기 버튼 스타일');

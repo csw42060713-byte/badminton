@@ -724,6 +724,31 @@
     }
 
     /* ---------- 액션 ---------- */
+    /* bm-v1.99.0 — 체육관 후기 좋아요 → 후기 주인 하트 +1
+     *  · 다른 사람의 '체육관 후기' 글에 ❤ 를 누를 때만 '후기하트' 행을 한 줄 남깁니다.
+     *    (본인 글 제외 · 같은 사람·같은 후기는 한 번만 · 하루 3개까지는 원장이 셉니다)
+     *  · 행은 좋아요를 취소해도 지우지 않습니다 — 이미 받은 하트는 돌려받지 않고,
+     *    취소 후 다시 눌러도 하트가 또 오르지 않게 하는 장치이기도 합니다.
+     *  · 서버(Supabase)는 INSERT 지킴이(트리거)로 같은 규칙을 다시 확인하고
+     *    날짜·적립값을 다시 찍습니다 (supabase/heart-rpc-v1.99-review-like.sql). */
+    function reviewLikeGrant(post) {
+      var me = state.me || {};
+      if (!me.key) return { given: false, reason: 'no_login' };
+      var author = String((post && post.userKey) || '');
+      if (!author) return { given: false, reason: 'no_author' };
+      if (author === String(me.key)) return { given: false, reason: 'self' };
+      if (!post || !post.gym) return { given: false, reason: 'not_review' };
+      var already = (state.idx.byType[D.REVIEW_LIKE.type] || []).some(function (r) {
+        return String(r.userKey) === String(me.key) && String(r.team || '') === String(post.id);
+      });
+      if (already) return { given: false, reason: 'already' };
+      pushRow(meEntity({
+        type: D.REVIEW_LIKE.type, id: U.uid(), clientId: U.clientId(), date: U.ymd(),
+        target: author, team: String(post.id), likes: D.REVIEW_LIKE.gain
+      }));
+      return { given: true, reason: 'given', author: author };
+    }
+
     var actions = {
       init: function () {
         return apiRef.bootstrap().then(function (res) {
@@ -1295,7 +1320,7 @@
         var post = state.data.posts.filter(function (p) { return p.id === postId; })[0];
         if (!post) return { ok: false };
         if (post.likedByMe && post.likeId) {
-          /* 낙관적 취소 */
+          /* 낙관적 취소 — '하트'(좋아요) 행만 빼고, 받은 '후기하트'는 그대로 둡니다 */
           state.rows = state.rows.filter(function (r) { return String(r[0]) !== String(post.likeId); });
           enqueue({ kind: 'remove', id: post.likeId, clientId: U.clientId() });
           commit();
@@ -1303,8 +1328,10 @@
         }
         var entity = meEntity({ type: '하트', id: U.uid(), clientId: U.clientId(), target: postId });
         pushRow(entity);
+        /* bm-v1.99.0 — 다른 사람의 체육관 후기면 후기 주인에게 하트 +1 */
+        var grant = reviewLikeGrant(post);
         commit();
-        return { ok: true, liked: true };
+        return { ok: true, liked: true, reviewHeart: grant };
       },
 
       /* 매너 한 줄 태그 (bm-v1.29.0) — 매칭이 성사된 1:1 대화방에서 경기 후 한 번.

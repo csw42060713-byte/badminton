@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v198.test.js — bm-v1.98.0
+ * test/v198.test.js — bm-v1.99.0
  *
  *   승우 님 승인(2026-11-28): "그립에 글자 쓸 수 있게 하는 거 어때?" → "ㄱㄱ", "하고싶은 사람만 하게"
  *   제보: "이거 그립이랑 선택하면 아래로 내려가서 불편해 너가 한번써보고 제일 편하게 해줘"
@@ -306,15 +306,15 @@
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var push = readRoot('js/push.js');
-    includes(sw, "var VERSION = 'bm-v1.98.0'", 'sw.js');
-    includes(app, "version: 'v1.98.0'", 'app.js');
-    includes(push, "version: 'v1.98.0'", 'push.js');
-    includes(index, 'styles.css?v=20261128-4', '스타일 캐시 키');
+    includes(sw, "var VERSION = 'bm-v1.99.0'", 'sw.js');
+    includes(app, "version: 'v1.99.0'", 'app.js');
+    includes(push, "version: 'v1.99.0'", 'push.js');
+    includes(index, 'styles.css?v=20261128-5', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.98.0', 'TWA 이름');
-    eq(twa.appVersion, '1.98.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 92, 'TWA 버전 코드');
-    includes(readRoot('README.md'), 'bm-v1.98.0', 'README');
+    eq(twa.appVersionName, '1.99.0', 'TWA 이름');
+    eq(twa.appVersion, '1.99.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 93, 'TWA 버전 코드');
+    includes(readRoot('README.md'), 'bm-v1.99.0', 'README');
     includes(readRoot('test/run.js'), 'test/v198.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

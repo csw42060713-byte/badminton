@@ -142,7 +142,7 @@
           '</div></div>'
         : '') +
       (body.trim() ? '<p class="post__text">' + U.esc(body).replace(/\n/g, '<br>') + '</p>' : '') +
-      gymReviewCard(p) +
+      gymReviewCard(p, state) +
       ((p.meet || p.topic === D.MEET.topic) ? meetCard(p, state) : '') +
       '<footer class="post__foot">' +
       '<button class="react' + (p.likedByMe ? ' is-on' : '') + '" data-like="' + U.esc(p.id) + '" aria-pressed="' + (p.likedByMe ? 'true' : 'false') + '">' +
@@ -179,7 +179,7 @@
     return v === '좋아요' ? 'good' : (v === '아쉬워요' ? 'bad' : 'ok');
   }
 
-  function gymReviewCard(p) {
+  function gymReviewCard(p, state) {
     var g = D.gymReviewOf(p);
     if (!g) return '';
     var rows = D.GYM_REVIEW.fields.filter(function (f) { return g[f.key]; }).map(function (f) {
@@ -192,7 +192,23 @@
     return '<div class="gymreview" data-gymreview="' + U.esc(p.id) + '">' +
       '<p class="gymreview__t">' + (name || (UI.icon('pin') + '<span>체육관 후기</span>')) + '</p>' +
       (rows ? '<div class="gymreview__rows">' + rows + '</div>' : '') +
+      gymHeartLine(p, state) +
       '</div>';
+  }
+
+  /* bm-v1.99.0 — 후기 좋아요 하트 보상 한 줄
+   *  · 내 후기: 지금까지 받은 수(오늘 N/3)를 보여 주고
+   *  · 남의 후기: ❤ 를 누르면 후기 주인에게 하트가 간다고 알려 줍니다. */
+  function gymHeartLine(p, state) {
+    var me = (state && state.me && state.me.key) || '';
+    var mine = !!me && String(p.userKey || '') === String(me);
+    var rl = state && state.data && state.data.hearts && state.data.hearts.reviewLike;
+    var text = mine
+      ? (rl
+        ? '❤️ 좋아요를 받으면 하트 +1 · 오늘 ' + rl.today + '/' + rl.perDay
+        : '❤️ 좋아요를 받으면 하트 +1 · 하루 3개까지')
+      : '❤️ 누르면 이 후기 주인에게 하트 +1';
+    return '<p class="gymreview__hb">' + UI.icon('heart') + '<span>' + U.esc(text) + '</span></p>';
   }
 
   /* 글 본문 — 후기 카드가 같은 내용을 보여 주므로, 저장할 때 본문 앞에 붙여 둔
@@ -1013,7 +1029,13 @@
           var cnt = like.querySelector('[data-like-count]');
           if (cnt) cnt.textContent = Math.max(0, (+cnt.textContent || 0) + (on ? 1 : -1));
           UI.haptic(8);
-          ctx.actions.toggleLike(like.getAttribute('data-like'));
+          var likeRes = ctx.actions.toggleLike(like.getAttribute('data-like'));
+          /* bm-v1.99.0 — 후기 주인에게 하트가 갔을 때만 한 줄 알려 줍니다 */
+          U.when(likeRes, function (r) {
+            if (r && r.reviewHeart && r.reviewHeart.given) {
+              UI.toast('❤️ 후기 주인에게 하트 +1을 전했어요 · 하루 3개까지');
+            }
+          });
           return;
         }
         var toggle = ev.target.closest('[data-toggle-reply]');
