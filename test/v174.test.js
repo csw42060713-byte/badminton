@@ -107,9 +107,9 @@
     eq(twa.launcherName, '셔틀릭스', '실행 아이콘 이름');
     eq(twa.packageId, 'io.github.csw42060713_byte.badminton', 'packageId는 조환비 님과 합의한 값 그대로');
     eq(twa.startUrl, '/badminton/index.html', '주소 경로는 그대로');
-    eq(twa.appVersionName, '1.97.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.97.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 91, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.98.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.98.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 92, 'TWA 버전 코드');
     includes(twa.webManifestUrl, '/badminton/manifest.webmanifest', '매니페스트 주소 그대로');
   });
 
@@ -237,12 +237,12 @@
    * ========================================================= */
   test('v1.74 버전: sw · app · 스타일 캐시 · TWA · README · 테스트 목록이 함께', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.97.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.97.0'", 'app.js');
-    includes(readRoot('index.html'), 'styles.css?v=20261128-3', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.98.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.98.0'", 'app.js');
+    includes(readRoot('index.html'), 'styles.css?v=20261128-4', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.97.0', 'TWA 버전 이름');
-    eq(twa.appVersionCode, 91, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.98.0', 'TWA 버전 이름');
+    eq(twa.appVersionCode, 92, 'TWA 버전 코드');
     includes(readRoot('README.md'), 'bm-v1.74.0', 'README 변경 이력');
     includes(readRoot('README.md'), '셔틀릭스 (Shuttlix)', 'README 앱 이름');
     includes(readRoot('sw.js'), 'bm-v1.74.0', '서비스워커 캐시 키');
