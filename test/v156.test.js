@@ -390,12 +390,12 @@
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.99.0'", 'sw.js');
-    includes(app, "version: 'v1.99.0'", 'app.js');
-    includes(index, 'styles.css?v=20261128-5', 'styles.css 캐시 키');
-    eq(twa.appVersionName, '1.99.0', 'TWA 이름');
-    eq(twa.appVersion, '1.99.0', 'TWA 버전');
-    eq(twa.appVersionCode, 93, 'TWA 코드');
+    includes(sw, "var VERSION = 'bm-v1.100.0'", 'sw.js');
+    includes(app, "version: 'v1.100.0'", 'app.js');
+    includes(index, 'styles.css?v=20261128-6', 'styles.css 캐시 키');
+    eq(twa.appVersionName, '1.100.0', 'TWA 이름');
+    eq(twa.appVersion, '1.100.0', 'TWA 버전');
+    eq(twa.appVersionCode, 94, 'TWA 코드');
   });
 
   test('v1.56 스타일: 5단계 카드·테마 카드 스타일이 있다', function () {
