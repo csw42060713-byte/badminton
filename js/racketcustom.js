@@ -263,6 +263,47 @@
     return it ? it.color : 'transparent';
   }
 
+  /* ============================================================
+   * bm-v1.98.0 — ✍️ 그립 이니셜 각인 (선택 옵션 · 기본 비움)
+   *
+   *  · 기본값은 빈 글자('') — 넣지 않으면 각인 레이어를 아예 만들지 않아
+   *    깔끔한 기본 그립 그대로입니다. 원하는 사람만 넣었다 뺐다 합니다.
+   *  · 영문·숫자·한글 최대 6자. 제어문자와 HTML 꺾쇠는 미리 지우고, 화면에는
+   *    textContent · SVG 텍스트 · 캔버스 fillText 로만 그립니다(HTML 주입 없음).
+   *  · 저장은 새 시트 칸·새 DB 컬럼 없이 theme.gear.custom.initial 한 값 —
+   *    색 파츠와 같은 JSON 이라 새로고침·재방문·서버 동기화 때도 그대로 따라옵니다.
+   * ============================================================ */
+  var INK_MAX = 6;
+
+  function normalizeInitial(v) {
+    var s = String(v == null ? '' : v);
+    s = s.replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ')
+      .replace(/[<>&"'`]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (s.length > INK_MAX) {
+      s = s.slice(0, INK_MAX);
+      /* 이모지처럼 두 칸을 쓰는 글자가 반쪽만 남지 않게 */
+      if (/[\ud800-\udbff]$/.test(s)) s = s.slice(0, -1);
+    }
+    return s;
+  }
+
+  /* 그립 색 밝기 — 각인 글자색을 자동으로 고릅니다(어두운 그립 = 밝은 금색, 밝은 그립 = 짙은 잉크) */
+  function lumOf(hex) {
+    var h = String(hex || '').trim().replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return 0.1;
+    var n = parseInt(h, 16);
+    function lin(c) { c = c / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+    return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+  }
+
+  function inkOf(gripHex) {
+    /* 0.32 아래(어두움)는 밝은 금색, 위(밝음)는 짙은 잉크 — 두 쪽 모두 대비 3:1 이상 */
+    return lumOf(gripHex) < 0.32 ? '#f8dc96' : '#1b1f26';
+  }
+
   /* 이 파츠를 열 때 드는 하트 — 아이템에 적힌 값이 우선, 없으면 등급 가격 */
   function priceOf(slot, id) {
     var it = itemOf(slot, id);
@@ -566,7 +607,7 @@
   /* ---------- 저장 모양 ---------- */
 
   function blankCustom() {
-    var o = { unlocked: [], body: DEFAULT_BODY, found: [] };
+    var o = { unlocked: [], body: DEFAULT_BODY, found: [], initial: '' };   /* bm-v1.98.0 · 그립 각인은 기본 비움 */
     SLOTS.forEach(function (slot) { o[slot] = freeId(slot); });
     return o;
   }
@@ -576,6 +617,8 @@
     if (!o || typeof o !== 'object') return blankCustom();
     var out = blankCustom();
     out.body = BODIES[String(o.body == null ? '' : o.body)] ? String(o.body) : DEFAULT_BODY;
+    /* bm-v1.98.0 — 그립 이니셜 각인(최대 6자). 예전 저장값에는 없으므로 빈 글자 */
+    out.initial = normalizeInitial(o.initial);
     SLOTS.forEach(function (slot) {
       var want = String(o[slot] == null ? '' : o[slot]).trim();
       /* 열지 않은 파츠를 입고 있으면 기본 파츠로 되돌립니다(기록이 깨져도 화면은 안전) */
@@ -634,6 +677,8 @@
 
   function hasCustom(c) {
     c = normalizeCustom(c);
+    /* bm-v1.98.0 — 색은 기본이어도 그립에 각인만 넣은 사람의 기록도 저장됩니다 */
+    if (c.initial) return true;
     if (c.unlocked.length || c.found.length) return true;
     for (var i = 0; i < SLOTS.length; i++) {
       if (c[SLOTS[i]] !== freeId(SLOTS[i])) return true;
@@ -1003,6 +1048,12 @@
     }
     s += '<path d="M28.6 69L35.4 66.4M28.6 75L35.4 72.4M28.6 81L35.4 78.4" stroke="#ffffff" stroke-width="0.9" opacity="' +
       (weave === 'towel' ? '0.28' : '0.16') + '"/>';
+    /* bm-v1.98.0 — 그립 이니셜 각인 — 넣은 사람만, 그립 축을 따라 세로로 */
+    if (c.initial) {
+      s += '<text class="rkink-t" transform="translate(32 74) rotate(90)" text-anchor="middle" dy="0.34em"' +
+        ' font-size="4" font-weight="900" letter-spacing="0.1" fill="' + inkOf(grip) + '">' +
+        U.esc(c.initial) + '</text>';
+    }
     s += '<path d="M29.4 88L34.6 88" fill="none" stroke="' + grip + '" stroke-width="2.4" stroke-linecap="round"/>';
     s += bodyDecalSvg(c);
     s += stencilSvg(c) + charmSvg(c);
@@ -1037,8 +1088,7 @@
     if (typeof g.translate === 'function') g.translate(x, y);
     if (opts.rot && typeof g.rotate === 'function') g.rotate(opts.rot);
     if (typeof g.scale === 'function') g.scale(s, s);
-    g.translate(-32, -48);
-    g.globalAlpha = opts.alpha == null ? 1 : opts.alpha;
+    g.translate(-32, -48);    g.globalAlpha = opts.alpha == null ? 1 : opts.alpha;
     g.lineCap = 'round';
     g.lineJoin = 'round';
 
@@ -1187,6 +1237,19 @@
     roundRectPath(g, 28.6, 62, 6.8, 26, 3.2);
     g.fill();
 
+    /* bm-v1.98.0 — 그립 이니셜 각인 (공유 카드·공유 그림도 같은 글자) */
+    if (c.initial) {
+      g.save();
+      if (typeof g.translate === 'function') g.translate(32, 74);
+      if (typeof g.rotate === 'function') g.rotate(Math.PI / 2);
+      g.fillStyle = inkOf(grip);
+      if ('textAlign' in g) g.textAlign = 'center';
+      if ('textBaseline' in g) g.textBaseline = 'middle';
+      g.font = '900 4px system-ui, -apple-system, "Noto Sans KR", sans-serif';
+      if (typeof g.fillText === 'function') g.fillText(c.initial, 0, 0, 22);
+      g.restore();
+    }
+
     /* 스텐실 */
     var st = c.stencil;
     if (st && st !== 'none') {
@@ -1285,7 +1348,7 @@
     if (!btn) return;
     var cond = conditionOf(state);
     var c = customOf(state && state.me);
-    var sig = [cond.level, c.body, c.frame, c.string, c.grip, c.stencil, c.charm, c.effect].join('|');
+    var sig = [cond.level, c.body, c.frame, c.string, c.grip, c.stencil, c.charm, c.effect, c.initial].join('|');
     if (btn.getAttribute('data-sig') === sig) return;
     btn.setAttribute('data-sig', sig);
     var art = btn.querySelector('.hedracket__art');
@@ -2374,6 +2437,37 @@
   }
 
   /* ---------- 한 프레임 ---------- */
+
+  /* bm-v1.98.0 — 2D 폴백(WebGL 없는 곳·구형 기기)에서도 그립 각인
+   *  · 회전해도 정면으로 가장 많이 돌아온 면에만 그립 축을 따라 세로로 씁니다.
+   *  · 글자는 캔버스 fillText 로만 — HTML 해석이 없습니다. */
+  function drawInk2d(g, gm, v, c, grip) {
+    var txt = normalizeInitial(c && c.initial);
+    if (!txt || typeof g.fillText !== 'function' || !v) return;
+    var R = gm.gripR;
+    /* 각인은 그립 앞면(모델 기준 0 rad)에 새겨져 있습니다 — 라켓을 돌리면 같이 돌아갑니다 */
+    var a = 0;
+    var nr = rot3({ x: Math.sin(a), y: 0, z: Math.cos(a) }, v.yaw, v.pitch);
+    if (nr.z < 0.15) return;                     /* 뒤로 돌아가면 보이지 않게 */
+    var yc = gm.gripY0 + (gm.gripY1 - gm.gripY0) * 0.34;
+    var p = project3({ x: Math.sin(a) * R * 1.03, y: yc, z: Math.cos(a) * R * 1.03 }, v);
+    var q = project3({ x: Math.sin(a) * R * 1.03, y: yc + 1, z: Math.cos(a) * R * 1.03 }, v);
+    var ang = Math.atan2(q.y - p.y, q.x - p.x);     /* 그립 축이 화면에서 향하는 방향 */
+    var unit = (p.s || 1) * (v.k || 1);
+    var avail = (gm.gripLen || 198) * 0.62 * unit;   /* 그립 안쪽 길이(px) */
+    var px = Math.max(4, Math.min(8.4 * unit, avail / (0.62 * txt.length)));
+    g.save();
+    if (typeof g.translate === 'function') g.translate(p.x, p.y);
+    if (typeof g.rotate === 'function') g.rotate(ang);
+    g.fillStyle = inkOf(grip);
+    if ('textAlign' in g) g.textAlign = 'center';
+    if ('textBaseline' in g) g.textBaseline = 'middle';
+    g.globalAlpha = 0.94;
+    g.font = '900 ' + px.toFixed(2) + 'px system-ui, -apple-system, "Noto Sans KR", sans-serif';
+    g.fillText(txt, 0, 0, Math.max(4, avail));
+    g.restore();
+  }
+
   function draw3d(g, v, custom, level, w, h, opts) {
     opts = opts || {};
     var c = normalizeCustom(custom);
@@ -2425,6 +2519,7 @@
     addGrip(prims, gm, v, grip, gm.accent, gripIt);
     addCharm(prims, gm, v, c);
     paintPrims(g, prims);
+    drawInk2d(g, gm, v, c, grip);
 
     /* 헤드 앞쪽 연출 — 불꽃 · 반짝이 */
     fxFront(g, gm, v, c);
@@ -4145,7 +4240,31 @@
       (slot === activeSlot ? '' : ' hidden') + '>' +
       '<div class="rkhead"><b>' + U.esc(def.label) + '</b><span>' + U.esc(def.note) + '</span>' +
       (slot === activeSlot ? '<i class="rkhead__now">지금 고르는 중</i>' : '') + '</div>' +
-      '<div class="rkparts">' + cells + '</div></div>';
+      '<div class="rkparts">' + cells + '</div>' +
+      /* bm-v1.98.0 — 그립 탭에만 붙는 선택 옵션: 이니셜 각인 */
+      (slot === 'grip' ? inkHtml(c) : '') + '</div>';
+  }
+
+  /* ---------- ✍️ 그립 이니셜 각인 입력줄 (bm-v1.98.0) ----------
+   *  기본은 비어 있고(각인 없음), 원하는 사람만 1~6자를 넣었다 뺄 수 있습니다.
+   *  값은 input.value 로만 넣고(textContent·attribute escape) 화면에 HTML 로 해석하지 않습니다. */
+  function inkHtml(c) {
+    var ink = normalizeInitial(c && c.initial);
+    return '<div class="rkink" data-rk-ink>' +
+      '<div class="rkink__top"><b>✍️ 이니셜 각인</b>' +
+        '<span>원하는 사람만 · 영문·숫자·한글</span>' +
+        '<i class="rkink__cnt' + (ink ? ' is-on' : '') + '" data-rk-ink-count>' + ink.length + '/' + INK_MAX + '</i></div>' +
+      '<div class="rkink__row">' +
+        '<input class="rkink__in" data-rk-ink-input type="text" maxlength="' + INK_MAX + '"' +
+          ' autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"' +
+          ' placeholder="예: SW · ACE · 승우" value="' + U.esc(ink) + '"' +
+          ' aria-label="그립에 새길 이니셜 · 최대 ' + INK_MAX + '자 · 비워 두면 각인 없음">' +
+        '<button type="button" class="btn btn--primary btn--sm rkink__go" data-rk-ink-apply>적용</button>' +
+        '<button type="button" class="btn btn--ghost btn--sm rkink__del" data-rk-ink-clear' +
+          (ink ? '' : ' disabled') + '>지우기</button>' +
+      '</div>' +
+      '<p class="rkink__hint">비워 두면 각인 없이 깔끔한 기본 그립 · 그립 색에 맞춰 밝은 금색/짙은 잉크로 자동 대비</p>' +
+    '</div>';
   }
 
   /* 지금 고르는 파츠 — 3D 라켓에서 부위를 눌러도 여기가 바뀝니다 */
@@ -4565,13 +4684,15 @@
             ? '<b>거트 · 테두리 · 그립</b>을 눌러 바로 바꿔요'
             : '라켓을 <b>톡</b> 치면 스매시!') + '</p>' +
       '</div>' +
-      /* 세트 조합 배지 + 도감 — 3D 바로 아래, 파츠를 고르기 전에 눈에 들어오게 */
-      setBonusHtml(state) +
-      /* 거트·그립 선택창은 탭 바로 아래 — 3D에서 탭을 누르면 눈이 바로 밑에서 고릅니다 */
+      /* bm-v1.98.0 — 거트·그립 선택창을 3D 바로 뒤로 당깁니다.
+       *  예전엔 '조합 도감' 카드가 사이에 있어 파츠를 고르려면 1000px 넘게 내려가야 했고,
+       *  고르는 동안 라켓이 화면 밖으로 사라졌습니다(승우 님 제보). */
       '<div class="rkpick" data-rk-pick>' +
         tabHtml() +
         SLOTS.map(function (slot) { return partHtml(state, slot); }).join('') +
       '</div>' +
+      /* 세트 조합 배지 + 도감 — 고르는 창 아래로. 맞추면 이 카드가 배지·연출로 알려 줍니다 */
+      setBonusHtml(state) +
       /* 그 아래: 줄 상태 · 지금 컨디션 · 하트 지갑 */
       stringAgeHtml(state) +
       '<div class="rkhero rkhero--' + cond.level + '">' +
@@ -4605,15 +4726,102 @@
   /* 방금 연 파츠 — 한 번 누르면 바로 열리고, 시트 안 '되돌리기'로 포인트까지 되돌립니다 */
   var lastUnlock = null;
 
+  /* bm-v1.98.0 — 파츠를 고르는 동안 3D 미리보기를 화면 위에 붙박이로 남깁니다.
+   *  · 탭 줄이 화면 위쪽에 닿을 만큼 내려오면 카드가 작은 미리보기로 붙습니다.
+   *  · 붙일 때 카드의 흐름 높이(style.height)를 그대로 굳혀서 아래 내용이 한 픽셀도 튀지 않습니다.
+   *  · 큰 3D 로 돌아오려면 그냥 위로 쓸어 올리면 됩니다(자동으로 풀립니다). */
+  function syncMini(host) {
+    if (!hasDom || !host) return;
+    var body = host.querySelector('.sheet__body');
+    var card = host.querySelector('.rk3d');
+    if (!body || !card) return;
+    if (fullOn) {
+      card.classList.remove('is-mini');
+      card.style.height = '';
+      return;
+    }
+    var tabs = body.querySelector('.rk3d__tabs');
+    var cv = body.querySelector('.rk3d__cv');
+    if (!tabs || !cv) return;
+    var bTop = body.getBoundingClientRect().top;
+    /* 붙박이로 바뀌기 전에 잰 '캔버스 아래 끝'을 기억해 두고 그 기준으로 켜고 끕니다
+     * (미니 상태에서 다시 재면 작은 캔버스 기준이 돼 버려 바로 풀리는 문제가 있습니다) */
+    if (!card.classList.contains('is-mini') && !card.style.height) {
+      card.dataset.cvBottom = String(Math.round(cv.getBoundingClientRect().bottom - bTop + body.scrollTop));
+    }
+    var cvBottom = Number(card.dataset.cvBottom) || 0;
+    var want = body.scrollTop > Math.max(120, cvBottom - 90);
+    var has = card.classList.contains('is-mini');
+    if (want === has) return;
+    if (want) {
+      if (!card.style.height) card.style.height = card.offsetHeight + 'px';
+      card.classList.add('is-mini');
+    } else {
+      card.classList.remove('is-mini');
+      card.style.height = '';
+    }
+  }
+
   function refreshSheet(host, ctx) {
     if (!host || !ctx) return;
     var body = host.querySelector('.sheet__body');
     if (!body) return;
+    /* bm-v1.98.0 — 다시 그려도 보던 자리를 그대로 둔다 (승우 님 제보: "선택하면 아래로 내려가서 불편")
+     *  · 스크롤 위치와 ‘탭 줄이 화면에서 있던 높이’를 기억했다가 돌려봅니다.
+     *  · 파츠 색을 고를 때는 이 함수 대신 syncChosen 이 카드만 켜고 꺼서 아예 다시 그리지 않습니다. */
+    var keepTop = body.scrollTop;
+    var tabsEl = body.querySelector('.rk3d__tabs');
+    var tabY = tabsEl ? tabsEl.getBoundingClientRect().top : null;
     body.innerHTML = sheetBody(ctx.store.state);
+    body.scrollTop = keepTop;
+    if (tabY != null) {
+      var tabs2 = body.querySelector('.rk3d__tabs');
+      if (tabs2) {
+        var dy = tabs2.getBoundingClientRect().top - tabY;
+        if (Math.abs(dy) > 2) body.scrollTop = Math.max(0, keepTop + dy);
+      }
+    }
     /* bm-v1.96.0 — 전체화면 상태는 시트 다시 그리기를 건너도 유지 */
     if (host.classList) host.classList.toggle('is-rkfull', fullOn);
     mount3d(host, ctx);
+    syncMini(host);
     firePendingBurst();
+  }
+
+  /* bm-v1.98.0 — 파츠 색을 골랐을 때의 가벼운 갱신
+   *  · 시트를 통째로 다시 그리지 않고(3D 재마운트·스크롤 튐 없이) 고른 카드 표시만 바꿉니다.
+   *  · 3D 는 저장값을 매 프레임 읽어 스스로 다시 그리므로 여기서 손대지 않습니다. */
+  function syncChosen(host, ctx) {
+    if (!host || !ctx) return false;
+    var body = host.querySelector('.sheet__body');
+    if (!body) return false;
+    var c = customOf(ctx.store.state.me);
+    var cards = body.querySelectorAll('.rkparts [data-rk-part]');
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      var slot = card.getAttribute('data-rk-slot');
+      var on = card.getAttribute('data-rk-id') === c[slot];
+      if (card.classList.contains('is-on') !== on) {
+        card.classList.toggle('is-on', on);
+        card.setAttribute('aria-pressed', on ? 'true' : 'false');
+      }
+    }
+    /* 조합 배지·도감 카드는 내용이 바뀌므로 그 카드만 다시 (펼침 상태는 유지) */
+    var box = body.querySelector('.rkset');
+    if (box) {
+      var wasOpen = !!(box.querySelector('details') && box.querySelector('details').open);
+      var keepTop = body.scrollTop;
+      var tmp = document.createElement('div');
+      tmp.innerHTML = setBonusHtml(ctx.store.state);
+      var next = tmp.firstChild;
+      if (next && box.parentNode) {
+        box.parentNode.replaceChild(next, box);
+        var det = next.querySelector('details');
+        if (det && wasOpen) det.open = true;
+        body.scrollTop = keepTop;
+      }
+    }
+    return true;
   }
 
   /* bm-v1.96.0 — 3D 쇼룸 전체화면 토글.
@@ -4628,6 +4836,11 @@
     if (!el) return;
     var sheetEl = el.closest ? el.closest('.sheet') : null;
     el.classList.toggle('is-full', fullOn);
+    /* bm-v1.98.0 — 전체화면을 켜면 붙박이 미리보기(작은 카드)는 즉시 풀립니다 */
+    if (fullOn) {
+      el.classList.remove('is-mini');
+      el.style.height = '';
+    }
     if (sheetEl) sheetEl.classList.toggle('is-rkfull', fullOn);
     var btn = el.querySelector('[data-rk-full]');
     if (btn) {
@@ -4642,6 +4855,8 @@
     [30, 120, 320].forEach(function (ms) {
       setTimeout(function () { if (api && api.fit) api.fit(); }, ms);
     });
+    /* 전체화면에서 나오면 지금 스크롤 위치에 맞춰 미리보기 상태를 다시 정합니다 */
+    if (!fullOn && host) setTimeout(function () { syncMini(host); }, 40);
     if (BM.ui) BM.ui.haptic(8);
   }
 
@@ -4702,6 +4917,30 @@
     if (BM.ui) BM.ui.haptic(10);
     paintHeader(ctx.store.state);
     if (ctx.repaint) ctx.repaint();
+    return true;
+  }
+
+  /* ✍️ 그립 이니셜 각인 저장 (bm-v1.98.0)
+   *  · 빈 값이면 각인 레이어를 지우는 것과 같습니다(기본 그립 모습).
+   *  · 값이 그대로면 저장을 건너뜁니다(불필요한 동기화 없음). */
+  function applyInk(host, ctx, raw) {
+    if (!ctx || !ctx.store) return false;
+    var next = normalizeCustom(customOf(ctx.store.state.me));
+    var ink = normalizeInitial(raw);
+    if (ink === next.initial) {
+      if (BM.ui) BM.ui.toast(ink ? '그립 각인 "' + ink + '" 그대로예요' : '아직 각인이 없어요');
+      return false;
+    }
+    next.initial = ink;
+    var saved = saveCustom(ctx, next, {
+      toast: ink ? '✍️ 그립에 "' + ink + '" 각인했어요' : '그립 각인을 지웠어요'
+    });
+    if (!saved) return false;
+    if (BM.ui && BM.ui.haptic) BM.ui.haptic(14);
+    refreshSheet(host, ctx);
+    /* 새 각인이 잘 보이게 3D 를 한 번 다시 맞춥니다 */
+    var api = BM.racketcustom && BM.racketcustom._last3d;
+    if (api && typeof api.fit === 'function') setTimeout(function () { api.fit(); }, 60);
     return true;
   }
 
@@ -4858,7 +5097,25 @@
       onMount: function (host) {
         if (BM.views && BM.views.friends && BM.views.friends.bindCopy) BM.views.friends.bindCopy(host);
         mount3d(host, ctx);
+        /* bm-v1.98.0 — 스크롤에 따라 3D 미리보기를 붙박이로 (파츠 고르는 동안 라켓이 늘 보이게) */
+        var bodyEl = host.querySelector('.sheet__body');
+        if (bodyEl) {
+          bodyEl.addEventListener('scroll', function () { syncMini(host); }, { passive: true });
+          setTimeout(function () { syncMini(host); }, 60);
+        }
         host.addEventListener('click', function (ev) {
+          /* ---- ✍️ 그립 이니셜 각인 (bm-v1.98.0) ---- */
+          if (ev.target.closest('[data-rk-ink-apply]')) {
+            ev.preventDefault();
+            var inkIn = host.querySelector('[data-rk-ink-input]');
+            applyInk(host, ctx, inkIn ? inkIn.value : '');
+            return;
+          }
+          if (ev.target.closest('[data-rk-ink-clear]')) {
+            ev.preventDefault();
+            applyInk(host, ctx, '');
+            return;
+          }
           /* ---- 스매시 / 꾸미기 모드 · ⚡ 스매시 테스트 (bm-v1.82.0) ---- */
           var modeBtn = ev.target.closest('[data-rk-mode]');
           if (modeBtn) {
@@ -5071,7 +5328,7 @@
              * normalizeCustom 이 기본 파츠로 되돌리지 않습니다. */
             if (isAdminUser(st) && next2.unlocked.indexOf(slot + ':' + id) < 0) next2.unlocked.push(slot + ':' + id);
             next2[slot] = id;
-            if (saveCustom(ctx, next2)) refreshSheet(host, ctx);
+            if (saveCustom(ctx, next2)) syncChosen(host, ctx);
             return;
           }
           if (ev.target.closest('[data-rk-undo]')) {
@@ -5136,6 +5393,27 @@
               });
             }
             return;
+          }
+        });
+
+        /* 이니셜 입력 — 6자 제한·글자 수 표시 (한글 조합 중에는 값을 건드리지 않습니다) */
+        host.addEventListener('input', function (ev) {
+          var inp = ev.target.closest ? ev.target.closest('[data-rk-ink-input]') : null;
+          if (!inp) return;
+          var v = String(inp.value || '');
+          if (!ev.isComposing && v.length > INK_MAX) { v = v.slice(0, INK_MAX); inp.value = v; }
+          var cnt = host.querySelector('[data-rk-ink-count]');
+          if (cnt) {
+            cnt.textContent = v.length + '/' + INK_MAX;
+            cnt.classList.toggle('is-on', v.length > 0);
+          }
+        });
+        host.addEventListener('keydown', function (ev) {
+          var inp = ev.target.closest ? ev.target.closest('[data-rk-ink-input]') : null;
+          if (!inp) return;
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            applyInk(host, ctx, inp.value);
           }
         });
       }
@@ -5268,6 +5546,9 @@
     SHUTTLE_MM: { L: SHUT_L, W: SHUT_W, R: SHUT_R },
     isPartSlot: isPartSlot, tex: tex, _tex: tex,
     blankCustom: blankCustom, normalizeCustom: normalizeCustom, isUnlocked: isUnlocked,
+    /* bm-v1.98.0 — 그립 이니셜 각인 (선택 옵션) */
+    INK_MAX: INK_MAX, normalizeInitial: normalizeInitial, inkOf: inkOf, lumOf: lumOf,
+    inkHtml: inkHtml, applyInk: applyInk, drawInk2d: drawInk2d,
     hasCustom: hasCustom, customOf: customOf, customFor: customFor, specText: specText,
     priceOf: priceOf, heartNow: heartNow, ownedCount: ownedCount, isAdminUser: isAdminUser,
     pointsToday: pointsToday,
@@ -5286,6 +5567,8 @@
       fxFront: fxFront, draw: draw3d },
     headerHtml: headerHtml, paintHeader: paintHeader,
     sheetBody: sheetBody, stageHtml: stageHtml, openSheet: openSheet, pickSlot: pickSlot, mount3d: mount3d,
+    /* bm-v1.98.0 — 파츠 선택 때 시트를 다시 그리지 않고 카드 표시만 갱신 */
+    syncChosen: syncChosen,
     /* bm-v1.88.0 — 3D 뷰가 '지금 스매시/꾸미기 모드인지' 물어볼 수 있게 */
     stageModeGet: function () { return stageMode; },
     stringAge: stringAge, stringAgeHtml: stringAgeHtml,

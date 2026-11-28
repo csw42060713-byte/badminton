@@ -721,6 +721,97 @@
     return group;
   }
 
+  /* ============================================================
+   * bm-v1.98.0 — ✍️ 그립 이니셜 각인 레이어
+   *
+   *  · 오버그립 나선 바깥에 얇은 원통 띠 하나를 덧대고, 그 위에 글자를 구운 캔버스
+   *    텍스처를 올립니다. 글자가 그립 표면을 따라 감기며 라켓과 함께 360° 돕니다.
+   *  · 빈 글자면 레이어를 만들지 않습니다(기본 그립 그대로 · 드로우콜도 안 늘림).
+   *  · 글자는 캔버스 fillText 로만 — HTML 해석 없음. 어두운 그립엔 밝은 금색,
+   *    밝은 그립엔 짙은 잉크로 자동 대비(RC().inkOf).
+   * ============================================================ */
+  var INK_ARC = 1.9;          /* 글자가 감기는 각도(라디안) ≈ 109° */
+  var INK_FACE = 0.46;        /* 기본 시점(aimG yaw -0.46)에서 정면을 향하게 */
+  var INK_TEX = {}, INK_ORDER = [];
+
+  /* 각인 배치 계산 — 순수 함수라 Node 테스트가 그대로 확인합니다 */
+  function gripInkPlan(look) {
+    var txt = (look && look.grip && look.grip.initial) || '';
+    if (!txt) return null;
+    var gm = look.gm || {};
+    var R = gm.gripR || 13.6;
+    var gripLen = gm.gripLen || 198;
+    var h = Math.min(30, Math.max(18, gripLen * 0.16));
+    var rc = RC();
+    return {
+      text: txt,
+      color: (rc && rc.inkOf) ? rc.inkOf(look.grip.color) : '#f8dc96',
+      radius: R * 0.97 + 0.72,
+      height: h,
+      y: gripLen - 34 - h / 2,      /* 그립 위쪽(콘 아래) — 손이 덜 닿는 자리 */
+      arc: R * 0.97 * INK_ARC,
+      thetaStart: -INK_ARC / 2,
+      thetaLength: INK_ARC
+    };
+  }
+
+  /* 글자 텍스처 — 캐시는 최근 6개만(글자를 바꿔 가며 놀아도 메모리가 늘지 않게) */
+  function gripInkTexture(T, plan) {
+    var key = plan.color + '|' + plan.text;
+    if (INK_TEX[key]) return INK_TEX[key];
+    if (!hasDom) return null;
+    var W = 512;
+    var H = Math.max(128, Math.round(W * plan.height / Math.max(0.001, plan.arc)));
+    var cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    var g = cv.getContext('2d');
+    if (!g) return null;
+    g.clearRect(0, 0, W, H);
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    var n = Math.max(1, plan.text.length);
+    /* 6자까지 띄지 않고, 화면에서 보이는 앞면(약 ±35°) 안에 들어오게 글자 크기를 정합니다 —
+     *  너무 크면 원통 옆으로 넘어가 글자가 잘려 보입니다. */
+    var size = Math.min(H * 0.46, (W * 0.78) / (n * 0.62));
+    g.font = '900 ' + Math.round(size) + 'px "Pretendard", "Noto Sans KR", system-ui, -apple-system, sans-serif';
+    /* 각인 느낌 — 살짝 들어간 홈(그림자) 위에 도드라진 글자 */
+    g.fillStyle = 'rgba(0,0,0,0.38)';
+    g.fillText(plan.text, W / 2 + Math.max(1, size * 0.035), H / 2 + Math.max(1, size * 0.045), W * 0.92);
+    g.fillStyle = plan.color;
+    g.fillText(plan.text, W / 2, H / 2, W * 0.92);
+    var t = new T.CanvasTexture(cv);
+    if (T.sRGBEncoding) t.encoding = T.sRGBEncoding;
+    t.anisotropy = 4;
+    INK_TEX[key] = t;
+    INK_ORDER.push(key);
+    while (INK_ORDER.length > 6) {
+      var old = INK_ORDER.shift();
+      if (INK_TEX[old] && INK_TEX[old] !== t) {
+        try { INK_TEX[old].dispose(); } catch (e) { /* 무시 */ }
+      }
+      delete INK_TEX[old];
+    }
+    return t;
+  }
+
+  function buildGripInk(T, look) {
+    var plan = gripInkPlan(look);
+    if (!plan) return null;
+    var tex = gripInkTexture(T, plan);
+    if (!tex) return null;
+    var geo = new T.CylinderGeometry(plan.radius, plan.radius, plan.height, 48, 1, true,
+      plan.thetaStart, plan.thetaLength);
+    var mat = new T.MeshBasicMaterial({
+      map: tex, transparent: true, depthWrite: false, side: T.FrontSide, toneMapped: false
+    });
+    var mesh = new T.Mesh(geo, mat);
+    mesh.position.y = plan.y;
+    mesh.rotation.y = INK_FACE;
+    mesh.renderOrder = 4;
+    mesh.userData.slot = 'grip';
+    return mesh;
+  }
+
   /* 테두리 안쪽 곡선 — 그로밋·거트 끝이 테두리에서 같은 간격이 되게 */
   function innerLoopOf(path, d, center) {
     var n = path.length, raw = [], i, a, b;
@@ -808,11 +899,12 @@
       set: setInfo,
       frame: { id: c.frame, color: frameIt.color || '#23272b', finish: frameIt.finish || '', shine: frameIt.shine || '#cfd8e4' },
       string: { color: stringIt.color || '#c6f24e' },
-      grip: { color: gripIt.color || '#1d2124', color2: gripIt.color2 || '', weave: gripIt.weave || '' },
+      /* bm-v1.98.0 — 그립 이니셜 각인(빈 글자면 각인 레이어를 만들지 않음) */
+      grip: { color: gripIt.color || '#1d2124', color2: gripIt.color2 || '', weave: gripIt.weave || '', initial: c.initial || '' },
       stencil: { id: c.stencil, color: stencilIt.color || '#f2c14e' },
       charm: { id: c.charm, color: charmIt.color || '#f2c14e' },
       effect: { id: c.effect, color: effectIt.color || '#c6f24e' },
-      sig: [c.body, c.frame, c.string, c.grip, c.stencil, c.charm, c.effect, level, setInfo ? setInfo.id : ''].join('|')
+      sig: [c.body, c.frame, c.string, c.grip, c.stencil, c.charm, c.effect, c.initial, level, setInfo ? setInfo.id : ''].join('|')
     };
   }
 
@@ -1146,6 +1238,13 @@
     tape.position.y = gripLen - 5.2;
     tape.userData.slot = 'grip';
     group.add(tape);
+
+    /* bm-v1.98.0 — 그립 이니셜 각인 레이어(넣은 사람만) */
+    var inkMesh = buildGripInk(T, look);
+    if (inkMesh) {
+      group.add(inkMesh);
+      parts.ink = inkMesh;
+    }
 
     /* --- ⑩ 참 — 목에 매달린 작은 장식 --- */
     var charmGroup = new T.Group();
@@ -4784,6 +4883,10 @@
     brokenStringPlan: brokenStringPlan,
     bandGeometry: bandGeometry,
     gripSpiral: gripSpiral,
+    /* bm-v1.98.0 — 그립 이니셜 각인 (빈 글자면 null · 배치/대비는 순수 함수) */
+    gripInkPlan: gripInkPlan,
+    buildGripInk: buildGripInk,
+    INK_ARC: INK_ARC,
     _tex: function (k) { return TEX[k] || null; },
     _resetProbe: function () { webglProbe = null; }
   };

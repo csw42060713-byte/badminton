@@ -8011,7 +8011,10 @@ body {
 }
 .rk3d.is-pick { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent) inset, 0 0 22px rgba(198,242,78,0.22); }
 .rk3d__cv {
-  display: block; width: 100%; height: 352px;
+  display: block; width: 100%;
+  /* bm-v1.98.0 — 352 → 240: 폰(390×844)에서 3D 아래 탭 줄·파츠 첫 줄이
+   * 한 화면에 들어오게. 큰 화면에서는 다시 넉넉하게(아래 미디어 질의). */
+  height: 240px;
   /* 전체화면과 같은 이유로 캔버스는 손짓을 가져갑니다. 세로 쓸기는 아래 코드가
    * 시트를 직접 스크롤해 줍니다(캔버스 위에서도 시트가 위아래로 쓸러집니다). */
   touch-action: none; cursor: grab; background: transparent;
@@ -8185,7 +8188,7 @@ body {
 }
 
 /* 세로로 긴 실제 라켓 비율이 잘리지 않게 */
-.rk3d__cv { height: 356px; }
+.rk3d__cv { height: 240px; margin-bottom: 6px; }   /* bm-v1.98.0 — 폰에서 탭 줄·파츠 첫 줄까지 한 화면에 */
 .rk3d { box-shadow: inset 0 -30px 40px -30px rgba(0,0,0,0.8); }
 
 /* 바디(모델) 4종 — 고르면 실루엣·데칼이 바로 바뀝니다 */
@@ -8703,4 +8706,82 @@ button.rkset__chip:active { transform: scale(0.97); }
   font-style: normal; font-size: 10.2px; font-weight: 900;
   color: color-mix(in srgb, var(--sc, #c6f24e) 60%, var(--muted));
   opacity: 0.9;
+}
+
+/* ============================================================
+ * bm-v1.98.0 — ✍️ 그립 이니셜 각인 (선택 옵션 · 기본 비움)
+ *  · 그립 탭 안에서만 보이는 한 줄 입력칸 + 적용/지우기
+ *  · 390px 폰 폭에서도 입력칸이 눌리게 38px 높이 · 가로 스크롤 없음
+ * ============================================================ */
+.rkink {
+  display: grid; gap: 6px; padding: 9px 10px 8px;
+  border-radius: 14px; border: 1px dashed color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--card));
+}
+.rkink__top { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.rkink__top b { font-size: 12.2px; font-weight: 900; color: var(--text); letter-spacing: -0.2px; }
+.rkink__top span { font-size: 10.4px; font-weight: 700; color: var(--muted); }
+.rkink__cnt {
+  margin-left: auto; font-style: normal; font-size: 9.8px; font-weight: 900;
+  color: var(--muted); font-variant-numeric: tabular-nums;
+  border-radius: 999px; padding: 1px 6px; border: 1px solid var(--line);
+}
+.rkink__cnt.is-on {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.rkink__row { display: flex; align-items: center; gap: 6px; }
+.rkink__in {
+  flex: 1 1 auto; min-width: 0; height: 38px; padding: 0 11px;
+  border-radius: 11px; border: 1px solid var(--line); background: var(--bg, var(--card));
+  color: var(--text); font: inherit; font-size: 14.5px; font-weight: 900; letter-spacing: 0.8px;
+  -webkit-appearance: none; appearance: none;
+}
+.rkink__in::placeholder { font-size: 11.8px; font-weight: 700; letter-spacing: 0; color: var(--muted); opacity: 0.8; }
+.rkink__in:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 26%, transparent);
+}
+.rkink__go, .rkink__del { flex: none; min-height: 38px; padding: 0 13px; font-size: 12px; white-space: nowrap; }
+.rkink__del[disabled] { opacity: 0.42; }
+.rkink__hint {
+  margin: 0; font-size: 10.8px; line-height: 1.42; font-weight: 600;
+  color: var(--muted); word-break: keep-all;
+}
+
+/* ============================================================
+ * bm-v1.98.0 — 파츠를 고르는 동안 3D 미리보기가 위에 남는 '붙박이 미리보기'
+ *  · 탭 줄이 화면 위쪽에 닿을 만큼 내려오면 카드가 작은 미리보기로 붙습니다.
+ *  · JS 가 카드의 흐름 높이를 그대로 굳혀 두므로(clip-path 로 보이는 부분만 자름)
+ *    아래 파츠 목록이 한 픽셀도 튀지 않습니다.
+ *  · 위로 쓸어 올리면 원래 큰 3D 로 돌아갑니다. 전체화면(⛶)·스매시·모션은 그대로.
+ * ============================================================ */
+.rk3d.is-mini {
+  position: sticky; top: -16px; z-index: 7;
+  /* 보이는 부분만카드로 남기고 나머지는 완전히 투명하게 (배경·테두리까지 잘림) */
+  -webkit-clip-path: inset(0 0 calc(100% - 176px) 0 round 20px);
+  clip-path: inset(0 0 calc(100% - 176px) 0 round 20px);
+  pointer-events: none;
+  /* 캔버스가 계속 움직여 CSS 애니메이션이 느리게 풀리는 기기에서 카드가 반투명하게 남는
+   * 문제가 있어 페이드 없이 바로 붙습니다(3D 자체가 부드럽게 움직여 어색하지 않습니다). */
+}
+.rk3d.is-mini .rk3d__cv { height: 176px; pointer-events: auto; }
+.rk3d.is-mini .rk3d__full,
+.rk3d.is-mini .rk3d__sound { pointer-events: auto; }
+.rk3d.is-mini .rkbody,
+.rk3d.is-mini .rkstage,
+.rk3d.is-mini .rkmotions,
+.rk3d.is-mini .rk3d__hint { display: none; }
+/* 전체화면일 때는 붙박이 규칙을 모두 무시 */
+.rk3d.is-full {
+  position: relative; top: auto;
+  -webkit-clip-path: none; clip-path: none; pointer-events: auto;
+}
+
+/* bm-v1.98.0 — 큰 화면(태블릿·PC)에서는 3D 를 다시 넉넉하게 */
+@media (min-width: 520px) {
+  .rk3d__cv { height: 336px; }
+  .rk3d.is-mini { -webkit-clip-path: inset(0 0 calc(100% - 216px) 0 round 20px); clip-path: inset(0 0 calc(100% - 216px) 0 round 20px); }
+  .rk3d.is-mini .rk3d__cv { height: 216px; }
 }
