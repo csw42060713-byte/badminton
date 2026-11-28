@@ -8035,6 +8035,76 @@ body {
 }
 .rk3d__hint span { color: var(--accent); font-weight: 900; margin-right: 3px; }
 .rk3d__hint b { color: rgba(247,255,223,0.92); font-weight: 900; }
+
+/* ============================================================
+ * bm-v1.96.0 — 3D 쇼룸 전체화면 (⛶)
+ *   인스타 녹화·감상용: 화면 전체가 어두운 스튜디오가 되고,
+ *   아래에는 반투명 플로팅 컨트롤(스매시 · 바닥 강타 · 모션)만 남깁니다.
+ * ============================================================ */
+.rk3d__full {
+  position: absolute; top: 8px; right: 48px; z-index: 4;
+  height: 34px; padding: 0 10px; border-radius: 11px;
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(8,14,12,0.58); color: #eaffd0;
+  font-family: inherit; font-size: 11px; font-weight: 800; letter-spacing: -0.2px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.rk3d__full span { font-size: 13px; line-height: 1; }
+.rk3d__full:active { transform: scale(0.95); }
+.rk3d__full.is-on {
+  color: #10140f; background: rgba(214,255,220,0.86); border-color: rgba(255,255,255,0.4);
+}
+
+/* 시트를 화면 전체로 */
+.sheet.is-rkfull .sheet__grab,
+.sheet.is-rkfull .sheet__head,
+.sheet.is-rkfull .sheet__backdrop { display: none; }
+.sheet.is-rkfull .sheet__panel {
+  height: 100dvh; max-height: 100dvh; border-radius: 0; border-top: 0;
+  padding-bottom: 0;
+}
+.sheet.is-rkfull .sheet__body {
+  padding: 0; overflow: hidden; height: 100%; display: flex; flex-direction: column;
+}
+/* sheetBody 의 바깥 상자(.rksheet)가 실제 부모입니다 — 그 안에서 3D 만 남깁니다 */
+.sheet.is-rkfull .rksheet {
+  flex: 1 1 auto; height: 100%; min-height: 0;
+  display: flex; flex-direction: column; padding: 0;
+}
+.sheet.is-rkfull .rksheet > *:not(.rk3d) { display: none; }
+
+/* 3D 칸을 화면 전체로 */
+.rk3d.is-full {
+  flex: 1 1 auto; height: 100%; min-height: 0;
+  display: flex; flex-direction: column;
+  border: 0; border-radius: 0;
+  background:
+    radial-gradient(120% 62% at 50% 30%, rgba(150,210,180,0.16) 0%, rgba(20,40,32,0.06) 52%, transparent 74%),
+    linear-gradient(180deg, #0a1310 0%, #050a08 58%, #020403 100%);
+  box-shadow: none;
+}
+.rk3d.is-full .rk3d__cv { flex: 1 1 auto; height: auto; min-height: 0; }
+.rk3d.is-full .rkbody,
+.rk3d.is-full .rk3d__hint,
+.rk3d.is-full .rkstage__modes { display: none; }
+.rk3d.is-full .rk3d__full { top: max(10px, var(--safe-t)); right: 10px; }
+.rk3d.is-full .rk3d__sound { top: max(10px, var(--safe-t)); right: 108px; }
+/* 아래 플로팅 컨트롤 — 가볍고 반투명하게 */
+.rk3d.is-full .rkstage,
+.rk3d.is-full .rkmotions {
+  margin: 0; padding: 8px 10px;
+  background: rgba(5,10,8,0.46);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.rk3d.is-full .rkstage { display: flex; flex-wrap: wrap; gap: 6px; }
+.rk3d.is-full .rkstage__go { flex: 1 1 40%; }
+.rk3d.is-full .rkmotions { padding-bottom: max(8px, var(--safe-b)); }
+@media (max-height: 620px) {
+  .rk3d.is-full .rkmotions { padding-top: 5px; padding-bottom: 5px; }
+}
 .rk3d__tabs {
   display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
   padding: 0 10px 10px;
@@ -8582,3 +8652,33 @@ button.post__rk:active { transform: scale(0.94); }
 .rkset__t { font-size: 10.4px; font-weight: 700; color: var(--muted); align-self: center; }
 .rkset__s { font-size: 10.2px; font-weight: 900; color: color-mix(in srgb, var(--sc, #c6f24e) 58%, var(--muted)); align-self: center; white-space: nowrap; }
 .rkset__c { grid-column: 1 / -1; font-style: normal; font-size: 9.8px; font-weight: 700; color: var(--muted); opacity: 0.82; word-break: keep-all; }
+
+/* bm-v1.96.0 — 히든 조합 근접(2/4) 안내 · 남은 조건 칩(누르면 그 탭으로) */
+.rkset__near {
+  margin: 7px 0 2px; padding: 8px 10px; border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--sc, #c6f24e) 46%, var(--line));
+  background: color-mix(in srgb, var(--sc, #c6f24e) 9%, transparent);
+}
+.rkset__near b {
+  display: block; font-size: 11.6px; font-weight: 900; letter-spacing: -0.2px;
+  color: color-mix(in srgb, var(--sc, #c6f24e) 70%, #ffffff);
+}
+.rkset__near p {
+  margin: 3px 0 6px; font-size: 10.4px; font-weight: 800; color: var(--text-2);
+  line-height: 1.45; word-break: keep-all;
+}
+.rkset__hintchips { display: flex; flex-wrap: wrap; gap: 4px; }
+button.rkset__chip {
+  cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent;
+  font-weight: 800; color: var(--text-2);
+}
+button.rkset__chip:active { transform: scale(0.97); }
+.rkset__row.is-near {
+  opacity: 1; border-style: solid;
+  border-color: color-mix(in srgb, var(--sc, #c6f24e) 34%, transparent);
+  background: color-mix(in srgb, var(--sc, #c6f24e) 8%, transparent);
+}
+.rkset__nearb {
+  font-style: normal; font-size: 9.6px; font-weight: 900; padding: 1px 5px; border-radius: 6px;
+  color: #10140f; background: color-mix(in srgb, var(--sc, #c6f24e) 78%, #ffffff);
+}

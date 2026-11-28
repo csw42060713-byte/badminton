@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v195.test.js — bm-v1.95.0
+ * test/v195.test.js — bm-v1.96.0
  *
  *   승우 님 요청(2026-11-28):
  *     "라캣아래 오라같은것도 만들고 조합 보너스해서 노란색으로 다하면
@@ -55,9 +55,11 @@
     var c = RC.blankCustom();
     var unlocked = [];
     set.need.forEach(function (n) {
-      c[n[0]] = n[1];
-      var it = RC.itemOf(n[0], n[1]);
-      if (it && !it.free) unlocked.push(n[0] + ':' + n[1]);
+      /* bm-v1.96.0 — 조건 하나가 여러 파츠를 받을 수 있어(needIds) 첫 번째를 입습니다 */
+      var ids = RC.needIds ? RC.needIds(n) : [].concat(n[1]);
+      c[n[0]] = ids[0];
+      var it = RC.itemOf(n[0], ids[0]);
+      if (it && !it.free) unlocked.push(n[0] + ':' + ids[0]);
     });
     c.unlocked = unlocked;
     if (extra) extra.forEach(function (k) {
@@ -86,8 +88,10 @@
       ok(s.need.length >= 3, s.id + ' 조건 3개 이상');
       /* 조건은 반드시 실제 존재하는 파츠 — 없는 id 를 요구하면 영원히 못 맞춥니다 */
       s.need.forEach(function (n) {
-        var it = RC.itemOf(n[0], n[1]);
-        ok(!!it, s.id + ' → ' + n[0] + ':' + n[1] + ' 실제 파츠');
+        (RC.needIds ? RC.needIds(n) : [].concat(n[1])).forEach(function (id) {
+          var it = RC.itemOf(n[0], id);
+          ok(!!it, s.id + ' → ' + n[0] + ':' + id + ' 실제 파츠');
+        });
       });
     });
     /* 노랑 풀세트는 전체 낙뢰(fx: lightning) */
@@ -408,16 +412,16 @@
 
   test('v1.95 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.95.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.95.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.95.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261128-1', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.96.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.96.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.96.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261128-2', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.95.0', 'TWA 이름');
-    eq(twa.appVersion, '1.95.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 89, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.95.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.96.0', 'TWA 이름');
+    eq(twa.appVersion, '1.96.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 90, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.96.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v195.test.js', '테스트 목록');
-    includes(readRoot('sw.js'), 'bm-v1.95.0', 'sw 이력');
+    includes(readRoot('sw.js'), 'bm-v1.96.0', 'sw 이력');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

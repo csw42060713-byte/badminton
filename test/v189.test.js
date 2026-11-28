@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v189.test.js — bm-v1.95.0
+ * test/v189.test.js — bm-v1.96.0
  *   📱 폰 바탕화면(안드로이드 라이브 배경화면) 연결
  *
  *   1) 모듈    — BM.wallpaper · 앱 패키지·스킴 · 세 가지 전달 길(브리지 → 딥링크 → 안내)
@@ -185,18 +185,18 @@
     ok(fileExists('js/wallpaper.js'), '파일');
     includes(readRoot('index.html'), 'js/wallpaper.js', 'index.html');
     includes(readRoot('sw.js'), "'./js/wallpaper.js'", 'sw SHELL');
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.95.0'", '캐시 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.96.0'", '캐시 버전');
   });
 
   test('v1.90 버전: 앱·서비스워커·TWA 가 같은 버전(1.94.0 / 코드 88)', function () {
     if (!hasNode) return;
-    includes(readRoot('app.js'), "version: 'v1.95.0'", 'app.js');
-    includes(readRoot('js/push.js'), "version: 'v1.95.0'", 'push.js');
+    includes(readRoot('app.js'), "version: 'v1.96.0'", 'app.js');
+    includes(readRoot('js/push.js'), "version: 'v1.96.0'", 'push.js');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.95.0', 'TWA 이름');
-    eq(twa.appVersion, '1.95.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 89, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.95.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.96.0', 'TWA 이름');
+    eq(twa.appVersion, '1.96.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 90, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.96.0', 'README 변경 이력');
   });
 
   test('v1.89 금지: 키스토어·비밀번호 같은 비밀 값이 웹 저장소에 없다', function () {

@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v194.test.js — bm-v1.95.0
+ * test/v194.test.js — bm-v1.96.0
  *
  *   1) 드라이브 실전 노하우 — 사용자 제보(2026-11-27)
  *      "드라이브 칠 때 검지 손가락에 신경 써서 힘을 주고, 끊어 치지 않고 스윙을 짧게 한다"
@@ -186,7 +186,7 @@
   test('v1.94 셔틀: 공개 API 로 셔틀 모델을 그대로 만들 수 있다', function () {
     eq(typeof R3.buildShuttle, 'function', 'buildShuttle 공개');
     eq(typeof R3.brokenStringPlan, 'function', 'brokenStringPlan 공개');
-    eq(R3.rev, '1.95.0', '3D 모듈 리비전');
+    eq(R3.rev, '1.96.0', '3D 모듈 리비전');
   });
 
   /* ============================================================
@@ -317,15 +317,15 @@
 
   test('v1.94 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.95.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.95.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.95.0'", 'push 버전');
-    includes(readRoot('index.html'), 'styles.css?v=20261128-1', '스타일 캐시 키');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.96.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.96.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.96.0'", 'push 버전');
+    includes(readRoot('index.html'), 'styles.css?v=20261128-2', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.95.0', 'TWA 이름');
-    eq(twa.appVersion, '1.95.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 89, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.95.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.96.0', 'TWA 이름');
+    eq(twa.appVersion, '1.96.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 90, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.96.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v194.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

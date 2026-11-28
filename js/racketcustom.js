@@ -300,45 +300,45 @@
     /* ---------- 히든 7 (먼저 — 같은 조합이면 히든이 우선) ---------- */
     {
       id: 'phantom', name: '팬텀 라이트닝', emoji: '🌩', hidden: true, fx: 'voidbolt',
-      color: '#a487ff', color2: '#efe6ff', tag: '보랏빛 낙뢰', hint: '어둠 · 티타늄 · 번개',
+      color: '#a487ff', color2: '#efe6ff', tag: '보랏빛 낙뢰', hint: '오닉스 티타늄 프레임 · 미드나잇 블랙 거트 · 바이올렛 그립 · 보이드/번개/골드번개 효과',
       desc: '보랏빛 번개가 어둠 속에서 라켓으로 떨어져요',
-      need: [['frame', 'onyx'], ['string', 'black'], ['grip', 'violet'], ['effect', 'void']]
+      need: [['frame', 'onyx'], ['string', 'black'], ['grip', 'violet'], ['effect', ['void', 'thunder', 'goldbolt']]]
     },
     {
       id: 'blizzard', name: '블리자드', emoji: '🌨', hidden: true, fx: 'snowstorm',
-      color: '#d5f0ff', color2: '#9ed8ff', tag: '절대영도 눈보라', hint: '얼음 · 하얀 거트',
+      color: '#d5f0ff', color2: '#9ed8ff', tag: '절대영도 눈보라', hint: '글레이셔 블루 프레임 · 화이트/아이스 거트 · 아크 화이트/아이스 그립 · 스노우/얼음/에메랄드 효과',
       desc: '쇼룸 전체에 눈보라가 몰아치고 바닥이 얼어붙어요',
-      need: [['frame', 'ice'], ['string', 'white'], ['grip', 'white'], ['effect', 'snow']]
+      need: [['frame', 'ice'], ['string', ['white', 'ice']], ['grip', ['white', 'ice']], ['effect', ['snow', 'ice', 'wind']]]
     },
     {
       id: 'phoenix', name: '불사조', emoji: '🔥', hidden: true, fx: 'pillar',
-      color: '#ff8a2f', color2: '#ffd166', tag: '불꽃 기둥', hint: '붉은 프레임 · 불꽃',
+      color: '#ff8a2f', color2: '#ffd166', tag: '불꽃 기둥', hint: '파이어 레드 프레임 · 크림슨 거트·그립 · 불꽃/블레이즈/블라썸 효과',
       desc: '바닥에서 불꽃 기둥이 솟아오르고 불티가 흩날려요',
-      need: [['frame', 'red'], ['string', 'crimson'], ['grip', 'crimson'], ['effect', 'fire']]
+      need: [['frame', 'red'], ['string', 'crimson'], ['grip', 'crimson'], ['effect', ['fire', 'blaze', 'blossom']]]
     },
     {
       id: 'cyclone', name: '사이클론', emoji: '🌪', hidden: true, fx: 'cyclone',
-      color: '#45e0b0', color2: '#c6ffe9', tag: '태풍 소용돌이', hint: '초록 · 바람',
+      color: '#45e0b0', color2: '#c6ffe9', tag: '태풍 소용돌이', hint: '에메랄드 티탄 프레임·그립 · 형광 라임 거트 · 에메랄드 윈드/스피드 효과',
       desc: '라켓 둘레로 바람 링이 돌고 초록 소용돌이가 솟아요',
-      need: [['frame', 'emerald'], ['string', 'lime'], ['grip', 'emerald'], ['effect', 'wind']]
+      need: [['frame', 'emerald'], ['string', 'lime'], ['grip', 'emerald'], ['effect', ['wind', 'speed']]]
     },
     {
       id: 'champion', name: '챔피언 골드', emoji: '🏆', hidden: true, fx: 'confetti',
-      color: '#ffd166', color2: '#fff3c4', tag: '금가루 컨페티', hint: '하얀 프레임 · 금빛 · 메달',
+      color: '#ffd166', color2: '#fff3c4', tag: '금가루 컨페티', hint: '아크 화이트 프레임 · 골드 거트·그립 · 체전 메달/에이스 참',
       desc: '금가루가 눈처럼 내리고 챔피언 메달이 빛나요',
-      need: [['frame', 'white'], ['string', 'gold'], ['grip', 'gold'], ['charm', 'medal']]
+      need: [['frame', 'white'], ['string', 'gold'], ['grip', 'gold'], ['charm', ['medal', 'ace']]]
     },
     {
       id: 'cyber', name: '네온 사이버', emoji: '🟩', hidden: true, fx: 'cyber',
-      color: '#7cffd4', color2: '#c6f24e', tag: '네온 그리드', hint: '카본 · 민트 · 스피드',
+      color: '#7cffd4', color2: '#c6f24e', tag: '네온 그리드', hint: '스텔스 카본 프레임 · 형광 라임 거트 · 민트 그립 · 에메랄드 윈드/스피드 효과',
       desc: '바닥에 네온 그리드가 켜지고 빛줄기가 돌아요',
-      need: [['frame', 'carbon'], ['string', 'lime'], ['grip', 'mint'], ['effect', 'speed']]
+      need: [['frame', 'carbon'], ['string', 'lime'], ['grip', 'mint'], ['effect', ['speed', 'wind']]]
     },
     {
       id: 'aurora', name: '프리즘 오로라', emoji: '🌌', hidden: true, fx: 'aurora',
-      color: '#9be7ff', color2: '#b48cff', tag: '오로라 커튼', hint: '보랏빛 · 오로라',
+      color: '#9be7ff', color2: '#b48cff', tag: '오로라 커튼', hint: '미드나잇 바이올렛 프레임·그립 · 바이올렛 거트 · 오로라/프리즘 효과',
       desc: '라켓 뒤로 초록·보라 오로라 커튼이 흘러요',
-      need: [['frame', 'violet'], ['string', 'violet'], ['grip', 'violet'], ['effect', 'aurora']]
+      need: [['frame', 'violet'], ['string', 'violet'], ['grip', 'violet'], ['effect', ['aurora', 'prism']]]
     },
     /* ---------- 공개 4 (조건을 화면에 그대로) ---------- */
     {
@@ -351,13 +351,13 @@
       id: 'blazeRed', name: '블레이즈 레드', emoji: '🔥', hidden: false, fx: 'flame',
       color: '#ff5a2f', color2: '#ffc36b', tag: '불꽃 오라', tone: '레드',
       desc: '바닥에서 불티가 솟고 라켓이 붉게 달아올라요',
-      need: [['frame', 'red'], ['string', 'crimson'], ['grip', 'coral']]
+      need: [['frame', 'red'], ['string', 'crimson'], ['grip', ['coral', 'crimson']]]
     },
     {
       id: 'frostIce', name: '프로스트 아이스', emoji: '❄', hidden: false, fx: 'frost',
       color: '#a9e8ff', color2: '#ffffff', tag: '서리 오라', tone: '블루',
       desc: '바닥이 얼어붙고 서리 결정이 천천히 떠다녀요',
-      need: [['frame', 'white'], ['string', 'cobalt'], ['grip', 'ice']]
+      need: [['frame', 'white'], ['string', ['cobalt', 'ice']], ['grip', ['ice', 'white']]]
     },
     {
       id: 'darkOnyx', name: '다크 오닉스', emoji: '🌑', hidden: false, fx: 'void',
@@ -373,6 +373,13 @@
     return null;
   }
 
+  /* bm-v1.96.0 — 조건 하나가 받아 주는 파츠 id 목록
+   *  힌트만 보고 맞춰도 발동하게, 한 칸에 여러 파츠를 허용할 수 있습니다.
+   *  예) ['effect', ['snow', 'ice']] → 스노우 스톰이든 얼음 스매시든 인정 */
+  function needIds(need) {
+    return Array.isArray(need && need[1]) ? need[1] : [need && need[1]];
+  }
+
   /* 이 세트에서 지금 몇 파츠가 맞았는지 — 화면의 '2/3 노랑 파츠' 숫자
    *  · setHitRaw 는 이미 정리된 custom 을 그대로 받습니다(3D 가 매 프레임 부를 때
    *    정리(normalizeCustom)를 되풀이하지 않도록). */
@@ -380,10 +387,17 @@
     var out = [];
     for (var i = 0; i < set.need.length; i++) {
       var need = set.need[i];
-      var it = itemOf(need[0], need[1]);
+      var ids = needIds(need);
+      var curId = c[need[0]];
+      var got = ids.indexOf(curId) >= 0;
+      var it = itemOf(need[0], got ? curId : ids[0]);
       out.push({
-        slot: need[0], id: need[1], got: c[need[0]] === need[1],
-        name: it ? it.name : need[1], label: (PARTS[need[0]] && PARTS[need[0]].label) || need[0]
+        slot: need[0], id: ids[0], ids: ids, got: got, curId: curId,
+        name: ids.map(function (id) {
+          var x = itemOf(need[0], id);
+          return x ? x.name : id;
+        }).join(' / '),
+        label: (PARTS[need[0]] && PARTS[need[0]].label) || need[0]
       });
     }
     var hits = out.filter(function (n) { return n.got; }).length;
@@ -439,10 +453,17 @@
 
   function needText(set) {
     return set.need.map(function (n) {
-      var it = itemOf(n[0], n[1]);
-      return ((PARTS[n[0]] && PARTS[n[0]].label) || n[0]) + ' ' + (it ? it.name : n[1]);
+      var ids = needIds(n);
+      var names = ids.map(function (id) {
+        var it = itemOf(n[0], id);
+        return it ? it.name : id;
+      }).join('/');
+      return ((PARTS[n[0]] && PARTS[n[0]].label) || n[0]) + ' ' + names;
     }).join(' · ');
   }
+
+  /* 힌트 문구를 조건에서 바로 만듭니다 — 힌트와 실제 필요 파츠가 어긋나지 않게 */
+  function autoHint(set) { return needText(set); }
 
   /* 저장하는 순간 맞춘 히든 조합을 발견 목록에 합칩니다.
    *  · 파츠를 사면서(setGear) 바로 완성되는 경우도 있어, 화면 저장 경로뿐 아니라
@@ -3652,6 +3673,10 @@
           a3.view.pitch = viewMem.pitch;
           a3.fit();
           if (BM.racketcustom) BM.racketcustom._last3d = a3;
+          /* bm-v1.96.0 — 전체화면으로 다시 그릴 때는 새 크기에 맞춰 한 번 더 잽니다 */
+          if (fullOn) [30, 140].forEach(function (ms) {
+            setTimeout(function () { try { a3.fit(); } catch (e2) { /* 무시 */ } }, ms);
+          });
           return a3;
         }
       } catch (e) {
@@ -4155,6 +4180,16 @@
       '<span aria-hidden="true">' + (off ? '🔇' : '🔊') + '</span></button>';
   }
 
+  /* bm-v1.96.0 — 3D 쇼룸 전체화면 토글 (인스타 녹화·감상용) */
+  var fullOn = false;
+  function fullBtnHtml() {
+    return '<button type="button" class="rk3d__full' + (fullOn ? ' is-on' : '') + '" data-rk-full="1"' +
+      ' aria-pressed="' + (fullOn ? 'true' : 'false') + '"' +
+      ' aria-label="' + (fullOn ? '전체화면 닫고 시트로 돌아가기' : '3D 라켓을 화면 전체로 크게 보기') + '">' +
+      '<span aria-hidden="true">' + (fullOn ? '✕' : '⛶') + '</span>' +
+      (fullOn ? ' 나가기' : ' 전체화면') + '</button>';
+  }
+
   function stageHtml(state) {
     var c = customOf(state && state.me);
     var big = c.effect === 'fire' || c.effect === 'thunder';
@@ -4279,14 +4314,54 @@
       pct = 0;
       prog = '';
     }
-    var rows = SETS.map(function (s) {
+    var rowsArr = SETS.map(function (s) {
       var h = setHit(c, s);
       var got = s.hidden ? (foundOf(c).indexOf(s.id) >= 0) : h.complete;
+      return { s: s, h: h, got: got, near: (s.hidden && !got && h.hits >= 2) ? h.hits : 0 };
+    });
+    /* bm-v1.96.0 — 2개 이상 맞은 히든은 도감 맨 위로 올려 '지금 만져야 할 것'이 먼저 보이게 */
+    rowsArr.sort(function (a, b) {
+      var sa = (a.near ? 3 : 0) + (a.got ? 1 : 0);
+      var sb = (b.near ? 3 : 0) + (b.got ? 1 : 0);
+      if (sa !== sb) return sb - sa;
+      if (a.s.hidden !== b.s.hidden) return a.s.hidden ? -1 : 1;
+      return 0;
+    });
+    var nearList = rowsArr.filter(function (r) { return r.near; });
+    var near = nearList.length ? nearList[0] : null;
+    function partNames(n) {
+      var ids = (n && n.ids) ? n.ids : needIds(n);
+      return ids.map(function (id) {
+        var it = itemOf(n.slot, id);
+        return it ? it.name : id;
+      }).join('/');
+    }
+    function hintChip(n) {
+      return '<button type="button" class="rkset__chip" data-rk-hint-slot="' + n.slot + '"' +
+        ' aria-label="' + U.esc(n.label + ' ' + partNames(n) + ' 고르러 가기') + '">' +
+        '+ ' + U.esc(n.label + ' ' + partNames(n)) + '</button>';
+    }
+    var rows = rowsArr.map(function (r) {
+      var s = r.s, h = r.h, got = r.got;
       if (s.hidden && !got) {
-        return '<li class="rkset__row is-secret">' +
-          '<b class="rkset__n">??? 히든 조합</b>' +
-          '<span class="rkset__t">' + U.esc(s.hint || '???') + '</span>' +
-          '<i class="rkset__s">미발견</i></li>';
+        /* bm-v1.96.0 — 2개 이상 맞으면 "나머지"까지 바로 공개합니다.
+         *  · 0~1개: 몇 개 맞았는지 + 어떤 자리가 비었는지(?)만
+         *  · 2개 이상: ✨ 근접 배지 + 남은 조건 이름 + 탭하면 바로 그 탭으로 */
+        var nearOn = h.hits >= 2;
+        var bits = h.need.map(function (n) {
+          return n.got ? '✓ ' + n.label + ' ' + n.name : (nearOn ? '+ ' + n.label + ' ' + partNames(n) : '? ' + n.label);
+        }).join('   ');
+        var left = h.need.filter(function (n) { return !n.got; });
+        return '<li class="rkset__row is-secret' + (nearOn ? ' is-near' : '') + '" data-rk-need="' + s.id + ':' + h.hits + '">' +
+          '<b class="rkset__n">??? 히든 조합' +
+            (nearOn ? ' <i class="rkset__nearb">✨ ' + h.hits + '/' + h.total + ' 근접</i>' : '') + '</b>' +
+          '<span class="rkset__t">' + U.esc(s.hint || s.tag) + '</span>' +
+          '<i class="rkset__s">' + h.hits + '/' + h.total + '</i>' +
+          '<em class="rkset__c">' + U.esc(bits) + '</em>' +
+          (nearOn && left.length
+            ? '<div class="rkset__hintchips">' + left.map(hintChip).join('') + '</div>'
+            : '') +
+          '</li>';
       }
       return '<li class="rkset__row' + (got ? ' is-found' : '') + '">' +
         '<b class="rkset__n">' + s.emoji + ' ' + U.esc(s.name) + '</b>' +
@@ -4294,6 +4369,16 @@
         '<i class="rkset__s">' + (got ? '발동 중' : h.hits + '/' + h.total) + '</i>' +
         '<em class="rkset__c">' + U.esc(needText(s)) + '</em></li>';
     }).join('');
+    /* 상단 배지 — 2개 이상 맞은 히든이 있으면 '나머지 조건'을 바로 떠 놓습니다 */
+    var nearHtml = '';
+    if (near) {
+      var nearLeft = near.h.need.filter(function (n) { return !n.got; });
+      nearHtml = '<div class="rkset__near" data-rk-near="' + near.s.id + ':' + near.h.hits + '">' +
+        '<b>✨ 히든 조합 힌트 해금! (' + near.h.hits + '/' + near.h.total + ' 일치)</b>' +
+        '<p>남은 조건 → ' + U.esc(nearLeft.map(function (n) { return n.label + ' ' + partNames(n); }).join(' · ')) + '</p>' +
+        '<div class="rkset__hintchips">' + nearLeft.map(hintChip).join('') + '</div>' +
+        '</div>';
+    }
     return '<div class="rkset' + (cur ? ' is-on' : '') + '" data-rk-set="' + (cur ? cur.set.id : '') + '"' +
       ' style="--sc:' + (cur ? cur.set.color : (next ? next.set.color : '#c6f24e')) +
         ';--sc2:' + (cur ? (cur.set.color2 || cur.set.color) : (next ? (next.set.color2 || next.set.color) : '#c6f24e')) + '">' +
@@ -4307,6 +4392,7 @@
       '<div class="rkset__meta"><span>' + U.esc(prog) + '</span>' +
         '<span class="rkset__cnt">🔒 히든 ' + found + '/' + HIDDEN_SETS.length + ' 발견</span></div>' +
       setChipsHtml(hit) +
+      nearHtml +
       '<details class="rkset__book">' +
         '<summary>조합 도감 <b>' + SETS.filter(function (s) { return !s.hidden; }).length + '종 공개</b>' +
           ' · 히든 <b>' + found + '/' + HIDDEN_SETS.length + '</b></summary>' +
@@ -4325,9 +4411,10 @@
     return '<div class="rksheet">' +
       stageBadgeHtml(state) +
       /* 3D 라켓 — 끌어서 360°, 톡 치면 스매시 */
-      '<div class="rk3d' + (stageMode === 'paint' ? ' is-paint' : '') + '" data-rk-3d>' +
+      '<div class="rk3d' + (stageMode === 'paint' ? ' is-paint' : '') + (fullOn ? ' is-full' : '') + '" data-rk-3d>' +
         '<canvas class="rk3d__cv" width="600" height="760" aria-label="내 라켓 3D 보기 · 끌어서 돌리고 톡 치면 스매시 임팩트"></canvas>' +
         soundBtnHtml() +
+        fullBtnHtml() +
         bodyHtml(state) +
         stageHtml(state) +
         '<p class="rk3d__hint"><span aria-hidden="true">↔</span> 끌어서 360° 돌려보기 · ' +
@@ -4380,8 +4467,49 @@
     var body = host.querySelector('.sheet__body');
     if (!body) return;
     body.innerHTML = sheetBody(ctx.store.state);
+    /* bm-v1.96.0 — 전체화면 상태는 시트 다시 그리기를 건너도 유지 */
+    if (host.classList) host.classList.toggle('is-rkfull', fullOn);
     mount3d(host, ctx);
     firePendingBurst();
+  }
+
+  /* bm-v1.96.0 — 3D 쇼룸 전체화면 토글.
+   *  · 3D 칸과 시트 패널을 화면 전체(100dvh)로 키우고, 아래 파츠 선택창·상단 헤더는 숨깁니다.
+   *  · 남는 것은 3D 캔버스 + 아래 플로팅 컨트롤(스매시 · 바닥 강타 · 모션 칩) + 오른쪽 위 ✕ 뿐.
+   *  · Three.js 는 캔버스 크기가 바뀐 것을 보고 스스로 fitCamera 하므로 종횡비도 바로 따라갑니다. */
+  function setFull(on, host) {
+    fullOn = !!on;
+    var root = host && host.querySelector ? host : (hasDom ? document : null);
+    var el = (root && root.querySelector ? root.querySelector('.rk3d') : null) ||
+      (hasDom ? document.querySelector('.rk3d') : null);
+    if (!el) return;
+    var sheetEl = el.closest ? el.closest('.sheet') : null;
+    el.classList.toggle('is-full', fullOn);
+    if (sheetEl) sheetEl.classList.toggle('is-rkfull', fullOn);
+    var btn = el.querySelector('[data-rk-full]');
+    if (btn) {
+      btn.classList.toggle('is-on', fullOn);
+      btn.setAttribute('aria-pressed', fullOn ? 'true' : 'false');
+      btn.setAttribute('aria-label', fullOn ? '전체화면 닫고 시트로 돌아가기' : '3D 라켓을 화면 전체로 크게 보기');
+      btn.innerHTML = '<span aria-hidden="true">' + (fullOn ? '✕' : '⛶') + '</span>' +
+        (fullOn ? ' 나가기' : ' 전체화면');
+    }
+    var api = BM.racketcustom && BM.racketcustom._last3d;
+    /* 모바일 주소창 때문에 높이가 늦게 정해지므로 두 번 재어 줍니다 */
+    [30, 120, 320].forEach(function (ms) {
+      setTimeout(function () { if (api && api.fit) api.fit(); }, ms);
+    });
+    if (BM.ui) BM.ui.haptic(8);
+  }
+
+  if (hasDom && typeof document.addEventListener === 'function') {
+    document.addEventListener('keydown', function (ev) {
+      if (!fullOn) return;
+      if (ev && (ev.key === 'Escape' || ev.key === 'Esc')) {
+        ev.preventDefault();
+        setFull(false, document.querySelector('.sheet.is-rkfull'));
+      }
+    }, false);
   }
 
   /* 새로 발견한 히든 조합 — 시트를 다시 그린 뒤 3D 연출을 한 번 크게 터뜨립니다 */
@@ -4574,6 +4702,7 @@
     lastUnlock = null;
     pendingBuy = '';
     activeSlot = 'frame';
+    fullOn = false;      /* 시트를 열 때는 항상 원래 크기로 */
     var state = ctx.store.state;
     if (state && state.me && state.me.key) {
       /* 현재 상태로 바로 그려 둡니다(포인트·잠금 표시가 기록에서 계산됨) */
@@ -4596,6 +4725,12 @@
               BM.ui.haptic(6);
               refreshSheet(host, ctx);
             }
+            return;
+          }
+          /* ---- 3D 전체화면 토글 (bm-v1.96.0) ---- */
+          if (ev.target.closest('[data-rk-full]')) {
+            ev.preventDefault();
+            setFull(!fullOn, host);
             return;
           }
           /* ---- 스매시 소리 켜기/끄기 (bm-v1.90.0) ---- */
@@ -4670,6 +4805,17 @@
             /* 바닥 강타 — 라켓이 코트를 내려찍고 헤드·거트가 부서졌다가 다시 맞춰집니다 */
             if (BM.racketcustom && BM.racketcustom._last3d && BM.racketcustom._last3d.slam) {
               BM.racketcustom._last3d.slam();
+            }
+            return;
+          }
+          var jump = ev.target.closest('[data-rk-hint-slot]');
+          if (jump) {
+            ev.preventDefault();
+            var jslot = jump.getAttribute('data-rk-hint-slot');
+            if (SLOTS.indexOf(jslot) >= 0) {
+              activeSlot = jslot;
+              if (BM.ui) BM.ui.haptic(6);
+              refreshSheet(host, ctx);
             }
             return;
           }
@@ -4977,7 +5123,7 @@
     /* bm-v1.95.0 — 세트 조합 보너스 (공개 4 · 히든 7) */
     SETS: SETS, HIDDEN_SETS: HIDDEN_SETS, setById: setById, setHit: setHit, setHitRaw: setHitRaw, activeSet: activeSet, activeSetRaw: activeSetRaw,
     nextSet: nextSet, foundOf: foundOf, hiddenFoundCount: hiddenFoundCount, newlyFound: newlyFound,
-    needText: needText, setBonusHtml: setBonusHtml, mergeFound: mergeFound,
+    needText: needText, needIds: needIds, autoHint: autoHint, setBonusHtml: setBonusHtml, mergeFound: mergeFound,
     stageState: stageState, stageBadgeHtml: stageBadgeHtml,
     bodyDecalSvg: bodyDecalSvg, fxSvg: fxSvg, headArc: headArc, decalAt: decalAt, stringChords: stringChords,
     _parts: { head: addHead, edge: addFrameEdge, decals: addDecals, strings: addStrings, stencil: addStencil,
