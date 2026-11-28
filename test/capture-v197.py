@@ -19,6 +19,9 @@ from playwright.sync_api import sync_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = '/workspace/downloads'
 PORT = 8798
+LIVE = os.environ.get('TS_LIVE', '') == '1'
+BASE = ('https://csw42060713-byte.github.io/badminton/index.html?c=%d' % os.getpid() if LIVE
+        else 'http://127.0.0.1:%d/index.html' % PORT)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -29,17 +32,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-socketserver.TCPServer.allow_reuse_address = True
-httpd = socketserver.TCPServer(('127.0.0.1', PORT), Handler)
-threading.Thread(target=httpd.serve_forever, daemon=True).start()
+httpd = None
+if not LIVE:
+    socketserver.TCPServer.allow_reuse_address = True
+    httpd = socketserver.TCPServer(('127.0.0.1', PORT), Handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
 
 with sync_playwright() as p:
     b = p.chromium.launch(args=['--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader'])
     ctx = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2,
                         is_mobile=True, has_touch=True, locale='ko-KR', service_workers='block')
-    ctx.route('**/*', lambda r: r.abort()
-              if ('supabase.co' in r.request.url or 'google' in r.request.url or 'jsdelivr' in r.request.url)
-              else r.continue_())
+    if not LIVE:
+        ctx.route('**/*', lambda r: r.abort()
+                  if ('supabase.co' in r.request.url or 'google' in r.request.url or 'jsdelivr' in r.request.url)
+                  else r.continue_())
     pg = ctx.new_page()
     cdp = ctx.new_cdp_session(pg)
 
@@ -51,7 +57,7 @@ with sync_playwright() as p:
         r = cdp.send('Page.captureScreenshot', args)
         open(path, 'wb').write(base64.b64decode(r['data']))
         print('saved', os.path.basename(path), flush=True)
-    pg.goto('http://127.0.0.1:%d/index.html' % PORT, wait_until='networkidle')
+    pg.goto(BASE, wait_until='networkidle')
     pg.evaluate("""() => {
       localStorage.setItem('bm_backend_v1', JSON.stringify('local'));
       localStorage.setItem('bm_auth_v1', JSON.stringify({kind:'guest', guest:true, name:'승우',
@@ -59,8 +65,12 @@ with sync_playwright() as p:
         profile:{nick:'승우', level:'B조', discipline:'복식', region:'경기', club:'매원고', onboardedAt:'2026-11-28 09:00:00'}}));
       localStorage.setItem('bm_seen_v1', 'true');
     }""")
-    pg.reload(wait_until='networkidle')
-    pg.wait_for_timeout(1600)
+    if not LIVE:
+        pg.reload(wait_until='networkidle')
+        pg.wait_for_timeout(1600)
+    if LIVE and pg.locator('.start__guest').count():
+        pg.tap('.start__guest')
+        pg.wait_for_timeout(1500)
     for _ in range(4):
         c = pg.locator('#sheet [data-close]')
         if c.count():
@@ -122,4 +132,5 @@ with sync_playwright() as p:
     pg.wait_for_timeout(1400)
     grab(os.path.join(OUT, 'v197_fullscreen.png'))
     b.close()
-httpd.shutdown()
+if httpd:
+    httpd.shutdown()

@@ -102,6 +102,10 @@ def main():
         if not LIVE:
             pg.reload(wait_until='networkidle')
             pg.wait_for_timeout(1600)
+        # 라이브(실서버)에서는 시작 화면의 '로그인 없이 둘러보기'로 들어갑니다
+        if LIVE and pg.locator('.start__guest').count():
+            pg.tap('.start__guest')
+            pg.wait_for_timeout(1500)
         for _ in range(4):
             c = pg.locator('#sheet [data-close]')
             if c.count():
