@@ -241,8 +241,8 @@
   test('v1.13 버전: sw·app·화면 캐시가 함께 올라간다', function () {
     if (!hasNode()) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
-    includes(sw, "var VERSION = 'bm-v1.101.0'", 'sw.js');
-    includes(app, "version: 'v1.101.0'", 'app.js');
+    includes(sw, "var VERSION = 'bm-v1.102.0'", 'sw.js');
+    includes(app, "version: 'v1.102.0'", 'app.js');
     includes(index, 'styles.css?v=20261128-6', '스타일 캐시 갱신');
     includes(app, 'BM.views.my', 'MY 화면 유지');
   });

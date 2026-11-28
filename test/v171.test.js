@@ -200,7 +200,7 @@
   test('v1.71 배경 캐시: 서비스워커 SHELL에 사진 3장이 들어 있다', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js');
-    includes(sw, "var VERSION = 'bm-v1.101.0'", 'sw 버전');
+    includes(sw, "var VERSION = 'bm-v1.102.0'", 'sw 버전');
     includes(sw, "'./assets/share-bg/night-court.jpg'", '야경 코트 캐시');
     includes(sw, "'./assets/share-bg/sunset-shuttle.jpg'", '노을 체육관 캐시');
     includes(sw, "'./assets/share-bg/minimal-studio.jpg'", '다크 스튜디오 캐시');
@@ -493,12 +493,12 @@
 
   test('v1.71 버전: sw · app · 스타일 캐시 · TWA · README · 테스트 목록이 함께', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.101.0'", 'sw');
-    includes(readRoot('app.js'), "version: 'v1.101.0'", 'app');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.102.0'", 'sw');
+    includes(readRoot('app.js'), "version: 'v1.102.0'", 'app');
     includes(readRoot('index.html'), 'styles.css?v=20261128-6', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.101.0', 'TWA 이름');
-    eq(twa.appVersionCode, 95, 'TWA 코드');
+    eq(twa.appVersionName, '1.102.0', 'TWA 이름');
+    eq(twa.appVersionCode, 96, 'TWA 코드');
     includes(readRoot('README.md'), 'bm-v1.74.0', 'README 이력');
     includes(readRoot('test/run.js'), "'test/v171.test.js'", '테스트 목록');
   });

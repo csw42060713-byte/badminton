@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v197.test.js — bm-v1.101.0
+ * test/v197.test.js — bm-v1.102.0
  *
  *   승우 님 제보(2026-11-28): "터치오류 고쳐줘"
  *   추가 요청: "그리고 이미 한번 조합한건 바로 완성하기 버튼 있으면 편할거 같아"
@@ -245,16 +245,16 @@
   });
 
   test('v1.97 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.101.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.101.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.101.0'", 'push 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.102.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.102.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.102.0'", 'push 버전');
     includes(readRoot('index.html'), 'styles.css?v=20261128-6', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.101.0', 'TWA 이름');
-    eq(twa.appVersion, '1.101.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 95, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.101.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.102.0', 'TWA 이름');
+    eq(twa.appVersion, '1.102.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 96, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.102.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v197.test.js', '테스트 목록');
-    includes(readRoot('sw.js'), 'bm-v1.101.0', 'sw 캐시 설명');
+    includes(readRoot('sw.js'), 'bm-v1.102.0', 'sw 캐시 설명');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

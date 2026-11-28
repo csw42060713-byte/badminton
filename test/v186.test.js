@@ -236,7 +236,7 @@
     includes(readRoot('js/store.js'), 'isPartSlot', '저장소가 모션 슬롯을 허용');
   });
 
-  test('v1.86 모션 자세: 8자 스핀 · 한 바퀴 훑기 · 공중 360° 플립 + 착지 반동', function () {
+  test('v1.86 모션 자세: 8자 스핀 · 한 바퀴 스냅 회전 · 공중 3연속 스핀(1080°) + 착지 반동', function () {
     var tw = [0, 0.15, 0.3, 0.45].map(function (p) { return RC.motionPose('twist', p * RC.MOTION_MS.twist); });
     ok(tw[1].yaw > 0.2 && tw[3].yaw < -0.2, '좌우로 8자');
     ok(Math.abs(tw[0].dy) < 1.2, '시작은 제자리');
@@ -249,10 +249,22 @@
     ok(scEnd.roll > 4.4, '한 바퀴를 거의 마쳤다 ' + scEnd.roll.toFixed(2));
     var fMid = RC.motionPose('flip', RC.MOTION_MS.flip * 0.45);
     ok(fMid.dy < -20, '공중으로 뜬다 ' + fMid.dy.toFixed(1));
-    ok(fMid.roll > 1.2, '한 바퀴 회전 중 ' + fMid.roll.toFixed(2));
+    ok(fMid.roll > 1.2, '회전 중 ' + fMid.roll.toFixed(2));
+    /* bm-v1.102.0 — flip 은 '한 바퀴'가 아니라 3바퀴(1080°) 콤보입니다 */
     var fEnd = RC.motionPose('flip', RC.MOTION_MS.flip);
     ok(Math.abs(fEnd.dy) < 2, '착지');
-    ok(Math.abs(fEnd.roll - Math.PI * 2) < 0.01, '360° 를 마쳐 제자리(2π)');
+    ok(Math.abs(fEnd.roll - Math.PI * 6) < 0.01, '3바퀴(6π)를 마쳐 제자리 ' + fEnd.roll.toFixed(3));
+    /* 중간에도 정확히 여러 바퀴를 돌아 있어야 합니다 */
+    var f3 = RC.motionPose('flip', RC.MOTION_MS.flip * 0.72);
+    ok(f3.roll > Math.PI * 3, '공중에서 2바퀴 이상 ' + (f3.roll / Math.PI).toFixed(2) + 'π');
+    var fMax = 0, fp;
+    for (var ff = 0; ff <= 1.0001; ff += 0.01) {
+      fp = RC.motionPose('flip', RC.MOTION_MS.flip * ff);
+      if (!isFinite(fp.roll)) ok(false, 'NaN 없음');
+      if (fp.roll > fMax) fMax = fp.roll;
+    }
+    ok(fMax > Math.PI * 5.9, '최고 회전각 1080° 근처 ' + (fMax / Math.PI).toFixed(2) + 'π');
+    ok(fMax < Math.PI * 6.05, '3바퀴를 넘지 않는다(끝이 제자리)');
   });
 
   test('v1.86 모션: 기기 저장 모드에서 하트로 모션을 열면 잔액이 줄고 바로 재생할 수 있다', function () {
@@ -308,15 +320,15 @@
 
   test('v1.86 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.101.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.101.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.101.0'", 'push 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.102.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.102.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.102.0'", 'push 버전');
     includes(readRoot('index.html'), 'styles.css?v=20261128-6', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.101.0', 'TWA 이름');
-    eq(twa.appVersion, '1.101.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 95, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.101.0', 'README');
+    eq(twa.appVersionName, '1.102.0', 'TWA 이름');
+    eq(twa.appVersion, '1.102.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 96, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.102.0', 'README');
     includes(readRoot('test/run.js'), 'test/v186.test.js', '테스트 목록');
   });
 

@@ -143,9 +143,9 @@
   PARTS.motion = {
     label: '모션', note: '라켓 회전 연출',
     items: [
-      { id: 'twist', name: '손목 트위스트', color: '#7fd8ff', heart: 1, rarity: 'rare', note: '8자 스핀 · 손목 기울임' },
-      { id: 'showcase', name: '쇼케이스 스핀', color: '#f2c14e', heart: 2, rarity: 'epic', note: '한 바퀴 훑어 보기' },
-      { id: 'flip', name: '공중 360° 플립', color: '#ff8a2f', heart: 3, rarity: 'legend', note: '공중 백플립 · 착지 반동' }
+      { id: 'twist', name: '손목 트위스트', color: '#7fd8ff', heart: 1, rarity: 'rare', note: '8자 스냅 트위스트 · 손목 반동' },
+      { id: 'showcase', name: '쇼케이스 스핀', color: '#f2c14e', heart: 2, rarity: 'epic', note: '한 바퀴 스냅 회전 · 딱 멈춤' },
+      { id: 'flip', name: '공중 3연속 스핀', color: '#ff8a2f', heart: 3, rarity: 'legend', note: '고속 3회전 · 착지 충격파' }
     ]
   };
   var MOTIONS = ['twist', 'showcase', 'flip'];
@@ -2734,53 +2734,145 @@
   }
 
   /* ============================================================
-   * 라켓 모션 프리셋 (bm-v1.86.0)
+   * 라켓 모션 프리셋 (bm-v1.86.0 → bm-v1.102.0 '빠르고 묵직하게')
    *  · 3D 라켓 아래 칩을 누르면 바로 재생 — 하트로 열고(관리자는 전체 해금)
    *    열린 모션은 언제든 다시 감상할 수 있습니다.
-   *  · 파티클·그라데이션 없이 회전 값만 움직이므로 60fps 로 매끄럽습니다.
+   *  · bm-v1.102.0 — 승우 님 요청:
+   *      "라켓 돌릴 때 임팩트 좀 더 있게" · "한 개는 몇 바퀴 돌게"
+   *      "뭔가 빨라보이게" · "멋있어 보이게" · "뒤에 임팩트 잘 고민해봐"
+   *    → ① flip = 공중 3바퀴(1080°) 콤보
+   *      ② 전 구간 스냅 가속 → 최고 속도 유지 → 딱 멈춤
+   *      ③ 마무리 임팩트(이중 링·스파크·글로우·펀치)를 2D·3D·소리·진동이 같은 시각에
+   *      ④ 돌릴 때 따라다니는 실 같은 선/리본은 쓰지 않습니다(사용자 피드백).
+   *  · 자세 값만 돌려주므로 매 프레임 할당이 없습니다(60fps).
    * ============================================================ */
-  var MOTION_MS = { twist: 2400, showcase: 2800, flip: 2100 };
+  var MOTION_MS = { twist: 1700, showcase: 1800, flip: 2000 };
+
+  /* 모션별 '한 방' 시점 — f 는 재생 시간에 대한 비율(0~1).
+   *  · spin = 회전 피크(짧은 원형 바람 링 + 튀는 스파크)
+   *  · land = 마무리 임팩트(이중 충격파 링 · 글로우 · 펀치 · 착지음) */
+  var MOTION_FX = {
+    twist: [
+      { f: 0.20, kind: 'spin', power: 0.42 },
+      { f: 0.47, kind: 'spin', power: 0.52 },
+      { f: 0.72, kind: 'spin', power: 0.58 },
+      { f: 0.90, kind: 'land', power: 0.72 }
+    ],
+    showcase: [
+      { f: 0.34, kind: 'spin', power: 0.55 },
+      { f: 0.64, kind: 'spin', power: 0.70 },
+      { f: 0.95, kind: 'land', power: 0.85 }
+    ],
+    flip: [
+      { f: 0.33, kind: 'spin', power: 0.55 },
+      { f: 0.52, kind: 'spin', power: 0.70 },
+      { f: 0.72, kind: 'spin', power: 0.85 },
+      { f: 0.86, kind: 'land', power: 1.00 }
+    ]
+  };
+  function motionDur(kind) { return MOTION_MS[kind] || 2000; }
+  /* 이벤트 목록 — ms 로 환산해 돌려줍니다(2D·3D·소리가 같은 값을 씁니다) */
+  function motionEvents(kind) {
+    var list = MOTION_FX[kind] || [], dur = motionDur(kind), out = [], i;
+    for (i = 0; i < list.length; i++) {
+      out.push({ at: Math.round(list[i].f * dur), kind: list[i].kind, power: list[i].power });
+    }
+    return out;
+  }
+  /* 마지막 한 방(착지)이 몇 ms 에 터지는지 */
+  function motionLandAt(kind) {
+    var ev = motionEvents(kind), i;
+    for (i = ev.length - 1; i >= 0; i--) if (ev[i].kind === 'land') return ev[i].at;
+    return Math.round(motionDur(kind) * 0.9);
+  }
+  /* 회전 피크 시각만 — 소리(휘두름)가 회전 박자에 맞춰 울립니다 */
+  function motionSpins(kind) {
+    var ev = motionEvents(kind), out = [], i;
+    for (i = 0; i < ev.length; i++) if (ev[i].kind === 'spin') out.push(ev[i].at);
+    return out;
+  }
+  /* el(ms) 기준으로 방금 터진 한 방 — ageMs 창 안에서 가장 최근 것(없으면 null) */
+  function motionHit(kind, el, ageMs) {
+    var ev = motionEvents(kind), win = ageMs || 300, best = null, i;
+    for (i = 0; i < ev.length; i++) {
+      var d = el - ev[i].at;
+      if (d >= 0 && d < win && (!best || d < best.dt)) {
+        best = { at: ev[i].at, kind: ev[i].kind, power: ev[i].power, dt: d };
+      }
+    }
+    return best;
+  }
   function motionPose(kind, el) {
     var dur = MOTION_MS[kind] || 2200;
     var p = clamp01((Number(el) || 0) / dur);
-    var out = { yaw: 0, pitch: 0, roll: 0, dy: 0 };
+    var out = { yaw: 0, pitch: 0, roll: 0, dy: 0, sq: 1, imp: 0, impKind: '' };
     if (kind === 'twist') {
-      /* 손목 트위스트 — 잡고 비트는 8자 스핀. 처음엔 천천히 붙었다가 두 번 크게 돌고
-       * 끝에서 부드럽게 풀립니다(비트 사이에 속도가 살짝 죽는 손목 리듬). */
+      /* 손목 트위스트 — 잡고 비트는 8자 스핀.
+       *  · 붙는 구간을 0.07 로 줄여 첫 비트가 바로 '확' 꺾이고, 비트마다 손목이
+       *    날카롭게 튀었다 잦아드는 톱니(snap)를 얹었습니다. 끝은 0.9 부터 딱 풀립니다. */
       var w = p * TAU * 2;
-      var env = Math.sin(Math.min(1, p / 0.12) * Math.PI * 0.5);          /* 살짝 붙기 */
-      var rel = p > 0.86 ? 1 - easeInOut3((p - 0.86) / 0.14) : 1;          /* 끝에서 풀리기 */
-      var beat = 0.86 + 0.14 * Math.abs(Math.cos(w * 0.5));                /* 비트마다 살짝 느려짐 */
-      out.yaw = Math.sin(w) * 0.68 * env * rel * beat;
-      out.pitch = Math.sin(p * TAU) * 0.2 * rel;
-      out.roll = Math.cos(w + 0.6) * 0.14 * rel;
-      out.dy = Math.sin(p * TAU) * 2.4 * rel;
+      var env = Math.min(1, Math.pow(clamp01(p / 0.07), 0.6));            /* 0.07 만에 붙음 */
+      var rel = p > 0.9 ? 1 - easeInOut3((p - 0.9) / 0.1) : 1;             /* 끝은 딱 */
+      var beat = 0.88 + 0.12 * Math.abs(Math.cos(w * 0.5));                /* 비트마다 살짝 느려짐 */
+      var snp = Math.sin(w * 0.5);
+      out.yaw = Math.sin(w) * 0.7 * env * rel * beat;
+      out.pitch = Math.sin(p * TAU) * 0.18 * rel;
+      out.roll = Math.cos(w + 0.6) * 0.13 * rel + snp * snp * snp * 0.05 * rel;
+      out.dy = Math.sin(p * TAU) * 2.2 * rel;
+      out.sq = 1 + 0.018 * Math.abs(snp) * rel;
     } else if (kind === 'showcase') {
-      /* 쇼케이스 스핀 — 손목으로 라켓을 **한 바퀴(360°) 돌리기** (bm-v1.87.0)
-       *  · bm-v1.86 처럼 yaw 만 크게 돌리면 90°·270° 에서 칼날처럼 얇아져 사라진 것처럼 보입니다.
-       *  · 그래서 회전은 roll(화면 안에서 도는 손목 돌리기)로 주고, yaw·pitch 는 살짝만
-       *    흔들어 프레임잉 옆면 두께와 거트 결이 함께 보이게 했습니다.
-       *  · 끝 각도가 정확히 2π(roll) · 0(yaw/pitch) 라 멈출 때 화면이 튀지 않습니다. */
-      var t2 = clamp01(p / 0.92);
-      var e2 = easeInOut3(t2);
-      out.roll = TAU * e2;
-      out.yaw = Math.sin(t2 * Math.PI * 2) * 0.3;
-      out.pitch = -0.06 + 0.3 * Math.sin(t2 * Math.PI);
+      /* 쇼케이스 스핀 — 손목으로 라켓을 **한 바퀴(360°) '확' 돌리고 딱 서기**
+       *  · 회전은 roll(화면 안에서 도는 손목 돌리기) — yaw 로만 돌리면 90°·270° 에서
+       *    칼날처럼 얇아져 사라진 것처럼 보입니다(bm-v1.87.0).
+       *  · bm-v1.102.0 — 느릿한 ease-in-out 대신 0.08 안에 최고 속도까지 붙고
+       *    끝 5%에서 딱 멈추는 속도 곡선. 끝 각도가 정확히 2π 라 화면이 튀지 않습니다. */
+      var t2 = clamp01((p - 0.04) / 0.92);         /* 0.96 에 회전 완료 → 뒤는 정지 포즈 */
+      var e2;
+      if (t2 <= 0.08) e2 = Math.pow(t2 / 0.08, 1.4) * 0.055;              /* 스냅 가속 */
+      else if (t2 <= 0.95) e2 = 0.055 + (t2 - 0.08) * (0.893 / 0.87);      /* 최고 속도 유지 */
+      else e2 = 0.948 + Math.pow((t2 - 0.95) / 0.05, 0.7) * 0.052;         /* 딱 멈춤 */
+      out.roll = TAU * Math.min(1, e2);
+      out.yaw = Math.sin(t2 * Math.PI) * 0.26;
+      out.pitch = 0.26 * Math.sin(t2 * Math.PI) - 0.05 * (1 - t2);   /* 끝은 정확히 0(튐 없음) */
       out.dy = -6 * Math.sin(t2 * Math.PI);
+      /* 마무리 — 회전이 끝난 뒤 짧게 눌렸다 올라오는 반동(오버슈트 → 안착) */
+      var lts = p - 0.96;
+      if (lts > 0) {
+        var decs = Math.exp(-lts * 30);
+        out.sq = 1 - 0.05 * decs * Math.sin(lts * 220);
+        out.dy += 4 * decs * Math.sin(lts * 200);
+      }
     } else {
-      /* 공중 360° 플립 — 살짝 축지했다가(리듬) 떴다가 백플립 한 바퀴, 착지 반동 */
-      var crouch = p < 0.1 ? Math.sin(p / 0.1 * Math.PI) * 2.6 : 0;
-      var lift = Math.sin(clamp01((p - 0.06) / 0.86) * Math.PI);
-      out.dy = -lift * 48 + crouch;
-      out.yaw = lift * 0.5;
-      out.pitch = -lift * 0.28;
-      var sp = clamp01((p - 0.06) / 0.78);
-      out.roll = easeInOut3(sp) * TAU;
-      if (p > 0.88) {
-        var b = (p - 0.88) / 0.12;
-        out.dy += Math.sin(b * Math.PI) * 5.5;
+      /* 공중 3연속 스핀 — 1080°(3바퀴) 콤보 (bm-v1.102.0)
+       *   ① 0.00~0.10 웅크림 + 반대로 살짝 감기(안티시페이션)
+       *   ② 0.10~0.86 3바퀴 — 0.11(≈160ms) 안에 최고 속도까지 스냅 가속,
+       *      그 뒤 0.95 까지 거의 등속(초고속), 마지막 5%(≈76ms)에서 딱 멈춤
+       *   ③ 0.86~1.00 착지 — 70ms 스냅 정지(히트스톱) 뒤 눌렸다 살짝 튀는 안착 */
+      var SPIN0 = 0.10, SPIN1 = 0.86;
+      var crouch = p < 0.08 ? Math.sin((p / 0.08) * Math.PI) * 2.4 : 0;
+      var lift = Math.sin(clamp01((p - 0.06) / 0.80) * Math.PI);
+      out.dy = -lift * 54 + crouch;
+      var sp = clamp01((p - SPIN0) / (SPIN1 - SPIN0));
+      var e;
+      if (sp <= 0.11) e = Math.pow(sp / 0.11, 1.45) * 0.075;              /* 스냅 가속 */
+      else if (sp <= 0.95) e = 0.075 + (sp - 0.11) * (0.873 / 0.84);       /* 초고속 유지 */
+      else e = 0.948 + Math.pow((sp - 0.95) / 0.05, 0.7) * 0.052;          /* 딱 멈춤 */
+      var anti = -0.18 * Math.sin(clamp01(p / SPIN0) * Math.PI);           /* 반대로 감기 */
+      out.roll = anti + e * TAU * 3;
+      /* 2축 — 공중에서 한 번 옆으로 돌아(식별 가능한 입체감) 착지 때 정면으로 */
+      out.yaw = lift * 0.85 + Math.sin(sp * Math.PI * 2) * 0.32;
+      out.pitch = -lift * 0.32 + Math.sin(sp * Math.PI * 3) * 0.09 * lift;
+      var lt = p - SPIN1;
+      if (lt > 0) {
+        var l2 = Math.max(0, lt - 0.035);        /* 70ms — 회전도 높이도 그 자리에 '박' */
+        var dec = Math.exp(-l2 * 9);
+        out.dy += 7 * dec * Math.sin(l2 * 30);
+        out.sq = 1 - 0.075 * dec * Math.sin(l2 * 34);
       }
     }
+    /* 지금이 '한 방' 직후인지 — 화면·소리·진동이 같은 값을 봅니다 */
+    var hit = motionHit(kind, Number(el) || 0, 300);
+    if (hit) { out.imp = (1 - hit.dt / 300) * (hit.power || 0.6); out.impKind = hit.kind; }
     return out;
   }
 
@@ -3903,7 +3995,7 @@
     /* 지금 모션 자세 — 끝나면 스스로 멈춥니다 */
     function motionNow() {
       if (!motionOn) return null;
-      var dur = MOTION_MS[motionKind] || 2200;
+      var dur = motionDur(motionKind);
       if (holdAt != null) return motionPose(motionKind, Math.min(dur - 1, holdAt));
       var e = nowMs() - motionAt;
       if (e >= dur) { motionOn = false; return null; }
@@ -3921,6 +4013,20 @@
       vel.yaw = 0; vel.pitch = 0; roll = 0;
       lastMove = Date.now();
       if (BM.ui) BM.ui.haptic(12);
+      /* bm-v1.102.0 — 돌리는 소리(휘두름 ×3 + 착지 '퍽')를 화면과 같은 시각에.
+       *  · 소리를 끈 기기·자동재생 규칙은 smashsound 가 그대로 지킵니다(손짓 안에서만). */
+      var spinAt = motionSpins(k2), landAt = motionLandAt(k2);
+      if (BM.smashsound && BM.smashsound.motion) {
+        BM.smashsound.motion(k2, { landAt: landAt, spins: spinAt });
+      }
+      /* 착지 진동 — 재생이 끊기거나 다른 모션으로 바뀌었으면 울리지 않습니다 */
+      var token = motionAt;
+      if (root.setTimeout) {
+        root.setTimeout(function () {
+          if (!alive || !motionOn || motionAt !== token) return;
+          if (BM.ui) BM.ui.haptic(24);
+        }, landAt);
+      }
       paint();
       return true;
     }
@@ -3990,10 +4096,18 @@
       }
       /* 모션 프리셋 — 눌러서 감상하는 트릭 회전 */
       var mo = motionNow();
+      var mEl = motionOn ? (holdAt != null ? holdAt : nowMs() - motionAt) : 0;
       if (mo) {
         vv = { yaw: vv.yaw + mo.yaw, pitch: clampN(vv.pitch + mo.pitch, -1.3, 1.3),
           k: vv.k, cx: vv.cx, cy: vv.cy, mid: vv.mid, phase: vv.phase };
         /* roll(손목 돌리기)은 아래에서 '축소 + 회전'으로 따로 적용합니다 — 여기서 tilt 로 또 돌리면 두 배로 돕니다 */
+      }
+      /* bm-v1.102.0 — 착지 한 방의 짧고 묵직한 화면 흔들림 (3D 와 같은 느낌) */
+      if (mo && mo.imp > 0 && mo.impKind === 'land') {
+        var mShake = 6 * mo.imp * Math.min(1, w / 390);
+        shake += Math.sin(mEl / 9) * mShake;
+        shakeY += Math.cos(mEl / 12) * mShake * 0.6;
+        tilt += Math.sin(mEl / 14) * 0.012 * mo.imp;
       }
       var dyK = Math.min(1, w / 390);
       /* 헤드가 부서지는 구간 — 부서진 조각만 보이게 */
@@ -4013,6 +4127,8 @@
       /* 모션 roll(손목 돌리기)은 화면 가운데를 축으로 돌리되, 360° 때는 라켓이 화면 밖으로
        * 나가지 않게 같은 비율로 조금 작아졌다가 돌아옵니다 (bm-v1.87.0) */
       var spinScale = mo && mo.roll ? 1 - 0.38 * Math.min(1, Math.abs(mo.roll) / 3.1) : 1;
+      /* 착지 반동 — 눌렸다 살짝 부푸는 스케일 펀치(오버슈트 → 안착) */
+      if (mo && mo.sq) spinScale *= mo.sq;
       if (mo && mo.roll) {
         g.translate(v.cx, v.cy);
         g.scale(spinScale, spinScale);
@@ -4035,10 +4151,71 @@
         drawSmash(g, vv, gm, smashFx, el, w, h, { kind: smashKind, imp: ip });
       }
       g.restore();
+      /* bm-v1.102.0 — 모션 임팩트(2D 폴백) — 이중 링 · 글로우 · 방사형 스파크만.
+       *  실처럼 따라다니는 선·꼬리는 그리지 않습니다(사용자 피드백). */
+      if (mo) drawMotionImpact(g, vv, gm, mo, w, h, mEl);
       lastPaint = Date.now();
       api.body = c.body;
       api.paintMs = nowMs() - t0;
       if (BM.racketcustom) BM.racketcustom._last3d = api;
+    }
+
+    /* ============================================================
+     * 모션 임팩트 (2D 폴백) — bm-v1.102.0
+     *  · 3D 와 같은 시각(motionEvents)에 같은 느낌: 이중 충격파 링 · 글로우 · 방사형 스파크
+     *  · 실·끈처럼 보이는 선이 아니라 '굵기 있는 고리'와 '둥근 점'만 씁니다.
+     * ============================================================ */
+    function drawMotionImpact(g, vv, gm, mo, w, h, mEl) {
+      var ev = motionEvents(motionKind);
+      if (!ev.length) return;
+      var head = project3({ x: 0, y: 0, z: 0 }, vv);
+      var dyK = Math.min(1, w / 390);
+      var cx = head.x, cy = head.y + (mo.dy || 0) * dyK;
+      var it = itemOf('effect', customOf(ctx.store.state.me).effect) || {};
+      var tint = it.color || '#c6f24e';
+      var i, k;
+      for (i = 0; i < ev.length; i++) {
+        var age = mEl - ev[i].at;
+        if (age < 0 || age > 320) continue;
+        var t = age / 320, a = 1 - t, pw = ev[i].power || 0.6;
+        var land = ev[i].kind === 'land';
+        var r0 = (land ? 26 : 32) + (land ? 250 : 150) * easeOut3(t) * (0.7 + 0.3 * pw);
+        g.save();
+        /* ① 바깥 링 — 테마 색, 굵게 시작해 얇아지며 퍼짐 */
+        g.globalCompositeOperation = 'lighter';
+        g.strokeStyle = tint;
+        g.globalAlpha = Math.max(0, 0.55 * a * pw);
+        g.lineWidth = Math.max(1.2, (land ? 8 : 5) * (1 - t * 0.6) * dyK);
+        g.beginPath(); g.arc(cx, cy, r0, 0, TAU); g.stroke();
+        /* ② 안쪽 링 — 밝은 코어가 반 박자 늦게 따라 퍼집니다(이중 충격파) */
+        g.strokeStyle = '#ffffff';
+        g.globalAlpha = Math.max(0, 0.5 * Math.max(0, 1 - t * 1.4) * pw);
+        g.lineWidth = Math.max(1, 3 * (1 - t) * dyK);
+        g.beginPath(); g.arc(cx, cy, r0 * 0.78, 0, TAU); g.stroke();
+        /* ③ 글로우 — 착지 순간 카메라 앞이 짧게 밝아집니다 */
+        if (land && t < 0.5) {
+          var gr = (74 + 150 * pw) * dyK;
+          var rg = g.createRadialGradient(cx, cy, 0, cx, cy, gr);
+          var ga = 0.5 * (1 - t / 0.5) * pw;
+          rg.addColorStop(0, 'rgba(255,252,240,' + ga.toFixed(3) + ')');
+          rg.addColorStop(0.45, 'rgba(255,250,225,' + (ga * 0.35).toFixed(3) + ')');
+          rg.addColorStop(1, 'rgba(255,250,225,0)');
+          g.globalAlpha = 1;
+          g.fillStyle = rg;
+          g.beginPath(); g.arc(cx, cy, gr, 0, TAU); g.fill();
+        }
+        /* ④ 방사형 스파크 — 둥근 점이 바깥으로 튀며 사라집니다 */
+        var n = land ? 14 : 8;
+        for (k = 0; k < n; k++) {
+          var ang = (k / n) * TAU + i * 0.9;
+          var d = r0 * (0.92 + 0.22 * Math.sin(k * 2.3 + i));
+          var sz = Math.max(0.8, (land ? 3.6 : 2.6) * a * dyK);
+          g.globalAlpha = Math.max(0, 0.85 * a * pw);
+          g.fillStyle = k % 3 ? '#ffffff' : tint;
+          g.beginPath(); g.arc(cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, sz, 0, TAU); g.fill();
+        }
+        g.restore();
+      }
     }
 
     function loop() {
@@ -4084,7 +4261,7 @@
       /* 스매시·모션 동안에는 60fps로 부드럽게 — 끝나면 평소 주기로 돌아갑니다 */
       if (smashOn && nowMs() - smashAt < SMASH_MS) {
         paint();
-      } else if (motionOn && nowMs() - motionAt < (MOTION_MS[motionKind] || 2200)) {
+      } else if (motionOn && nowMs() - motionAt < motionDur(motionKind)) {
         paint();
       } else if (now - lastPaint > (animate ? 50 : 42)) {
         if (animate) v.phase = (v.phase || 0) + 0.06;
@@ -4457,7 +4634,7 @@
 
   /* 라켓 모션 칩 — 3D 아래에서 눌러 바로 감상 (bm-v1.86.0)
    *  · 열린 모션은 바로 재생, 잠긴 모션은 첫 탭 = 미리보기 · 두 번째 탭 = 하트로 열기 */
-  var MOTION_EMOJI = { twist: '🌀', showcase: '✨', flip: '⚡' };
+  var MOTION_EMOJI = { twist: '🌀', showcase: '✨', flip: '💫' };
   function motionChipsHtml(state) {
     var c = customOf(state && state.me);
     var admin = isAdminUser(state);
@@ -5541,6 +5718,8 @@
     WIND_MS: WIND_MS, SWING_MS: SWING_MS, HIT_AT: HIT_AT, BOOM_MS: BOOM_MS, HITSTOP_MS: HITSTOP_MS,
     smashClock: smashClock, smashPhase: smashPhase, swingOf: swingOf, shuttlePath: shuttlePath,
     launchPath: launchPath, entryVec: entryVec, motionPose: motionPose, MOTION_MS: MOTION_MS, MOTIONS: MOTIONS,
+    MOTION_FX: MOTION_FX, motionDur: motionDur, motionEvents: motionEvents, motionLandAt: motionLandAt,
+    motionSpins: motionSpins, motionHit: motionHit,
     MOTION_EMOJI: MOTION_EMOJI, motionChipsHtml: motionChipsHtml,
     SHUTTLE_MM: { L: SHUT_L, W: SHUT_W, R: SHUT_R },
     isPartSlot: isPartSlot, tex: tex, _tex: tex,

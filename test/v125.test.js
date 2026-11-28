@@ -270,15 +270,15 @@
     var index = readRoot('index.html');
     var readme = readRoot('README.md');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.101.0'", 'sw.js');
+    includes(sw, "var VERSION = 'bm-v1.102.0'", 'sw.js');
     includes(sw, "./js/beginner.js", '서비스워커 캐시 목록');
-    includes(app, "version: 'v1.101.0'", 'app.js');
+    includes(app, "version: 'v1.102.0'", 'app.js');
     includes(index, 'styles.css?v=20261128-6', '스타일 캐시 키');
     includes(index, 'js/beginner.js', '스크립트 로드');
     includes(readme, 'v1.31.0', 'README 변경 이력');
-    eq(twa.appVersionName, '1.101.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.101.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 95, 'TWA 버전 코드');
+    eq(twa.appVersionName, '1.102.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.102.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 96, 'TWA 버전 코드');
   });
 
   test('v1.25 스타일: 패널·용어 카드가 테마 변수로 그려진다', function () {

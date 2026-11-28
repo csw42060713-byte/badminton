@@ -153,22 +153,24 @@
   });
 
   if (hasNode) {
-    test('v1.96 3D: 돌릴 때의 잔상과 정타 임팩트가 서로 다른 코드·상태다', function () {
+    test('v1.96 3D: 돌릴 때의 연출과 정타 임팩트가 서로 다른 코드·상태다', function () {
       var js = readRoot('js/racket3d.js');
-      includes(js, 'function updateSpinTrail', '회전 잔상');
+      /* bm-v1.102.0 — 돌릴 때 따라다니는 '실 같은 선'(회전 잔상 리본)은 없앴습니다.
+       *  대신 링·스파크·글로우로 임팩트를 냅니다. */
+      excludes(js, 'function updateSpinTrail', '회전 잔상 리본 제거');
+      excludes(js, 'spinMesh', '리본 메시 제거');
+      includes(js, 'function updateMotionFx', '모션 임팩트 갱신');
+      includes(js, 'function fireMotionHit', '모션 한 방 발화');
       includes(js, 'function updateKit', '정타 임팩트');
       includes(js, 'function spawnKit', '정타 때 키트 뿌리기');
-      includes(js, 'spinStrengthOf(spinPrev, cur, dt)', '각속도로 세기 계산');
-      includes(js, 'if (smashOn) target *= 0.18', '칠 때는 잔상을 약하게(역할 분리)');
-      includes(js, 'spinPower = 0', '잔상 세기 상태');
       includes(js, "spawnKit();       /* bm-v1.96.0 — 히든 테마별 폭발 */", '정타 순간에만 키트');
-      /* 잔상은 매 프레임 메시를 만들지 않는다 */
-      var start = js.indexOf('function updateSpinTrail');
+      /* 임팩트도 매 프레임 메시를 만들지 않는다 */
+      var start = js.indexOf('function spawnMotionSparks');
       var end = js.indexOf('function ensureKit');
       var body = js.slice(start, end);
       excludes(body, 'new T.Mesh(', '프레임마다 메시 생성 없음');
       excludes(body, 'canvasDraw', '프레임마다 텍스처 없음');
-      includes(body, 'spinGeo.attributes.position.needsUpdate = true', '정점만 다시 씀');
+      includes(body, 'mSpark.geometry.attributes.position.needsUpdate = true', '스파크 정점만 다시 씀');
     });
 
     test('v1.96 3D: 히든 7종 전용 대형 연출이 모두 들어 있다', function () {
@@ -386,17 +388,17 @@
     });
 
     test('v1.96 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
-      includes(readRoot('sw.js'), "var VERSION = 'bm-v1.101.0'", 'sw 버전');
-      includes(readRoot('app.js'), "version: 'v1.101.0'", 'app 버전');
-      includes(readRoot('js/push.js'), "version: 'v1.101.0'", 'push 버전');
+      includes(readRoot('sw.js'), "var VERSION = 'bm-v1.102.0'", 'sw 버전');
+      includes(readRoot('app.js'), "version: 'v1.102.0'", 'app 버전');
+      includes(readRoot('js/push.js'), "version: 'v1.102.0'", 'push 버전');
       includes(readRoot('index.html'), 'styles.css?v=20261128-6', '스타일 캐시 키');
       var twa = readJson('twa-manifest.json');
-      eq(twa.appVersionName, '1.101.0', 'TWA 이름');
-      eq(twa.appVersion, '1.101.0', 'TWA appVersion');
-      eq(twa.appVersionCode, 95, 'TWA 코드');
-      includes(readRoot('README.md'), 'bm-v1.101.0', 'README 변경 이력');
+      eq(twa.appVersionName, '1.102.0', 'TWA 이름');
+      eq(twa.appVersion, '1.102.0', 'TWA appVersion');
+      eq(twa.appVersionCode, 96, 'TWA 코드');
+      includes(readRoot('README.md'), 'bm-v1.102.0', 'README 변경 이력');
       includes(readRoot('test/run.js'), 'test/v196.test.js', '테스트 목록');
-      includes(readRoot('sw.js'), 'bm-v1.101.0', 'sw 캐시 설명');
+      includes(readRoot('sw.js'), 'bm-v1.102.0', 'sw 캐시 설명');
     });
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

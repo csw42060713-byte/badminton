@@ -249,12 +249,12 @@
 
   test('v1.53 버전: sw · app · index · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.101.0'", '서비스워커');
-    includes(readRoot('app.js'), "version: 'v1.101.0'", '앱 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.102.0'", '서비스워커');
+    includes(readRoot('app.js'), "version: 'v1.102.0'", '앱 버전');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.101.0', 'TWA 이름');
-    eq(twa.appVersionCode, 95, 'TWA 코드');
-    eq(twa.appVersion, '1.101.0', 'TWA 버전');
+    eq(twa.appVersionName, '1.102.0', 'TWA 이름');
+    eq(twa.appVersionCode, 96, 'TWA 코드');
+    eq(twa.appVersion, '1.102.0', 'TWA 버전');
     var index = readRoot('index.html');
     includes(index, 'styles.css?v=20261128-6', 'styles.css 캐시 주소');
     includes(readRoot('test/run.js'), 'test/v153.test.js', '테스트 목록');

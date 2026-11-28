@@ -245,6 +245,49 @@
     return true;
   }
 
+  /* ---------- 라켓 돌리기(모션) 소리 — bm-v1.102.0 ----------
+   *  승우 님: "라켓 돌릴 때 임팩트 좀 더 있게" · "뭔가 빨라보이게"
+   *  · 회전 박자마다 짧은 휘두름(whoosh)이 지나가고,
+   *  · 마지막에 라켓이 '딱' 서는 순간 묵직한 착지음(쿵 + 링 공명 + 스냅)이 떨어집니다.
+   *  · 시각(ms)은 부르는 쪽(racket3d/racketcustom)이 넘겨 줍니다 —
+   *    화면의 링·스파크와 소리가 같은 순간에 터집니다.
+   *  · 음소거·자동재생 규칙(손짓 안에서만)은 기존 play 와 똑같이 지킵니다. */
+  var MOTION_LABEL = { twist: '손목 트위스트', showcase: '쇼케이스 스핀', flip: '공중 3연속 스핀' };
+  function motionLayers(kind, timing) {
+    var out = [];
+    var spins = (timing && timing.spins && timing.spins.length) ? timing.spins : [80];
+    var land = (timing && timing.landAt != null) ? timing.landAt : 800;
+    var i;
+    /* 회전 휘두름 — 뒤로 갈수록 조금씩 세고 높게(가속하는 느낌) */
+    for (i = 0; i < spins.length; i++) {
+      var at = Math.max(0.02, spins[i] / 1000);
+      var k = spins.length > 1 ? i / (spins.length - 1) : 0;
+      out.push(noise(at, 0.17 + 0.04 * k, 0.11 + 0.05 * k, 700 + 520 * k, 1.2, 'bandpass', 2200 + 1400 * k));
+    }
+    /* 착지 — 낮게 깔리는 '퍽' + 짧은 링 공명 + 라켓 끝 스냅 */
+    var L = Math.max(0.05, land / 1000);
+    out.push(tone(L, 0.28, 0.70, 158, 'sine', 46));
+    out.push(noise(L, 0.22, 0.40, 320, 0.8, 'lowpass'));
+    out.push(noise(L + 0.008, 0.38, 0.15, 1550, 9, 'bandpass'));
+    out.push(noise(L + 0.020, 0.055, 0.20, 5200, 1.2, 'highpass'));
+    if (kind === 'flip') out.push(tone(L + 0.004, 0.34, 0.26, 92, 'sine', 38));  /* 3바퀴의 무게 */
+    return out;
+  }
+  function playMotion(kind, timing) {
+    if (MUTED) return false;
+    var ac = ctx();
+    if (!ac || !MASTER) return false;
+    if (ac.state === 'suspended' && ac.resume) {
+      try { ac.resume(); } catch (e) { /* 다음 손짓에서 다시 */ }
+    }
+    var list = motionLayers(kind, timing);
+    var t0 = ac.currentTime + 0.005;
+    for (var i = 0; i < list.length; i++) {
+      try { playLayer(ac, list[i], t0); } catch (e) { /* 한 층이 실패해도 나머지는 재생 */ }
+    }
+    return true;
+  }
+
   function muted() { return MUTED; }
   function setMuted(flag) {
     MUTED = !!flag;
@@ -268,6 +311,10 @@
     supported: supported,
     unlock: unlock,
     play: play,
+    /* bm-v1.102.0 — 라켓 돌리기: 회전 휘두름 + 마무리 착지음 */
+    motion: playMotion,
+    motionLayers: motionLayers,
+    motionLabel: function (kind) { return MOTION_LABEL[String(kind || '')] || '라켓 모션'; },
     layers: layers,
     signature: signature,
     label: label,
