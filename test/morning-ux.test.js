@@ -346,7 +346,7 @@
 
   test('v1.72 배포: sw.js VERSION이 지금 배포 버전이고 테스트 목록에 등록돼 있다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.96.0'", '버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.97.0'", '버전');
     includes(readRoot('test/run.js'), 'test/morning-ux.test.js', '테스트 목록에 등록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

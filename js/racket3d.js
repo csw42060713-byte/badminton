@@ -4667,20 +4667,57 @@
       return '';
     }
 
+    /* bm-v1.97.0 — 손가락 터치 기준으로 탭/드래그를 다시 나눕니다.
+     *  · 탭: 시작점에서 **14 CSS px 안**에서 손을 떼면 탭.
+     *    (예전엔 누적 이동 8px 미만만 탭이라, 손가락이 살짝만 흔들려도 '드래그'가 되어
+     *     톡 쳐도 스매시가 안 나거나 부위가 안 골라졌습니다.)
+     *  · 두 번째 손가락이 닿으면 그 손짓은 탭이 아닙니다(핀치 → 스매시 오인 방지).
+     *  · pointercancel(브라우저가 손짓을 가져감)은 탭이 아니라 '취소'입니다. */
+    var TAP_SLOP = 14, TAP_PATH = 60;
+
     cv.addEventListener('pointerdown', function (ev) {
       /* 이 손짓 안에서 소리를 깨웁니다 (브라우저 자동재생 규칙) */
       if (BM.smashsound) BM.smashsound.unlock();
       if (ev.button && ev.button !== 0) return;
-      drag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, sx: ev.clientX, sy: ev.clientY, moved: 0 };
+      /* 이미 손가락이 닿아 있으면 두 번째 손가락 — 탭으로 치지 않습니다 */
+      if (drag) { drag.multi = true; return; }
+      drag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, sx: ev.clientX, sy: ev.clientY,
+               moved: 0, path: 0, multi: false, axis: '', t0: Date.now() };
       lastMove = Date.now();
       try { cv.setPointerCapture(ev.pointerId); } catch (e) { /* 무시 */ }
     });
+    /* 캔버스가 들어 있는 시트 본문 — 세로 쓸기로 스크롤할 대상 */
+    function sheetScrollEl() {
+      var n = cv.parentNode;
+      while (n && n !== document.body) {
+        if (n.classList && n.classList.contains('sheet__body')) return n;
+        n = n.parentNode;
+      }
+      return null;
+    }
     cv.addEventListener('pointermove', function (ev) {
       if (!drag || ev.pointerId !== drag.id) return;
       if (ev.preventDefault) ev.preventDefault();
       var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
       drag.x = ev.clientX; drag.y = ev.clientY;
       drag.moved += Math.abs(dx) + Math.abs(dy);
+      drag.path = Math.sqrt((ev.clientX - drag.sx) * (ev.clientX - drag.sx) +
+                            (ev.clientY - drag.sy) * (ev.clientY - drag.sy));
+      /* bm-v1.97.0 — 캔버스는 touch-action: none 이라 예전엔 캔버스 위에서 시트가 스크롤되지
+       *  않았습니다. 세로로 쓸면 시트가 따라 오르내리고, 가로로 끌면 라켓이 돌아갑니다. */
+      if (!drag.axis) {
+        var mx0 = ev.clientX - drag.sx, my0 = ev.clientY - drag.sy;
+        if (Math.abs(mx0) + Math.abs(my0) > 8) {
+          drag.axis = Math.abs(my0) > Math.abs(mx0) * 1.4 ? 'scroll' : 'rot';
+          if (drag.axis === 'scroll') { vel.yaw = 0; vel.pitch = 0; }
+        }
+      }
+      if (drag.axis === 'scroll') {
+        var sc = sheetScrollEl();
+        if (sc) sc.scrollTop -= dy;
+        lastMove = Date.now();
+        return;
+      }
       var stepYaw = dx * 0.012, stepPitch = -dy * 0.006;
       viewMem.yaw += stepYaw;
       viewMem.pitch = clampN(viewMem.pitch + stepPitch, -0.9, 0.9);
@@ -4689,18 +4726,21 @@
       lastMove = Date.now();
       renderFrame(nowMs());
     });
-    function endDrag(ev) {
-      if (!drag || (ev && ev.pointerId !== drag.id)) return;
-      var wasTap = drag.moved < 8;
-      var r = cv.getBoundingClientRect();
-      var px = (ev ? ev.clientX : 0) - r.left, py = (ev ? ev.clientY : 0) - r.top;
-      try { cv.releasePointerCapture(drag.id); } catch (e) { /* 무시 */ }
+    function endDrag(ev, how) {
+      if (!drag || (ev && typeof ev.pointerId === 'number' && ev.pointerId !== drag.id)) return;
+      var d = drag;
       drag = null;
+      try { cv.releasePointerCapture(d.id); } catch (e) { /* 무시 */ }
       lastMove = Date.now();
-      if (!wasTap) return;
+      /* 취소·두 손가락은 탭이 아닙니다 */
+      if (how === 'cancel' || d.multi) return;
+      if (d.path > TAP_SLOP || d.moved > TAP_PATH) return;
+      var r = cv.getBoundingClientRect();
+      /* 손을 뗀 자리가 아니라 '처음 닿은 자리'로 부위를 고릅니다(손가락은 떼며 조금 밀립니다) */
+      var px = d.sx - r.left, py = d.sy - r.top;
       var mode = modeNow();
       if (mode !== 'paint') { api.smash(); return; }
-      var slot = slotAt(px + r.left, py + r.top);
+      var slot = slotAt(d.sx, d.sy);
       /* 레이가 아무것도 못 맞히면(줄 사이 빈 곳) 위치로 부위를 고릅니다 */
       if (!slot) {
         var ry2 = py / Math.max(1, r.height);
@@ -4708,9 +4748,9 @@
       }
       if (slot) RC().pickSlot(host, ctx, slot);
     }
-    cv.addEventListener('pointerup', endDrag);
-    cv.addEventListener('pointercancel', endDrag);
-    cv.addEventListener('pointerleave', endDrag);
+    cv.addEventListener('pointerup', function (ev) { endDrag(ev, 'up'); });
+    cv.addEventListener('pointercancel', function (ev) { endDrag(ev, 'cancel'); });
+    cv.addEventListener('pointerleave', function (ev) { endDrag(ev, 'cancel'); });
 
     cv.addEventListener('webglcontextlost', function (ev) {
       if (ev && ev.preventDefault) ev.preventDefault();

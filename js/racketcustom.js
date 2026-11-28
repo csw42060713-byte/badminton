@@ -462,6 +462,92 @@
     }).join(' · ');
   }
 
+  /* ============================================================
+   * bm-v1.97.0 — '⚡ 바로 완성하기' : 이미 한 번 맞춘 조합을 원톡으로 다시 입기
+   *
+   *  · 공개 4종: 조건 파츠를 **모두 갖고 있으면** 맞출 수 있는 조합입니다(한 번 맞춘 뒤
+   *    파츠 하나를 바꿔 조합이 풀렸을 때 원톡으로 되돌리는 용도).
+   *  · 히든 7종: 발견 목록(found)에 기록된 조합만 대상입니다(발견 전엔 '???').
+   *  · 조금이라도 이미 맞아 있는 파츠는 그대로 두고, 빈 자리만 보유 파츠로 채웁니다.
+   *  · 보유하지 않은 파츠가 있으면 **보유한 것만** 맞추고 몇 개가 남았는지 알려 줍니다
+   *    (관리자 계정은 전체 해금이라 항상 전부 장착).
+   *  어떤 조합도 하트를 쓰지 않습니다 — 이미 연 파츠로 입는 것뿐입니다.
+   * ============================================================ */
+  function setApplyPlan(c, set, admin) {
+    var st = normalizeCustom(c);
+    if (!set || !set.need) return { set: set, steps: [], missing: [], complete: false, changed: 0 };
+    var steps = [], missing = [], changed = 0;
+    for (var i = 0; i < set.need.length; i++) {
+      var need = set.need[i];
+      var slot = need[0];
+      var ids = needIds(need);
+      var curId = st[slot];
+      if (ids.indexOf(curId) >= 0) { steps.push({ slot: slot, id: curId, now: true }); continue; }
+      var pick = '';
+      for (var j = 0; j < ids.length; j++) {
+        if (admin || isUnlocked(st, slot, ids[j]) || priceOf(slot, ids[j]) === 0) { pick = ids[j]; break; }
+      }
+      if (pick) { steps.push({ slot: slot, id: pick, now: false }); changed++; }
+      else {
+        missing.push({ slot: slot, id: ids[0], name: itemOf(slot, ids[0]) ? itemOf(slot, ids[0]).name : ids[0],
+          label: (PARTS[slot] && PARTS[slot].label) || slot });
+      }
+    }
+    return { set: set, steps: steps, missing: missing, complete: missing.length === 0, changed: changed };
+  }
+
+  /* 이 조합을 "이미 한 번 맞춘" 것으로 볼 수 있는지 — 공개는 갖고 있는 파츠만으로 맞출 수 있을 때,
+   * 히든은 발견 목록에 있을 때 */
+  function setMine(c, set, admin) {
+    if (!set) return false;
+    var st = normalizeCustom(c);
+    if (set.hidden) {
+      if (foundOf(st).indexOf(set.id) >= 0) return true;
+      return admin && setHitRaw(st, set).complete;
+    }
+    if (setHitRaw(st, set).complete) return true;
+    for (var i = 0; i < set.need.length; i++) {
+      var ids = needIds(set.need[i]);
+      var ok = false;
+      for (var j = 0; j < ids.length; j++) {
+        if (admin || isUnlocked(st, set.need[i][0], ids[j]) || priceOf(set.need[i][0], ids[j]) === 0) { ok = true; break; }
+      }
+      if (!ok) return false;
+    }
+    return true;
+  }
+
+  /* 조합을 실제로 입니다 — refreshSheet 이 3D까지 다시 그립니다 */
+  function applySet(host, ctx, id) {
+    var set = setById(String(id || ''));
+    if (!set || !ctx || !ctx.store) return false;
+    var st = ctx.store.state;
+    var cur = customOf(st.me);
+    var admin = isAdminUser(st);
+    var curSet = activeSetRaw(normalizeCustom(cur));
+    if (curSet && curSet.set.id === set.id) {
+      if (BM.ui) BM.ui.toast('이미 ' + set.name + ' 조합으로 맞춰져 있어요');
+      return false;
+    }
+    var plan = setApplyPlan(cur, set, admin);
+    if (!plan.steps.length) {
+      if (BM.ui) BM.ui.toast('이 조합에 쓸 파츠를 아직 갖고 있지 않아요', 'error');
+      return false;
+    }
+    var next = normalizeCustom(cur);
+    plan.steps.forEach(function (p) {
+      next[p.slot] = p.id;
+      if (admin && next.unlocked.indexOf(p.slot + ':' + p.id) < 0) next.unlocked.push(p.slot + ':' + p.id);
+    });
+    if (!saveCustom(ctx, next, { toast: '⚡ ' + set.emoji + ' ' + set.name + ' 조합 완성!' })) return false;
+    if (plan.missing.length && BM.ui) {
+      BM.ui.toast('아직 못 연 파츠 ' + plan.missing.length + '개는 그대로 뒀어요 · ' +
+        plan.missing.map(function (m) { return m.label + ' ' + m.name; }).join(', '), 'error');
+    }
+    if (host && ctx) refreshSheet(host, ctx);
+    return true;
+  }
+
   /* 힌트 문구를 조건에서 바로 만듭니다 — 힌트와 실제 필요 파츠가 어긋나지 않게 */
   function autoHint(set) { return needText(set); }
 
@@ -3692,7 +3778,7 @@
     /* 색을 바꿔 다시 그려도 보던 각도 그대로 (시트를 닫았다 열어도) */
     var v = { yaw: viewMem.yaw, pitch: viewMem.pitch, k: 1, cx: 0, cy: 0, mid: 0, phase: 0 };
     var drag = null, lastMove = 0, lastPaint = 0, lastTick = 0, idlePhase = 0, raf = 0, alive = true;
-    var w = 0, h = 0;
+    var w = 0, h = 0, fitCssW = 0, fitCssH = 0;
     /* bm-v1.84.0 — 손목 회전 관성: 끌던 속도를 기억했다가 손을 떼면 부드럽게 감속합니다 */
     var vel = { yaw: 0, pitch: 0 }, roll = 0, lastDragAt = 0;
     /* 터치 스매시 상태 — smashAt(시작 시각) · smashFx(그때 입은 효과) · smashKind('air'|'slam') */
@@ -3765,6 +3851,8 @@
 
     function fit() {
       var rect = cv.getBoundingClientRect();
+      fitCssW = cv.clientWidth || Math.round(rect.width);
+      fitCssH = cv.clientHeight || Math.round(rect.height);
       w = Math.max(160, Math.round(rect.width));
       h = Math.max(200, Math.round(rect.height));
       cv.width = Math.round(w * dpr);
@@ -3861,6 +3949,11 @@
     function loop() {
       if (!alive) return;
       if (!cv.isConnected) { alive = false; return; }
+      /* bm-v1.97.0 — 시트를 펴거나 전체화면·가로 회전으로 캔버스 크기가 바뀌면
+       *  비트맵(dpr)과 좌표계(v.k·v.cx·v.cy)를 다시 맞춥니다.
+       *  예전엔 처음 잰 크기에 머물러, 크기가 바뀐 뒤에는 탭한 곳과 다른 부위가 골라졌습니다. */
+      var cw = cv.clientWidth, chh = cv.clientHeight;
+      if (cw && chh && (Math.abs(cw - fitCssW) > 1 || Math.abs(chh - fitCssH) > 1)) { fit(); paint(); }
       var now = Date.now();
       var dt = lastTick ? Math.min(48, Math.max(6, now - lastTick)) : 16.7;
       lastTick = now;
@@ -3911,19 +4004,52 @@
     warmTextures();
     raf = root.requestAnimationFrame(loop);
 
+    /* bm-v1.97.0 — 손가락 터치 기준으로 탭/드래그를 다시 나눕니다(3D 엔진과 같은 규칙).
+     *  · 탭: 시작점에서 14 CSS px 안
+     *  · 두 번째 손가락 = 탭 아님 · pointercancel = 취소 */
+    var TAP_SLOP = 14, TAP_PATH = 60;
+
     cv.addEventListener('pointerdown', function (ev) {
       if (BM.smashsound) BM.smashsound.unlock();
       if (ev.button && ev.button !== 0) return;
-      drag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, sx: ev.clientX, sy: ev.clientY, moved: 0 };
+      if (drag) { drag.multi = true; return; }
+      drag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, sx: ev.clientX, sy: ev.clientY,
+               moved: 0, path: 0, multi: false, axis: '', t0: Date.now() };
       lastMove = Date.now();
       try { cv.setPointerCapture(ev.pointerId); } catch (e) { /* 무시 */ }
     });
+    /* 캔버스가 들어 있는 시트 본문 — 세로 쓸기로 스크롤할 대상 */
+    function sheetScrollEl() {
+      var n = cv.parentNode;
+      while (n && n !== document.body) {
+        if (n.classList && n.classList.contains('sheet__body')) return n;
+        n = n.parentNode;
+      }
+      return null;
+    }
     cv.addEventListener('pointermove', function (ev) {
       if (!drag || ev.pointerId !== drag.id) return;
       if (ev.preventDefault) ev.preventDefault();
       var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
       drag.x = ev.clientX; drag.y = ev.clientY;
       drag.moved += Math.abs(dx) + Math.abs(dy);
+      drag.path = Math.sqrt((ev.clientX - drag.sx) * (ev.clientX - drag.sx) +
+                            (ev.clientY - drag.sy) * (ev.clientY - drag.sy));
+      /* bm-v1.97.0 — 캔버스는 touch-action: none 이라 예전엔 캔버스 위에서 시트가 스크롤되지
+       *  않았습니다. 세로로 쓸면 시트가 따라 오르내리고, 가로로 끌면 라켓이 돌아갑니다. */
+      if (!drag.axis) {
+        var mx0 = ev.clientX - drag.sx, my0 = ev.clientY - drag.sy;
+        if (Math.abs(mx0) + Math.abs(my0) > 8) {
+          drag.axis = Math.abs(my0) > Math.abs(mx0) * 1.4 ? 'scroll' : 'rot';
+          if (drag.axis === 'scroll') { vel.yaw = 0; vel.pitch = 0; }
+        }
+      }
+      if (drag.axis === 'scroll') {
+        var sc = sheetScrollEl();
+        if (sc) sc.scrollTop -= dy;
+        lastMove = Date.now();
+        return;
+      }
       /* 손목을 비틀 듯 — 가로는 크게, 세로는 살짝. 민 속도를 기억해 두었다가 관성으로 이어 줍니다.
        * bm-v1.87.0 — 가로·세로를 한 번에 한 번만 적용해 덜렁거림을 없앴습니다. */
       var stepYaw = dx * 0.012, stepPitch = -dy * 0.006;
@@ -3937,23 +4063,26 @@
       lastMove = Date.now();
       paint();
     });
-    function endDrag(ev) {
-      if (!drag || (ev && ev.pointerId !== drag.id)) return;
-      var wasTap = drag.moved < 8;
-      var r = cv.getBoundingClientRect();
-      var px = (ev ? ev.clientX : 0) - r.left, py = (ev ? ev.clientY : 0) - r.top;
-      try { cv.releasePointerCapture(drag.id); } catch (e) { /* 무시 */ }
+    function endDrag(ev, how) {
+      if (!drag || (ev && typeof ev.pointerId === 'number' && ev.pointerId !== drag.id)) return;
+      var d = drag;
       drag = null;
+      try { cv.releasePointerCapture(d.id); } catch (e) { /* 무시 */ }
       lastMove = Date.now();
-      if (!wasTap) return;
+      /* 취소(pointercancel·pointerleave)·두 손가락은 탭이 아닙니다 */
+      if (how === 'cancel' || d.multi) return;
+      if (d.path > TAP_SLOP || d.moved > TAP_PATH) return;
+      var r = cv.getBoundingClientRect();
+      /* 처음 닿은 자리로 판정합니다 — 손가락은 떼면서 조금 밀립니다 */
+      var px = d.sx - r.left, py = d.sy - r.top;
       /* 짧은 탭 = 스매시 타격, '꾸미기' 모드에서만 부위 탭으로 파츠를 바꿉니다 */
       if (stageMode !== 'paint') { smash(); return; }
       var slot = hitSlot(px, py, v, customOf(ctx.store.state.me));
       if (slot) pickSlot(host, ctx, slot);
     }
-    cv.addEventListener('pointerup', endDrag);
-    cv.addEventListener('pointercancel', endDrag);
-    cv.addEventListener('pointerleave', endDrag);
+    cv.addEventListener('pointerup', function (ev) { endDrag(ev, 'up'); });
+    cv.addEventListener('pointercancel', function (ev) { endDrag(ev, 'cancel'); });
+    cv.addEventListener('pointerleave', function (ev) { endDrag(ev, 'cancel'); });
 
     if (BM.racketcustom) BM.racketcustom._last3d = api;
     return api;
@@ -4288,7 +4417,8 @@
 
   function setBonusHtml(state) {
     var c = customOf(state && state.me);
-    var cur = activeSet(c);
+    var admin = isAdminUser(state);
+    var cur = activeSetRaw(normalizeCustom(c));
     var next = cur ? null : nextSet(c);
     var found = hiddenFoundCount(c);
     var head, tag, desc, hit, pct, prog;
@@ -4363,11 +4493,24 @@
             : '') +
           '</li>';
       }
+      /* bm-v1.97.0 — 이미 한 번 맞춘 조합은 '⚡ 바로 완성하기' 한 번으로 다시 입습니다.
+       *  · 지금 이 조합이 발동 중이면 '이미 적용 중' 표시
+       *  · 한 번이라도 맞춰 본 조합(공개는 보유 파츠로 맞출 수 있는 것 · 히든은 발견된 것)만 버튼 */
+      var activeNow = !!(cur && cur.set.id === s.id);
+      var canApply = !activeNow && setMine(c, s, admin);
+      var applyHtml = activeNow
+        ? '<em class="rkset__on">이미 적용 중</em>'
+        : (canApply
+          ? '<button type="button" class="rkset__apply" data-rk-apply-set="' + s.id + '"' +
+            ' aria-label="' + U.esc(s.name + ' 조합 바로 완성하기') + '">' +
+            '<span aria-hidden="true">⚡</span> 바로 완성하기</button>'
+          : '');
       return '<li class="rkset__row' + (got ? ' is-found' : '') + '">' +
         '<b class="rkset__n">' + s.emoji + ' ' + U.esc(s.name) + '</b>' +
         '<span class="rkset__t">' + U.esc(s.tag + (s.hidden ? ' · 히든' : '')) + '</span>' +
-        '<i class="rkset__s">' + (got ? '발동 중' : h.hits + '/' + h.total) + '</i>' +
-        '<em class="rkset__c">' + U.esc(needText(s)) + '</em></li>';
+        '<i class="rkset__s">' + (activeNow ? '발동 중' : (got ? '맞춤 완료' : h.hits + '/' + h.total)) + '</i>' +
+        '<em class="rkset__c">' + U.esc(needText(s)) + '</em>' +
+        applyHtml + '</li>';
     }).join('');
     /* 상단 배지 — 2개 이상 맞은 히든이 있으면 '나머지 조건'을 바로 떠 놓습니다 */
     var nearHtml = '';
@@ -4546,7 +4689,9 @@
       if (BM.ui) BM.ui.toast(res && res.reason === 'locked' ? '잠시만요, 저장 중이에요' : '저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.', 'error');
       return false;
     }
-    if (opts && opts.unlock && BM.ui) {
+    if (opts && opts.toast && BM.ui) {
+      BM.ui.toast(opts.toast);
+    } else if (opts && opts.unlock && BM.ui) {
       BM.ui.toast(opts.unlock + ' 입었어요');
     } else if (opts && opts.body && BM.ui) {
       BM.ui.toast(opts.body + ' 바디로 바꿨어요');
@@ -4748,6 +4893,14 @@
             }
             if (!nowOff) BM.smashsound.play(customOf(ctx.store.state.me).effect, 'air');
             if (BM.ui) BM.ui.haptic(6);
+            return;
+          }
+          /* ---- 조합 도감: ⚡ 바로 완성하기 (bm-v1.97.0) ---- */
+          var applyBtn = ev.target.closest('[data-rk-apply-set]');
+          if (applyBtn) {
+            ev.preventDefault();
+            if (applyBtn.disabled) return;
+            applySet(host, ctx, applyBtn.getAttribute('data-rk-apply-set'));
             return;
           }
           if (ev.target.closest('[data-rk-smash]')) {
@@ -5124,6 +5277,8 @@
     SETS: SETS, HIDDEN_SETS: HIDDEN_SETS, setById: setById, setHit: setHit, setHitRaw: setHitRaw, activeSet: activeSet, activeSetRaw: activeSetRaw,
     nextSet: nextSet, foundOf: foundOf, hiddenFoundCount: hiddenFoundCount, newlyFound: newlyFound,
     needText: needText, needIds: needIds, autoHint: autoHint, setBonusHtml: setBonusHtml, mergeFound: mergeFound,
+    /* bm-v1.97.0 — '⚡ 바로 완성하기' (이미 맞춘 조합 원톡 장착) */
+    setApplyPlan: setApplyPlan, setMine: setMine, applySet: applySet,
     stageState: stageState, stageBadgeHtml: stageBadgeHtml,
     bodyDecalSvg: bodyDecalSvg, fxSvg: fxSvg, headArc: headArc, decalAt: decalAt, stringChords: stringChords,
     _parts: { head: addHead, edge: addFrameEdge, decals: addDecals, strings: addStrings, stencil: addStencil,
