@@ -13,7 +13,9 @@ from playwright.sync_api import sync_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PORT = 8796
-BASE = 'http://127.0.0.1:%d/index.html' % PORT
+LIVE = os.environ.get('TS_LIVE', '') == '1'
+BASE = ('https://csw42060713-byte.github.io/badminton/index.html?c=%d' % os.getpid() if LIVE
+        else 'http://127.0.0.1:%d/index.html' % PORT)
 checks = []
 
 
@@ -38,9 +40,10 @@ with sync_playwright() as p:
     b = p.chromium.launch(args=['--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader'])
     ctx = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2,
                         is_mobile=True, has_touch=True, locale='ko-KR', service_workers='block')
-    ctx.route('**/*', lambda r: r.abort()
-              if ('supabase.co' in r.request.url or 'google' in r.request.url or 'jsdelivr' in r.request.url)
-              else r.continue_())
+    if not LIVE:
+        ctx.route('**/*', lambda r: r.abort()
+                  if ('supabase.co' in r.request.url or 'google' in r.request.url or 'jsdelivr' in r.request.url)
+                  else r.continue_())
     pg = ctx.new_page()
     pg.goto(BASE, wait_until='networkidle')
     pg.evaluate("""() => {
@@ -52,6 +55,16 @@ with sync_playwright() as p:
     }""")
     pg.reload(wait_until='networkidle')
     pg.wait_for_timeout(1600)
+    if LIVE and pg.locator('.start__guest').count():
+        pg.tap('.start__guest')
+        pg.wait_for_timeout(1500)
+    for _ in range(4):
+        c = pg.locator('#sheet [data-close]')
+        if c.count():
+            c.first.click()
+            pg.wait_for_timeout(300)
+        else:
+            break
     pg.evaluate("""() => {
       const st = BM.app.ctx.store.state; st.me.admin = true; st.me.email = 'csw42060713@gmail.com';
     }""")
