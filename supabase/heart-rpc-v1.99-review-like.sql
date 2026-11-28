@@ -95,7 +95,7 @@ returns trigger language plpgsql security definer set search_path = public as $$
 declare
   v_ok boolean;
 begin
-  if new.type <> '후기하트' then
+  if coalesce(new.type, '') <> '후기하트' then
     return new;
   end if;
 
