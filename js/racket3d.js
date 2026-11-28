@@ -2411,7 +2411,7 @@
       }
       var m = new T.Mesh(trailRibbon(T, pts, 96, 96), new T.MeshBasicMaterial({
         map: auroraTexture('arc' + i + hexRgb(col), hexRgb(col), hexRgb(col2), i),
-        color: new T.Color(i % 2 ? col2 : col), transparent: true, opacity: 0.3,
+        color: new T.Color(i % 2 ? col2 : col), transparent: true, opacity: 0.42,
         blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
       }));
       g.add(m);
@@ -2757,14 +2757,14 @@
     if (b.beams) {
       for (i = 0; i < b.beams.beams.length; i++) {
         var BM2 = b.beams.beams[i];
-        BM2.m.material.opacity = 0.07 + Math.abs(Math.sin(t * 1.15 + BM2.seed)) * 0.17;
+        BM2.m.material.opacity = 0.14 + Math.abs(Math.sin(t * 1.15 + BM2.seed)) * 0.26;
         BM2.m.rotation.y = t * 0.12 + BM2.seed;
       }
     }
     if (b.arcs) {
       for (i = 0; i < b.arcs.arcs.length; i++) {
         var AR = b.arcs.arcs[i];
-        AR.m.material.opacity = 0.2 + Math.abs(Math.sin(t * 0.7 + AR.seed)) * 0.2;
+        AR.m.material.opacity = 0.34 + Math.abs(Math.sin(t * 0.7 + AR.seed)) * 0.26;
         AR.m.position.y = Math.sin(t * 0.5 + AR.seed) * 14;
       }
     }
