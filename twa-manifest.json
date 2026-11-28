@@ -14,8 +14,8 @@
   "iconUrl": "https://csw42060713-byte.github.io/badminton/store-assets/icon-512.png",
   "maskableIconUrl": "https://csw42060713-byte.github.io/badminton/icons/icon-maskable-512.png",
   "splashScreenFadeOutDuration": 300,
-  "appVersionName": "1.95.0",
-  "appVersionCode": 89,
+  "appVersionName": "1.96.0",
+  "appVersionCode": 90,
   "minSdkVersion": 24,
   "shortcuts": [
     {
@@ -45,5 +45,5 @@
     "path": "./android.keystore",
     "alias": "shuttlix"
   },
-  "appVersion": "1.95.0"
+  "appVersion": "1.96.0"
 }
