@@ -582,9 +582,11 @@
       '</div></details>';
   }
 
-  /* 시합 당일 준비 (bm-v1.70.0)
-   *   시합 직전 3단계(가볍게 조깅 → 스트레칭으로 관절 풀기 → 코트에서 시합)와
-   *   복식 수비 → 공격 전환(세게 한 번 밀어낸 뒤 코스 틀기·짧게 놓기)을 한 접기에 담습니다. */
+  /* 시합 당일 준비 (bm-v1.70.0 → bm-v1.103.0)
+   *   시합 직전 3단계(가볍게 조깅 → 스트레칭으로 관절 풀기 → 코트에서 시합),
+   *   복식 수비 → 공격 전환(세게 한 번 밀어낸 뒤 코스 틀기·짧게 놓기),
+   *   수비 타이밍, 강한 스매시는 낮게·뒤로 끌어 받기, 체력 떨어질 때의 템포 정리를 한 접기에 담습니다.
+   *   (새 접기를 더 만들면 저장 뒤 접힘 메뉴가 다시 길어져서, 시합 운영 블록으로 묶었습니다.) */
   function matchFold(an) {
     var m = an && an.match;
     if (!m || !m.steps || !m.steps.length) return '';
@@ -604,6 +606,20 @@
         return '<li><b>' + U.esc(s.name) + '</b> — ' + U.esc(s.how) + '</li>';
       }).join('') + '</ul>'
       : '';
+    /* 강한 스매시 수비 (bm-v1.103.0) — 낮게 · 뒤로 끌어 흡수 · 높게 넘기기 */
+    var hv = m.heavyBlock;
+    var hvSteps = (hv && hv.steps && hv.steps.length)
+      ? '<ul class="bullets">' + hv.steps.map(function (s) {
+        return '<li><b>' + U.esc(s.name) + '</b> — ' + U.esc(s.how) + '</li>';
+      }).join('') + '</ul>'
+      : '';
+    /* 체력 저하 시 템포 정리 (bm-v1.103.0) — 점 사이 시간 벌기 · 숨 정리 · 낮은 템포 */
+    var tp = m.tempoBlock;
+    var tpSteps = (tp && tp.steps && tp.steps.length)
+      ? '<ul class="bullets">' + tp.steps.map(function (s) {
+        return '<li><b>' + U.esc(s.name) + '</b> — ' + U.esc(s.how) + '</li>';
+      }).join('') + '</ul>'
+      : '';
     return '<details class="fold fold--ai" data-fold="match">' +
       '<summary class="fold__sum"><span>' + U.esc(m.title) + ' <small>조깅 → 스트레칭 → 코트</small></span>' +
       '<i class="fold__val">' + m.steps.length + '단계</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
@@ -620,6 +636,17 @@
       (df
         ? '<div class="planbox mt8"><p class="planbox__t">' + U.esc(df.title) + '</p>' +
           '<p class="planbox__v">' + U.esc(df.note) + '</p>' + dfSteps + '</div>'
+        : '') +
+      (hv && hvSteps
+        ? '<div class="planbox mt8" data-heavy-smash="1"><p class="planbox__t">' + U.esc(hv.title) + '</p>' +
+          '<p class="planbox__v">' + U.esc(hv.note) + '</p>' + hvSteps +
+          (hv.drill ? '<p class="planbox__v">연습은 이렇게 — ' + U.esc(hv.drill) + '</p>' : '') +
+          '<p class="planbox__src">' + U.esc(hv.source || '') + '</p></div>'
+        : '') +
+      (tp && tpSteps
+        ? '<div class="planbox mt8" data-tempo="1"><p class="planbox__t">' + U.esc(tp.title) + '</p>' +
+          '<p class="planbox__v">' + U.esc(tp.note) + '</p>' + tpSteps +
+          '<p class="planbox__src">' + U.esc(tp.source || '') + '</p></div>'
         : '') +
       '<p class="planbox__src">' + U.esc(m.source) + '</p>' +
       '</div></details>';
