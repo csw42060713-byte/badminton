@@ -503,7 +503,7 @@
   function installBridge() {
     if (typeof window === 'undefined') return null;
     var api = {
-      version: 'v1.100.0',
+      version: 'v1.101.0',
       register: function (token, platform) { return registerToken(token, platform); },
       unregister: function (token) { return unregisterToken(token); },
       token: function () { var r = readToken(); return r ? String(r.token || '') : ''; },

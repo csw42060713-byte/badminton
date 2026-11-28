@@ -617,14 +617,14 @@
   test('v1.64 버전: sw · app · index · TWA가 함께 bm-v1.74.0', function () {
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
-    includes(sw, "var VERSION = 'bm-v1.100.0'", 'sw.js');
+    includes(sw, "var VERSION = 'bm-v1.101.0'", 'sw.js');
     includes(sw, 'bm-v1.74.0', 'sw 변경 이력');
-    includes(app, "version: 'v1.100.0'", 'app.js');
+    includes(app, "version: 'v1.101.0'", 'app.js');
     includes(index, 'styles.css?v=20261128-6', 'styles.css 캐시');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.100.0', 'TWA 이름');
-    eq(twa.appVersion, '1.100.0', 'TWA 버전');
-    eq(twa.appVersionCode, 94, 'TWA 코드');
+    eq(twa.appVersionName, '1.101.0', 'TWA 이름');
+    eq(twa.appVersion, '1.101.0', 'TWA 버전');
+    eq(twa.appVersionCode, 95, 'TWA 코드');
   });
 
   test('v1.64 배선: 새 파일 없이 화면 코드만 · 테스트 목록에 v164', function () {

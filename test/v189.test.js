@@ -185,18 +185,18 @@
     ok(fileExists('js/wallpaper.js'), '파일');
     includes(readRoot('index.html'), 'js/wallpaper.js', 'index.html');
     includes(readRoot('sw.js'), "'./js/wallpaper.js'", 'sw SHELL');
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.100.0'", '캐시 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.101.0'", '캐시 버전');
   });
 
   test('v1.90 버전: 앱·서비스워커·TWA 가 같은 버전(1.94.0 / 코드 88)', function () {
     if (!hasNode) return;
-    includes(readRoot('app.js'), "version: 'v1.100.0'", 'app.js');
-    includes(readRoot('js/push.js'), "version: 'v1.100.0'", 'push.js');
+    includes(readRoot('app.js'), "version: 'v1.101.0'", 'app.js');
+    includes(readRoot('js/push.js'), "version: 'v1.101.0'", 'push.js');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.100.0', 'TWA 이름');
-    eq(twa.appVersion, '1.100.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 94, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.100.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.101.0', 'TWA 이름');
+    eq(twa.appVersion, '1.101.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 95, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.101.0', 'README 변경 이력');
   });
 
   test('v1.89 금지: 키스토어·비밀번호 같은 비밀 값이 웹 저장소에 없다', function () {

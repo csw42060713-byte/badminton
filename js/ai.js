@@ -200,6 +200,36 @@
  *        스웨덴 엘리트부 66명(남 41·여 25). 32%(21명)가 최근 5년 안에 아킬레스건 부위 통증을 겪었고(지속 17%),
  *        겪은 선수는 주당 총 훈련 시간(전체·배드민턴·지구력·근력)이 유의하게 많았습니다.
  *        → 주간 누적 훈련량이 많을수록 아킬레스건 부하가 쌓이는 근거로 씁니다.
+ * [PANG25] Pang J., Landers G., Lin Z., Pesch T., Anbalagan P., Girard O.,
+ *        <Thermoregulatory Responses and Match Characteristics Across Successive Badminton Matches>,
+ *        Int J Sports Physiol Perform 20(12):1647-1653, 2025 (DOI: 10.1123/ijspp.2024-0428) —
+ *        훈련된 선수 28명(남 15·여 13)이 30분 단식 두 경기를 25분 휴식으로 연속 수행(실내 23.8℃, 습도 54.5%).
+ *        심부 체온 최고 38.7℃(1경기)·38.6℃(2경기), 경기 시간의 46%(1경기)·31%(2경기)를 38.5℃ 이상에서 보냈습니다.
+ *        경기 중 마신 물(484·465mL)이 땀 손실(566·497mL)을 거의 상쇄해 탈수를 체중 1% 아래로 유지했고,
+ *        경기 특성(스트로크 수)은 오히려 늘었습니다(216→226회, p = 0.004) → 충분한 수분이 수행력을 지킨 핵심.
+ * [ABIAN12] Abián-Vicén J., Del Coso J., González-Millán C., Salinero J.J., Abián P.,
+ *        <Analysis of Dehydration and Strength in Elite Badminton Players>, PLoS ONE 7(5):e37821, 2012
+ *        (DOI: 10.1371/journal.pone.0037821) — 엘리트 선수의 경기 중 탈수와 하체 근력·파워를 함께 측정.
+ *        → 경기 중 수분 보충이 근력 유지와 이어지는 근거로 씁니다.
+ * [ABIAN14] Abián-Vicén J., Castanedo A., Abián P., González-Millán C., Salinero J.J., Del Coso J.,
+ *        <Influence of Successive Badminton Matches on Muscle Strength, Power, and Body-Fluid Balance in Elite
+ *        Players>, Int J Sports Physiol Perform 9(4):689-694, 2014 (DOI: 10.1123/ijspp.2013-0269) —
+ *        엘리트 13명(남 6·여 7) 실제 스페인 선수권 2회전·8강 추적. 발한량 1.04±0.62 / 0.98±0.43 L/h,
+ *        재수분 0.69 / 0.91 L/h로 탈수를 0.47% / 0.23%(체중 1% 미만)로 지켰지만, 연속 라운드에서
+ *        점프 높이는 37.51±8.83cm → 34.82±7.37cm로 줄었습니다(p < .05).
+ *        → 물을 채우는 건 기본이고, 채워도 연속 라운드의 후반 점프는 조금씩 떨어지니 개수를 미리 줄입니다.
+ * [CUTSEM19] Van Cutsem J., De Pauw K., Vandervaeren C., Marcora S., Meeusen R., Roelands B.,
+ *        <Mental fatigue impairs visuomotor response time in badminton players and controls>,
+ *        Psychol Sport Exerc 45:101579, 2019 (DOI: 10.1016/j.psychsport.2019.101579) —
+ *        배드민턴 선수 9명 + 대조군 11명이 90분 스트룹 과제(정신적 피로) 또는 다큐멘터리(대조)를 본 뒤
+ *        시각-운동 과제를 했습니다. 정신적으로 지친 상태에서 복잡한 자극에 대한 반응이 약 7% 느려졌고
+ *        (p < 0.001), 배드민턴 선수도 대조군과 똑같이 느려져 '선수라서 덜 지친다'는 건 없었습니다.
+ *        → 머리가 지친 날은 판단이 필요한 기술(리시브·코스 선택)이 먼저 흔들립니다.
+ * [DING24] Ding C., Soh K.G., Sun H., Roslan S., Cao S., Zhao Y., <Does mental fatigue affect performance in
+ *        racket sports? A systematic review>, BMC Sports Sci Med Rehabil 16:179, 2024
+ *        (DOI: 10.1186/s13102-024-00963-w) — 라켓 종목(배드민턴·테니스·탁구·파델) 문헌고찰.
+ *        지각-인지 수행(반응시간·정확도)은 정신적 피로에서 떨어졌고, 신체 수행(점프 높이 등)은
+ *        연구마다 달랐습니다 → 몸은 멀쩡해도 반응·타이밍이 먼저 무너지는 근거로 씁니다.
  * ============================================================ */
 (function (root) {
   'use strict';
@@ -966,6 +996,199 @@
       source: CALF_SRC,
       sourceShort: CALF_SRC_SHORT,
       stats: CALF_STATS
+    };
+  }
+
+  /* ---------- 수분 · 체온 (연속 경기에서 땀으로 빠지는 만큼) (bm-v1.101.0) ----------
+   * [PANG25] 30분 단식 두 경기를 연속으로 치면 경기 시간의 46%·31%를 심부 체온 38.5℃ 이상에서 보냈고,
+   *   경기 중 물(484·465mL)이 땀(566·497mL)을 거의 채워 탈수를 체중 1% 아래로 지킨 날은 스트로크 수가
+   *   오히려 늘었습니다. → 땀으로 빠지는 만큼 쉬는 시간에 나눠 마시는 게 후반 수행력의 기본입니다.
+   * [ABIAN14] 실제 대회에서 발한량은 시간당 1L 안팎(1.04 / 0.98 L/h)이었고, 재수분으로 탈수를 1% 미만으로
+   *   지켜도 연속 라운드에서 점프 높이는 2~3cm 줄었습니다. → 물을 채워도 후반 점프 개수는 미리 줄입니다.
+   * 조건: 운동 90분 이상 · 강도 8 이상 · 2경기 이상(시합·땀·더위 메모) 중 하나.
+   * 화면에는 '시간당 1L 안팎'·'체중 1% 아래'·'한두 모금' 같은 쉬운 말만 쓰고 수치는 stats에 둡니다. */
+  var HYDRATION = {
+    longMinutes: 90,              /* 90분 이상이면 수분 카드 */
+    hardIntensity: 8,             /* 강도 10점 중 8 이상 */
+    manyGames: 2,                 /* 하루 2경기 이상 */
+    longHours: 2,                 /* 2시간 이상이면 전해질 한 줄 */
+    sweatLPerHour: 1.0,           /* [ABIAN14] 1.04 / 0.98 L/h */
+    sweatMlPerMatch: [497, 566],  /* [PANG25] 30분 경기당 땀 손실 */
+    intakeMlPerMatch: [465, 484], /* [PANG25] 같은 경기 중 섭취 */
+    dehydrationPct: 1,            /* [ABIAN14] 탈수 1% 미만 유지 */
+    coreHighC: 38.5,              /* [PANG25] 심부 체온 38.5℃ 이상 구간 */
+    coreHighPct: [31, 46],        /* [PANG25] 2경기 / 1경기 비율 */
+    jumpDropCm: 2.7,              /* [ABIAN14] 37.51 → 34.82cm */
+    /* 메모에 이런 말이 있으면 '시합·더위'로 봅니다 */
+    words: ['시합', '대회', '연속 경기', '2경기', '두 경기', '연속으로', '땀', '더위', '무더위', '폭염', '체전']
+  };
+  var HYDRATION_STATS = {
+    longMinutes: HYDRATION.longMinutes, hardIntensity: HYDRATION.hardIntensity,
+    manyGames: HYDRATION.manyGames, longHours: HYDRATION.longHours,
+    sweatLPerHour: HYDRATION.sweatLPerHour, sweatMlPerMatch: HYDRATION.sweatMlPerMatch.slice(),
+    intakeMlPerMatch: HYDRATION.intakeMlPerMatch.slice(), dehydrationPct: HYDRATION.dehydrationPct,
+    coreHighC: HYDRATION.coreHighC, coreHighPct: HYDRATION.coreHighPct.slice(), jumpDropCm: HYDRATION.jumpDropCm
+  };
+  var HYDRATION_SRC = 'Pang et al., Int J Sports Physiol Perform 20(12):1647-1653, 2025 (DOI 10.1123/ijspp.2024-0428) · ' +
+    'Abián-Vicén et al., PLoS ONE 7(5):e37821, 2012 (DOI 10.1371/journal.pone.0037821) · ' +
+    'Abián-Vicén et al., Int J Sports Physiol Perform 9(4):689-694, 2014 (DOI 10.1123/ijspp.2013-0269)';
+  var HYDRATION_SRC_SHORT = '참고 논문 · Pang 2025 IJSPP (땀 566mL·탈수 1%↓) · Abián-Vicén 2014 IJSPP (1.04L/h · 후반 점프↓)';
+
+  /* hydrationGuide(ctx)
+   *   ctx: { minutes, intensity, games, note }
+   *   → { on, level:'match'|'hard'|'long', title, label, reason, brief, tips, electrolyte, rehabLine, source, sourceShort, stats }
+   * 무작위 없음 — 같은 입력이면 항상 같은 결과(순수 함수). */
+  function hydrationGuide(ctx) {
+    ctx = ctx || {};
+    var minutes = ctx.minutes == null ? null : Number(ctx.minutes);
+    var intensity = ctx.intensity == null ? null : Number(ctx.intensity);
+    var games = Number(ctx.games || 0);
+    var note = String(ctx.note || '');
+    var longDay = minutes != null && minutes >= HYDRATION.longMinutes;
+    var hardDay = intensity != null && intensity >= HYDRATION.hardIntensity;
+    var manyGames = games >= HYDRATION.manyGames;
+    var word = '';
+    for (var i = 0; i < HYDRATION.words.length; i++) {
+      if (HYDRATION.words[i] && note.indexOf(HYDRATION.words[i]) >= 0) { word = HYDRATION.words[i]; break; }
+    }
+    var matchDay = manyGames || !!word;
+    var on = longDay || hardDay || matchDay;
+    var level = matchDay ? 'match' : (hardDay ? 'hard' : (longDay ? 'long' : ''));
+    var long2h = minutes != null && minutes >= HYDRATION.longHours * 60;
+
+    var why = [];
+    if (longDay) why.push(minutes + '분');
+    if (manyGames) why.push(games + '경기');
+    if (hardDay) why.push('강도 ' + intensity);
+    if (!manyGames && word) why.push(word + ' 메모');
+
+    var reason = '';
+    if (on) {
+      reason = '오늘 ' + (why.length ? why.join(' · ') + ' — ' : '') +
+        '땀이 많이 빠지는 날이에요. 배드민턴은 시간당 1L 안팎으로 땀이 빠져서, 11점 60초·세트 사이 120초 쉬는 시간마다 ' +
+        '한두 모금씩 나눠 마시면 탈수를 체중 1% 아래로 막을 수 있어요. 그게 후반 점프를 지키는 기본이에요.';
+    }
+
+    var tips = on ? [
+      '쉬는 시간마다 한두 모금 — 30분 경기에 물 500mL 안팎이면 땀으로 빠진 만큼을 거의 채울 수 있었어요. 한 번에 벌컥 마시면 배가 부대껴 풋워크가 무거워집니다.',
+      '운동 전후 체중을 재 보세요 — 줄어든 1kg이면 물 1L를 더 마시면 됩니다. 내 땀 양은 사람마다 달라서 이 방법이 제일 정확해요.',
+      '체육관이 더우면 경기 절반 가까이 체온이 38.5℃ 위로 올라가요 — 쉬는 시간에 목·손목을 젖은 수건이나 물로 식히면 후반이 한결 가벼워집니다.',
+      '연속 라운드를 치면 물을 채워도 점프 높이가 2~3cm쯤 떨어져요 — 후반엔 점프 스매시 개수를 미리 줄이세요.'
+    ] : [];
+
+    var electrolyte = long2h
+      ? '2시간 넘게 치는 날은 물만으로 부족해요 — 소금기 있는 스포츠음료나 소금 한 꼬집을 함께 드세요.'
+      : '';
+
+    return {
+      on: on,
+      level: level,
+      title: '수분 · 체온 관리',
+      label: '시간당 1L',
+      minutes: minutes == null ? '' : minutes,
+      games: games,
+      longDay: longDay,
+      hardDay: hardDay,
+      matchDay: matchDay,
+      long2h: long2h,
+      word: word,
+      reason: reason,
+      /* 진단 목록에 들어가는 한 줄 */
+      brief: on
+        ? '시간당 1L 안팎으로 땀이 빠지는 날이에요. 11점·세트 사이 쉬는 시간에 한두 모금씩 나눠 마셔 탈수를 체중 1% 아래로 막으세요.'
+        : '',
+      tips: tips,
+      electrolyte: electrolyte,
+      /* 회복(맞춤처방)에 한 줄로 들어가는 문장 */
+      rehabLine: '쉬는 시간마다 물 한두 모금 — 11점 60초·세트 사이 120초에 나눠 마시고, 90분이면 1L 안팎을 채우세요.',
+      source: HYDRATION_SRC,
+      sourceShort: HYDRATION_SRC_SHORT,
+      stats: HYDRATION_STATS
+    };
+  }
+
+  /* ---------- 정신적 피로 (머리가 지친 날의 반응·판단) (bm-v1.101.0) ----------
+   * [CUTSEM19] 정신적으로 지친 상태에서 시각-운동 반응이 약 7% 느려졌고(p < 0.001), 배드민턴 선수도
+   *   대조군과 똑같이 느려졌습니다 → 몸이 아니라 머리가 지친 날은 판단이 필요한 기술이 먼저 흔들립니다.
+   * [DING24] 라켓 종목 고찰에서도 지각-인지 수행(반응시간·정확도)이 먼저 떨어졌습니다.
+   * 조건: 컨디션 2 이하 · 메모에 수면 부족/피곤/집중/타이밍/반응 같은 말 · 강도 8 이상인데 승률이나
+   *   컨디션이 떨어진 날 중 하나. 화면에는 '약 7% 느려진다'만 쓰고 p 값은 stats에 둡니다. */
+  var MENTAL = {
+    lowCond: 2,                   /* 컨디션 2 이하 */
+    lateCond: 4,                  /* 강도는 높은데 컨디션이 4 이하 */
+    hardIntensity: 8,             /* 강도 8 이상 */
+    lowRate: 50,                  /* 최근 승률 50% 미만 */
+    respPct: 7,                   /* [CUTSEM19] 반응 약 7% 느려짐 */
+    respP: 0.001,                 /* [CUTSEM19] p < 0.001 */
+    /* 메모에서 '머리가 지친' 신호로 읽는 말 */
+    words: ['수면', '잠이 부족', '잠을 못', '잠 부족', '잠이 짧', '피곤', '피로', '지쳤', '지침', '집중', '멍하', '타이밍', '반응', '머리가 무거', '생각이 많', '스트레스'],
+    steps: [
+      { name: '경기·훈련 30~60분 전 스마트폰 줄이기', how: '짧은 영상·메시지를 넘기는 것만으로 머리가 먼저 지칩니다. 코트 가기 전 30분은 화면을 내려놓고 몸만 풀어 두세요.' },
+      { name: '세트 전 60초 눈·호흡 리셋', how: '눈을 감고 숨을 길게 내쉬면서 다음 2~3점에 쓸 코스 하나만 정합니다. 미리 정해 두면 반응이 느려져도 늦지 않아요.' },
+      { name: '화려한 변칙보다 직선·가운데 기본 코스', how: '머리가 지친 날은 각도 노리기보다 가운데로 길게, 직선으로 먼저 밀어 두는 게 실수가 적습니다. 서브·리시브도 단순하게 가져가세요.' }
+    ]
+  };
+  var MENTAL_STATS = {
+    lowCond: MENTAL.lowCond, lateCond: MENTAL.lateCond, hardIntensity: MENTAL.hardIntensity,
+    lowRate: MENTAL.lowRate, respPct: MENTAL.respPct, respP: MENTAL.respP
+  };
+  var MENTAL_SRC = 'Van Cutsem et al., Psychol Sport Exerc 45:101579, 2019 (DOI 10.1016/j.psychsport.2019.101579) · ' +
+    'Ding et al., BMC Sports Sci Med Rehabil 16:179, 2024 (DOI 10.1186/s13102-024-00963-w)';
+  var MENTAL_SRC_SHORT = '참고 논문 · Van Cutsem 2019 Psychol Sport Exerc (반응 약 7%↓) · Ding 2024 BMC SSMR';
+
+  /* mentalFatigue(ctx)
+   *   ctx: { cond, intensity, rate, note, weak }
+   *   → { on, level:'cond'|'mind'|'hard', title, label, reason, brief, steps, mentalLine, source, sourceShort, stats }
+   * 무작위 없음 — 같은 입력이면 항상 같은 결과(순수 함수). */
+  function mentalFatigue(ctx) {
+    ctx = ctx || {};
+    var cond = ctx.cond == null ? null : Number(ctx.cond);
+    var intensity = ctx.intensity == null ? null : Number(ctx.intensity);
+    var rate = ctx.rate == null ? null : Number(ctx.rate);
+    var text = String(ctx.note || '') + ' ' + (ctx.weak || []).join(' ');
+    var word = '';
+    for (var i = 0; i < MENTAL.words.length; i++) {
+      if (MENTAL.words[i] && text.indexOf(MENTAL.words[i]) >= 0) { word = MENTAL.words[i]; break; }
+    }
+    var low = cond != null && cond <= MENTAL.lowCond;
+    var hardDrop = intensity != null && intensity >= MENTAL.hardIntensity &&
+      ((rate != null && rate < MENTAL.lowRate) || (cond != null && cond <= MENTAL.lateCond));
+    var on = low || !!word || hardDrop;
+    var level = low ? 'cond' : (word ? 'mind' : (hardDrop ? 'hard' : ''));
+
+    var reason = '';
+    if (low) {
+      reason = '오늘 컨디션이 ' + cond + '까지 떨어졌어요. 이럴 땐 몸보다 머리가 먼저 지친 경우가 많아요. ' +
+        '머리가 지치면 반응이 약 7% 느려지고, 같은 강도도 실제보다 더 힘들게 느껴져요.';
+    } else if (word) {
+      reason = '메모에 ' + word + ' 얘기가 있었어요. 몸이 멀쩡해도 머리가 지친 상태(정신적 피로)면 ' +
+        '반응이 약 7% 느려지고 같은 강도도 실제보다 더 힘들게 느껴져요.';
+    } else if (hardDrop) {
+      reason = '오늘 강도 ' + intensity + '로 세게 쳤는데 ' +
+        (rate != null ? '최근 승률 ' + rate + '%' : '컨디션 ' + cond) + '로 결과가 따라오지 않았어요. ' +
+        '몸보다 머리가 먼저 지친 날은 반응이 약 7% 느려지고 같은 강도도 더 힘들게 느껴져요.';
+    }
+
+    return {
+      on: on,
+      level: level,
+      title: '정신 피로 · 머리부터 지친 날',
+      label: '반응 7%',
+      cond: cond == null ? '' : cond,
+      intensity: intensity == null ? '' : intensity,
+      rate: rate == null ? '' : rate,
+      word: word,
+      reason: reason,
+      /* 진단 목록에 들어가는 한 줄 */
+      brief: on
+        ? '몸보다 머리가 지친 날이에요. 반응이 약 7% 느려지고 같은 강도도 더 힘들게 느껴지니, 코트 30분 전 화면을 끄고 코스를 단순하게 가져가세요.'
+        : '',
+      steps: on ? MENTAL.steps.map(function (s) { return { name: s.name, how: s.how }; }) : [],
+      /* 마음(맞춤처방)에 한 줄로 들어가는 문장 */
+      mentalLine: '머리가 지친 날은 반응이 약 7% 느려져요 — 코트 30분 전 화면 끄고, 세트 전 60초 눈·호흡, 코스는 직선·가운데로 단순하게.',
+      source: MENTAL_SRC,
+      sourceShort: MENTAL_SRC_SHORT,
+      stats: MENTAL_STATS
     };
   }
 
@@ -2714,6 +2937,17 @@
       intensity: intensity, load: load, recentHard: recentHard, pain: painToday
     });
 
+    /* 수분·체온 · 정신 피로 (bm-v1.101.0)
+     *   땀으로 빠지는 만큼(시간당 1L 안팎)과 머리부터 지친 날(반응 약 7% 느려짐)을 따로 봅니다.
+     *   둘 다 '오늘 상태' 카드라서 분석 결과에 함께 담고, 화면은 한 접기('오늘 컨디션 케어')에 보여 줍니다. */
+    var noteText = String(draft.note || '');
+    var hydration = hydrationGuide({
+      minutes: minutes, intensity: intensity, games: gsum.count, note: noteText
+    });
+    var mental = mentalFatigue({
+      cond: cond, intensity: intensity, rate: ws.rate, note: noteText, weak: todayWeak
+    });
+
     /* ---------- 점수 ---------- */
     var scoreIdx = 60;
     if (cond != null) scoreIdx += cond >= 7 ? 10 : cond <= 4 ? -12 : 3;
@@ -2789,6 +3023,13 @@
           : minutes > 120 ? '긴 훈련이었어요. 내일은 회복일에 가깝게 가져가세요.'
             : '적당한 볼륨이에요.'
       });
+    }
+    /* 오늘 몸·머리에서 먼저 챙길 두 가지 — 수분과 정신 피로 (bm-v1.101.0) */
+    if (hydration.on) {
+      insights.push({ icon: 'clock', label: '수분 보충', detail: hydration.brief });
+    }
+    if (mental.on) {
+      insights.push({ icon: 'gauge', label: '머리 피로', detail: mental.brief });
     }
     if (repeatedPain.length) {
       insights.push({
@@ -2903,6 +3144,8 @@
       if (cool.advice) care.rehab = U.uniq(care.rehab.concat([cool.advice])).slice(0, 6);
     }
     care.stop = painToday.length ? PAIN_RULE.stop : '';
+    /* 수분 카드가 켜진 날은 '회복' 처방에도 한 줄 — 코트에서 바로 쓸 수 있게 (bm-v1.101.0) */
+    if (hydration.on) care.rehab = U.uniq(care.rehab.concat([hydration.rehabLine])).slice(0, 6);
 
     /* 워밍업: 훈련일에는 기본 6단계 중 앞 4개, 통증이 있으면 강도 낮춘 3개 */
     care.warmup = (painToday.length ? WARMUP.slice(0, 4) : WARMUP.slice(0, 5));
@@ -2918,6 +3161,12 @@
         '다음 훈련 목표를 한 가지만 정해 보세요.',
         '경기 후엔 잘한 점 2가지를 먼저 적어 보세요.'
       ];
+    }
+    /* 머리가 지친 날은 '마음' 처방에 한 줄 — 강도 조절 규칙이 있으면 그 바로 뒤 (bm-v1.101.0) */
+    if (mental.on) {
+      care.mental = U.uniq(pace.level === 'brake'
+        ? care.mental.slice(0, 1).concat([mental.mentalLine], care.mental.slice(1))
+        : [mental.mentalLine].concat(care.mental)).slice(0, 3);
     }
     care.mental = U.uniq(care.mental).slice(0, 3);
 
@@ -2991,6 +3240,8 @@
       guard: guard,
       cool: cool,
       jump: jump,
+      hydration: hydration,
+      mental: mental,
       balance: balance,
       rhythm: rhythm,
       loadGuide: loadGuide,
@@ -3036,6 +3287,8 @@
     coolDown: coolDown, CALF: CALF, CALF_STATS: CALF_STATS,
     jointGuard: jointGuard, guardChain: guardChain, CHAIN: CHAIN,
     fatigueJump: fatigueJump, FATIGUE_JUMP: FATIGUE_JUMP, jumpSafeDrills: jumpSafeDrills,
+    hydrationGuide: hydrationGuide, HYDRATION: HYDRATION, HYDRATION_STATS: HYDRATION_STATS,
+    mentalFatigue: mentalFatigue, MENTAL: MENTAL, MENTAL_STATS: MENTAL_STATS,
     SHOULDER_RISK: SHOULDER_RISK, LOWER_RISK: LOWER_RISK,
     proBalance: proBalance, loadRhythm: loadRhythm, PRO_BAL: PRO_BAL, RHYTHM: RHYTHM,
     offcourtRoutine: offcourtRoutine, OFFCOURT: OFFCOURT,

@@ -386,17 +386,17 @@
     });
 
     test('v1.96 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
-      includes(readRoot('sw.js'), "var VERSION = 'bm-v1.100.0'", 'sw 버전');
-      includes(readRoot('app.js'), "version: 'v1.100.0'", 'app 버전');
-      includes(readRoot('js/push.js'), "version: 'v1.100.0'", 'push 버전');
+      includes(readRoot('sw.js'), "var VERSION = 'bm-v1.101.0'", 'sw 버전');
+      includes(readRoot('app.js'), "version: 'v1.101.0'", 'app 버전');
+      includes(readRoot('js/push.js'), "version: 'v1.101.0'", 'push 버전');
       includes(readRoot('index.html'), 'styles.css?v=20261128-6', '스타일 캐시 키');
       var twa = readJson('twa-manifest.json');
-      eq(twa.appVersionName, '1.100.0', 'TWA 이름');
-      eq(twa.appVersion, '1.100.0', 'TWA appVersion');
-      eq(twa.appVersionCode, 94, 'TWA 코드');
-      includes(readRoot('README.md'), 'bm-v1.100.0', 'README 변경 이력');
+      eq(twa.appVersionName, '1.101.0', 'TWA 이름');
+      eq(twa.appVersion, '1.101.0', 'TWA appVersion');
+      eq(twa.appVersionCode, 95, 'TWA 코드');
+      includes(readRoot('README.md'), 'bm-v1.101.0', 'README 변경 이력');
       includes(readRoot('test/run.js'), 'test/v196.test.js', '테스트 목록');
-      includes(readRoot('sw.js'), 'bm-v1.100.0', 'sw 캐시 설명');
+      includes(readRoot('sw.js'), 'bm-v1.101.0', 'sw 캐시 설명');
     });
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

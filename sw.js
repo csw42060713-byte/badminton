@@ -535,7 +535,7 @@
  *             보유한 것만 맞추고 남은 것을 알려 줍니다(setApplyPlan · setMine · applySet).
  *             styles.css 가 바뀌어 styles.css?v=20261128-3 캐시 키와 함께 bm-v1.97.0 입니다.
  * ============================================================ */
-var VERSION = 'bm-v1.100.0';
+var VERSION = 'bm-v1.101.0';
 var SHELL = [
   './',
   './index.html',
