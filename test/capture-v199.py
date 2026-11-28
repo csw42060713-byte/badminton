@@ -52,6 +52,38 @@ if not LIVE:
     httpd = socketserver.TCPServer(('127.0.0.1', PORT), Handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
 
+LIVE_BASE = 'https://csw42060713-byte.github.io/badminton/'
+
+if LIVE:
+    import time as _time
+    import urllib.request
+
+    def _get(u):
+        req = urllib.request.Request(u, headers={'Cache-Control': 'no-cache'})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return r.read().decode('utf-8', 'replace')
+
+    _st = '?v=%d' % int(_time.time())
+    _sw = _get(LIVE_BASE + 'sw.js' + _st)
+    _index = _get(LIVE_BASE + 'index.html' + _st)
+    _app = _get(LIVE_BASE + 'app.js' + _st)
+    _twa = _get(LIVE_BASE + 'twa-manifest.json' + _st)
+    _dom = _get(LIVE_BASE + 'js/domain.js' + _st)
+    _cm = _get(LIVE_BASE + 'js/views/community.js' + _st)
+    _sql = _get(LIVE_BASE + 'supabase/heart-rpc-v1.99-review-like.sql' + _st)
+    check('배포본 sw.js bm-v1.99.0', "var VERSION = 'bm-v1.99.0'" in _sw)
+    check('배포본 app.js v1.99.0', "version: 'v1.99.0'" in _app)
+    check('배포본 styles.css?v=20261128-5', 'styles.css?v=20261128-5' in _index)
+    check('배포본 TWA 1.99.0 · 93', '"appVersionName": "1.99.0"' in _twa and '"appVersionCode": 93' in _twa)
+    check('배포본 domain.js 후기하트', "'후기하트'" in _dom and 'reviewLikeCredits' in _dom)
+    check('배포본 community.js 후기 안내', 'gymreview__hb' in _cm)
+    check('배포본 SQL 검증 함수', 'bm_review_like_ok' in _sql and 'trg_bm_review_like_guard' in _sql)
+    try:
+        _get(LIVE_BASE + 'test/v199.test.js' + _st)
+        check('배포본에 테스트 파일 없음', False, 'test/ 가 공개되어 있습니다')
+    except Exception:
+        check('배포본에 테스트 파일 없음', True)
+
 SEED = r"""() => {
   const D = BM.domain, U = BM.util;
   const me = 'demo_me';
@@ -106,7 +138,7 @@ with sync_playwright() as p:
 
     def grab(name):
         r = cdp.send('Page.captureScreenshot', {'format': 'png', 'captureBeyondViewport': False})
-        path = os.path.join(OUT, name + '.png')
+        path = os.path.join(OUT, (name.replace('v199_', 'v199_live_') if LIVE else name) + '.png')
         open(path, 'wb').write(base64.b64decode(r['data']))
         print('saved', os.path.basename(path), flush=True)
         return path
@@ -222,6 +254,7 @@ failed = [c for c in checks if not c['ok']]
 print('\n%d/%d 통과' % (len(checks) - len(failed), len(checks)), flush=True)
 json.dump({'checks': checks, 'errors': errors, 'page_errors': page_errors, 'csp': csp,
            'passed': len(checks) - len(failed), 'total': len(checks)},
-          open(os.path.join(OUT, 'v199_report.json'), 'w'), ensure_ascii=False, indent=1)
+          open(os.path.join(OUT, 'v199_report_live.json' if LIVE else 'v199_report.json'), 'w'),
+          ensure_ascii=False, indent=1)
 if failed:
     raise SystemExit(1)
