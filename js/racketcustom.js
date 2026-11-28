@@ -4165,11 +4165,25 @@
      *  · 3D 와 같은 시각(motionEvents)에 같은 느낌: 이중 충격파 링 · 글로우 · 방사형 스파크
      *  · 실·끈처럼 보이는 선이 아니라 '굵기 있는 고리'와 '둥근 점'만 씁니다.
      * ============================================================ */
+    /* 두 원 사이를 채운 '고리 밴드' — lineWidth 대신 면으로 그려 어떤 화면에서도 굵게 보입니다 */
+    function ringBand(g, cx, cy, rIn, rOut) {
+      var r1 = Math.max(0.5, Math.min(rIn, rOut)), r2 = Math.max(r1 + 0.5, Math.max(rIn, rOut));
+      g.beginPath();
+      g.arc(cx, cy, r2, 0, TAU);
+      g.arc(cx, cy, r1, 0, TAU, true);
+      g.fill();
+    }
+
     function drawMotionImpact(g, vv, gm, mo, w, h, mEl) {
       var ev = motionEvents(motionKind);
       if (!ev.length) return;
       var head = project3({ x: 0, y: 0, z: 0 }, vv);
       var dyK = Math.min(1, w / 390);
+      /* 링 크기는 화면이 아니라 '지금 그려진 라켓 헤드'에 맞춥니다 —
+       * 같은 투영식으로 헤드 가장자리를 재서 쓰므로 캔버스·시점이 달라도 화면을 덮지 않습니다. */
+      var edgeX = project3({ x: gm.rx, y: 0, z: 0 }, vv);
+      var edgeY = project3({ x: 0, y: gm.ry, z: 0 }, vv);
+      var hr = Math.max(12, Math.abs(edgeX.x - head.x), Math.abs(edgeY.y - head.y));
       var cx = head.x, cy = head.y + (mo.dy || 0) * dyK;
       var it = itemOf('effect', customOf(ctx.store.state.me).effect) || {};
       var tint = it.color || '#c6f24e';
@@ -4179,24 +4193,26 @@
         if (age < 0 || age > 320) continue;
         var t = age / 320, a = 1 - t, pw = ev[i].power || 0.6;
         var land = ev[i].kind === 'land';
-        var r0 = (land ? 26 : 32) + (land ? 250 : 150) * easeOut3(t) * (0.7 + 0.3 * pw);
+        var r0 = hr * (land ? 1.05 : 0.9) + hr * (land ? 2.1 : 1.35) * easeOut3(t) * (0.7 + 0.3 * pw);
         g.save();
         /* ① 바깥 링 — 테마 색, 굵게 시작해 얇아지며 퍼짐 */
         g.globalCompositeOperation = 'lighter';
-        g.strokeStyle = tint;
-        g.globalAlpha = Math.max(0, 0.55 * a * pw);
-        g.lineWidth = Math.max(1.2, (land ? 8 : 5) * (1 - t * 0.6) * dyK);
-        g.beginPath(); g.arc(cx, cy, r0, 0, TAU); g.stroke();
-        /* ② 안쪽 링 — 밝은 코어가 반 박자 늦게 따라 퍼집니다(이중 충격파) */
-        g.strokeStyle = '#ffffff';
-        g.globalAlpha = Math.max(0, 0.5 * Math.max(0, 1 - t * 1.4) * pw);
-        g.lineWidth = Math.max(1, 3 * (1 - t) * dyK);
-        g.beginPath(); g.arc(cx, cy, r0 * 0.78, 0, TAU); g.stroke();
+        /* ① 바깥으로 번지는 빛의 띠 — 굵기가 반지름에 비례하는 '링 밴드'(선이 아니라 면) */
+        g.fillStyle = tint;
+        g.globalAlpha = Math.max(0, 0.30 * a * pw);
+        ringBand(g, cx, cy, r0 * 0.94, r0 * 1.30);
+        /* ② 링의 중심 — 테마 색이 진하게 */
+        g.globalAlpha = Math.max(0, 0.70 * a * pw);
+        ringBand(g, cx, cy, r0 * 0.96, r0 * 1.14);
+        /* ③ 안쪽 코어 — 하얀 띠가 반 박자 늦게 따라 퍼집니다(이중 충격파) */
+        g.fillStyle = '#ffffff';
+        g.globalAlpha = Math.max(0, 0.75 * Math.max(0, 1 - t * 1.3) * pw);
+        ringBand(g, cx, cy, r0 * 1.00, r0 * 1.07);
         /* ③ 글로우 — 착지 순간 카메라 앞이 짧게 밝아집니다 */
         if (land && t < 0.5) {
-          var gr = (74 + 150 * pw) * dyK;
+          var gr = hr * (1.0 + 0.7 * pw);
           var rg = g.createRadialGradient(cx, cy, 0, cx, cy, gr);
-          var ga = 0.5 * (1 - t / 0.5) * pw;
+          var ga = 0.34 * (1 - t / 0.5) * pw;
           rg.addColorStop(0, 'rgba(255,252,240,' + ga.toFixed(3) + ')');
           rg.addColorStop(0.45, 'rgba(255,250,225,' + (ga * 0.35).toFixed(3) + ')');
           rg.addColorStop(1, 'rgba(255,250,225,0)');
@@ -4209,7 +4225,7 @@
         for (k = 0; k < n; k++) {
           var ang = (k / n) * TAU + i * 0.9;
           var d = r0 * (0.92 + 0.22 * Math.sin(k * 2.3 + i));
-          var sz = Math.max(0.8, (land ? 3.6 : 2.6) * a * dyK);
+          var sz = Math.max(0.9, hr * (land ? 0.075 : 0.055) * a);
           g.globalAlpha = Math.max(0, 0.85 * a * pw);
           g.fillStyle = k % 3 ? '#ffffff' : tint;
           g.beginPath(); g.arc(cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, sz, 0, TAU); g.fill();
