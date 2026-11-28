@@ -4233,7 +4233,6 @@
         '<span class="rkpart__p' + (!open ? ' is-cost' : '') + (hearts ? ' is-heartp' : '') + '">' + U.esc(price) + '</span>' +
         '<u class="rkrar">' + U.esc(rar.name) + '</u>' +
         (short ? '<span class="rkpart__ad" aria-hidden="true">⚡ 광고로 열기</span>' : '') +
-        (!open ? '<span class="rkpart__lock" aria-hidden="true">❤</span>' : '') +
         '</button>';
     }).join('');
     return '<div class="rkgroup' + (slot === activeSlot ? ' is-active' : '') + '" data-rk-group="' + slot + '"' +
@@ -4449,7 +4448,7 @@
           ' data-rk-mode="paint" aria-pressed="' + (stageMode === 'paint' ? 'true' : 'false') + '">🎨 꾸미기</button>' +
       '</div>' +
       '<button type="button" class="rkstage__go' + (big ? ' is-big' : '') + '" data-rk-smash="1"' +
-        ' aria-label="' + U.esc(smashLabel(c.effect) + ' 연출 쳐보기') + '">⚡ 스매시</button>' +
+        ' aria-label="' + U.esc(smashLabel(c.effect) + ' 연출 쳐보기') + '">⚡ 스매시 쳐보기</button>' +
       '<button type="button" class="rkstage__go rkstage__go--slam" data-rk-slam="1"' +
         ' aria-label="바닥 강타 연출 · 라켓이 코트를 내려찍고 부서져요">💥 바닥 강타</button>' +
       '</div>' +

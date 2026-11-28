@@ -317,10 +317,30 @@
   }
 
   /* ---------- 화면(HTML) ---------- */
-  function deltaHtml(n, unit) {
-    if (n == null) return '<i class="rpt__d is-first">첫 기간</i>';
+  /* 비교 배지 — 값이 없을 때 왜 비교가 안 되는지까지 적습니다 (bm-v1.100.0)
+   *  · 지난 기간엔 경기가 있는데 이번 기간 경기가 0건이면 '첫 기간'이 아니라 '이번 주 경기 없음'
+   *  · 반대로 이번엔 있는데 지난 기간이 없으면 '지난주 경기 없음'
+   *  · 두 기간 모두 경기가 없을 때만 예전처럼 '첫 기간' */
+  function deltaHtml(n, unit, noneText) {
+    if (n == null) {
+      if (noneText) return '<i class="rpt__d is-flat">' + U.esc(noneText) + '</i>';
+      return '<i class="rpt__d is-first">첫 기간</i>';
+    }
     if (!n) return '<i class="rpt__d is-flat">변화 없음</i>';
     return '<i class="rpt__d ' + (n > 0 ? 'up' : 'down') + '">' + (n > 0 ? '+' : '') + n + U.esc(unit) + '</i>';
+  }
+
+  /* 승률·접전 승률 변화 배지 — 비교할 쪽이 비었으면 그 기간 이름으로 알려 줌 */
+  function rateDeltaHtml(curRate, prevRate, r, unit, kind) {
+    var curNone = (kind === 'close' && r.current.games) ? '접전 없음' : '경기 없음';
+    var prevNone = (kind === 'close' && r.prev.games) ? '접전 없음' : '경기 없음';
+    if (curRate == null) {
+      return deltaHtml(null, unit, r.prev.sessions ? r.periodLabel + ' ' + curNone : '');
+    }
+    if (prevRate == null) {
+      return deltaHtml(null, unit, r.prev.sessions ? r.prevPeriodLabel + ' ' + prevNone : '');
+    }
+    return deltaHtml(curRate - prevRate, unit);
   }
 
   function statCell(value, label, delta) {
@@ -343,8 +363,8 @@
       '<div class="rpt__stats">' +
       statCell(c.sessions + '회', '훈련', deltaHtml(r.volumeDiff, '회')) +
       statCell(c.minutes + '분', '운동 시간', deltaHtml(r.minutesDiff, '분')) +
-      statCell(c.rate == null ? '—' : c.rate + '%', '전체 승률', deltaHtml(r.rateDiff, '%p')) +
-      statCell(c.close.rate == null ? '—' : c.close.rate + '%', '접전 승률', deltaHtml(r.closeDiff, '%p')) +
+      statCell(c.rate == null ? '—' : c.rate + '%', '전체 승률', rateDeltaHtml(c.rate, r.prev.rate, r, '%p', 'rate')) +
+      statCell(c.close.rate == null ? '—' : c.close.rate + '%', '접전 승률', rateDeltaHtml(c.close.rate, r.prev.close.rate, r, '%p', 'close')) +
       '</div>' +
       '<p class="rpt__note">' + U.esc(gamesNote(c)) + '</p>' +
       '</section>';
