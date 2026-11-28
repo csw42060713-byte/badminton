@@ -126,6 +126,17 @@
     return '';
   }
 
+  /* 내 체육관 후기 좋아요 한 줄 (bm-v1.99.0)
+   *  · 다른 사람이 내 후기에 ❤ 를 누를 때만 하트 +1, 하루 3개까지.
+   *  · hearts.reviewLike 가 없으면(예전 상태 객체) 0/3 으로 보여 줍니다. */
+  function reviewLikeLine(hearts) {
+    var r = hearts.reviewLike || { today: 0, perDay: 3 };
+    var per = r.perDay || 3;
+    var today = r.today || 0;
+    if (today >= per) return '내 후기 ❤️ 좋아요로 받은 하트가 오늘 ' + per + '개로 다 찼어요 · 내일 또 받아요';
+    return '내 체육관 후기 ❤️ 좋아요 = 하트 +1 · 오늘 ' + today + '/' + per;
+  }
+
   /* 하트 부스트 줄 (bm-v1.64.0)
    *  · 잠김: '한 번 열면 출석·광고 적립이 계속 +1' + '하트 3개로 열기' — 누르면 하트 시트로.
    *  · 켜짐: '적용 중(+1)' · 끄기 버튼. 상태는 프로필 꾸미기 JSON의 boost 값입니다.
@@ -250,6 +261,9 @@
       (dailyBoostLine(hearts)
         ? '<p class="hint dailyline" data-daily-boost>' + U.esc(dailyBoostLine(hearts)) + '</p>'
         : '') +
+      /* bm-v1.99.0 — 후기 좋아요 보상 안내 (오늘 N/3) */
+      '<p class="hint reviewline" data-review-line>' + UI.icon('heart') + '<span>' +
+      U.esc(reviewLikeLine(hearts)) + '</span></p>' +
       boostLine(hearts) +
 
       (recent.length ? '<ul class="ledger">' + recent.map(ledgerRow).join('') + '</ul>'
