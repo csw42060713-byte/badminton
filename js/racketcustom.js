@@ -4240,9 +4240,9 @@
       (slot === activeSlot ? '' : ' hidden') + '>' +
       '<div class="rkhead"><b>' + U.esc(def.label) + '</b><span>' + U.esc(def.note) + '</span>' +
       (slot === activeSlot ? '<i class="rkhead__now">지금 고르는 중</i>' : '') + '</div>' +
-      '<div class="rkparts">' + cells + '</div>' +
-      /* bm-v1.98.0 — 그립 탭에만 붙는 선택 옵션: 이니셜 각인 */
-      (slot === 'grip' ? inkHtml(c) : '') + '</div>';
+      /* bm-v1.98.0 — 그립 탭에만 붙는 선택 옵션: 이니셜 각인(색 칸 바로 워 — 찾기 쉽게) */
+      (slot === 'grip' ? inkHtml(c) : '') +
+      '<div class="rkparts">' + cells + '</div></div>';
   }
 
   /* ---------- ✍️ 그립 이니셜 각인 입력줄 (bm-v1.98.0) ----------
