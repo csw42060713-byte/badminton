@@ -8012,6 +8012,8 @@ body {
 .rk3d.is-pick { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent) inset, 0 0 22px rgba(198,242,78,0.22); }
 .rk3d__cv {
   display: block; width: 100%; height: 352px;
+  /* 전체화면과 같은 이유로 캔버스는 손짓을 가져갑니다. 세로 쓸기는 아래 코드가
+   * 시트를 직접 스크롤해 줍니다(캔버스 위에서도 시트가 위아래로 쓸러집니다). */
   touch-action: none; cursor: grab; background: transparent;
 }
 .rk3d__cv:active { cursor: grabbing; }
@@ -8085,7 +8087,7 @@ body {
     linear-gradient(180deg, #0a1310 0%, #050a08 58%, #020403 100%);
   box-shadow: none;
 }
-.rk3d.is-full .rk3d__cv { flex: 1 1 auto; height: auto; min-height: 0; }
+.rk3d.is-full .rk3d__cv { flex: 1 1 auto; height: auto; min-height: 0; touch-action: none; }
 .rk3d.is-full .rkbody,
 .rk3d.is-full .rk3d__hint,
 .rk3d.is-full .rkstage__modes { display: none; }
@@ -8681,4 +8683,24 @@ button.rkset__chip:active { transform: scale(0.97); }
 .rkset__nearb {
   font-style: normal; font-size: 9.6px; font-weight: 900; padding: 1px 5px; border-radius: 6px;
   color: #10140f; background: color-mix(in srgb, var(--sc, #c6f24e) 78%, #ffffff);
+}
+
+/* bm-v1.97.0 — 조합 도감의 '⚡ 바로 완성하기' (이미 한 번 맞춘 조합 원톡 장착)
+ *  · 터치 목표 32px 이상 · 줄 전체 폭을 쓰지 않고 오른쪽에 붙여 다른 줄과 섭이지 않게 */
+.rkset__apply {
+  grid-column: 1 / -1;
+  margin-top: 5px; min-height: 32px; padding: 0 12px;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  border-radius: 10px; border: 1px solid color-mix(in srgb, var(--sc, #c6f24e) 52%, transparent);
+  background: color-mix(in srgb, var(--sc, #c6f24e) 16%, transparent);
+  color: color-mix(in srgb, var(--sc, #c6f24e) 78%, #ffffff);
+  font: inherit; font-size: 11.2px; font-weight: 900; letter-spacing: -0.2px;
+  cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.rkset__apply:active { transform: scale(0.985); background: color-mix(in srgb, var(--sc, #c6f24e) 26%, transparent); }
+.rkset__on {
+  grid-column: 1 / -1; margin-top: 4px;
+  font-style: normal; font-size: 10.2px; font-weight: 900;
+  color: color-mix(in srgb, var(--sc, #c6f24e) 60%, var(--muted));
+  opacity: 0.9;
 }
