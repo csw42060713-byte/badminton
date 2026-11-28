@@ -534,8 +534,18 @@
  *             전환. 발동 중인 조합은 '이미 적용 중'. 하트를 쓰지 않고, 못 연 파츠가 있으면
  *             보유한 것만 맞추고 남은 것을 알려 줍니다(setApplyPlan · setMine · applySet).
  *             styles.css 가 바뀌어 styles.css?v=20261128-3 캐시 키와 함께 bm-v1.97.0 입니다.
+ *             ---
+ *             bm-v1.102.0 — 라켓 돌리기(모션) 다회전 + 임팩트 (승우 님: "임팩트 좀 더 있게" ·
+ *             "몇 바퀴 돌게" · "빨라보이게" · "실달린거 같아서 별로야").
+ *             ① flip = 공중 3바퀴(1080°) 콤보 · 세 모션 1700/1800/2000ms 로 스냅 가속 → 딱 멈춤.
+ *             ② 회전 피크·마무리에 원형 바람 링·이중 충격파 링·방사형 스파크·글로우·바닥 펄스·
+ *                펀치 줌(js/racket3d.js updateMotionFx · fireMotionHit · updateMotionSparks).
+ *             ③ 회전 잔상 리본(spinMesh·updateSpinTrail) 삭제 — 실 같은 궤적선 없음.
+ *             ④ 회전 휘두름 ×3 + 착지음(js/smashsound.js motion · motionLayers).
+ *             ⑤ 2D 폴백도 같은 시각에 이중 링·글로우·스파크(drawMotionImpact).
+ *             js·css 가 바뀌어 이 VERSION 을 올립니다(styles.css 는 그대로 — v=20261128-6).
  * ============================================================ */
-var VERSION = 'bm-v1.101.0';
+var VERSION = 'bm-v1.102.0';
 var SHELL = [
   './',
   './index.html',

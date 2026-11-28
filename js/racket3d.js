@@ -1927,17 +1927,19 @@
     return out;
   }
 
-  function animateFloorAura(fa, t) {
+  function animateFloorAura(fa, t, pulse) {
     if (!fa) return;
     var i;
-    if (fa.base) fa.base.material.opacity = 0.44 + Math.sin(t * 1.1) * 0.06;
-    if (fa.pool) fa.pool.material.opacity = 0.5 + Math.sin(t * 1.7 + 0.6) * 0.1;
+    /* bm-v1.102.0 — 돌리기 마무리 한 방에 바닥 오라가 순간적으로 확 커집니다 */
+    var pl = pulse == null ? 0 : pulse;
+    if (fa.base) fa.base.material.opacity = 0.44 + Math.sin(t * 1.1) * 0.06 + 0.34 * pl;
+    if (fa.pool) fa.pool.material.opacity = 0.5 + Math.sin(t * 1.7 + 0.6) * 0.1 + 0.3 * pl;
     for (i = 0; i < fa.rings.length; i++) {
       var r = fa.rings[i];
       r.mesh.rotation.z = t * r.sp;
-      var p = 1 + Math.sin(t * 1.35 + i) * 0.028;
+      var p = (1 + Math.sin(t * 1.35 + i) * 0.028) * (1 + 0.42 * pl);
       r.mesh.scale.set(p, p, 1);
-      r.mesh.material.opacity = r.base + Math.sin(t * 2.1 + i * 1.7) * 0.12;
+      r.mesh.material.opacity = r.base + Math.sin(t * 2.1 + i * 1.7) * 0.12 + 0.35 * pl;
     }
     for (i = 0; i < fa.rays.length; i++) {
       var ry = fa.rays[i];
@@ -3460,37 +3462,22 @@
     var estars = null;
 
     /* ============================================================
-     * bm-v1.96.0 — ② 돌릴 때만 휘감기는 회전 잔상 (spin trail)
+     * bm-v1.102.0 — 라켓 돌리기(모션) 연출
      *
-     *  승우 님: "공칠때 돌릴때 다 다른임팩트"
-     *   · 가만히 있을 때(숨쉬는 흔들림 ≈0.2rad/s)는 세기가 0 이라 아무것도 안 그립니다.
-     *   · 손가락으로 돌리거나 트위스트·쇼케이스·플립 모션에서 각속도에 비례해
-     *     헤드 테두리의 이동 경로를 따라 속성 색 리본이 길게 늘어납니다.
-     *   · 꼭짓점 색(가산)으로 뒤로 갈수록 사그라져, 판이 아니라 빛줄기로 보입니다.
+     *  승우 님: "라켓 돌릴 때 임팩트 좀 더 있게" · "한 개는 몇 바퀴 돌게"
+     *           "뭔가 빨라보이게" · "멋있어 보여" · "뒤에 임팩트 잘 고민해봐"
+     *           "뭔가 실달린거 같아서 별로야"
+     *
+     *  · bm-v1.96 의 '회전 잔상 리본'(spin trail)은 없앴습니다 — 돌릴 때 따라다니는
+     *    가느다란 선이 실처럼 보인다는 피드백. 이제 회전은 라켓 자체의 다회전과
+     *    짧은 링·스파크·글로우로만 보여 줍니다(궤적선·리본·스트릭 없음).
+     *  · 회전 피크(spin)    : 짧은 원형 바람 링 2겹 + 바깥으로 튀는 둥근 스파크
+     *  · 마무리(land)       : 이중 충격파 링 + 방사형 스파크 + 하이라이트 글로우
+     *                         + 바닥 충격파 링 + 오라 펄스 + 카메라/스케일 펀치 + 진동
+     *  · 조각은 처음 한 번만 만들고 매 프레임 위치·색·투명도만 다시 씁니다(60fps).
      * ============================================================ */
-    var SPIN_N = 22;
-    var spinHist = [], spinPower = 0, spinPrev = null, spinLastAt = 0;
-    var spinPos = new Float32Array(SPIN_N * 2 * 3);
-    var spinCol = new Float32Array(SPIN_N * 2 * 3);
-    var spinGeo = new T.BufferGeometry();
-    spinGeo.setAttribute('position', new T.BufferAttribute(spinPos, 3));
-    spinGeo.setAttribute('color', new T.BufferAttribute(spinCol, 3));
-    var spinIdx = [];
-    for (var sIdx = 0; sIdx < SPIN_N - 1; sIdx++) {
-      var sK = sIdx * 2;
-      spinIdx.push(sK, sK + 1, sK + 3, sK, sK + 3, sK + 2);
-    }
-    spinGeo.setIndex(spinIdx);
-    var spinMesh = new T.Mesh(spinGeo, new T.MeshBasicMaterial({
-      vertexColors: true, transparent: true, opacity: 0,
-      blending: T.AdditiveBlending, depthWrite: false, depthTest: false, side: T.DoubleSide
-    }));
-    spinMesh.frustumCulled = false;
-    spinMesh.visible = false;
-    scene.add(spinMesh);
-    var spinTmp = new T.Vector3(), spinTmp2 = new T.Vector3(), spinCam = new T.Vector3(0, 0, 1);
 
-    /* 지금 입은 세트(없으면 효과)의 색 — 잔상·임팩트가 같은 테마 색을 씁니다 */
+    /* 지금 입은 세트(없으면 효과)의 색 — 링·스파크·글로우가 같은 테마 색을 씁니다 */
     function themeNow() {
       var look = lookOf(ctx);
       if (look.set) {
@@ -3505,71 +3492,259 @@
       };
     }
 
-    function spinColorOf() {
-      var look = lookOf(ctx);
-      if (look.set) return { col: look.set.color, col2: look.set.color2 || look.set.color };
-      var pal = (RC().smashPalette ? RC().smashPalette(look.effect.id) : null) || {};
-      return { col: pal.mid || look.effect.color || '#c6f24e', col2: pal.hot || '#ffffff' };
+    /* --- 스파크 풀 (64개) — 매 프레임 새로 만들지 않습니다 --- */
+    var MS_N = 64;
+    var mSpark = pointCloud(T, MS_N, 44, '#ffffff', particleTexture(), 1);
+    mSpark.visible = false;
+    mSpark.frustumCulled = false;
+    scene.add(mSpark);
+    var mSparkVel = new Float32Array(MS_N * 3);
+    var mSparkAge = new Float32Array(MS_N);
+    var mSparkLife = new Float32Array(MS_N);
+    var mSparkNext = 0;
+    (function () {
+      var pos = mSpark.geometry.attributes.position.array;
+      for (var q = 0; q < MS_N; q++) pos[q * 3 + 1] = 99999;   /* 처음엔 전부 화면 밖 */
+    })();
+
+    /* --- 충격파 링 — 가운데가 빈 '빛의 고리' 텍스처(가는 선 X, 도넛 윤곽 X).
+     *  · 하드한 원 테두리 대신 안팎으로 부드럽게 번지는 글로우 고리라、라켓 앞에서
+     *    '공기가 밀려 퍼지는' 느낌이 납니다. 두 겹(반 박자 차이) + 바닥 한 겹. */
+    function ringTexture() {
+      return canvasDraw('motion_ring', 256, 256, function (g, w, h) {
+        var r = w / 2;
+        var rg = g.createRadialGradient(r, r, r * 0.42, r, r, r);
+        rg.addColorStop(0, 'rgba(255,255,255,0)');
+        rg.addColorStop(0.62, 'rgba(255,255,255,0.03)');
+        rg.addColorStop(0.75, 'rgba(255,255,255,0.62)');
+        rg.addColorStop(0.82, 'rgba(255,255,255,1)');
+        rg.addColorStop(0.90, 'rgba(255,255,255,0.22)');
+        rg.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = rg;
+        g.fillRect(0, 0, w, h);
+      }, { srgb: true });
+    }
+    var mRingTex = ringTexture();
+    /* 회전 고리(화면을 향하는 스프라이트) — 늘 정면으로 보입니다 */
+    function motionRingSprite() {
+      var m = new T.Sprite(new T.SpriteMaterial({
+        map: mRingTex, color: new T.Color('#eaffd0'), transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false
+      }));
+      m.visible = false;
+      m.frustumCulled = false;
+      scene.add(m);
+      return m;
+    }
+    var mRingA = motionRingSprite();
+    var mRingB = motionRingSprite();
+    /* 바닥 고리 — 코트를 타고 퍼지는 충격파(난방으로 누인 평면) */
+    var mRingF = new T.Mesh(
+      new T.PlaneGeometry(1, 1),
+      new T.MeshBasicMaterial({
+        map: mRingTex, color: new T.Color('#eaffd0'), transparent: true, opacity: 0,
+        blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+      })
+    );
+    mRingF.rotation.x = -Math.PI / 2;
+    mRingF.position.set(0, floorY + 4, 0);
+    mRingF.visible = false;
+    mRingF.frustumCulled = false;
+    scene.add(mRingF);
+
+    /* --- 하이라이트 글로우 — 한 방의 중심이 짧게 밝아집니다 --- */
+    var mGlow = new T.Sprite(new T.SpriteMaterial({
+      map: glowTexture('m_hit', '255,246,222'), transparent: true, opacity: 0,
+      blending: T.AdditiveBlending, depthWrite: false, depthTest: false
+    }));
+    mGlow.visible = false;
+    scene.add(mGlow);
+    /* 한 방의 코어 — 0.2초짜리 날카로운 별섬광(묵직함은 이 한 점이 만듭니다) */
+    var mStar = new T.Sprite(new T.SpriteMaterial({
+      map: starTexture(), transparent: true, opacity: 0,
+      blending: T.AdditiveBlending, depthWrite: false, depthTest: false
+    }));
+    mStar.visible = false;
+    scene.add(mStar);
+
+    /* 링·글로우 수명(ms) — 짧아야 '빠르다'로 읽힙니다 */
+    var M_RING_MS = 215, M_GLOW_MS = 190, M_FLOOR_MS = 430, M_PUNCH_MS = 300;
+    var mRingAge = -1, mRingPow = 0, mRingLand = false;
+    var mFloorAge = -1, mFloorPow = 0, mGlowAge = -1, mGlowPow = 0, mStarAge = -1;
+    var mPunch = 0, mPunchT = 0, mFloorPulse = 0;
+    var mFireAt = -1, mFireIdx = -1, mPrevNow = 0;
+    var fxHold = null;    /* 점검용 — 링·글로우·펀치를 이 나이(ms)에 잠시 멈춰 둡니다(캡처·자동 테스트) */
+    var mHead = new T.Vector3();
+
+    /* 헤드(라켓 가운데)의 화면 속 위치 — 링·스파크가 여기서 터집니다 */
+    function motionHeadWorld(out) {
+      if (!parts || !parts.model) return out.set(0, 0, 0);
+      rootG.updateMatrixWorld(true);
+      return out.set(0, spec.headCY, 0).applyMatrix4(parts.model.matrixWorld);
     }
 
-    function updateSpinTrail(now) {
-      var dt = spinLastAt ? now - spinLastAt : 16;
-      spinLastAt = now;
-      var cur = { yaw: aimG.rotation.y, pitch: aimG.rotation.x, roll: aimG.rotation.z };
-      var target = spinStrengthOf(spinPrev, cur, dt);
-      spinPrev = cur;
-      /* 공을 칠 때는 스윙 아크·정타 연출이 주인공이라 잔상은 약하게만 */
-      if (smashOn) target *= 0.18;
-      /* 손을 떼도 잠깐 남아 흐르는 잔상이 '회전'처럼 보입니다(약 0.5초) */
-      spinPower = target > spinPower ? target : spinPower * 0.90 + target * 0.10;
-      if (spinPower < 0.015 || !parts) {
-        if (spinHist.length) spinHist.length = 0;
-        spinMesh.visible = false;
-        return;
+    function spawnMotionSparks(p, power, land) {
+      var n = Math.round((land ? 22 : 12) + 20 * power);
+      var pos = mSpark.geometry.attributes.position.array;
+      var spd = (land ? 1250 : 900) * (0.65 + 0.55 * power);
+      for (var i = 0; i < n; i++) {
+        var s = mSparkNext % MS_N;
+        mSparkNext = (mSparkNext + 1) % MS_N;
+        /* 껍질 위 임의 방향 — 화면 앞뒤로도 퍼져 입체감이 납니다 */
+        var u = Math.random() * 2 - 1;
+        var th = Math.random() * Math.PI * 2;
+        var r = Math.sqrt(1 - u * u);
+        var k = 0.55 + Math.random() * 0.75;
+        mSparkVel[s * 3] = r * Math.cos(th) * spd * k;
+        mSparkVel[s * 3 + 1] = u * spd * k + (land ? 120 : 220);
+        mSparkVel[s * 3 + 2] = r * Math.sin(th) * spd * k * 0.6;
+        pos[s * 3] = p.x;
+        pos[s * 3 + 1] = p.y;
+        pos[s * 3 + 2] = p.z;
+        mSparkAge[s] = 0;
+        mSparkLife[s] = 230 + Math.random() * 150;
       }
-      rootG.updateMatrixWorld(true);
-      /* 테두리(림) 위의 점을 따라갑니다 — 라켓 축 위의 점은 yaw 회전에서 제자리라
-       * 잔상이 생기지 않습니다(예전엔 그래서 거의 안 보였습니다). */
-      var head = spinTmp.set(spec.rx * 0.95, spec.headCY, 0).applyMatrix4(parts.model.matrixWorld).clone();
-      spinHist.push(head);
-      while (spinHist.length > SPIN_N) spinHist.shift();
-      var n = spinHist.length;
-      if (n < 3) { spinMesh.visible = false; return; }
-      var th = spinColorOf();
-      var a3 = hexRgb(th.col).split(','), b3 = hexRgb(th.col2).split(',');
-      var first = spinHist[0], last = spinHist[n - 1];
-      for (var i = 0; i < SPIN_N; i++) {
-        var src = i - (SPIN_N - n);
-        var p = src < 0 ? first : spinHist[src];
-        var pPrev = src <= 0 ? first : spinHist[src - 1];
-        /* 기록이 아직 SPIN_N 개에 못 미치면 앞쪽은 전부 first —
-         * 예전엔 spinHist[-12] 같은 자리를 읽어 'x' of undefined 로
-         * 프레임 루프가 통째로 멈췄습니다 (bm-v1.96.0 수정). */
-        var pNext = (src >= n - 1) ? last : (src + 1 < 0 ? first : spinHist[src + 1]);
-        var tan = spinTmp.subVectors(pNext, pPrev);
-        if (tan.lengthSq() < 0.0001) tan.set(0, 1, 0); else tan.normalize();
-        var side = spinTmp2.crossVectors(tan, spinCam).normalize();
-        if (!isFinite(side.x)) side.set(0, 1, 0);
-        var u = i / (SPIN_N - 1);                       /* 0 = 가장 오래된 꼬리, 1 = 지금 */
-        var wid = (6 + 64 * u) * (0.14 + 0.86 * Math.sin(Math.PI * Math.min(1, 0.06 + u)));
-        var fade = Math.min(1, Math.pow(u, 1.05) * (0.7 + 2.1 * spinPower));
-        spinPos[i * 6] = p.x + side.x * wid;
-        spinPos[i * 6 + 1] = p.y + side.y * wid;
-        spinPos[i * 6 + 2] = p.z + side.z * wid;
-        spinPos[i * 6 + 3] = p.x - side.x * wid;
-        spinPos[i * 6 + 4] = p.y - side.y * wid;
-        spinPos[i * 6 + 5] = p.z - side.z * wid;
-        spinCol[i * 6] = (a3[0] / 255) * fade;
-        spinCol[i * 6 + 1] = (a3[1] / 255) * fade;
-        spinCol[i * 6 + 2] = (a3[2] / 255) * fade;
-        spinCol[i * 6 + 3] = (b3[0] / 255) * fade * 0.9;
-        spinCol[i * 6 + 4] = (b3[1] / 255) * fade * 0.9;
-        spinCol[i * 6 + 5] = (b3[2] / 255) * fade * 0.9;
+      mSpark.geometry.attributes.position.needsUpdate = true;
+      mSpark.material.opacity = 1;
+      mSpark.visible = true;
+    }
+
+    function updateMotionSparks(dtMs) {
+      var pos = mSpark.geometry.attributes.position.array;
+      var dt = Math.min(48, Math.max(6, dtMs)) / 1000;
+      var any = false;
+      for (var i = 0; i < MS_N; i++) {
+        if (mSparkLife[i] <= 0) continue;
+        mSparkAge[i] += dtMs;
+        if (mSparkAge[i] >= mSparkLife[i]) {
+          mSparkLife[i] = 0;
+          pos[i * 3 + 1] = 99999;          /* 다 산 점은 화면 밖으로 */
+          continue;
+        }
+        any = true;
+        mSparkVel[i * 3 + 1] -= 900 * dt;   /* 살짝 떨어지며 퍼짐 */
+        pos[i * 3] += mSparkVel[i * 3] * dt;
+        pos[i * 3 + 1] += mSparkVel[i * 3 + 1] * dt;
+        pos[i * 3 + 2] += mSparkVel[i * 3 + 2] * dt;
       }
-      spinGeo.attributes.position.needsUpdate = true;
-      spinGeo.attributes.color.needsUpdate = true;
-      spinMesh.visible = true;
-      spinMesh.material.opacity = 1;
+      if (any) mSpark.geometry.attributes.position.needsUpdate = true;
+      mSpark.visible = any;
+    }
+
+    /* 한 방 — 이벤트 하나가 화면에 터집니다 */
+    function fireMotionHit(ev) {
+      var land = ev.kind === 'land';
+      var pw = ev.power || 0.6;
+      var th = themeNow();
+      var p = motionHeadWorld(mHead);
+      mRingAge = 0; mRingPow = pw * (land ? 1 : 0.72); mRingLand = land;
+      mRingA.material.color.set(th.col2);      /* 하얗게 뜨거운 코어 */
+      mRingB.material.color.set(th.col);       /* 테마 색 두 번째 고리 */
+      mRingA.position.copy(p);
+      mRingB.position.copy(p);
+      /* 두 번째 링은 살짝 기울여 — 정면 고리 하나만 보이면 밋밋합니다 */
+      mRingB.rotation.set(0.62, 0.34, 0.2);
+      spawnMotionSparks(p, pw, land);
+      if (land) {
+        mFloorAge = 0; mFloorPow = pw;
+        mRingF.material.color.set(th.col);
+        mGlowAge = 0; mGlowPow = pw;
+        mGlow.position.copy(p);
+        mStarAge = 0;
+        mStar.position.copy(p);
+        mGlow.material.map = glowTexture('m_hit_' + hexRgb(th.col2), hexRgb(th.col2));
+        mPunch = 1; mPunchT = 0;
+        mFloorPulse = 1;
+        if (BM.ui) BM.ui.haptic(24);
+      }
+    }
+
+    /* 모션 이벤트 발화 + 링·글로우·펀치 갱신 — 매 프레임 */
+    function updateMotionFx(now) {
+      var dt = mPrevNow ? now - mPrevNow : 16;
+      mPrevNow = now;
+      var RCx = RC();
+      if (motionOn && RCx.motionEvents) {
+        if (mFireAt !== motionAt) { mFireAt = motionAt; mFireIdx = -1; }
+        var ev = RCx.motionEvents(motionKind) || [];
+        var dur = RCx.motionDur ? RCx.motionDur(motionKind) : 2000;
+        var el = holdAt != null ? Math.min(dur - 1, holdAt) : (now - motionAt);
+        for (var i = mFireIdx + 1; i < ev.length; i++) {
+          if (ev[i].at > el) break;
+          fireMotionHit(ev[i]);
+          mFireIdx = i;
+        }
+      }
+      /* 링 — 바깥으로 확 퍼지며 얇아집니다 */
+      if (mRingAge >= 0) {
+        mRingAge = fxHold != null ? fxHold : mRingAge + dt;
+        var t = mRingAge / M_RING_MS;
+        if (t >= 1) {
+          mRingAge = -1; mRingA.visible = false; mRingB.visible = false;
+        } else {
+          var e = easeOut3(clamp01(t));
+          var a = 1 - t;
+          /* 스프라이트/평면은 '한 변 길이' — 고리 지름이 화면에서 이만큼 커집니다 */
+          var s1 = (mRingLand ? 124 : 92) + (mRingLand ? 344 : 250) * e;
+          mRingA.visible = true;
+          mRingA.scale.set(s1, s1, 1);
+          mRingA.material.opacity = Math.max(0, 1.0 * Math.pow(a, 1.15) * mRingPow);
+          /* 두 번째 고리는 반 박자(≈46ms) 늦게 — 한 겹이면 밋밋하고, 두 겹이면 '퍼진다'로 읽힙니다 */
+          var tb = (mRingAge - 46) / M_RING_MS;
+          if (tb > 0) {
+            var eb = easeOut3(clamp01(tb));
+            mRingB.visible = true;
+            var s2 = (mRingLand ? 100 : 80) + (mRingLand ? 268 : 186) * eb;
+            mRingB.scale.set(s2, s2, 1);
+            mRingB.material.opacity = Math.max(0, 0.7 * Math.pow(1 - tb, 1.6) * mRingPow);
+          } else {
+            mRingB.visible = false;
+          }
+        }
+      }
+      /* 바닥 충격파 — 코트를 타고 넓게 */
+      if (mFloorAge >= 0) {
+        mFloorAge = fxHold != null ? fxHold : mFloorAge + dt;
+        var tf = mFloorAge / M_FLOOR_MS;
+        if (tf >= 1) { mFloorAge = -1; mRingF.visible = false; }
+        else {
+          mRingF.visible = true;
+          var fR = 120 + 1280 * easeOut3(clamp01(tf));    /* 지름 = 2×반지름 */
+          mRingF.scale.set(fR, fR, 1);
+          mRingF.material.opacity = Math.max(0, 0.66 * (1 - tf) * (1 - tf) * mFloorPow);
+        }
+      }
+      /* 하이라이트 글로우 */
+      if (mGlowAge >= 0) {
+        mGlowAge = fxHold != null ? fxHold : mGlowAge + dt;
+        var tg = mGlowAge / M_GLOW_MS;
+        if (tg >= 1) { mGlowAge = -1; mGlow.visible = false; }
+        else {
+          mGlow.visible = true;
+          var gs = (210 + 330 * easeOut3(clamp01(tg))) * (0.7 + 0.3 * mGlowPow);
+          mGlow.scale.set(gs, gs, 1);
+          mGlow.material.opacity = Math.max(0, 1 * Math.pow(1 - tg, 1.5) * mGlowPow);
+        }
+      }
+      /* 별섬광 — 0.2초에 걸쳐 확 피었다가 사라집니다 */
+      if (mStarAge >= 0) {
+        mStarAge = fxHold != null ? fxHold : mStarAge + dt;
+        var tst = mStarAge / 190;
+        if (tst >= 1) { mStarAge = -1; mStar.visible = false; }
+        else {
+          mStar.visible = true;
+          var sst = 150 + 330 * easeOut3(clamp01(tst));
+          mStar.scale.set(sst, sst, 1);
+          mStar.material.opacity = Math.max(0, 0.95 * Math.pow(1 - tst, 2.2) * mGlowPow);
+        }
+      }
+      /* 펀치 — 1 → 0 으로 짧게 빠지며 카메라·스케일을 밀었다 놓습니다 */
+      if (mPunch > 0 && fxHold == null) {
+        mPunchT += dt;
+        mPunch = Math.max(0, 1 - mPunchT / M_PUNCH_MS);
+      }
+      if (mFloorPulse > 0 && fxHold == null) mFloorPulse = Math.max(0, mFloorPulse - dt / 520);
+      if (fxHold == null) updateMotionSparks(dt);
     }
 
     /* ============================================================
@@ -4342,12 +4517,35 @@
         holdAt = null;
         vel.yaw = 0; vel.pitch = 0;
         lastMove = Date.now();
+        /* 새 모션은 이벤트를 처음부터 다시 쏩니다 */
+        mFireAt = -1; mFireIdx = -1;
         if (BM.ui) BM.ui.haptic(12);
+        /* bm-v1.102.0 — 회전 휘두름 + 마무리 착지음을 화면과 같은 시각에 */
+        var rcM = RC();
+        if (BM.smashsound && BM.smashsound.motion) {
+          BM.smashsound.motion(k, {
+            landAt: rcM.motionLandAt ? rcM.motionLandAt(k) : 1700,
+            spins: rcM.motionSpins ? rcM.motionSpins(k) : []
+          });
+        }
         renderFrame(nowMs());
         return true;
       },
       mode: function () { return modeNow(); },
       smashing: function () { return smashOn; },
+      /* 점검용 — 모션을 원하는 시점에 멈춰 두고, 한 방의 나이를 고정해 캡처합니다 */
+      motionHold: function (ms) {
+        var k = motionKind || 'flip';
+        motionKind = k; motionAt = nowMs(); motionOn = true; holdAt = Math.max(0, Number(ms) || 0);
+        smashOn = false; mFireAt = -1; mFireIdx = -1;
+        renderFrame(nowMs());
+        return true;
+      },
+      motionFreeze: function (ageMs) {
+        fxHold = ageMs == null ? null : Math.max(0, Number(ageMs) || 0);
+        renderFrame(nowMs());
+        return true;
+      },
       kind: function () { return smashKind; },
       motioning: function () { return motionOn; },
       motionKind: function () { return motionKind; },
@@ -4376,17 +4574,19 @@
       dbg: function () {
         return {
           renderer: renderer, scene: scene, camera: camera, model: parts && parts.model, spec: spec,
-          /* bm-v1.96.0 — 돌릴 때·맞을 때·떨어지는 연출이 서로 다른 상태인지 확인하는 값 */
-          spin: function () { return spinPower; },
-          ribbon: function () { return spinMesh.visible; },
-          spinInfo: function () {
+          /* bm-v1.102.0 — 회전 잔상(실 같은 선)은 없앴습니다. 대신 스파크·링·펀치 상태를 봅니다. */
+          spin: function () { return 0; },
+          ribbon: function () { return false; },
+          spinInfo: function () { return { n: 0, power: 0, head: null, camZ: Math.round(camera.position.z) }; },
+          /* 모션 임팩트 상태 — 캡처·자동 점검에서 '정말 터졌는지' 확인 */
+          motionFx: function () {
+            var sparks = 0;
+            for (var q = 0; q < MS_N; q++) if (mSparkLife[q] > 0) sparks++;
             return {
-              n: spinHist.length, power: Math.round(spinPower * 100) / 100,
-              head: spinHist.length ? [Math.round(spinHist[spinHist.length - 1].x), Math.round(spinHist[spinHist.length - 1].y), Math.round(spinHist[spinHist.length - 1].z)] : null,
-              p0: [Math.round(spinPos[0]), Math.round(spinPos[1]), Math.round(spinPos[2])],
-              p1: [Math.round(spinPos[3]), Math.round(spinPos[4]), Math.round(spinPos[5])],
-              pLast: [Math.round(spinPos[(SPIN_N - 1) * 6]), Math.round(spinPos[(SPIN_N - 1) * 6 + 1])],
-              camZ: Math.round(camera.position.z)
+              ring: mRingAge >= 0, ringAge: Math.round(mRingAge), ringPower: Math.round(mRingPow * 100) / 100,
+              floor: mFloorAge >= 0, glow: mGlowAge >= 0, sparks: sparks,
+              punch: Math.round(mPunch * 100) / 100, pulse: Math.round(mFloorPulse * 100) / 100,
+              fired: mFireIdx, camZ: Math.round(camera.position.z)
             };
           },
           impact: function () { return kit ? kit.kind : 'none'; },
@@ -4451,6 +4651,8 @@
       if (mo) {
         motionScale = 1 - 0.26 * Math.min(1, Math.abs(roll) / 3.14);
         if (motionKind === 'flip') motionScale = 0.90;
+        if (mo.sq) motionScale *= mo.sq;                 /* 착지 눌림 → 반동 안착 */
+        motionScale *= 1 + 0.05 * mPunch * mPunch;        /* 마무리 한 방의 스케일 펀치 */
       }
       aimG.scale.setScalar(motionScale);
       airG.position.set(0, dy, 0);
@@ -4601,17 +4803,29 @@
         shuttle.visible = false;
         if (trail) trail.visible = false;
         if (trailCore) trailCore.visible = false;
-        camera.position.x = 0; camera.position.y = 0;
-        camera.position.z = (camera.userData.baseZ || camera.position.z) * (mo ? 1.10 : 1);
+        /* bm-v1.102.0 — 마무리 한 방: 짧고 묵직한 펀치 줌(1.10 → 1.03 → 1.10) + 미세 진동 */
+        var punchE = mPunch * mPunch;
+        camera.position.x = Math.sin(mPunchT * 0.045) * 13 * punchE;
+        camera.position.y = Math.cos(mPunchT * 0.052) * 10 * punchE;
+        camera.position.z = (camera.userData.baseZ || camera.position.z) * (mo ? 1.10 : 1) * (1 - 0.055 * punchE);
         camera.lookAt(0, 0, 0);
-        camera.rotation.z = 0;
+        camera.rotation.z = Math.sin(mPunchT * 0.06) * 0.014 * punchE;
       }
 
       /* 오라 */
       var tFx = (now % 100000) / 1000;
       animateEffect(parts.fx, tFx);
       /* 세트 조합 — 바닥 오라 + 특수 연출 (발견 직후에는 한 번 크게) */
-      animateFloorAura(floorAura, tFx);
+      animateFloorAura(floorAura, tFx, mFloorPulse);
+      /* 바닥 링도 한 방에 펄스 — 라켓 발치에서 빛이 확 산되며 퍼집니다 */
+      if (mFloorPulse > 0) {
+        var fp = 1 + 0.5 * mFloorPulse * mFloorPulse;
+        poolRing.scale.set(fp, fp, 1);
+        poolRing.material.opacity = 0.14 + 0.30 * mFloorPulse;
+      } else if (poolRing.scale.x !== 1) {
+        poolRing.scale.set(1, 1, 1);
+        poolRing.material.opacity = 0.14;
+      }
       var burstLeft = setBurstAt ? Math.max(0, setBurstMs - (now - setBurstAt)) : 0;
       if (setBurstAt && !burstLeft) setBurstAt = 0;
       animateSetScene(setScene, tFx, burstLeft);
@@ -4619,8 +4833,8 @@
       /* 접지 그림자 — 라켓이 기울면 살짝 흐려집니다 */
       shadow.material.opacity = 0.7 + Math.sin(now / 1400) * 0.04;
 
-      /* bm-v1.96.0 — 돌릴 때의 회전 잔상 (가만히 있을 때는 그리지 않음) */
-      updateSpinTrail(now);
+      /* bm-v1.102.0 — 돌릴 때의 한 방들(링·스파크·글로우·펀치). 궤적선은 그리지 않습니다. */
+      updateMotionFx(now);
 
       renderer.render(scene, camera);
       ready = true;
