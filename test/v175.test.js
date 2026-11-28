@@ -237,15 +237,15 @@
    * ========================================================= */
   test('v1.75 버전: sw · app · 스타일 캐시 · TWA · README · 테스트 목록이 함께', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.103.0';", 'sw 캐시 이름');
-    includes(readRoot('app.js'), "version: 'v1.103.0'", 'app 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.104.0';", 'sw 캐시 이름');
+    includes(readRoot('app.js'), "version: 'v1.104.0'", 'app 버전');
     includes(readRoot('index.html'), 'styles.css?v=20261128-6', '스타일 캐시');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.103.0', 'TWA 이름');
-    eq(twa.appVersionCode, 97, 'TWA 코드');
-    eq(twa.appVersion, '1.103.0', 'TWA 버전');
+    eq(twa.appVersionName, '1.104.0', 'TWA 이름');
+    eq(twa.appVersionCode, 98, 'TWA 코드');
+    eq(twa.appVersion, '1.104.0', 'TWA 버전');
     var readme = readRoot('README.md');
-    includes(readme, 'bm-v1.103.0', 'README 버전 절');
+    includes(readme, 'bm-v1.104.0', 'README 버전 절');
     includes(readme, '하트·광고 보상 서버 잠금', 'README 요약');
     includes(readRoot('test/run.js'), 'test/v175.test.js', '테스트 목록');
   });

@@ -352,11 +352,11 @@
   test('v1.41 버전: sw.js · app.js · twa-manifest.json이 1.41.1으로 맞는다', function () {
     var sw = readRoot('sw.js'), app = readRoot('app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    includes(sw, "var VERSION = 'bm-v1.103.0'", 'sw.js');
-    includes(app, "version: 'v1.103.0'", 'app.js');
-    eq(twa.appVersionName, '1.103.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.103.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 97, '코드 38 유지');
+    includes(sw, "var VERSION = 'bm-v1.104.0'", 'sw.js');
+    includes(app, "version: 'v1.104.0'", 'app.js');
+    eq(twa.appVersionName, '1.104.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.104.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 98, '코드 38 유지');
   });
 
   test('v1.41 로드: index.html · sw.js 캐시에 js/report.js가 들어 있다', function () {

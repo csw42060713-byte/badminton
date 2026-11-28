@@ -155,7 +155,7 @@
   if (hasNode) {
     test('v1.96 3D: 돌릴 때의 연출과 정타 임팩트가 서로 다른 코드·상태다', function () {
       var js = readRoot('js/racket3d.js');
-      /* bm-v1.103.0 — 돌릴 때 따라다니는 '실 같은 선'(회전 잔상 리본)은 없앴습니다.
+      /* bm-v1.104.0 — 돌릴 때 따라다니는 '실 같은 선'(회전 잔상 리본)은 없앴습니다.
        *  대신 링·스파크·글로우로 임팩트를 냅니다. */
       excludes(js, 'function updateSpinTrail', '회전 잔상 리본 제거');
       excludes(js, 'spinMesh', '리본 메시 제거');
@@ -388,17 +388,17 @@
     });
 
     test('v1.96 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
-      includes(readRoot('sw.js'), "var VERSION = 'bm-v1.103.0'", 'sw 버전');
-      includes(readRoot('app.js'), "version: 'v1.103.0'", 'app 버전');
-      includes(readRoot('js/push.js'), "version: 'v1.103.0'", 'push 버전');
+      includes(readRoot('sw.js'), "var VERSION = 'bm-v1.104.0'", 'sw 버전');
+      includes(readRoot('app.js'), "version: 'v1.104.0'", 'app 버전');
+      includes(readRoot('js/push.js'), "version: 'v1.104.0'", 'push 버전');
       includes(readRoot('index.html'), 'styles.css?v=20261128-6', '스타일 캐시 키');
       var twa = readJson('twa-manifest.json');
-      eq(twa.appVersionName, '1.103.0', 'TWA 이름');
-      eq(twa.appVersion, '1.103.0', 'TWA appVersion');
-      eq(twa.appVersionCode, 97, 'TWA 코드');
-      includes(readRoot('README.md'), 'bm-v1.103.0', 'README 변경 이력');
+      eq(twa.appVersionName, '1.104.0', 'TWA 이름');
+      eq(twa.appVersion, '1.104.0', 'TWA appVersion');
+      eq(twa.appVersionCode, 98, 'TWA 코드');
+      includes(readRoot('README.md'), 'bm-v1.104.0', 'README 변경 이력');
       includes(readRoot('test/run.js'), 'test/v196.test.js', '테스트 목록');
-      includes(readRoot('sw.js'), 'bm-v1.103.0', 'sw 캐시 설명');
+      includes(readRoot('sw.js'), 'bm-v1.104.0', 'sw 캐시 설명');
     });
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

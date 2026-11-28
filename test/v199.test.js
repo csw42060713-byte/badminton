@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v199.test.js — bm-v1.103.0
+ * test/v199.test.js — bm-v1.104.0
  *
  *   승우 님 요청(2026-11-28): "체육관 같은데 후기 올리면 하트 눌러주면 하트 올라가게하는건 어떨까?"
  *   상한 확정: "최대3개"
@@ -265,8 +265,9 @@
     includes(card, '이 후기 주인에게 하트 +1', '남의 후기 안내');
     includes(card, 'gymreview__rows', '기존 네 칸 그대로');
 
-    /* 내 후기면 오늘 받은 수(N/3) */
-    var mine = stateOf([reviewPost('gp2', ME_KEY), likeRow('h1', 'demo_chi', ME_KEY, 'gp2')]);
+    /* 내 후기면 오늘 받은 수(N/3) — 글·좋아요 모두 오늘 날짜로 만들어야 '오늘 N/3'에 잡힌다 */
+    var today = U.ymd();
+    var mine = stateOf([reviewPost('gp2', ME_KEY, today), likeRow('h1', 'demo_chi', ME_KEY, 'gp2', today)]);
     var mineCard = BM.views.community._gymReviewCard(mine.data.posts[0], mine);
     includes(mineCard, '오늘 1/3', '내 후기 오늘 받은 수');
     includes(mineCard, '좋아요를 받으면 하트 +1', '내 후기 안내');
@@ -349,15 +350,15 @@
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var push = readRoot('js/push.js');
-    includes(sw, "var VERSION = 'bm-v1.103.0'", 'sw.js');
-    includes(app, "version: 'v1.103.0'", 'app.js');
-    includes(push, "version: 'v1.103.0'", 'push.js');
+    includes(sw, "var VERSION = 'bm-v1.104.0'", 'sw.js');
+    includes(app, "version: 'v1.104.0'", 'app.js');
+    includes(push, "version: 'v1.104.0'", 'push.js');
     includes(index, 'styles.css?v=20261128-6', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.103.0', 'TWA 이름');
-    eq(twa.appVersion, '1.103.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 97, 'TWA 버전 코드');
-    includes(readRoot('README.md'), 'bm-v1.103.0', 'README');
+    eq(twa.appVersionName, '1.104.0', 'TWA 이름');
+    eq(twa.appVersion, '1.104.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 98, 'TWA 버전 코드');
+    includes(readRoot('README.md'), 'bm-v1.104.0', 'README');
     includes(readRoot('test/run.js'), 'test/v199.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v1103.test.js — bm-v1.103.0
+ * test/v1103.test.js — bm-v1.104.0
  *
  *   2026-11-28 19시 배드민턴 AI 인터뷰 — 체전 1등 선수 현장 기준 실전 노하우 2가지
  *     "상대 스매시가 엄청 강할 때는 서서 맞서지 말고 자세를 낮게 숙여서 수비 시야·타점을
@@ -265,14 +265,14 @@
 
   test('v1.103 버전: sw · app · push · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.103.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.103.0'", 'app.js');
-    includes(readRoot('js/push.js'), "version: 'v1.103.0'", 'push.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.104.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.104.0'", 'app.js');
+    includes(readRoot('js/push.js'), "version: 'v1.104.0'", 'push.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.103.0', 'TWA 이름');
-    eq(twa.appVersion, '1.103.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 97, 'TWA 버전 코드 +1');
-    includes(readRoot('README.md'), 'bm-v1.103.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.104.0', 'TWA 이름');
+    eq(twa.appVersion, '1.104.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 98, 'TWA 버전 코드 +1');
+    includes(readRoot('README.md'), 'bm-v1.104.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v1103.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
