@@ -32,7 +32,8 @@ BASE = (LIVE_BASE + 'index.html?c=%d' % int(time.time()) if LIVE
 console_errors = []      # (step, text) 실제 앱 오류
 net_errors = []          # 로컬 점검에서 차단한 외부 요청(예상된 실패) — 앱 오류로 세지 않음
 page_errors = []
-csp_violations = []
+csp_violations = []      # (step, text) 우리 앱 CSP 위반
+csp_external = []        # 외부(구글 로그인) 프레임의 report-only 알림 — 앱 위반 아님
 checks = []
 
 
@@ -91,7 +92,10 @@ with sync_playwright() as p:
     def on_console(m):
         txt = m.text or ''
         if 'Content Security Policy' in txt or 'Refused to' in txt:
-            csp_violations.append((step['name'], txt))
+            if 'report-only' in txt and 'accounts.google.com' in txt:
+                csp_external.append((step['name'], txt))
+            else:
+                csp_violations.append((step['name'], txt))
         if m.type == 'error':
             if not LIVE and ('Failed to load resource' in txt or 'ERR_FAILED' in txt):
                 net_errors.append((step['name'], txt))
@@ -358,6 +362,97 @@ with sync_playwright() as p:
     # =========================================================
     # ④ 커스텀 라켓 3D — 다회전 스핀·임팩트·소리 (bm-v1.102.0)
     # =========================================================
+    # =========================================================
+    # 3b. 더 깊은 화면 — 리포트 · 점수판 · 지도 · 모집 글쓰기 · 멘토
+    # =========================================================
+    print('\n[3b] 깊은 화면 (리포트·점수판·지도·글쓰기)', flush=True)
+
+    def close_any():
+        for _ in range(3):
+            done = pg.evaluate("""() => {
+              const sel = ['#reportPanel [data-rpt-close]', '#gympage [data-gym-close]',
+                           '#sheet [data-close]', '[data-close]', '[data-sb-close]', '.sb__close'];
+              for (const s of sel) {
+                const el = document.querySelector(s);
+                if (el && el.offsetParent !== null) { el.click(); return true; }
+              }
+              return false;
+            }""")
+            if not done:
+                break
+            pg.wait_for_timeout(300)
+        if pg.locator('#reportPanel.is-on').count():
+            pg.evaluate("() => { if (BM.report && BM.report.close) BM.report.close(); }")
+            pg.wait_for_timeout(300)
+        if pg.locator('.sb__btn').count():
+            pg.keyboard.press('Escape')
+            pg.wait_for_timeout(400)
+
+    def open_surface(tab, label, selector, look_for, full_screen=False, optional=False):
+        m = mark(label)
+        pg.tap('[data-tab="%s"]' % tab)
+        pg.wait_for_timeout(800)
+        if optional and not pg.locator(selector).count():
+            check(label + ' — 이 유형에는 없는 화면(정상)', True, '건너뜀')
+            since(m, label)
+            return
+        okclick = pg.evaluate("""(sel) => {
+          const el = document.querySelector(sel);
+          if (!el) return false;
+          el.scrollIntoView({block: 'center'});
+          el.click();
+          return true;
+        }""", selector)
+        pg.wait_for_timeout(1100)
+        text = pg.evaluate("() => document.body.innerText.slice(0, 6000)")
+        check(label + ' 버튼이 실제로 열린다', bool(okclick))
+        if okclick and look_for:
+            missing = [w for w in look_for if w not in text]
+            check(label + ' 화면이 내용을 그린다', not missing, missing)
+        check(label + ' 가로 넘침 0', overflow() <= 0, overflow())
+        if not full_screen:
+            cv = covered_buttons()
+            check(label + ' 가려진 버튼 0', len(cv) == 0, cv)
+        since(m, label)
+        close_any()
+        pg.wait_for_timeout(400)
+
+    open_surface('log', '주간·월간 리포트', '[data-act="open-report"]', ['주간', '월간'], True)
+    open_surface('log', '코트 점수판', '[data-act="open-scoreboard"]', ['내 팀', '상대'], True)
+    open_surface('matching', '체육관 지도', '[data-act="open-gym-map"]', ['체육관'], True)
+    open_surface('community', '게스트 모집 글쓰기', '[data-act="write-guest"]', ['언제'])
+    open_surface('coach', '멘토 신청 화면', '[data-act="open-mentor"]', [], optional=True)
+
+    # 커뮤니티 빈 화면의 '새 일지 쓰기' → 일지 탭으로 이동하고, 메모 칸에 글자가 들어간다
+    m = mark('일지 메모 입력')
+    pg.tap('[data-tab="community"]')
+    pg.wait_for_timeout(700)
+    typed = pg.evaluate("""() => {
+      const el = document.querySelector('[data-act="write-log"]') || document.querySelector('[data-act="write-guest"]');
+      if (!el) return false;
+      el.click(); return true;
+    }""")
+    pg.wait_for_timeout(900)
+    if typed:
+        moved = pg.evaluate("""() => {
+          const t = document.querySelector('[data-tab="log"]');
+          return !!(t && t.classList.contains('is-on'));
+        }""")
+        check('커뮤니티 빈 화면의 글쓰기 버튼이 일지 탭으로 이어진다', moved)
+        ta = pg.locator('[data-field="note"]').first
+        if ta.count():
+            ta.fill('오늘 수비 템포 점검')
+            pg.wait_for_timeout(300)
+            check('일지 메모 칸에 글자가 들어간다',
+                  '수비 템포' in pg.evaluate("() => (document.querySelector('[data-field=\"note\"]') || {}).value || ''"))
+        else:
+            check('일지 메모 칸이 있다', False)
+    check('입력 화면 가로 넘침 0', overflow() <= 0, overflow())
+    since(m, '일지 메모 입력')
+
+    # =========================================================
+    # 4. 커스텀 라켓 3D (다회전 스핀)
+    # =========================================================
     print('\n[4] 커스텀 라켓 3D (다회전 스핀)', flush=True)
     m = mark('커스텀 라켓 3D')
     pg.tap('[data-tab="my"]')
@@ -471,6 +566,8 @@ with sync_playwright() as p:
     check('전체 CSP 위반 0', len(csp_violations) == 0, len(csp_violations))
     if net_errors:
         print('   (로컬 점검에서 막은 외부 요청 %d건 — 앱 오류 아님)' % len(net_errors), flush=True)
+    if csp_external:
+        print('   (구글 로그인 프레임의 report-only 알림 %d건 — 앱 CSP 위반 아님)' % len(csp_external), flush=True)
     for s, t in console_errors[:12]:
         print('   console[' + s + ']: ' + t[:220], flush=True)
     for s, t in page_errors[:12]:
@@ -485,6 +582,7 @@ with sync_playwright() as p:
         'blocked_network': net_errors,
         'page_errors': page_errors,
         'csp_violations': csp_violations,
+        'csp_external': csp_external,
         'passed': sum(1 for c in checks if c['ok']),
         'total': len(checks),
         'at': time.strftime('%Y-%m-%d %H:%M:%S')
