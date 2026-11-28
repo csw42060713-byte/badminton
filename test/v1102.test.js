@@ -267,8 +267,9 @@
       var js = readRoot('js/racketcustom.js');
       includes(js, 'function drawMotionImpact', '2D 임팩트');
       includes(js, 'if (mo) drawMotionImpact(g, vv, gm, mo, w, h, mEl);', '모션 중에만 그린다');
-      includes(js, 'g.beginPath(); g.arc(cx, cy, r0, 0, TAU); g.stroke();', '바깥 링');
-      includes(js, 'g.beginPath(); g.arc(cx, cy, r0 * 0.78, 0, TAU); g.stroke();', '안쪽 링(이중)');
+      includes(js, 'ringBand(g, cx, cy, r0 * 0.94, r0 * 1.30)', '바깥 링(면으로 채운 밴드)');
+      includes(js, 'ringBand(g, cx, cy, r0 * 1.00, r0 * 1.07)', '이중 충격파 링');
+      includes(js, 'function ringBand', '고리 밴드 헬퍼');
       includes(js, 'g.createRadialGradient(cx, cy, 0, cx, cy, gr)', '글로우');
       includes(js, 'var n = land ? 14 : 8;', '방사형 스파크');
       includes(js, 'shake += Math.sin(mEl / 9) * mShake;', '착지 화면 흔들림');
