@@ -679,6 +679,46 @@
       '<p class="planbox__src">' + U.esc(j.sourceShort || j.source) + '</p></div></div></details>';
   }
 
+  /* 오늘 컨디션 케어 — 수분·체온 + 정신 피로 (bm-v1.101.0)
+   *   땀으로 빠지는 만큼 쉬는 시간에 나눠 마시기(1L/시간)와, 머리가 지친 날의 반응 저하(약 7%)를
+   *   한 접기에 담았습니다. 둘 다 그날그날 조건에 맞을 때만 나오고, 둘 다 없으면 이 접기는 아예 그리지 않습니다.
+   *   (카드를 따로 만들면 접기가 두 칸 늘어나서, 조건이 맞는 날에도 한 칸으로 끝나게 묶었습니다.) */
+  function hydrationBlock(h) {
+    if (!h || !h.on) return '';
+    var tips = (h.tips || []).map(function (t) { return '<li>' + U.esc(t) + '</li>'; }).join('');
+    return '<div class="planbox" data-hydration="' + U.esc(h.level) + '">' +
+      '<p class="planbox__t">' + U.esc(h.title) + ' · ' + U.esc(h.label) + '</p>' +
+      '<p class="planbox__v">' + U.esc(h.reason) + '</p>' +
+      (tips ? '<ul class="bullets">' + tips + '</ul>' : '') +
+      (h.electrolyte ? '<p class="planbox__v">' + U.esc(h.electrolyte) + '</p>' : '') +
+      '<p class="planbox__src">' + U.esc(h.sourceShort || h.source) + '</p></div>';
+  }
+
+  function mentalBlock(m) {
+    if (!m || !m.on) return '';
+    var steps = (m.steps || []).map(function (s) {
+      return '<li><b>' + U.esc(s.name) + '</b> — ' + U.esc(s.how) + '</li>';
+    }).join('');
+    return '<div class="planbox mt8" data-mental="' + U.esc(m.level) + '">' +
+      '<p class="planbox__t">' + U.esc(m.title) + ' · ' + U.esc(m.label) + '</p>' +
+      '<p class="planbox__v">' + U.esc(m.reason) + '</p>' +
+      (steps ? '<p class="planbox__t mt8">오늘 이렇게 해 보세요</p><ul class="bullets">' + steps + '</ul>' : '') +
+      '<p class="planbox__src">' + U.esc(m.sourceShort || m.source) + '</p></div>';
+  }
+
+  function stateFold(an) {
+    var hyHtml = hydrationBlock(an && an.hydration);
+    var mfHtml = mentalBlock(an && an.mental);
+    if (!hyHtml && !mfHtml) return '';
+    var parts = [];
+    if (hyHtml) parts.push('수분');
+    if (mfHtml) parts.push('머리 피로');
+    return '<details class="fold fold--ai" data-fold="state">' +
+      '<summary class="fold__sum"><span>오늘 컨디션 케어 <small>' + U.esc(parts.join(' · ')) + '</small></span>' +
+      '<i class="fold__val">' + parts.length + '가지</i>' + UI.icon('arrow', 'fold__car') + '</summary>' +
+      '<div class="fold__body">' + hyHtml + mfHtml + '</div></details>';
+  }
+
   /* 실전 선수 오프코트 루틴 — 코트 날 · 웨이트 날 순서 + 코어·허리 보강 3종 + 자전거 40분 */
   function offcourtFold(an) {
     var oc = an && an.offcourt;
@@ -791,6 +831,7 @@
       analysisDetails(an, D.partnerStats(((state && state.data && state.data.records) || []), { limit: 3 })) +
       preventFold(an) +
       jumpFold(an) +
+      stateFold(an) +
       guardFold(an) +
       proFold(an) +
       '<details class="fold fold--ai" data-fold="week">' +
