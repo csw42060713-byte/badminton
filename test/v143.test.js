@@ -517,12 +517,12 @@
   /* ---------- 6. 버전 · 문서 ---------- */
   test('v1.43 버전: sw · app · TWA 가 함께 올라간다', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.102.0'", 'sw.js');
-    includes(readRoot('app.js'), "version: 'v1.102.0'", 'app.js');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.103.0'", 'sw.js');
+    includes(readRoot('app.js'), "version: 'v1.103.0'", 'app.js');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.102.0', 'TWA 버전 이름');
-    eq(twa.appVersion, '1.102.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 96, 'appVersionCode 유지');
+    eq(twa.appVersionName, '1.103.0', 'TWA 버전 이름');
+    eq(twa.appVersion, '1.103.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 97, 'appVersionCode 유지');
     includes(readRoot('index.html'), 'styles.css?v=20261128-6', '스타일 캐시 키');
   });
 

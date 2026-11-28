@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v1101.test.js — bm-v1.102.0
+ * test/v1101.test.js — bm-v1.103.0
  *
  *   2026-11-28 16시 정기 배드민턴 AI 고도화 — 아직 ai.js에 없던 검증된 논문 근거 2가지
  *
@@ -323,15 +323,15 @@
     if (!hasNode) return;
     var sw = readRoot('sw.js'), app = readRoot('app.js'), index = readRoot('index.html');
     var push = readRoot('js/push.js');
-    includes(sw, "var VERSION = 'bm-v1.102.0'", 'sw.js');
-    includes(app, "version: 'v1.102.0'", 'app.js');
-    includes(push, "version: 'v1.102.0'", 'push.js');
+    includes(sw, "var VERSION = 'bm-v1.103.0'", 'sw.js');
+    includes(app, "version: 'v1.103.0'", 'app.js');
+    includes(push, "version: 'v1.103.0'", 'push.js');
     includes(index, 'styles.css?v=20261128-6', '스타일 캐시 키');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.102.0', 'TWA 이름');
-    eq(twa.appVersion, '1.102.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 96, 'TWA 버전 코드 +1');
-    includes(readRoot('README.md'), 'bm-v1.102.0', 'README');
+    eq(twa.appVersionName, '1.103.0', 'TWA 이름');
+    eq(twa.appVersion, '1.103.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 97, 'TWA 버전 코드 +1');
+    includes(readRoot('README.md'), 'bm-v1.103.0', 'README');
     includes(readRoot('test/run.js'), 'test/v1101.test.js', '테스트 목록');
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

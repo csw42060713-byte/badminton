@@ -250,7 +250,7 @@
     var fMid = RC.motionPose('flip', RC.MOTION_MS.flip * 0.45);
     ok(fMid.dy < -20, '공중으로 뜬다 ' + fMid.dy.toFixed(1));
     ok(fMid.roll > 1.2, '회전 중 ' + fMid.roll.toFixed(2));
-    /* bm-v1.102.0 — flip 은 '한 바퀴'가 아니라 3바퀴(1080°) 콤보입니다 */
+    /* bm-v1.103.0 — flip 은 '한 바퀴'가 아니라 3바퀴(1080°) 콤보입니다 */
     var fEnd = RC.motionPose('flip', RC.MOTION_MS.flip);
     ok(Math.abs(fEnd.dy) < 2, '착지');
     ok(Math.abs(fEnd.roll - Math.PI * 6) < 0.01, '3바퀴(6π)를 마쳐 제자리 ' + fEnd.roll.toFixed(3));
@@ -320,15 +320,15 @@
 
   test('v1.86 버전: sw · app · push · 스타일 캐시 · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.102.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.102.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.102.0'", 'push 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.103.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.103.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.103.0'", 'push 버전');
     includes(readRoot('index.html'), 'styles.css?v=20261128-6', '스타일 캐시 키');
     var twa = readJson('twa-manifest.json');
-    eq(twa.appVersionName, '1.102.0', 'TWA 이름');
-    eq(twa.appVersion, '1.102.0', 'TWA appVersion');
-    eq(twa.appVersionCode, 96, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.102.0', 'README');
+    eq(twa.appVersionName, '1.103.0', 'TWA 이름');
+    eq(twa.appVersion, '1.103.0', 'TWA appVersion');
+    eq(twa.appVersionCode, 97, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.103.0', 'README');
     includes(readRoot('test/run.js'), 'test/v186.test.js', '테스트 목록');
   });
 

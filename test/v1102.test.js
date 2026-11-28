@@ -1,5 +1,5 @@
 /* ============================================================
- * test/v1102.test.js — bm-v1.102.0
+ * test/v1102.test.js — bm-v1.103.0
  *
  *   승우 님 요청(2026-11-28 저녁):
  *     "라켓 돌릴 때 임팩트 좀 더 있게"
@@ -313,15 +313,15 @@
 
   test('v1.102 버전: sw · app · push · TWA · README · 테스트 목록', function () {
     if (!hasNode) return;
-    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.102.0'", 'sw 버전');
-    includes(readRoot('app.js'), "version: 'v1.102.0'", 'app 버전');
-    includes(readRoot('js/push.js'), "version: 'v1.102.0'", 'push 버전');
+    includes(readRoot('sw.js'), "var VERSION = 'bm-v1.103.0'", 'sw 버전');
+    includes(readRoot('app.js'), "version: 'v1.103.0'", 'app 버전');
+    includes(readRoot('js/push.js'), "version: 'v1.103.0'", 'push 버전');
     var twa = JSON.parse(readRoot('twa-manifest.json'));
-    eq(twa.appVersionName, '1.102.0', 'TWA 이름');
-    eq(twa.appVersionCode, 96, 'TWA 코드');
-    includes(readRoot('README.md'), 'bm-v1.102.0', 'README 변경 이력');
+    eq(twa.appVersionName, '1.103.0', 'TWA 이름');
+    eq(twa.appVersionCode, 97, 'TWA 코드');
+    includes(readRoot('README.md'), 'bm-v1.103.0', 'README 변경 이력');
     includes(readRoot('test/run.js'), 'test/v1102.test.js', '테스트 목록');
-    includes(readRoot('sw.js'), 'bm-v1.102.0', 'sw 변경 이력');
+    includes(readRoot('sw.js'), 'bm-v1.103.0', 'sw 변경 이력');
   });
 
   test('v1.102 보호: 새 코드·문구에 실존 선수 이름이 없다', function () {

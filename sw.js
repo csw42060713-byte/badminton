@@ -545,7 +545,7 @@
  *             ⑤ 2D 폴백도 같은 시각에 이중 링·글로우·스파크(drawMotionImpact).
  *             js·css 가 바뀌어 이 VERSION 을 올립니다(styles.css 는 그대로 — v=20261128-6).
  * ============================================================ */
-var VERSION = 'bm-v1.102.0';
+var VERSION = 'bm-v1.103.0';
 var SHELL = [
   './',
   './index.html',
